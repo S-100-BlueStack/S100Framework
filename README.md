@@ -1,5 +1,6 @@
 # S-100 Framework
-*S-100: An Unexpected Journey*
+*… are you ready to join together ?*
+
 
 ![banner](banner.jpg)
 
