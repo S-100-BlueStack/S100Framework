@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.20348.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>S100Framework.WPF</RootNamespace>
+	<UseWPF>true</UseWPF>
+	<Platforms>AnyCPU</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="ItemsControlTemplateSelector.cs.cs" />
+    <Compile Remove="PropertyGrid.xaml.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Images\minus.png" />
+    <None Remove="Images\plus.png" />
+    <None Remove="S100Framework.WPF.S100AttributeEditor.csproj.bak" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Remove="PropertyGrid.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\S100Framework.WPF\S100Framework.WPF.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ArcGIS.Desktop.Extensions">
+      <HintPath>C:\Program Files\ArcGIS\Pro\bin\Extensions\DesktopExtensions\ArcGIS.Desktop.Extensions.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Images\minus.png" />
+    <Resource Include="Images\plus.png" />
+  </ItemGroup>
+
+</Project>

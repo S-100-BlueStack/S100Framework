@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.20348.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>S100Framework.ViewModel</RootNamespace>
+	<UseWPF>true</UseWPF>
+	<Platforms>AnyCPU</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Editors.cs" />
+    <Compile Remove="Helper.cs" />
+    <Compile Remove="S-101_ViewModel.g.cs" />
+    <Compile Remove="S-122_ViewModel.g.cs" />
+    <Compile Remove="S-123_ViewModel.g.cs" />
+    <Compile Remove="S-124_ViewModel.g.cs" />
+    <Compile Remove="S-125_ViewModel.g.cs" />
+    <Compile Remove="S-127_ViewModel.g.cs" />
+    <Compile Remove="S-128_ViewModel.g.cs" />
+    <Compile Remove="S-131_ViewModel.g.cs" />
+    <Compile Remove="S-201_ViewModel.g.cs" />
+    <Compile Remove="S-501_ViewModel.g.cs" />
+    <Compile Remove="S100AttributeEditorControl.cs" />
+    <Compile Remove="ViewModelBase.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Remove="Themes\Generic.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Extended.Wpf.Toolkit" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Images\Delete16.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Controls\" />
+    <Folder Include="Themes\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\S100Framework.Catalogues\S100Framework.Catalogues.csproj" />
+  </ItemGroup>
+
+</Project>
