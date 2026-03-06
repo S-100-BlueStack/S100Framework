@@ -72,7 +72,7 @@ BenchmarkDotNet.Artifacts/
 # .NET Core
 project.lock.json
 project.fragment.lock.json
-artifacts/
+#artifacts/
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
@@ -416,3 +416,12 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+/tests/TestCatalogueBuilder/S-101_FC.g.cs
+/tests/TestCatalogueBuilder/S-122_FC.g.cs
+/tests/TestCatalogueBuilder/S-123_FC.g.cs
+/tests/TestCatalogueBuilder/S-124_FC.g.cs
+/tests/TestCatalogueBuilder/S-125_FC.g.cs
+/tests/TestCatalogueBuilder/S-127_FC.g.cs
+/tests/TestCatalogueBuilder/S-128_FC.g.cs
+/tests/TestCatalogueBuilder/S-131_FC.g.cs
+/tests/TestCatalogueBuilder/S-501_FC.g.cs
