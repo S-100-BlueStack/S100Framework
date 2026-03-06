@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Dataset.cs" />
+    <Compile Remove="DomainModelBase.cs" />
+    <Compile Remove="Helper.cs" />
+    <Compile Remove="PropertyItemCollection.cs" />
+    <Compile Remove="S-125_FC.attribute.g.cs" />
+    <Compile Remove="S-201_FC.g.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JsonFlatten" Version="1.0.4" />
+  </ItemGroup>
+
+</Project>
