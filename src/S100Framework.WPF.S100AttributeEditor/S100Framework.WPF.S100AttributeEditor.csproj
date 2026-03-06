@@ -7,6 +7,26 @@
     <RootNamespace>S100Framework.WPF</RootNamespace>
 	<UseWPF>true</UseWPF>
 	<Platforms>AnyCPU</Platforms>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Company>S-100-BlueStack</Company>
+    <Product>S100Framework</Product>
+    <PackageId>S100Framework.WPF.S100AttributeEditor</PackageId>
+	<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>	
+	<AssemblyVersion>2.1.2.0</AssemblyVersion>	
+	<Configurations>Debug</Configurations>	
+	<Version>2.1.17</Version>	 	  
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <ShouldCreateLogs>True</ShouldCreateLogs>
+    <AdvancedSettingsExpanded>False</AdvancedSettingsExpanded>
+    <UpdateAssemblyVersion>False</UpdateAssemblyVersion>
+    <UpdateAssemblyFileVersion>False</UpdateAssemblyFileVersion>
+    <UpdateAssemblyInfoVersion>False</UpdateAssemblyInfoVersion>
+    <UpdatePackageVersion>True</UpdatePackageVersion>
+    <PackageVersionSettings>AssemblyVersion.IncrementWithAutoReset.None</PackageVersionSettings>
+    <AssemblyInfoVersionType>SettingsVersion</AssemblyInfoVersionType>
+    <InheritWinAppVersionFrom>None</InheritWinAppVersionFrom>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,7 +45,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.142" />
   </ItemGroup>
 
   <ItemGroup>

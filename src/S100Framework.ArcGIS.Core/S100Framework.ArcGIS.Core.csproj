@@ -5,6 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Platforms>x64</Platforms>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Company>S-100-BlueStack</Company>
+    <Product>S100Framework</Product>
+    <PackageId>S100Framework.ArcGIS.Core</PackageId>
+	<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>	
+	<AssemblyVersion>2.1.2.0</AssemblyVersion>	
+	<Configurations>Debug</Configurations>	
+	<Version>2.1.12</Version>	 	  
   </PropertyGroup>
 
   <ItemGroup>

@@ -143,6 +143,8 @@ namespace S100Framework.GML
 
 namespace NetTopologySuite.Geometries
 {
+    using NetTopologySuite.Geometries;
+
     public static class Extension
     {
         private static readonly XNamespace gml = "http://www.opengis.net/gml/3.2";

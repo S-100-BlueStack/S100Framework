@@ -7,24 +7,27 @@
     <RootNamespace>S100Framework.ViewModel</RootNamespace>
 	<UseWPF>true</UseWPF>
 	<Platforms>AnyCPU</Platforms>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Company>S-100-BlueStack</Company>
+    <Product>S100Framework</Product>
+    <PackageId>S100Framework.WPF</PackageId>
+	<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>	
+	<AssemblyVersion>2.1.2.0</AssemblyVersion>	
+	<Configurations>Debug</Configurations>	
+	<Version>2.1.18</Version>	  
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="Editors.cs" />
-    <Compile Remove="Helper.cs" />
-    <Compile Remove="S-101_ViewModel.g.cs" />
-    <Compile Remove="S-122_ViewModel.g.cs" />
-    <Compile Remove="S-123_ViewModel.g.cs" />
-    <Compile Remove="S-124_ViewModel.g.cs" />
-    <Compile Remove="S-125_ViewModel.g.cs" />
-    <Compile Remove="S-127_ViewModel.g.cs" />
-    <Compile Remove="S-128_ViewModel.g.cs" />
-    <Compile Remove="S-131_ViewModel.g.cs" />
-    <Compile Remove="S-201_ViewModel.g.cs" />
-    <Compile Remove="S-501_ViewModel.g.cs" />
-    <Compile Remove="S100AttributeEditorControl.cs" />
-    <Compile Remove="ViewModelBase.cs" />
-  </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <ShouldCreateLogs>True</ShouldCreateLogs>
+    <AdvancedSettingsExpanded>False</AdvancedSettingsExpanded>
+    <UpdateAssemblyVersion>False</UpdateAssemblyVersion>
+    <UpdateAssemblyFileVersion>False</UpdateAssemblyFileVersion>
+    <UpdateAssemblyInfoVersion>False</UpdateAssemblyInfoVersion>
+    <UpdatePackageVersion>True</UpdatePackageVersion>
+    <PackageVersionSettings>AssemblyVersion.IncrementWithAutoReset.None</PackageVersionSettings>
+    <AssemblyInfoVersionType>SettingsVersion</AssemblyInfoVersionType>
+    <InheritWinAppVersionFrom>None</InheritWinAppVersionFrom>
+  </PropertyGroup>
 
   <ItemGroup>
     <Page Remove="Themes\Generic.xaml" />
@@ -32,7 +35,7 @@
 
   <ItemGroup>
     <PackageReference Include="Extended.Wpf.Toolkit" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.142" />
   </ItemGroup>
 
   <ItemGroup>

@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
-using Xunit.Abstractions;
 
 namespace TestAttributes
 {

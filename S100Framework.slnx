@@ -1,4 +1,7 @@
 <Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+  </Configurations>
   <Project Path="src/S100Framework.ArcGIS.Core/S100Framework.ArcGIS.Core.csproj">
     <Platform Project="x64" />
   </Project>
@@ -8,4 +11,15 @@
   <Project Path="src/S100Framework.WPF.S100AttributeEditor/S100Framework.WPF.S100AttributeEditor.csproj" />
   <Project Path="src/S100Framework.WPF/S100Framework.WPF.csproj" />
   <Project Path="tests/TestCatalogueBuilder/TestCatalogueBuilder.csproj" />
+  <Properties Name="AutomaticVersions" Scope="PostLoad">
+    <Property Name="AssemblyInfoVersionSemVerSettings" Value="AssemblyVersion.IncrementWithAutoReset.None" />
+    <Property Name="AssemblyInfoVersionType" Value="SemVer1" />
+    <Property Name="AssemblyVersionSettings" Value="IncrementOnDemandWithResetOnIncrease.IncrementOnDemandWithResetOnIncrease.None.None" />
+    <Property Name="InheritWinAppVersionFrom" Value="None" />
+    <Property Name="ShouldCreateLogs" Value="True" />
+    <Property Name="UpdateAssemblyFileVersion" Value="False" />
+    <Property Name="UpdateAssemblyInfoVersion" Value="True" />
+    <Property Name="UpdateAssemblyVersion" Value="True" />
+    <Property Name="UpdatePackageVersion" Value="False" />
+  </Properties>
 </Solution>

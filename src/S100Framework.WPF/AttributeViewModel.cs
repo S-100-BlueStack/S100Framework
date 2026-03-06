@@ -1,8 +1,9 @@
-﻿using Newtonsoft.Json.Linq;
-using S100FC;
+﻿using S100FC;
+using System;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
