@@ -1,0 +1,6 @@
+dotnet nuget push ".\src\S100Framework.ArcGIS.Core\bin\x64\Debug\*.nupkg" --%github-api-key %github-api-key% --source "github"
+dotnet nuget push ".\src\S100Framework.Catalogues\bin\Debug\*.nupkg" --api-key %github-api-key% --source "github"
+dotnet nuget push ".\src\S100Framework.GML\bin\Debug\*.nupkg" --api-key %github-api-key% --source "github"
+dotnet nuget push ".\src\S100Framework.Topology\bin\Debug\*.nupkg" --api-key %github-api-key% --source "github"
+dotnet nuget push ".\src\S100Framework.WPF\bin\Debug\*.nupkg" --api-key %github-api-key% --source "github"
+dotnet nuget push ".\src\S100Framework.WPF.S100AttributeEditor\bin\Debug\*.nupkg" --api-key %github-api-key% --source "github"
