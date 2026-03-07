@@ -9,12 +9,11 @@
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<Company>S-100-BlueStack</Company>
 		<Product>S100Framework</Product>
-		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<PackageId>S100Framework.Topology</PackageId>
 		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
 		<AssemblyVersion>2.1.2.0</AssemblyVersion>
 		<Configurations>Debug</Configurations>
-		<Version>2.1.4</Version>
+		<Version>2.1.8</Version>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -32,12 +31,5 @@
 	<ItemGroup>
 		<PackageReference Include="NetTopologySuite" Version="2.6.0" />
 		<PackageReference Include="System.IO.Hashing" Version="9.0.10" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<None Include="..\..\LICENSE">
-			<Pack>True</Pack>
-			<PackagePath>\</PackagePath>
-		</None>
 	</ItemGroup>
 </Project>

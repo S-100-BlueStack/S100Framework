@@ -1,20 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows10.0.20348.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>S100Framework.ViewModel</RootNamespace>
-	<UseWPF>true</UseWPF>
-	<Platforms>AnyCPU</Platforms>
+    <Platforms>AnyCPU</Platforms>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>S-100-BlueStack</Company>
-    <Product>S100Framework</Product>
-    <PackageId>S100Framework.WPF</PackageId>
+    <Product>S100Framework</Product>   
+    <PackageId>S100Framework.YAML</PackageId>
 	<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>	
-	<AssemblyVersion>2.1.2.0</AssemblyVersion>	
+	<AssemblyVersion>2.0.0.0</AssemblyVersion>	
 	<Configurations>Debug</Configurations>	
-	<Version>2.1.18</Version>	  
+	<Version>2.0.1</Version>	  
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -30,25 +28,23 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Page Remove="Themes\Generic.xaml" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Extended.Wpf.Toolkit" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.142" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Images\Delete16.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Controls\" />
-    <Folder Include="Themes\" />
+    <PackageReference Include="NetTopologySuite" Version="2.6.0" />
+    <PackageReference Include="NetTopologySuite.IO.GeoJSON" Version="4.0.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageReference Include="System.IO.Hashing" Version="9.0.10" />
+    <PackageReference Include="System.Text.Json" Version="8.0.6" />
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\S100Framework.Catalogues\S100Framework.Catalogues.csproj" />
+    <ProjectReference Include="..\S100Framework.Topology\S100Framework.Topology.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ArcGIS.Core">
+      <HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Core.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
