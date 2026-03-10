@@ -1,7 +1,5 @@
 ﻿using ArcGIS.Core.Data;
-using ArcGIS.Core.Data.UtilityNetwork.Trace;
 using ArcGIS.Core.Geometry;
-using S100FC.Catalogues;
 using S100FC.S128;
 using S100FC.S128.FeatureTypes;
 using S100FC.YAML;
@@ -9,10 +7,10 @@ using Serilog;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using IO = System.IO;
 
 namespace S100FC.ProductCatalogue
@@ -38,11 +36,11 @@ namespace S100FC.ProductCatalogue
         Task<bool> QueryUpdatesAsync(string name, Action<object> action);
 
         Task<bool> IsDirtyAsync(string name);
-        Task<bool> IsDirtyYamlAsync(string name);
 
         ElectronicProduct? ElectronicProduct(string name);
 
-        Task<string> GetLatestDatasetYAML(string name, int edition);
+        Task<(string yaml, string index)> GetLatestDatasetYAML(string name, int edition);
+        Task CreateAttachmentAsync(string name, ExportTypes exportType, string yaml, string index, string sign);
 
         string OutputFolder { get; }
     }
@@ -263,29 +261,6 @@ namespace S100FC.ProductCatalogue
             return await this.CreateDatasetAsync(result.ElectronicProduct, result.Filter, ExportTypes.NewDataset);
         }
 
-        async Task<bool> IElectronicProductManager.IsDirtyYamlAsync(string name) {
-            if (string.IsNullOrEmpty(name))
-                throw new System.ArgumentNullException(nameof(name));
-
-            name = name.ToUpperInvariant();
-
-            if (!this._electronicProducts.ContainsKey(name))
-                throw new System.ArgumentException(nameof(name));
-
-            var result = await this.GetElectronicProductAsync(name);
-
-            var dataset = await this.CreateDatasetAsync(result.ElectronicProduct, result.Filter, ExportTypes.Update, false);
-
-            var latest = await this.GetLatestDatasetYAML(name, result.ElectronicProduct.editionNumber!.Value);
-
-
-            var incoming = dataset.Serialize();
-
-            var delta = S100FC.YAML.DatasetComparer.Compare(latest, incoming);
-
-            return delta.HasEdits;
-        }
-
         async Task<YAML.Dataset> IElectronicProductManager.CreateNewEditionAsync(string name) {
             if (string.IsNullOrEmpty(name))
                 throw new System.ArgumentNullException(nameof(name));
@@ -376,7 +351,6 @@ namespace S100FC.ProductCatalogue
             if (!this._electronicProducts.TryGetValue(name, out var electronicProduct))
                 throw new ArgumentException(null, nameof(name));
 
-            //using var connection = this._connections[electronicProduct.productSpecification!.name]!;
             var uri = this._connections[this._electronicProducts[name].productSpecification!.name]!;
 
             using var connection = this.OpenGeodatabase(uri);
@@ -393,13 +367,30 @@ namespace S100FC.ProductCatalogue
                 foreach (var baseTableName in tableNames) {
                     using var fc = connection.OpenDataset<FeatureClass>(this.QualifyTableName($"{baseTableName}"));
 
-                    using var cursor = fc.Search(filter, true);
-                    while (cursor.MoveNext()) {
-                        // If fields has been created or updated since the last dataset was created, flag as dirty
+                    var isArchived = fc.IsArchiveEnabled();
+                    if (isArchived) {
+                        var archiveTable = fc.GetArchiveTable();
 
-                        // todo: detect deleted rows?
-                        return true;
+                        using var archiveCursor = archiveTable.Search(new QueryFilter {
+                            WhereClause = filter.WhereClause,
+                        }, true);
+                        while (archiveCursor.MoveNext()) {
+                            var cur = archiveCursor.Current;
+                            var id = cur["UID"]?.ToString();
+                            Log.Information("Change detected for {id} in {table}. Stopping further detection", id, baseTableName);
+                            return true;
+                        }
+                    }
+                    else {
+                        Log.Warning("Archive is not enabled on {tableName}. Should only happen while debugging! Checking for 'created_date' or 'last_edited_date' instead", baseTableName);
+                        filter.WhereClause = $"UPPER(ps) = 'S-101' AND (" +
+                                             $"created_date > DATE '{dataset.TimestampUTC:yyyy-MM-dd HH:mm:ss}' " +
+                                             $"OR last_edited_date > DATE '{dataset.TimestampUTC:yyyy-MM-dd HH:mm:ss}')";
 
+                        using var cursor = fc.Search(filter, true);
+                        while (cursor.MoveNext()) {
+                            return true;
+                        }
                     }
                 }
                 return false;
@@ -407,9 +398,10 @@ namespace S100FC.ProductCatalogue
 
             return dirty;
         }
-        public async Task<string> GetLatestDatasetYAML(string datasetName, int edition) {
+        public async Task<(string yaml, string index)> GetLatestDatasetYAML(string datasetName, int edition) {
             return await this.Dispatch(() => {
                 using var attachment = _geodatabase!.OpenDataset<Table>(QualifyTableName("attachment"));
+
 
                 using var cursor = attachment.Search(new QueryFilter {
                     WhereClause = $"json LIKE '%\"DatasetName\":\"{datasetName}\"%' AND json LIKE '%\"Edition\":{edition}%'",
@@ -419,26 +411,50 @@ namespace S100FC.ProductCatalogue
                 if (!cursor.MoveNext())
                     throw new InvalidOperationException("No dataset rows found");
 
-                var rootYAML = ReadData(cursor); // root YAML
+                var rootData = ReadZippedData(cursor); // root YAML
+                var rootYAML = rootData["yaml"];
+                var index = rootData["index"];
 
                 while (cursor.MoveNext()) {
-                    var delta = ReadData(cursor);
+                    var data = ReadZippedData(cursor);
+                    var delta = data["yaml"];
+                    index = data["index"];
+
                     if (!string.IsNullOrEmpty(delta))
                         rootYAML = S100FC.YAML.DatasetComparer.AppendUpdate(rootYAML, delta);
                 }
 
-                return rootYAML;
+                return (rootYAML, index);
             });
         }
 
-        private static string ReadData(RowCursor cursor) {
+        private static Dictionary<string, string> ReadZippedData(RowCursor cursor) {
             if (cursor.Current["data"] is not MemoryStream stream)
                 throw new InvalidOperationException("Column 'data' is not a MemoryStream");
 
+            var files = new Dictionary<string, string>();
             stream.Position = 0;
-            using var reader = new StreamReader(stream);
-            return reader.ReadToEnd();
+
+            // Open the stream as a ZipArchive
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
+
+            foreach (ZipArchiveEntry entry in archive.Entries) {
+                var key = entry.Name;
+                if (entry.Name.EndsWith(".yaml", StringComparison.InvariantCultureIgnoreCase))
+                    key = "yaml";
+                else if (entry.Name.EndsWith(".idx", StringComparison.InvariantCultureIgnoreCase))
+                    key = "index";
+                else if (entry.Name.EndsWith(".sign", StringComparison.InvariantCultureIgnoreCase))
+                    key = "catalogue";
+
+                using var entryStream = entry.Open();
+                using var reader = new StreamReader(entryStream);
+                files.Add(entry.FullName, reader.ReadToEnd());
+            }
+
+            return files;
         }
+
         ElectronicProduct? IElectronicProductManager.ElectronicProduct(string name) => this._electronicProducts.GetValueOrDefault(name.ToUpperInvariant());
 
         IEnumerator<string> IEnumerable<string>.GetEnumerator() {
@@ -867,33 +883,63 @@ namespace S100FC.ProductCatalogue
                         row128.Dispose();
 
                         this._electronicProducts[electronicProduct.datasetName!.ToUpperInvariant()] = electronicProduct;
-
-                        using var attachment = this._geodatabase!.OpenDataset<Table>(this.QualifyTableName("attachment"));
-
-                        using var buffer = attachment.CreateRowBuffer();
-
-                        buffer["ps"] = "S-128.Horizon";
-                        buffer["code"] = nameof(Dataset);
-                        buffer["json"] = System.Text.Json.JsonSerializer.Serialize(new Dataset {
-                            DatasetName = electronicProduct.datasetName!,
-                            Edition = electronicProduct.editionNumber!.Value,
-                            Update = electronicProduct.updateNumber ?? 0,
-                            ExportTypes = exportType,
-                            TimestampUTC = timestamp
-                        }, this.jsonSerializerOptionsS128);
-
-                        var yaml = dataset.Serialize();
-
-                        using var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(yaml));
-
-                        buffer["data_size"] = memoryStream.Length;
-                        buffer["data"] = memoryStream;
-
-                        attachment.CreateRow(buffer);
                     });
                 }
                 return dataset!;
             });
+        }
+
+        public async Task CreateAttachmentAsync(string name, ExportTypes exportType, string yaml, string index, string sign) {
+            var electronicProduct = this._electronicProducts[name.ToUpperInvariant()];
+            var timestamp = DateTime.UtcNow;
+            await this.Dispatch(() => {
+                this._geodatabase!.ApplyEdits(() => {
+                    using var attachment = this._geodatabase!.OpenDataset<Table>(this.QualifyTableName("attachment"));
+
+                    using var buffer = attachment.CreateRowBuffer();
+
+                    buffer["ps"] = "S-128.Horizon";
+                    buffer["code"] = nameof(Dataset);
+                    buffer["json"] = System.Text.Json.JsonSerializer.Serialize(new Dataset {
+                        DatasetName = electronicProduct.datasetName!,
+                        Edition = electronicProduct.editionNumber!.Value,
+                        Update = electronicProduct.updateNumber,
+                        ExportTypes = exportType,
+                        TimestampUTC = timestamp
+                    }, this.jsonSerializerOptionsS128);
+
+                    var memoryStream = ZipIt(yaml, index, sign);
+
+                    buffer["data_size"] = memoryStream.Length;
+                    buffer["data"] = memoryStream;
+
+                    attachment.CreateRow(buffer);
+
+                    Log.Information("Attachment created for dataset {datasetName} with edition {edition} and update {update}", electronicProduct.datasetName, electronicProduct.editionNumber, electronicProduct.updateNumber);
+                });
+            });
+        }
+
+        private static MemoryStream ZipIt(string yaml, string index, string sign) {
+            var zipStream = new MemoryStream();
+
+            using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true)) {
+                AddFileToArchive(archive, "yaml", yaml);
+                AddFileToArchive(archive, "index", index);
+                AddFileToArchive(archive, "sign", sign);
+            }
+
+            // 4. Reset position so the reader starts at the beginning
+            zipStream.Position = 0;
+
+            return zipStream;
+
+            static void AddFileToArchive(ZipArchive archive, string fileName, string content) {
+                var entry = archive.CreateEntry(fileName);
+                using var entryStream = entry.Open();
+                using var writer = new StreamWriter(entryStream, Encoding.UTF8);
+                writer.Write(content);
+            }
         }
 
         #endregion
@@ -969,25 +1015,22 @@ namespace S100FC.ProductCatalogue
                 if (cursorS128.Current.IsNull("flatten"))
                     throw new System.ArgumentNullException(nameof(dataset.DatasetName));
 
-                //var whereClause = $"upper(ps) = 'S-101' AND (created_date > {dataset.TimestampUTC:dd-MM-yyyy HH:mm:ss} OR last_edited_date < {dataset.TimestampUTC:dd-MM-yyyy HH:mm:ss})";
-                //var whereClause = $"upper(ps) = 'S-101' AND (created_date > DATE '{dataset.TimestampUTC:dd-MM-yyyy HH:mm:ss}' OR last_edited_date > DATE '{dataset.TimestampUTC:dd-MM-yyyy HH:mm:ss}')";
-                var whereClause = $"UPPER(ps) = 'S-101' AND (" +
-                                  $"created_date > DATE '{dataset.TimestampUTC:yyyy-MM-dd HH:mm:ss}' " +
-                                  $"OR last_edited_date > DATE '{dataset.TimestampUTC:yyyy-MM-dd HH:mm:ss}')";
+                // original
+                //var whereClause = $"UPPER(ps) = 'S-101' AND (" +
+                //                  $"created_date > DATE '{dataset.TimestampUTC:yyyy-MM-dd HH:mm:ss}' " +
+                //                  $"OR last_edited_date > DATE '{dataset.TimestampUTC:yyyy-MM-dd HH:mm:ss}')";
 
+                var sqlSyntax = _geodatabase.GetSQLSyntax();
+
+                var formattedDate = sqlSyntax.Format(dataset.TimestampUTC, SQLDateTimeType.Timestamp);
+
+
+                //var whereClause = $"UPPER(ps) = 'S-101' AND GDB_FROM_DATE > {formattedDate}";
+                var whereClause = $"UPPER(ps) = 'S-101' AND (GDB_FROM_DATE > {formattedDate} OR GDB_TO_DATE > {formattedDate})";
 
                 if (specificUsage != null)
                     whereClause += $" AND usageband = {specificUsage.value}";
 
-
-                //whereClause += specificUsage switch {
-                //    S100FC.S128.specificUsage.NavigationalPurposeOverview => $" AND usageband = 1",
-                //    S100FC.S128.specificUsage.NavigationalPurposeGeneral => $" AND usageband = 2",
-                //    S100FC.S128.specificUsage.NavigationalPurposeCoastal => $" AND usageband = 3",
-                //    S100FC.S128.specificUsage.NavigationalPurposeApproach => $" AND usageband = 4",
-                //    S100FC.S128.specificUsage.NavigationalPurposeHarbour => $" AND usageband = 5",
-                //    _ => "",
-                //};
 
                 ArcGIS.Core.Geometry.Polygon shapeCoverage;
 

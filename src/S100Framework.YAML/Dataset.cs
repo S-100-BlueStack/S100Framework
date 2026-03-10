@@ -192,6 +192,8 @@ namespace S100FC.YAML
         public string? ENCVer { get; set; }
         [YamlMember(Alias = "FCVer", ApplyNamingConventions = false)]
         public string? FCVer { get; set; }
+        [YamlMember(Alias = "verticalDatum ", ApplyNamingConventions = false)]
+        public string? VerticalDatum { get; set; }
 
         public MetadataUpdate? Metadata { get; set; }
 
@@ -290,7 +292,7 @@ namespace S100FC.YAML
             // Iterate updated features
             foreach (var feature in features.Updated) {
                 delta.FeaturesAdded.Add(feature.Value);
-               
+
 
 
                 var dict = feature.Value as Dictionary<object, object>;
@@ -328,7 +330,7 @@ namespace S100FC.YAML
 
             // Iterate deleted features
             foreach (var feature in features.Deleted) {
-              
+
 
                 var dict = feature.Value as Dictionary<object, object>;
                 var targetType = dict?["Prim"]?.ToString() ?? "";
@@ -350,7 +352,31 @@ namespace S100FC.YAML
             delta.InformationTypesDeleted = informationTypes.Deleted.Keys;
 
 
+            // Populate dataset information (CellName, Comment, Edition, Update, ENCVer, FCVer, VerticalDatum) from the update dataset
+            delta.PopulateDatasetInformation(update);
+
             return delta;
+        }
+
+        private static void PopulateDatasetInformation(this DatasetDelta delta, string incoming) {
+            var rawDictionary = S100FC.YAML.Converter.Deserialize<Dictionary<object, object>>(incoming);
+
+            // Get values safely
+            rawDictionary.TryGetValue("CellName", out var cellName);
+            rawDictionary.TryGetValue("Comment", out var comment);
+            rawDictionary.TryGetValue("Edition", out var edition);
+            rawDictionary.TryGetValue("Update", out var update);
+            rawDictionary.TryGetValue("encver", out var encver);
+            rawDictionary.TryGetValue("FCVer", out var fcver);
+            rawDictionary.TryGetValue("verticalDatum", out var verticalDatum);
+
+            delta.CellName = cellName?.ToString();
+            delta.Comment = comment?.ToString();
+            delta.Edition = edition as int?;        // FIX dont work
+            delta.Update = update as int?;          // fix
+            delta.ENCVer = encver?.ToString();
+            delta.FCVer = fcver?.ToString();
+            delta.VerticalDatum = verticalDatum?.ToString();
         }
 
         private static DatasetUpdate ReadDataset(string dataset) {
@@ -852,6 +878,7 @@ namespace S100FC.YAML
             }
         }
     }
+
 
     public class Metadata
     {
