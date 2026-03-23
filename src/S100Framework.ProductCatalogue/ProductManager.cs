@@ -36,7 +36,7 @@ namespace S100FC.ProductCatalogue
         Task<bool> QueryUpdatesAsync(string name, Action<object> action);
 
         Task<bool> IsDirtyAsync(string name);
-
+        Task<Dictionary<string, ArchiveRow>> GetPendingEditsAsync(string name);
         ElectronicProduct? ElectronicProduct(string name);
 
         Task<(string yaml, string index)> GetLatestDatasetYAML(string name, int edition);
@@ -85,11 +85,9 @@ namespace S100FC.ProductCatalogue
 
 
 
-
-
         public string OutputFolder { get; internal set; }
-        //private readonly IDictionary<string, Geodatabase> _connections = new Dictionary<string, Geodatabase>();
         private readonly IDictionary<string, Uri> _connections = new Dictionary<string, Uri>();
+
         record ElectronicProductKey(string ps, string name)
         {
             public override string ToString() => $"{this.ps}::{this.name}";
@@ -317,7 +315,6 @@ namespace S100FC.ProductCatalogue
 
             var electronicProduct = this._electronicProducts[name];
 
-            //using var connection = this._connections[this._electronicProducts[name].productSpecification!.name]!;
             var uri = this._connections[this._electronicProducts[name].productSpecification!.name]!;
 
             using var connection = this.OpenGeodatabase(uri);
@@ -397,6 +394,81 @@ namespace S100FC.ProductCatalogue
             });
 
             return dirty;
+        }
+        async Task<Dictionary<string, ArchiveRow>> IElectronicProductManager.GetPendingEditsAsync(string name) {
+            if (string.IsNullOrEmpty(name))
+                throw new System.ArgumentNullException(nameof(name));
+            name = name.ToUpperInvariant();
+
+            if (!this._electronicProducts.TryGetValue(name, out var electronicProduct))
+                throw new ArgumentException(null, nameof(name));
+
+            var uri = this._connections[this._electronicProducts[name].productSpecification!.name]!;
+
+            using var connection = this.OpenGeodatabase(uri);
+
+            var dataset = await this.GetLatestDataset(name);
+
+            if (dataset == default)
+                throw new NullReferenceException(nameof(dataset));
+
+            var maxDate = new DateTime(31, 12, 9999);
+
+            var dict = new Dictionary<string, ArchiveRow>();
+
+            var filter = await this.BuildSpatialQueryFilter(dataset, electronicProduct.specificUsage);
+
+            await this.Dispatch(() => {
+                string[] tableNames = ["point", "pointset", "curve", "surface"];
+                foreach (var baseTableName in tableNames) {
+                    using var fc = connection.OpenDataset<FeatureClass>(this.QualifyTableName($"{baseTableName}"));
+
+                    var isArchived = fc.IsArchiveEnabled();
+                    if (isArchived) {
+                        var archiveTable = fc.GetArchiveTable();
+
+                        using var archiveCursor = archiveTable.Search(new QueryFilter {
+                            WhereClause = filter.WhereClause,
+                        }, true);
+                        while (archiveCursor.MoveNext()) {
+                            var cur = archiveCursor.Current;
+                            var id = cur["UID"]?.ToString()!;
+                            var code = cur["Code"]?.ToString()!;
+
+                            var flatten = cur["flatten"]?.ToString();
+                            var informationBindings = cur["informationbindings"]?.ToString();
+                            var featureBindings = cur["featurebindings"]?.ToString();
+        
+
+                            _ = DateTime.TryParse(cur["GDB_FROM_DATE"].ToString(), out DateTime fromDate);
+                            _ = DateTime.TryParse(cur["GDB_TO_DATE"].ToString(), out DateTime toDate);
+
+                            var entry = new ArchiveRow() {
+                                Code = code,
+                                Flatten = flatten,
+                                InformationBindings = informationBindings,
+                                FeatureBindings = featureBindings,
+                            };
+
+                            // Deleted
+                            if (toDate == maxDate) {
+                                Log.Information("Feature deleted {id} in {table} for dataset: {name}.", id, baseTableName, name);
+                                entry.Deleted = true;
+                            } else {
+                                Log.Information("Feature updated {id} in {table} for dataset: {name}.", id, baseTableName, name);
+                            }
+
+                            dict.Add(id, entry);
+                        }
+                    }
+                    else {
+                        Log.Error("Archiving is not enabled on {tableName} for dataset: {name}.", baseTableName, name);
+                        //throw new System.InvalidOperationException("Archiving is not enabled");
+                    }
+                }
+            });
+
+            return dict;
         }
         public async Task<(string yaml, string index)> GetLatestDatasetYAML(string datasetName, int edition) {
             return await this.Dispatch(() => {
@@ -527,7 +599,7 @@ namespace S100FC.ProductCatalogue
             //using var connection = this._connections["S-101"]!;
             var uri = this._connections["S-101"]!;
 
-            
+
 
             electronicProduct.issueDate = DateOnly.FromDateTime(timestamp);
 
