@@ -11,6 +11,8 @@
     <Platform Project="x64" />
   </Project>
   <Project Path="src/S100Framework.Topology/S100Framework.Topology.csproj" />
-  <Project Path="src/S100Framework.YAML/S100Framework.YAML.csproj" />
+  <Project Path="src/S100Framework.YAML/S100Framework.YAML.csproj">
+    <Platform Project="x64" />
+  </Project>
   <Project Path="tests/TestCatalogueBuilder/TestCatalogueBuilder.csproj" />
 </Solution>
