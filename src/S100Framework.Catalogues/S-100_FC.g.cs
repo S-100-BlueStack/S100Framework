@@ -215,22 +215,22 @@ namespace S100FC
     public abstract class attributeBinding
     {
         [JsonIgnore]
-        public abstract string S100FC_code { get; }
+        public virtual string S100FC_code { get; init; } = "";
 
         [JsonIgnore]
-        public abstract string S100FC_name { get; }
+        public virtual string S100FC_name { get; init; } = "";
 
         [JsonIgnore]
-        public abstract bool HasValue { get; }
+        public virtual bool HasValue { get; }
     }
 
     public abstract class SimpleAttribute : attributeBinding
     {
         [JsonIgnore]
-        public abstract string valueType { get; }
+        public virtual string valueType { get; } = "";
     }
 
-    public abstract class BooleanAttribute : SimpleAttribute
+    public class BooleanAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "boolean";
@@ -241,7 +241,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
     }
 
-    public abstract class IntegerAttribute : SimpleAttribute
+    public class IntegerAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "integer";
@@ -252,7 +252,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
     }
 
-    public abstract class RealAttribute : SimpleAttribute
+    public class RealAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "real";
@@ -263,7 +263,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
     }
 
-    public abstract class TextAttribute : SimpleAttribute
+    public class TextAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "text";
@@ -274,7 +274,7 @@ namespace S100FC
         public override bool HasValue => value != null;
     }
 
-    public abstract class S100_TruncatedDateAttribute : SimpleAttribute
+    public class S100_TruncatedDateAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "S100_TruncatedDate";
@@ -285,7 +285,7 @@ namespace S100FC
         public override bool HasValue => value != null;
     }
 
-    public abstract class DateAttribute : SimpleAttribute
+    public class DateAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "date";
@@ -296,7 +296,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
     }
 
-    public abstract class DateTimeAttribute : SimpleAttribute
+    public class DateTimeAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "datetime";
@@ -307,7 +307,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
     }
 
-    public abstract class TimeAttribute : SimpleAttribute
+    public class TimeAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "time";
@@ -318,7 +318,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
     }
 
-    public abstract class UrnTimeAttribute : SimpleAttribute
+    public class UrnTimeAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "URN";
@@ -329,7 +329,7 @@ namespace S100FC
         public override bool HasValue => value != null;
     }
 
-    public abstract class UrlTimeAttribute : SimpleAttribute
+    public class UrlTimeAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "URL";
@@ -340,7 +340,7 @@ namespace S100FC
         public override bool HasValue => value != null;
     }
 
-    public abstract class UriTimeAttribute : SimpleAttribute
+    public class UriTimeAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "URI";
@@ -351,7 +351,7 @@ namespace S100FC
         public override bool HasValue => value != null;
     }
 
-    public abstract class EnumerationAttribute : SimpleAttribute
+    public class EnumerationAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "enumeration";
@@ -363,9 +363,11 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public virtual listedValue[] listedValues { get; init; } = [];
     }
 
-    public abstract class CodeListAttribute : SimpleAttribute
+    public class CodeListAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "S100_CodeList";
