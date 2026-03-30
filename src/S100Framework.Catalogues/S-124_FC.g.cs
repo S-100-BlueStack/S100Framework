@@ -22,7 +22,7 @@ namespace S100FC.S124.SimpleAttributes
 	/// <summary>
 	/// A common unique identifier for entities which describe a single real-world feature, and which is used to identify instances of the feature in end-user systems where the feature may be included in multiple data product types.
 	/// </summary>
-	public class interoperabilityIdentifier : S100FC.UrnTimeAttribute
+	public class interoperabilityIdentifier : S100FC.UrnAttribute
 	{
 		[JsonIgnore]
 		public override string S100FC_code => nameof(interoperabilityIdentifier);
@@ -200,7 +200,7 @@ namespace S100FC.S124.SimpleAttributes
 	/// <summary>
 	/// Globally unique identifier for the area or locality in the MRN format.
 	/// </summary>
-	public class localityIdentifier : S100FC.UrnTimeAttribute
+	public class localityIdentifier : S100FC.UrnAttribute
 	{
 		[JsonIgnore]
 		public override string S100FC_code => nameof(localityIdentifier);
@@ -343,7 +343,7 @@ namespace S100FC.S124.SimpleAttributes
 	/// <summary>
 	/// Identifier for the chart or publication (using the MRN format).
 	/// </summary>
-	public class chartPublicationIdentifier : S100FC.UrnTimeAttribute
+	public class chartPublicationIdentifier : S100FC.UrnAttribute
 	{
 		[JsonIgnore]
 		public override string S100FC_code => nameof(chartPublicationIdentifier);

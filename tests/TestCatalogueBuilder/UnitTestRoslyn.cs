@@ -339,7 +339,8 @@ namespace TestAttributes
                         //roslyn.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override listedValue[] listedValues => {code}.listedValues");
 
-                        roslyn.AppendLine($"\t\tpublic static listedValue[] listedValues => [");
+                        roslyn.AppendLine($"\t\tpublic {code}() {{");
+                        roslyn.AppendLine($"\t\t\tbase.listedValues = [");
                         foreach (var listedValue in element.Element(XName.Get("listedValues", scopes["S100FC"]))!.Elements()) {
                             var listedValueLabel = listedValue.Element(XName.Get("label", scopes["S100FC"]))!.Value!;
                             var listedValueDefinition = listedValue.Element(XName.Get("definition", scopes["S100FC"]))!.Value!;
@@ -363,7 +364,8 @@ namespace TestAttributes
                                 }
                             }
                         }
-                        roslyn.AppendLine($"\t\t\t];");
+                        roslyn.AppendLine($"\t\t\t\t];");
+                        roslyn.AppendLine($"\t\t\t}}");
                         //roslyn.AppendLine($"\t\tpublic int? value {{ get; set; }} = default;");
                         roslyn.AppendLine();
                         roslyn.AppendLine($"\t\tpublic static implicit operator {code}(int? value) => new {code} {{ value = value }};");
@@ -436,9 +438,9 @@ namespace TestAttributes
                             "datetime" => "DateTimeAttribute",
                             "time" => "TimeAttribute",
                             "integer" => "IntegerAttribute",
-                            "urn" => "UrnTimeAttribute",
-                            "url" => "UrlTimeAttribute",
-                            "uri" => "UriTimeAttribute",
+                            "urn" => "UrnAttribute",
+                            "url" => "UrlAttribute",
+                            "uri" => "UriAttribute",
                             _ => throw new InvalidDataException(),
                         };
 

@@ -102,7 +102,7 @@ namespace S100FC.S128.SimpleAttributes
 	/// <summary>
 	/// Identifier of a catalogue element.
 	/// </summary>
-	public class catalogueElementIdentifier : S100FC.UrnTimeAttribute
+	public class catalogueElementIdentifier : S100FC.UrnAttribute
 	{
 		[JsonIgnore]
 		public override string S100FC_code => nameof(catalogueElementIdentifier);
@@ -858,7 +858,7 @@ namespace S100FC.S128.SimpleAttributes
 	/// <summary>
 	/// The authority who produced a nautical product.
 	/// </summary>
-	public class producerNation : S100FC.UrnTimeAttribute
+	public class producerNation : S100FC.UrnAttribute
 	{
 		[JsonIgnore]
 		public override string S100FC_code => nameof(producerNation);

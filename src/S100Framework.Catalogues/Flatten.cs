@@ -226,13 +226,13 @@ namespace S100FC
                 case TimeAttribute s:
                     AddValue(parent, attribute.S100FC_code, s.value, isCollection);
                     break;
-                case UrnTimeAttribute s:
+                case UrnAttribute s:
                     AddValue(parent, attribute.S100FC_code, s.value, isCollection);
                     break;
-                case UrlTimeAttribute s:
+                case UrlAttribute s:
                     AddValue(parent, attribute.S100FC_code, s.value, isCollection);
                     break;
-                case UriTimeAttribute s:
+                case UriAttribute s:
                     AddValue(parent, attribute.S100FC_code, s.value, isCollection);
                     break;
                 case EnumerationAttribute s:

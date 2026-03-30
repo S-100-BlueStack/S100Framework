@@ -651,7 +651,7 @@ namespace S100FC.S122.SimpleAttributes
 	/// A common unique identifier for entities which describe a single real-world feature, and which is used to identify instances of the feature in end-user systems where the feature may be included in multiple data product types.
 	/// </summary>
 	[TextPatternConstraint(@"urn:mrn:.+")]
-	public class interoperabilityIdentifier : S100FC.UrnTimeAttribute
+	public class interoperabilityIdentifier : S100FC.UrnAttribute
 	{
 		[JsonIgnore]
 		public override string S100FC_code => nameof(interoperabilityIdentifier);
@@ -695,7 +695,7 @@ namespace S100FC.S122.SimpleAttributes
 	/// <summary>
 	/// Location (address) for online access using a URL/URI address or similar addressing scheme.
 	/// </summary>
-	public class linkage : S100FC.UriTimeAttribute
+	public class linkage : S100FC.UriAttribute
 	{
 		[JsonIgnore]
 		public override string S100FC_code => nameof(linkage);

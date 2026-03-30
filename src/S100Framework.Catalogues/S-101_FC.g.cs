@@ -2425,7 +2425,7 @@ namespace S100FC.S101.SimpleAttributes
 	/// <summary>
 	/// A common unique identifier for entities which describe a single real-world feature, and which is used to identify instances of the feature in end-user systems where the feature may be included in multiple data product types.
 	/// </summary>
-	public class interoperabilityIdentifier : S100FC.UrnTimeAttribute
+	public class interoperabilityIdentifier : S100FC.UrnAttribute
 	{
 		[JsonIgnore]
 		public override string S100FC_code => nameof(interoperabilityIdentifier);
@@ -2608,7 +2608,7 @@ namespace S100FC.S101.SimpleAttributes
 	/// <summary>
 	/// Location (address) for online access using a URL/URI address or similar addressing scheme.
 	/// </summary>
-	public class linkage : S100FC.UriTimeAttribute
+	public class linkage : S100FC.UriAttribute
 	{
 		[JsonIgnore]
 		public override string S100FC_code => nameof(linkage);
@@ -2647,7 +2647,14 @@ namespace S100FC.S101.SimpleAttributes
 			];
 
 		public static implicit operator referenceDirection(int? value) => new referenceDirection { value = value };
-	}
+
+        public referenceDirection() {
+            base.listedValues = [
+                new listedValue("East", "",5),
+                new listedValue("West", "",13),
+            ];
+        }
+    }
 
 	/// <summary>
 	/// A statement expressing if a light is considered to be a major light in terms of ECDIS display in a particular area.

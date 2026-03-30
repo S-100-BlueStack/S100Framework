@@ -318,7 +318,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
     }
 
-    public class UrnTimeAttribute : SimpleAttribute
+    public class UrnAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "URN";
@@ -329,7 +329,7 @@ namespace S100FC
         public override bool HasValue => value != null;
     }
 
-    public class UrlTimeAttribute : SimpleAttribute
+    public class UrlAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "URL";
@@ -340,7 +340,7 @@ namespace S100FC
         public override bool HasValue => value != null;
     }
 
-    public class UriTimeAttribute : SimpleAttribute
+    public class UriAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "URI";
