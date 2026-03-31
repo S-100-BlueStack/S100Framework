@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Globalization;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -228,6 +229,8 @@ namespace S100FC
     {
         [JsonIgnore]
         public virtual string valueType { get; } = "";
+
+        public abstract void SetValue(string value);
     }
 
     public class BooleanAttribute : SimpleAttribute
@@ -239,6 +242,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = Boolean.Parse(value);
+        }
     }
 
     public class IntegerAttribute : SimpleAttribute
@@ -250,6 +257,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = int.Parse(value);
+        }
     }
 
     public class RealAttribute : SimpleAttribute
@@ -261,6 +272,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = decimal.Parse(value, CultureInfo.InvariantCulture);
+        }
     }
 
     public class TextAttribute : SimpleAttribute
@@ -272,6 +287,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value != null;
+
+        public override void SetValue(string value) {
+            this.value = (String?)value;
+        }
     }
 
     public class S100_TruncatedDateAttribute : SimpleAttribute
@@ -283,6 +302,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value != null;
+
+        public override void SetValue(string value) {
+            this.value = (String?)value;
+        }
     }
 
     public class DateAttribute : SimpleAttribute
@@ -294,6 +317,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = DateOnly.Parse(value);
+        }
     }
 
     public class DateTimeAttribute : SimpleAttribute
@@ -305,6 +332,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = DateTime.Parse(value);
+        }
     }
 
     public class TimeAttribute : SimpleAttribute
@@ -316,6 +347,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = S100FC.S100.Time.Parse(value);
+        }
     }
 
     public class UrnAttribute : SimpleAttribute
@@ -327,6 +362,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value != null;
+
+        public override void SetValue(string value) {
+            this.value = (String?)value;
+        }
     }
 
     public class UrlAttribute : SimpleAttribute
@@ -338,6 +377,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value != null;
+
+        public override void SetValue(string value) {
+            this.value = (String?)value;
+        }
     }
 
     public class UriAttribute : SimpleAttribute
@@ -349,6 +392,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value != null;
+
+        public override void SetValue(string value) {
+            this.value = (String?)value;
+        }
     }
 
     public class EnumerationAttribute : SimpleAttribute
@@ -363,6 +410,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = int.Parse(value);
+        }
 
         public virtual listedValue[] listedValues { get; init; } = [];
     }
@@ -379,6 +430,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = int.Parse(value);
+        }
     }
 
 
@@ -402,14 +457,14 @@ namespace S100FC
         static abstract featureBindingDefinition[] featureBindingsDefinitions { get; }
     }
 
-    public abstract class ComplexAttribute : attributeBinding, IAttributeBindings
+    public class ComplexAttribute : attributeBinding, IAttributeBindings
     {
         [JsonInclude]
         [JsonPropertyName("attr")]
-        public attributeBinding[] attributeBindings { get; protected set; } = [];
+        public attributeBinding[] attributeBindings { get; set; } = [];
 
         [JsonIgnore]
-        public virtual attributeBindingDefinition[] attributeBindingsCatalogue { get; } = [];
+        public virtual attributeBindingDefinition[] attributeBindingsCatalogue { get; set; } = [];
 
         public attributeBindingDefinition[] mandatoryBindings() {
             return [.. attributeBindingsCatalogue!.Where(e => e.lower > 0)];
@@ -705,7 +760,7 @@ namespace S100FC
         public int lower { get; init; } = 0;
         public int upper { get; init; } = int.MaxValue;
 
-        public int order { get; init; } = 0;
+        public int order { get; set; } = 0;
 
         public bool IsCollection => this.upper > 1;
         public bool IsMandatory => this.lower > 0;
