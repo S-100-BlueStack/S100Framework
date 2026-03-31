@@ -891,7 +891,7 @@ namespace S100FC
         //public abstract string[] roles { get; }
     }
 
-    public abstract class informationBinding
+    public class informationBinding
     {
         public string roleType { get; init; } = string.Empty;
         public string role { get; init; } = string.Empty;
@@ -916,7 +916,7 @@ namespace S100FC
         }
     }
 
-    public abstract class featureBinding
+    public class featureBinding
     {
         public string roleType { get; init; } = string.Empty;
         public string role { get; init; } = string.Empty;
