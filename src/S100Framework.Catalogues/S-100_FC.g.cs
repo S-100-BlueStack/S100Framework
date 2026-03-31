@@ -805,13 +805,13 @@ namespace S100FC
         public Func<featureBinding?> CreateInstance { get; init; } = () => null;
     }
 
-    public abstract class Association
+    public class association
     {
         [JsonIgnore]
-        public abstract string S100FC_code { get; }
+        public virtual string S100FC_code { get; init; } = "";
 
         [JsonIgnore]
-        public abstract string S100FC_name { get; }
+        public virtual string S100FC_name { get; init; } = "";
 
         [JsonInclude]
         public attributeBinding[] attributes { get; protected set; } = [];
@@ -865,7 +865,7 @@ namespace S100FC
             return this.attributes.Where(e => e.S100FC_code.Equals(name)).Cast<TAttribute>().ToArray();
         }
 
-        public Association() {
+        public association() {
             foreach (var binding in attributeBindingsCatalogue.Where(e => e.lower > 0)) {
                 for (int i = 0; i < binding.lower; i++)
                     this.SetAttribute(binding.CreateInstance()!);
@@ -874,25 +874,13 @@ namespace S100FC
 
     }
 
-    public interface IInformationAssociation
-    {
-        public abstract static string role { get; }
-    }
-
-    public abstract class InformationAssociation : Association
-    {
-        //[JsonIgnore]
-        //public abstract string role { get; }        
-    }
-
-    public abstract class FeatureAssociation : Association
-    {
-        //[JsonIgnore]
-        //public abstract string[] roles { get; }
-    }
-
     public class informationBinding
     {
+        [JsonPropertyName("code")]
+        public virtual string S100FC_code { get; init; } = "";
+
+        public association? association { get; init; } = null;
+
         public string roleType { get; init; } = string.Empty;
         public string role { get; init; } = string.Empty;
         public string? informationType { get; set; } = null;
@@ -907,6 +895,23 @@ namespace S100FC
         }
     }
 
+    public interface IInformationAssociation
+    {
+        public abstract static string role { get; }
+    }
+
+    public abstract class InformationAssociation : association
+    {
+        //[JsonIgnore]
+        //public abstract string role { get; }        
+    }
+
+    public abstract class FeatureAssociation : association
+    {
+        //[JsonIgnore]
+        //public abstract string[] roles { get; }
+    }
+
     public class informationBinding<TAssociation> : informationBinding where TAssociation : InformationAssociation, new()
     {
         public TAssociation association { get; init; } = new TAssociation();
@@ -918,6 +923,11 @@ namespace S100FC
 
     public class featureBinding
     {
+        [JsonPropertyName("code")]
+        public virtual string S100FC_code { get; init; } = "";
+
+        public association? association { get; init; } = null;
+
         public string roleType { get; init; } = string.Empty;
         public string role { get; init; } = string.Empty;
         public string? featureType { get; set; } = null;
