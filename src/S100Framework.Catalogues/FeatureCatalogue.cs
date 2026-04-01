@@ -2,39 +2,6 @@
 using System.Reflection;
 using System.Text.Json;
 
-namespace S100FC
-{
-    public static class Extension
-    {
-        //private static Regex _substitute = new Regex(@"^S(?<number>\d+)$", RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase);
-
-        //public static IEnumerable<XElement> Features(this XDocument doc) {
-        //    var members = doc.XPathSelectElement("//*[local-name()='members']");
-        //    if (members is null)
-        //        yield break;
-        //    var prefix = members.GetPrefixOfNamespace(members.Name.NamespaceName);
-        //    foreach (var member in members.Elements()) {
-        //        yield return member;
-        //    }
-        //    yield break;
-        //}
-
-        //public static string Identifier(this XElement element) {
-        //    return element.Attribute(XName.Get("id", element.GetNamespaceOfPrefix("gml")!.NamespaceName))!.Value;
-        //}
-
-        //public static AttributeModel.FeatureType? FeatureType(this XElement element) {
-        //    var prefix = element.GetPrefixOfNamespace(element.Name.Namespace)!;
-
-        //    var catalogue = FeatureCatalogue.Catalogues.Single(e => e.ProductID.Equals(_substitute.Replace(prefix, @"S-${number}")));
-
-        //    var type = catalogue.Assembly!.GetType($"S100Framework.AttributeModel.{prefix}.FeatureTypes.{element.Name.LocalName}")!;
-        //    var serializer = new XmlSerializer(type);
-        //    return serializer.Deserialize(element.CreateReader()) as AttributeModel.FeatureType;
-        //}
-    }
-}
-
 namespace S100FC.Catalogues
 {
     public record FeatureType(string Code);
