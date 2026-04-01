@@ -71,6 +71,13 @@ namespace S100FC
         public int LowerBound = lowerBound;
         public int UpperBound = upperBound;
     }
+
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false)]
+    public class RangeConstraintTextAttribute(int lowerBound, int upperBound, Closure closure) : RangeConstraintAttribute(closure)
+    {
+        public int LowerBound = lowerBound;
+        public int UpperBound = upperBound;
+    }
 }
 
 namespace S100FC.S100
@@ -457,6 +464,9 @@ namespace S100FC
         static abstract featureBindingDefinition[] featureBindingsDefinitions { get; }
     }
 
+
+
+
     public class ComplexAttribute : attributeBinding, IAttributeBindings
     {
         [JsonInclude]
@@ -807,11 +817,11 @@ namespace S100FC
 
     public class association
     {
-        [JsonIgnore]
-        public virtual string S100FC_code { get; init; } = "";
+        [JsonPropertyName("code")]
+        public string S100FC_code { get; init; } = "";
 
         [JsonIgnore]
-        public virtual string S100FC_name { get; init; } = "";
+        public string S100FC_name { get; init; } = "";
 
         [JsonInclude]
         public attributeBinding[] attributes { get; protected set; } = [];
@@ -876,8 +886,8 @@ namespace S100FC
 
     public class informationBinding
     {
-        [JsonPropertyName("code")]
-        public virtual string S100FC_code { get; init; } = "";
+        //[JsonPropertyName("code")]
+        //public virtual string S100FC_code { get; init; } = "";
 
         public association? association { get; init; } = null;
 
@@ -895,36 +905,21 @@ namespace S100FC
         }
     }
 
-    public interface IInformationAssociation
+    public class informationBinding<TAssociation> : informationBinding where TAssociation : association, new()
     {
-        public abstract static string role { get; }
-    }
-
-    public abstract class InformationAssociation : association
-    {
-        //[JsonIgnore]
-        //public abstract string role { get; }        
-    }
-
-    public abstract class FeatureAssociation : association
-    {
-        //[JsonIgnore]
-        //public abstract string[] roles { get; }
-    }
-
-    public class informationBinding<TAssociation> : informationBinding where TAssociation : InformationAssociation, new()
-    {
-        public TAssociation association { get; init; } = new TAssociation();
-
         public override bool Validate(ICollection<string>? errors = default) {
             return base.Validate(errors);
+        }
+
+        public informationBinding() {
+            base.association = new TAssociation();
         }
     }
 
     public class featureBinding
     {
-        [JsonPropertyName("code")]
-        public virtual string S100FC_code { get; init; } = "";
+        //[JsonPropertyName("code")]
+        //public virtual string S100FC_code { get; init; } = "";
 
         public association? association { get; init; } = null;
 
@@ -942,12 +937,14 @@ namespace S100FC
         }
     }
 
-    public class featureBinding<TAssociation> : featureBinding where TAssociation : FeatureAssociation, new()
+    public class featureBinding<TAssociation> : featureBinding where TAssociation : association, new()
     {
-        public TAssociation association { get; init; } = new TAssociation();
-
         public override bool Validate(ICollection<string>? errors = default) {
             return base.Validate(errors);
+        }
+
+        public featureBinding() {
+            base.association = new TAssociation();
         }
     }
 

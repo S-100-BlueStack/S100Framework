@@ -22,6 +22,7 @@
     <Compile Remove="PropertyItemCollection.cs" />
     <Compile Remove="S-125_FC.attribute.g.cs" />
     <Compile Remove="S-201_FC.g.cs" />
+    <Compile Remove="S-501_FC.g.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -190,19 +190,19 @@ namespace S100FC.Catalogues
             //        TypeInfoResolver = S100FC.S201.Summary.SharedBindingResolver(),
             //    }
             //},
-            new("S-501", S100FC.S501.Summary.Version) {
-                Assembly = typeof(S100FC.S501.Summary).Assembly,
-                FeatureTypes = ImmutableArray.Create<FeatureType>(S100FC.S501.Summary.FeatureTypes.Select(e=>new FeatureType(e)).ToArray()),
-                FeatureAssociationTypes = ImmutableArray.Create<AssociationType>(S100FC.S501.Summary.FeatureAssociationTypes.Select(e=>new AssociationType(e)).ToArray()),
-                InformationTypes = ImmutableArray.Create<InformationType>(S100FC.S501.Summary.InformationTypes.Select(e=>new InformationType(e)).ToArray()),
-                InformationAssociationTypes = ImmutableArray.Create<AssociationType>(S100FC.S501.Summary.InformationAssociationTypes.Select(e=>new AssociationType(e)).ToArray()),
-                FeatureTypesByPrimitive = (p) => ImmutableArray.Create<FeatureType>(S100FC.S501.Summary.PrimitiveFeatures(p).Select(e=> new FeatureType(e)).ToArray()),
-                DefaultJsonOptions = S100FC.S501.Extensions.AppendTypeInfoResolver(new JsonSerializerOptions {
-                    Encoder =System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                    PropertyNameCaseInsensitive = true,
-                    WriteIndented = false,
-                })
-            },
+            //new("S-501", S100FC.S501.Summary.Version) {
+            //    Assembly = typeof(S100FC.S501.Summary).Assembly,
+            //    FeatureTypes = ImmutableArray.Create<FeatureType>(S100FC.S501.Summary.FeatureTypes.Select(e=>new FeatureType(e)).ToArray()),
+            //    FeatureAssociationTypes = ImmutableArray.Create<AssociationType>(S100FC.S501.Summary.FeatureAssociationTypes.Select(e=>new AssociationType(e)).ToArray()),
+            //    InformationTypes = ImmutableArray.Create<InformationType>(S100FC.S501.Summary.InformationTypes.Select(e=>new InformationType(e)).ToArray()),
+            //    InformationAssociationTypes = ImmutableArray.Create<AssociationType>(S100FC.S501.Summary.InformationAssociationTypes.Select(e=>new AssociationType(e)).ToArray()),
+            //    FeatureTypesByPrimitive = (p) => ImmutableArray.Create<FeatureType>(S100FC.S501.Summary.PrimitiveFeatures(p).Select(e=> new FeatureType(e)).ToArray()),
+            //    DefaultJsonOptions = S100FC.S501.Extensions.AppendTypeInfoResolver(new JsonSerializerOptions {
+            //        Encoder =System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            //        PropertyNameCaseInsensitive = true,
+            //        WriteIndented = false,
+            //    })
+            //},
         });
     }
 }

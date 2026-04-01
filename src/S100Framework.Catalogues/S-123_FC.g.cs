@@ -122,7 +122,8 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfAuthority);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Authority";
-		public static listedValue[] listedValues => [
+		public categoryOfAuthority() {
+			base.listedValues = [
 				new listedValue("Border Control", "The administration to prevent or detect and prosecute violations of rules and regulations at international boundaries.",2),
 				new listedValue("Police", "The department of government, or civil force, charged with maintaining public order.",3),
 				new listedValue("Port", "Person or corporation, owners of, or entrusted with or invested with the power of managing a port. May be called a Harbour Board, Port Trust, Port Commission, Harbour Commission, Marine Department.",4),
@@ -138,7 +139,8 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("Finance", "An authority with responsibility for the control and movement of money.",14),
 				new listedValue("Maritime", "A national or regional authority charged with administration of maritime affairs.",15),
 				new listedValue("Customs", "The agency or establishment for collecting duties, tolls.",16),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfAuthority(int? value) => new categoryOfAuthority { value = value };
 	}
@@ -152,12 +154,14 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfBroadcastCommunication);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Broadcast/Communication";
-		public static listedValue[] listedValues => [
+		public categoryOfBroadcastCommunication() {
+			base.listedValues = [
 				new listedValue("Commercial", "A service operated with the intention of earning money.",1),
 				new listedValue("Non-Commercial", "A service without any financial interest.",2),
 				new listedValue("Public", "Belonging to, available to, used or shared by, the community as a whole and not restricted to private use.",3),
 				new listedValue("Non-Public", "A service available for limited and predefined customers.",4),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfBroadcastCommunication(int? value) => new categoryOfBroadcastCommunication { value = value };
 	}
@@ -171,7 +175,8 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfCargo);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Cargo";
-		public static listedValue[] listedValues => [
+		public categoryOfCargo() {
+			base.listedValues = [
 				new listedValue("Bulk", "Unpacked homogenous cargo poured loose in a certain space of a vessel, for example oil or grain.",1),
 				new listedValue("Container", "One of a number of standard sized cargo carrying units, secured using standard corner attachments and bar.",2),
 				new listedValue("General", "Break bulk cargo normally loaded by crane.",3),
@@ -187,7 +192,8 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("Ro-Ro Cargo", "Wheeled cargo, such as cars, busses, trucks, agricultural vehicles and cranes, that are driven on and off the ship on their own wheels or using a platform vehicle, such as a self-propelled modular transporter.",13),
 				new listedValue("Project Cargo", "Project cargo is a term used to broadly describe the national or international transportation of large, heavy, high value, or critical (to the project they are intended for) pieces of equipment. Also commonly referred to as heavy lift, this includes shipments made of various components which need disassembly for shipment and reassembly after delivery.",14),
 				new listedValue("Break Bulk Cargo", "Goods that are stowed on board ship in individually counted units, and not in intermodal containers nor in bulk as with oil or grain.",15),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfCargo(int? value) => new categoryOfCargo { value = value };
 	}
@@ -201,7 +207,8 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfDangerousOrHazardousCargo);
 		[JsonIgnore]
 		public override string S100FC_name => "Category Of Dangerous Or Hazardous Cargo";
-		public static listedValue[] listedValues => [
+		public categoryOfDangerousOrHazardousCargo() {
+			base.listedValues = [
 				new listedValue("IMDG Code Class 1 Div. 1.1", "Explosives, Division 1: Substances and articles which have a mass explosion hazard.",1),
 				new listedValue("IMDG Code Class 1 Div. 1.2", "Explosives, Division 2: Substances and articles which have a projection hazard but not a mass explosion hazard.",2),
 				new listedValue("IMDG Code Class 1 Div. 1.3", "Explosives, Division 3: Substances and articles which have a fire hazard and either a minor blast hazard or a minor projection hazard or both, but not a mass explosion hazard.",3),
@@ -223,7 +230,8 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("IMDG Code Class 8", "Corrosive substances.",19),
 				new listedValue("IMDG Code Class 9", "Miscellaneous dangerous substances and articles.",20),
 				new listedValue("Harmful Substances in Packaged Form", "Harmful substances are those substances which are identified as marine pollutants in the International Maritime Dangerous Goods Code (IMDG Code). Packaged form is defined as the forms of containment specified for harmful substances in the IMDG Code.",21),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfDangerousOrHazardousCargo(int? value) => new categoryOfDangerousOrHazardousCargo { value = value };
 	}
@@ -237,7 +245,8 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfForecastOrWarningArea);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Forecast or Warning Area";
-		public static listedValue[] listedValues => [
+		public categoryOfForecastOrWarningArea() {
+			base.listedValues = [
 				new listedValue("World Meteorological Organization (WMO)", "The forecast and warning area defined by WMO.",1),
 				new listedValue("National High Seas", "The forecast and warning area defined by national authorities covering High Seas.",2),
 				new listedValue("National Offshore", "The forecast and warning area defined by national authorities covering offshore waters.",3),
@@ -245,7 +254,8 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("National Inshore", "The forecast and warning area defined by national authorities covering inshore waters.",5),
 				new listedValue("National Local", "The forecast and warning area defined by national authorities covering local waters.",6),
 				new listedValue("Ice", "The solid form of water.",7),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfForecastOrWarningArea(int? value) => new categoryOfForecastOrWarningArea { value = value };
 	}
@@ -259,12 +269,14 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfGMDSSArea);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of GMDSS Area";
-		public static listedValue[] listedValues => [
+		public categoryOfGMDSSArea() {
+			base.listedValues = [
 				new listedValue("Area A1", "Within range of VHF coast stations with continuous DSC alerting available (about 20 30 miles).",1),
 				new listedValue("Area A2", "Beyond area A1, but within range of MF coastal stations with continuous DSC alerting available (about l00 miles).",2),
 				new listedValue("Area A3", "An area, excluding sea areas A1 and A2, within the coverage of a recognized mobile satellite service supported by the ship earth station carried on board, in which continuous alerting is available.",3),
 				new listedValue("Area A4", "The sea areas beyond Area 3. The most important of these is the sea around the North Pole (the area around the South Pole is mostly land). Geostationary satellites, which are positioned above the equator, cannot reach this far.",4),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfGMDSSArea(int? value) => new categoryOfGMDSSArea { value = value };
 	}
@@ -278,13 +290,15 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfRadioStation);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Radio Station";
-		public static listedValue[] listedValues => [
+		public categoryOfRadioStation() {
+			base.listedValues = [
 				new listedValue("Radio Direction-Finding Station", "A radio station intended to determine only the direction of other stations by means of transmission from the latter.",5),
 				new listedValue("Loran C", "A low frequency electronic position fixing system using pulsed transmissions at 100 Khz.",9),
 				new listedValue("Differential GNSS", "Differential GNSS is implemented by placing a GNSS monitor receiver at a precisely known location. Instead of computing a navigation fix, the monitor determines the range error to every GNSS satellite it can track. These ranging errors are then transmitted to local users where they are applied as corrections before computing the navigation result.",10),
 				new listedValue("Radio Telephone Station", "The equipment needed at one station to carry on two way voice communication by radio waves only.",19),
 				new listedValue("AIS Base Station", "An AIS shore station for use by competent authorities to provide AIS service, manage the data link and enable effective ship to shore / shore to ship transmission of information.",20),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfRadioStation(int? value) => new categoryOfRadioStation { value = value };
 	}
@@ -298,14 +312,16 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfRelationship);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Relationship";
-		public static listedValue[] listedValues => [
+		public categoryOfRelationship() {
+			base.listedValues = [
 				new listedValue("Prohibited", "Use of facility, waterway or service is forbidden.",1),
 				new listedValue("Not Recommended", "Use of facility, waterway or service is not recommended.",2),
 				new listedValue("Permitted", "Use of facility, waterway, or service is permitted but not required.",3),
 				new listedValue("Recommended", "Use of facility, waterway, or service is recommended.",4),
 				new listedValue("Required", "Use of facility, waterway, or service is required.",5),
 				new listedValue("Not Required", "Use of facility, waterway, or service is not required.",6),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfRelationship(int? value) => new categoryOfRelationship { value = value };
 	}
@@ -345,11 +361,13 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfSchedule);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Schedule";
-		public static listedValue[] listedValues => [
+		public categoryOfSchedule() {
+			base.listedValues = [
 				new listedValue("Normal Operation", "The service, office, is open, fully manned, and operating normally, or the area is accessible as usual.",1),
 				new listedValue("Closure", "The service, office, or area is closed.",2),
 				new listedValue("Unmanned Operation", "The service is available but not manned.",3),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfSchedule(int? value) => new categoryOfSchedule { value = value };
 	}
@@ -363,11 +381,13 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfTemporalVariation);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Temporal Variation";
-		public static listedValue[] listedValues => [
+		public categoryOfTemporalVariation() {
+			base.listedValues = [
 				new listedValue("Extreme Event", "Indication of the possible impact of a significant event (for example hurricane, earthquake, volcanic eruption, landslide, etc), which is considered likely to have changed the seafloor or landscape significantly.",1),
 				new listedValue("Likely to Change", "Continuous or frequent change to non-bathymetric features (for example river siltation, glacier creep/recession, sand dunes, buoys, marine farms, etc).",4),
 				new listedValue("Unlikely to Change", "Significant change to the seafloor is not expected.",5),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfTemporalVariation(int? value) => new categoryOfTemporalVariation { value = value };
 	}
@@ -381,11 +401,13 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfText);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Text";
-		public static listedValue[] listedValues => [
+		public categoryOfText() {
+			base.listedValues = [
 				new listedValue("Abstract or Summary", "A statement summarizing the important points of a text.",1),
 				new listedValue("Extract", "An excerpt or excerpts from a text.",2),
 				new listedValue("Full Text", "The whole text.",3),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfText(int? value) => new categoryOfText { value = value };
 	}
@@ -429,10 +451,12 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfVesselRegistry);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Vessel Registry";
-		public static listedValue[] listedValues => [
+		public categoryOfVesselRegistry() {
+			base.listedValues = [
 				new listedValue("Domestic", "The vessel is registered or enrolled under the same national flag as the port, harbour, territorial sea, exclusive economic zone, or administrative area in which the object that possesses this attribute applies or is located.",1),
 				new listedValue("Foreign", "The vessel is registered or enrolled under a national flag different from the port, harbour, territorial sea, exclusive economic zone, or other administrative area in which the object that possesses this attribute applies or is located.",2),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfVesselRegistry(int? value) => new categoryOfVesselRegistry { value = value };
 	}
@@ -446,12 +470,14 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfConnectivitySubscription);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Connectivity Subscription";
-		public static listedValue[] listedValues => [
+		public categoryOfConnectivitySubscription() {
+			base.listedValues = [
 				new listedValue("Satellite Communication GEO", "Communication using GEO (Geosynchronous Earth Orbit) satellites",1),
 				new listedValue("Satellite Communication LEO", "Communication using LEO (Low Earth Orbit) satellites",2),
 				new listedValue("Cellular Communication", "Communication using cellular network. Cellular network or mobile network enables wireless communication between mobile devices. The final stage of connectivity is achieved by segmenting the comprehensive service area into several compact zones, each called a cell. A stationary transceiver, known as a cell site or base station, provides service in each cell. The cell site links to the primary network infrastructure, employing either a wireless or wired connection.",3),
 				new listedValue("Terrestrial Ad-Hoc Communication", "Communication using ad-hoc networking, which uses whatever resources available to create communication paths from an end-user device to its desired destination, independent from central network infrastructure or administration.",4),
-			];
+				];
+			}
 
 		public static implicit operator categoryOfConnectivitySubscription(int? value) => new categoryOfConnectivitySubscription { value = value };
 	}
@@ -517,14 +543,16 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(comparisonOperator);
 		[JsonIgnore]
 		public override string S100FC_name => "Comparison Operator";
-		public static listedValue[] listedValues => [
+		public comparisonOperator() {
+			base.listedValues = [
 				new listedValue("Greater Than", "The value of the left value is greater than that of the right.",1),
 				new listedValue("Greater Than or Equal To", "The value of the left expression is greater than or equal to that of the right.",2),
 				new listedValue("Less Than", "The value of the left expression is less than that of the right.",3),
 				new listedValue("Less Than or Equal To", "The value of the left expression is less than or equal to that of the right.",4),
 				new listedValue("Equal To", "The two values are equivalent.",5),
 				new listedValue("Not Equal To", "The two values are not equivalent.",6),
-			];
+				];
+			}
 
 		public static implicit operator comparisonOperator(int? value) => new comparisonOperator { value = value };
 	}
@@ -629,7 +657,8 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(dayOfWeek);
 		[JsonIgnore]
 		public override string S100FC_name => "Day of Week";
-		public static listedValue[] listedValues => [
+		public dayOfWeek() {
+			base.listedValues = [
 				new listedValue("Sunday", "The day of the week following Saturday and preceding Monday.",1),
 				new listedValue("Monday", "The day of the week following Sunday and preceding Tuesday.",2),
 				new listedValue("Tuesday", "The day of the week following Monday and preceding Wednesday.",3),
@@ -637,7 +666,8 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("Thursday", "The day of the week following Wednesday and preceding Friday.",5),
 				new listedValue("Friday", "The day of the week following Thursday and preceding Saturday.",6),
 				new listedValue("Saturday", "The day of the week following Friday and preceding Sunday.",7),
-			];
+				];
+			}
 
 		public static implicit operator dayOfWeek(int? value) => new dayOfWeek { value = value };
 	}
@@ -730,14 +760,16 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(frequencyBand);
 		[JsonIgnore]
 		public override string S100FC_name => "Frequency Band";
-		public static listedValue[] listedValues => [
+		public frequencyBand() {
+			base.listedValues = [
 				new listedValue("LF", "Radio frequencies between 30 kHz and 300 kHz",1),
 				new listedValue("MF", "Radio frequencies between 300 kHz and 3000 kHz",2),
 				new listedValue("MF/HF", "Radio frequencies between 300 kHz and 30 MHz",3),
 				new listedValue("HF", "Radio frequencies between 3 MHz and 30 MHz",4),
 				new listedValue("VHF", "Radio frequencies between 30 MHz and 300 MHz",5),
 				new listedValue("UHF", "Radio frequencies between 300 MHz and 3 GHz",6),
-			];
+				];
+			}
 
 		public static implicit operator frequencyBand(int? value) => new frequencyBand { value = value };
 	}
@@ -881,12 +913,14 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(informationConfidence);
 		[JsonIgnore]
 		public override string S100FC_name => "Information Confidence";
-		public static listedValue[] listedValues => [
+		public informationConfidence() {
+			base.listedValues = [
 				new listedValue("Virtually Certain", "Virtually certain to be experienced by (or available to) an individual vessel; will be experienced by nearly all vessels.",1),
 				new listedValue("High Likelihood", "Frequently experienced by (or available to) an individual vessel; experienced by a majority of vessels.",2),
 				new listedValue("Medium Likelihood", "Occasionally experienced by (or available to) an individual vessel; experienced by (or available to) about half of all vessels.",3),
 				new listedValue("Low Likelihood", "Unlikely, but sometimes (rarely) experienced by (or available to) an individual vessel; experienced by (or available to) a minority of vessels.",4),
-			];
+				];
+			}
 
 		public static implicit operator informationConfidence(int? value) => new informationConfidence { value = value };
 	}
@@ -947,7 +981,7 @@ namespace S100FC.S123.SimpleAttributes
 	/// Location (address) for online access using a URL/URI address or similar addressing scheme.
 	/// </summary>
 	public class linkage : S100FC.UriAttribute
-    {
+	{
 		[JsonIgnore]
 		public override string S100FC_code => nameof(linkage);
 		[JsonIgnore]
@@ -965,10 +999,12 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(logicalConnectives);
 		[JsonIgnore]
 		public override string S100FC_name => "Logical Connectives";
-		public static listedValue[] listedValues => [
+		public logicalConnectives() {
+			base.listedValues = [
 				new listedValue("Logical Conjunction", "All the conditions described by the other attributes of the object, or sub-attributes of the same complex attribute, are true.",1),
 				new listedValue("Logical Disjunction", "At least one of the conditions described by the other attributes of the object, or sub-attributes of the same complex attributes, is true.",2),
-			];
+				];
+			}
 
 		public static implicit operator logicalConnectives(int? value) => new logicalConnectives { value = value };
 	}
@@ -1008,10 +1044,12 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(membership);
 		[JsonIgnore]
 		public override string S100FC_name => "Membership";
-		public static listedValue[] listedValues => [
+		public membership() {
+			base.listedValues = [
 				new listedValue("Included", "Vessels with these characteristics are included in the regulation/restriction/recommendation/nautical information.",1),
 				new listedValue("Excluded", "Vessels with these characteristics are excluded from the regulation/restriction/recommendation/nautical information.",2),
-			];
+				];
+			}
 
 		public static implicit operator membership(int? value) => new membership { value = value };
 	}
@@ -1155,11 +1193,13 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(nameUsage);
 		[JsonIgnore]
 		public override string S100FC_name => "Name Usage";
-		public static listedValue[] listedValues => [
+		public nameUsage() {
+			base.listedValues = [
 				new listedValue("Default Name Display", "The name is intended to be displayed when the end-user system is set to the default name/text display setting.",1),
 				new listedValue("Alternate Name Display", "The name is intended to be displayed when the end-user system is set to an alternate name/text display setting, for example an alternate language.",2),
 				new listedValue("No Chart Display", "The name or text is not intended to be displayed.",3),
-			];
+				];
+			}
 
 		public static implicit operator nameUsage(int? value) => new nameUsage { value = value };
 	}
@@ -1303,9 +1343,11 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(qualityOfHorizontalMeasurement);
 		[JsonIgnore]
 		public override string S100FC_name => "Quality of Horizontal Measurement";
-		public static listedValue[] listedValues => [
+		public qualityOfHorizontalMeasurement() {
+			base.listedValues = [
 				new listedValue("Approximate", "A position that is considered to be less than third-order accuracy, but is generally considered to be within 30.5 metres of its correct geographic location. Also may apply to a feature whose position does not remain fixed.",4),
-			];
+				];
+			}
 
 		public static implicit operator qualityOfHorizontalMeasurement(int? value) => new qualityOfHorizontalMeasurement { value = value };
 	}
@@ -1398,10 +1440,12 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(servingMobileSatelliteService);
 		[JsonIgnore]
 		public override string S100FC_name => "Serving Mobile Satellite Service";
-		public static listedValue[] listedValues => [
+		public servingMobileSatelliteService() {
+			base.listedValues = [
 				new listedValue("Inmarsat SafetyNET", "An international automatic direct-printing satellite-based service using Inmarsat C Enhanced Group Call (EGC) system for the promulgation of Maritime Safety Information (MSI), navigational and meteorological warnings, meteorological forecasts, Search and Rescue (SAR) related information and other urgent safety-related messages to ships.",1),
 				new listedValue("Iridium SafetyCast", "A service based on Iridium mobile-satellite system for the promulgation of Maritime Safety Information (MSI), navigational and meteorological warnings, meteorological forecasts, SAR-related information and other urgent safety-related messages to ships.",2),
-			];
+				];
+			}
 
 		public static implicit operator servingMobileSatelliteService(int? value) => new servingMobileSatelliteService { value = value };
 	}
@@ -1442,7 +1486,8 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(status);
 		[JsonIgnore]
 		public override string S100FC_name => "Status";
-		public static listedValue[] listedValues => [
+		public status() {
+			base.listedValues = [
 				new listedValue("Permanent", "Intended to last or function indefinitely.",1),
 				new listedValue("Occasional", "Acting on special occasions; happening irregularly.",2),
 				new listedValue("Not in Use", "Use has ceased, but the facility still exists intact; disused.",4),
@@ -1456,7 +1501,8 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("Good", "In a satisfactory condition to use.",25),
 				new listedValue("Moderately", "Fairly but not very.",26),
 				new listedValue("Poor", "Not as good as it could be or should.",27),
-			];
+				];
+			}
 
 		public static implicit operator status(int? value) => new status { value = value };
 	}
@@ -1509,7 +1555,8 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(telecommunicationService);
 		[JsonIgnore]
 		public override string S100FC_name => "Telecommunication Service";
-		public static listedValue[] listedValues => [
+		public telecommunicationService() {
+			base.listedValues = [
 				new listedValue("Voice", "The transfer or exchange of information by using sounds that are being made by mouth and throat when speaking.",1),
 				new listedValue("Facsimile", "A system of transmitting and reproducing graphic matter (as printing or still pictures) by means of signals sent over telephone lines.",2),
 				new listedValue("SMS", "Short Message Service is a form of text messaging communication on phones and mobile phones.",3),
@@ -1518,7 +1565,8 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("Telex", "A system of communication in which messages are sent over long distances by using a telephone system and are printed by using a special machine (called a teletypewriter).",6),
 				new listedValue("Telegraph", "An apparatus, system or process for communication at a distance by electric transmission over wire.",7),
 				new listedValue("Email", "Messages and other data exchanged between individuals using computers in a network.",8),
-			];
+				];
+			}
 
 		public static implicit operator telecommunicationService(int? value) => new telecommunicationService { value = value };
 	}
@@ -1636,13 +1684,15 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(transmissionRegularity);
 		[JsonIgnore]
 		public override string S100FC_name => "Transmission Regularity";
-		public static listedValue[] listedValues => [
+		public transmissionRegularity() {
+			base.listedValues = [
 				new listedValue("Continuous", "Transmission is made continuously.",1),
 				new listedValue("Regular", "Transmission is made regularly according to a schedule.",2),
 				new listedValue("On Receipt", "Transmission is made when warning or information is received from another authority.",3),
 				new listedValue("As Required", "Transmission is made under specified conditions or when needed.",4),
 				new listedValue("On Request", "When you ask for it.",5),
-			];
+				];
+			}
 
 		public static implicit operator transmissionRegularity(int? value) => new transmissionRegularity { value = value };
 	}
@@ -1669,7 +1719,8 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(typeOfBroadcastContent);
 		[JsonIgnore]
 		public override string S100FC_name => "Type of Broadcast Content";
-		public static listedValue[] listedValues => [
+		public typeOfBroadcastContent() {
+			base.listedValues = [
 				new listedValue("Navigational Warning", "A message containing urgent information relevant to safe navigation broadcast to ships in accordance with the provisions of the International Convention for the Safety of Life at Sea, 1974, as amended.",1),
 				new listedValue("Meteorological Warnings and Forecasts", "Marine meteorological warning and forecast information in accordance with the provisions of the International Convention for the Safety of Life at Sea, 1974",2),
 				new listedValue("SAR Information", "Broadcast message with information about an ongoing Search and Rescue operation.",3),
@@ -1679,7 +1730,8 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("Military Information", "Information concerning military events, such as military exercises, missile firings.",7),
 				new listedValue("Special Service or Application Specific Messages", "Broadcast for special services or other application specific messages",8),
 				new listedValue("Ice Report", "Report of the ice situation and restrictions to shipping.",9),
-			];
+				];
+			}
 
 		public static implicit operator typeOfBroadcastContent(int? value) => new typeOfBroadcastContent { value = value };
 	}
@@ -1693,12 +1745,14 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(typeOfConnectivityResource);
 		[JsonIgnore]
 		public override string S100FC_name => "Type of Connectivity Resource";
-		public static listedValue[] listedValues => [
+		public typeOfConnectivityResource() {
+			base.listedValues = [
 				new listedValue("Guaranteed Bit Rate", "The type of Quality of Service (QoS) Flow or a QoS parameter that defines the minimum data rate that must be guaranteed for a specific service or traffic flow.",1),
 				new listedValue("Non-Guaranteed Bit Rate", "The type of Quality of Service (QoS) Flow that does not provide the end-user a guaranteed flow bit rate,  typically used for non-time-sensitive applications, e.g., web browsing, buffered streaming, and instant messenger applications",2),
 				new listedValue("Delay Critical Guaranteed Bit Rate", "The type of Quality of Service (QoS) Flow that provides latencies significantly lower than guaranteed flow bit rate. Typically used in mission critical application like automation or intelligent transportation systems",3),
 				new listedValue("Best Effort", "The network or service that does not support quality of service, does its best to deliver packets, but does not guarantee delivery or control delay",4),
-			];
+				];
+			}
 
 		public static implicit operator typeOfConnectivityResource(int? value) => new typeOfConnectivityResource { value = value };
 	}
@@ -1712,10 +1766,12 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(typeOfNAVTEXService);
 		[JsonIgnore]
 		public override string S100FC_name => "Type of NAVTEX Service";
-		public static listedValue[] listedValues => [
+		public typeOfNAVTEXService() {
+			base.listedValues = [
 				new listedValue("International NAVTEX", "The coordinated broadcast and automatic reception on 518 kHz of maritime safety information by means of narrow-band direct-printing telegraphy using the English language.",1),
 				new listedValue("National NAVTEX", "The broadcast and automatic reception of maritime safety information by means of narrow-band direct-printing telegraphy using frequencies other than 518 kHz and languages as decided by the Administration concerned.",2),
-			];
+				];
+			}
 
 		public static implicit operator typeOfNAVTEXService(int? value) => new typeOfNAVTEXService { value = value };
 	}
@@ -1729,7 +1785,8 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(typeOfRadioService);
 		[JsonIgnore]
 		public override string S100FC_name => "Type of Radio Service";
-		public static listedValue[] listedValues => [
+		public typeOfRadioService() {
+			base.listedValues = [
 				new listedValue("Digital Selective Calling", "Radio service using Digital Selective Calling (DSC) techniques.",1),
 				new listedValue("Radio Telephony", "Radio service using Radio Telephony (RT).",2),
 				new listedValue("Public Correspondence Service", "Radio service with the coast station providing a public correspondence service.",3),
@@ -1744,7 +1801,8 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("Special Service or Application Specific Messages", "Broadcast for special services or other application specific messages.",12),
 				new listedValue("Satellite Communication", "Communication using a satellite system",13),
 				new listedValue("Navigational Data System", "A digital system referred to as navigational data for broadcasting maritime safety and security related information from shore-to-ship.",14),
-			];
+				];
+			}
 
 		public static implicit operator typeOfRadioService(int? value) => new typeOfRadioService { value = value };
 	}
@@ -1797,7 +1855,8 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(vesselsCharacteristics);
 		[JsonIgnore]
 		public override string S100FC_name => "Vessels Characteristics";
-		public static listedValue[] listedValues => [
+		public vesselsCharacteristics() {
+			base.listedValues = [
 				new listedValue("Length Overall", "The maximum length of the ship.",1),
 				new listedValue("Length at Waterline", "The ship's length measured at the waterline.",2),
 				new listedValue("Breadth", "The width or beam of the vessel.",3),
@@ -1810,7 +1869,8 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("Net Tonnage", "Obtained from the gross tonnage by deducting crew and navigating spaces and allowances for propulsion machinery.",11),
 				new listedValue("Panama Canal/Universal Measurement System Net Tonnage", "The Panama Canal/Universal Measurement System (PC/UMS) is based on net tonnage, modified for Panama Canal purposes. PC/UMS is based on a mathematical formula to calculate a vessel's total volume; a PC/UMS net ton is equivalent to 100 cubic feet of capacity.",12),
 				new listedValue("Suez Canal Net Tonnage", "The Suez Canal Net Tonnage (SCNT) is derived with a number of modifications from the former net register tonnage of the Moorsom System and was established by the International Commission of Constantinople in its Protocol of 18 December 1873. It is still in use, as amended by the Rules of Navigation of the Suez Canal Authority, and is registered in the Suez Canal Tonnage Certificate.",13),
-			];
+				];
+			}
 
 		public static implicit operator vesselsCharacteristics(int? value) => new vesselsCharacteristics { value = value };
 	}
@@ -1824,7 +1884,8 @@ namespace S100FC.S123.SimpleAttributes
 		public override string S100FC_code => nameof(vesselsCharacteristicsUnit);
 		[JsonIgnore]
 		public override string S100FC_name => "Vessels Characteristics Unit";
-		public static listedValue[] listedValues => [
+		public vesselsCharacteristicsUnit() {
+			base.listedValues = [
 				new listedValue("Metres", "The basic unit of length in the International System of Units (SI) system.",1),
 				new listedValue("Metric Ton", "The tonne or metric ton (U.S.), often redundantly referred to as a metric tonne, is a unit of mass equal to 1,000 kg (2,205 lb) or approximately the mass of one cubic metre of water at four degrees Celsius. It is sometimes abbreviated as mt in the United States, but this conflicts with other SI symbols. The tonne is not a unit in the International System of Units (SI), but is accepted for use with the SI. In SI units and prefixes, the tonne is a megagram (Mg). The Imperial and US customary units comparable to the tonne are both spelled ton in English, though they differ in mass. Pronunciation of tonne (the word used in the UK) and ton is usually identical, but is not too confusing unless accuracy is important as the tonne and UK long ton differ by only 1.6.",3),
 				new listedValue("Ton", "Long ton (weight ton or imperial ton) is the name for the unit called the \"ton\" in the avoirdupois or Imperial system of measurements, as used in the United Kingdom and several other Commonwealth countries. It has been mostly replaced by the tonne, and in the United States by the short ton. One long ton is equal to 2,240 pounds (1,016 kg) or 35 cubic feet (0.9911 m) of salt water with a density of 64 lb/ft (1.025 g/ml). It has some limited use in the United States, most commonly in measuring the displacement of ships, and was the unit prescribed for warships by the Washington Naval Treaty for example battleships were limited to a mass of 35,000 long tons (36,000 t; 39,000 ST).",4),
@@ -1832,7 +1893,8 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("Gross Ton", "Gross tonnage (GT) is a function of the volume of all ship's enclosed spaces (from keel to funnel) measured to the outside of the hull framing. There is a sliding scale factor. So GT is a kind of capacity-derived index that is used to rank a ship for purposes of determining manning, safety and other statutory requirements and is expressed simply as GT, which is a unitless entity, even though its derivation is tied to the cubic meter unit of volumetric capacity.Tonnage measurements are now governed by an IMO Convention (International Convention on Tonnage Measurement of Ships, 1969 (London-Rules)), which applies to all ships built after July 1982. In accordance with the Convention, the correct term to use now is GT, which is a function of the moulded volume of all enclosed spaces of the ship.",6),
 				new listedValue("Net Ton", "Net tonnage (NT) is based on a calculation of the volume of all cargo spaces of the ship. It indicates a vessels earning space and is a function of the moulded volume of all cargo spaces of the ship.",7),
 				new listedValue("Suez Canal Net Tonnage", "The Suez Canal Net Tonnage (SCNT) is derived with a number of modifications from the former net register tonnage of the Moorsom System and was established by the International Commission of Constantinople in its Protocol of 18 December 1873. It is still in use, as amended by the Rules of Navigation of the Suez Canal Authority, and is registered in the Suez Canal Tonnage Certificate.",9),
-			];
+				];
+			}
 
 		public static implicit operator vesselsCharacteristicsUnit(int? value) => new vesselsCharacteristicsUnit { value = value };
 	}
@@ -3583,13 +3645,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// A feature association for the binding between at least one instance of a geo feature and an instance of an information type.
 	/// </summary>
-	public class AdditionalInformation : S100FC.InformationAssociation
+	public class AdditionalInformation : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(AdditionalInformation);
-		[JsonIgnore]
-		public override string S100FC_name => "Additional Information";
 		public static string role => "theInformation";
+		public AdditionalInformation() {
+			base.S100FC_code = nameof(AdditionalInformation);
+			base.S100FC_name = "Additional Information";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3598,13 +3660,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// Association between a geographic location and a regulation, restriction, recommendation, or nautical information
 	/// </summary>
-	public class AssociatedRxN : S100FC.InformationAssociation
+	public class AssociatedRxN : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(AssociatedRxN);
-		[JsonIgnore]
-		public override string S100FC_name => "Associated RxN";
 		public static string role => "theRxN";
+		public AssociatedRxN() {
+			base.S100FC_code = nameof(AssociatedRxN);
+			base.S100FC_name = "Associated RxN";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3613,13 +3675,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// Contact information for an authority
 	/// </summary>
-	public class AuthorityContact : S100FC.InformationAssociation
+	public class AuthorityContact : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(AuthorityContact);
-		[JsonIgnore]
-		public override string S100FC_name => "Authority Contact";
 		public static string role => "theContactDetails";
+		public AuthorityContact() {
+			base.S100FC_code = nameof(AuthorityContact);
+			base.S100FC_name = "Authority Contact";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3628,13 +3690,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// Service hours for an authority
 	/// </summary>
-	public class AuthorityHours : S100FC.InformationAssociation
+	public class AuthorityHours : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(AuthorityHours);
-		[JsonIgnore]
-		public override string S100FC_name => "Authority Hours";
 		public static string role => "theServiceHours";
+		public AuthorityHours() {
+			base.S100FC_code = nameof(AuthorityHours);
+			base.S100FC_name = "Authority Hours";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3643,13 +3705,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// Available Quality of Service (QoS) within the area.
 	/// </summary>
-	public class AvailableQoS : S100FC.InformationAssociation
+	public class AvailableQoS : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(AvailableQoS);
-		[JsonIgnore]
-		public override string S100FC_name => "Available Quality of Service";
 		public static string role => "theQoS";
+		public AvailableQoS() {
+			base.S100FC_code = nameof(AvailableQoS);
+			base.S100FC_name = "Available Quality of Service";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3658,13 +3720,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// The broadcast content and schedule of a service area or facility
 	/// </summary>
-	public class BroadcastService : S100FC.InformationAssociation
+	public class BroadcastService : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(BroadcastService);
-		[JsonIgnore]
-		public override string S100FC_name => "Broadcast Service";
 		public static string role => "theBroadcastDetails";
+		public BroadcastService() {
+			base.S100FC_code = nameof(BroadcastService);
+			base.S100FC_name = "Broadcast Service";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3673,13 +3735,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// The transmission details for the broadcast or the broadcast details available from the transmission
 	/// </summary>
-	public class BroadcastTransmission : S100FC.InformationAssociation
+	public class BroadcastTransmission : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(BroadcastTransmission);
-		[JsonIgnore]
-		public override string S100FC_name => "Broadcast Transmission";
 		public static string role => "theTransmissionDetails";
+		public BroadcastTransmission() {
+			base.S100FC_code = nameof(BroadcastTransmission);
+			base.S100FC_name = "Broadcast Transmission";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3688,13 +3750,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// The service that allows users to connect to the internet.
 	/// </summary>
-	public class ConnectivityService : S100FC.InformationAssociation
+	public class ConnectivityService : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(ConnectivityService);
-		[JsonIgnore]
-		public override string S100FC_name => "Connectivity Service";
 		public static string role => "connectivityServiceProvider";
+		public ConnectivityService() {
+			base.S100FC_code = nameof(ConnectivityService);
+			base.S100FC_name = "Connectivity Service";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3703,13 +3765,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// Exception to the usual working day
 	/// </summary>
-	public class ExceptionalWorkday : S100FC.InformationAssociation
+	public class ExceptionalWorkday : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(ExceptionalWorkday);
-		[JsonIgnore]
-		public override string S100FC_name => "Exceptional Workday";
 		public static string role => "partialWorkingDay";
+		public ExceptionalWorkday() {
+			base.S100FC_code = nameof(ExceptionalWorkday);
+			base.S100FC_name = "Exceptional Workday";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3718,13 +3780,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// Association class specifying the relationship between the subset of vessels described by an APPLIC data object and a regulation (restriction, recommendation, or nautical information).
 	/// </summary>
-	public class InclusionType : S100FC.InformationAssociation
+	public class InclusionType : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(InclusionType);
-		[JsonIgnore]
-		public override string S100FC_name => "InclusionType";
 		public static string role => "theApplicableRxN";
+		public InclusionType() {
+			base.S100FC_code = nameof(InclusionType);
+			base.S100FC_name = "InclusionType";
+		}
 
 		#region Attributes
 		[JsonIgnore]
@@ -3753,13 +3815,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// Working hours for a service or facility described by a geographic location
 	/// </summary>
-	public class LocationHours : S100FC.InformationAssociation
+	public class LocationHours : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(LocationHours);
-		[JsonIgnore]
-		public override string S100FC_name => "Location Hours";
 		public static string role => "theServiceHours";
+		public LocationHours() {
+			base.S100FC_code = nameof(LocationHours);
+			base.S100FC_name = "Location Hours";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3768,13 +3830,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// Association class for associations describing whether the subsets of vessels determined by the ship characteristics specified in APPLIC may (or must, etc.) transit,  enter, or use  a feature.
 	/// </summary>
-	public class PermissionType : S100FC.InformationAssociation
+	public class PermissionType : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(PermissionType);
-		[JsonIgnore]
-		public override string S100FC_name => "Permission Type";
 		public static string role => "permission";
+		public PermissionType() {
+			base.S100FC_code = nameof(PermissionType);
+			base.S100FC_name = "Permission Type";
+		}
 
 		#region Attributes
 		[JsonIgnore]
@@ -3803,13 +3865,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// The radio control centre for a marine radio service
 	/// </summary>
-	public class RadioServiceControl : S100FC.InformationAssociation
+	public class RadioServiceControl : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(RadioServiceControl);
-		[JsonIgnore]
-		public override string S100FC_name => "Radio Service Control";
 		public static string role => "theControlCentre";
+		public RadioServiceControl() {
+			base.S100FC_code = nameof(RadioServiceControl);
+			base.S100FC_name = "Radio Service Control";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3818,13 +3880,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// Related Organisation
 	/// </summary>
-	public class relatedOrganisation : S100FC.InformationAssociation
+	public class relatedOrganisation : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(relatedOrganisation);
-		[JsonIgnore]
-		public override string S100FC_name => "Related Organisation";
 		public static string role => "theInformation";
+		public relatedOrganisation() {
+			base.S100FC_code = nameof(relatedOrganisation);
+			base.S100FC_name = "Related Organisation";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3833,13 +3895,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// Contact details for a service or facility
 	/// </summary>
-	public class ServiceContact : S100FC.InformationAssociation
+	public class ServiceContact : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(ServiceContact);
-		[JsonIgnore]
-		public override string S100FC_name => "Service Contact";
 		public static string role => "theContactDetails";
+		public ServiceContact() {
+			base.S100FC_code = nameof(ServiceContact);
+			base.S100FC_name = "Service Contact";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3848,13 +3910,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// The coordinating authority for a service area
 	/// </summary>
-	public class ServiceCoordination : S100FC.InformationAssociation
+	public class ServiceCoordination : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(ServiceCoordination);
-		[JsonIgnore]
-		public override string S100FC_name => "Service Coordination";
 		public static string role => "coordinatingAuthority";
+		public ServiceCoordination() {
+			base.S100FC_code = nameof(ServiceCoordination);
+			base.S100FC_name = "Service Coordination";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3863,13 +3925,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// An association for the binding between a spatial type and its spatial quality information.
 	/// </summary>
-	public class SpatialAssociation : S100FC.InformationAssociation
+	public class SpatialAssociation : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(SpatialAssociation);
-		[JsonIgnore]
-		public override string S100FC_name => "Spatial Association";
 		public static string role => "theQualityInformation";
+		public SpatialAssociation() {
+			base.S100FC_code = nameof(SpatialAssociation);
+			base.S100FC_name = "Spatial Association";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3878,13 +3940,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// Available Telemedical Assistance Service and related coordination centre.
 	/// </summary>
-	public class TMAS : S100FC.InformationAssociation
+	public class TMAS : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(TMAS);
-		[JsonIgnore]
-		public override string S100FC_name => "Available Telemedical Assistance Service";
 		public static string role => "theTMAS";
+		public TMAS() {
+			base.S100FC_code = nameof(TMAS);
+			base.S100FC_name = "Available Telemedical Assistance Service";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3893,13 +3955,13 @@ namespace S100FC.S123.InformationAssociation
 	/// <summary>
 	/// The radio transmission of a service area or facility
 	/// </summary>
-	public class TransmissionService : S100FC.InformationAssociation
+	public class TransmissionService : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(TransmissionService);
-		[JsonIgnore]
-		public override string S100FC_name => "Transmission Service";
 		public static string role => "theTransmissionDetails";
+		public TransmissionService() {
+			base.S100FC_code = nameof(TransmissionService);
+			base.S100FC_name = "Transmission Service";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3915,13 +3977,13 @@ namespace S100FC.S123.FeatureAssociation
 	/// <summary>
 	/// A feature association for the binding between an aggregation feature that describes areas of varying uncertainty about a service or phenomenon and a geographic feature describing the service or phenomenon.
 	/// </summary>
-	public class coreAggregation : S100FC.FeatureAssociation
+	public class coreAggregation : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(coreAggregation);
-		[JsonIgnore]
-		public override string S100FC_name => "Core aggregation";
 		public static string[] roles => ["theCollection","theComponent"];
+		public coreAggregation() {
+			base.S100FC_code = nameof(coreAggregation);
+			base.S100FC_name = "Core aggregation";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3930,13 +3992,13 @@ namespace S100FC.S123.FeatureAssociation
 	/// <summary>
 	/// A feature association for the binding between an aggregation feature that describes areas of varying uncertainty about a service or phenomenon and zones of uncertainty about the service or phenomenon.
 	/// </summary>
-	public class fuzzyZoneAggregation : S100FC.FeatureAssociation
+	public class fuzzyZoneAggregation : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(fuzzyZoneAggregation);
-		[JsonIgnore]
-		public override string S100FC_name => "Fuzzy zone aggregation";
 		public static string[] roles => ["theCollection","theComponent"];
+		public fuzzyZoneAggregation() {
+			base.S100FC_code = nameof(fuzzyZoneAggregation);
+			base.S100FC_name = "Fuzzy zone aggregation";
+		}
 
 		#region Catalogue
 		#endregion
@@ -3945,13 +4007,13 @@ namespace S100FC.S123.FeatureAssociation
 	/// <summary>
 	/// Association linking the location from which a service is provided and the area(s) served.
 	/// </summary>
-	public class ServiceProvisionArea : S100FC.FeatureAssociation
+	public class ServiceProvisionArea : S100FC.association
 	{
-		[JsonIgnore]
-		public override string S100FC_code => nameof(ServiceProvisionArea);
-		[JsonIgnore]
-		public override string S100FC_name => "Service Provision Area";
 		public static string[] roles => ["serviceArea","serviceProvider"];
+		public ServiceProvisionArea() {
+			base.S100FC_code = nameof(ServiceProvisionArea);
+			base.S100FC_name = "Service Provision Area";
+		}
 
 		#region Catalogue
 		#endregion
@@ -7777,6 +7839,7 @@ namespace S100FC.S123
 		public static JsonSerializerOptions AppendTypeInfoResolver(this JsonSerializerOptions jsonSerializerOptions) {
 			var resolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver();
 			resolver.Modifiers.Add(typeInfo => {
+				/*
 				if (typeInfo.Type == typeof(S100FC.informationBinding)) {
 					typeInfo.PolymorphismOptions = new System.Text.Json.Serialization.Metadata.JsonPolymorphismOptions {
 						TypeDiscriminatorPropertyName = "code",
@@ -7811,6 +7874,7 @@ namespace S100FC.S123
 					typeInfo.PolymorphismOptions.DerivedTypes.Add(new System.Text.Json.Serialization.Metadata.JsonDerivedType(typeof(featureBinding<FeatureAssociation.fuzzyZoneAggregation>), typeDiscriminator: "fuzzyZoneAggregation"));
 					typeInfo.PolymorphismOptions.DerivedTypes.Add(new System.Text.Json.Serialization.Metadata.JsonDerivedType(typeof(featureBinding<FeatureAssociation.ServiceProvisionArea>), typeDiscriminator: "ServiceProvisionArea"));
 				}
+				*/
 				if (typeInfo.Type == typeof(S100FC.attributeBinding)) {
 					typeInfo.PolymorphismOptions = new System.Text.Json.Serialization.Metadata.JsonPolymorphismOptions {
 						TypeDiscriminatorPropertyName = "code",
