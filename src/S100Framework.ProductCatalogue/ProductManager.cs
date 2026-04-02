@@ -562,7 +562,7 @@ namespace S100FC.ProductCatalogue
 
                 var whereClause = "upper(ps) = 'S-101'";
 
-                var specificUsage = S100FC.S128.SimpleAttributes.specificUsage.listedValues.FirstOrDefault(e => e.code == electronicProduct.specificUsage);
+                var specificUsage = S128.SimpleAttributes.specificUsage.listedValues.FirstOrDefault(e => e.code == electronicProduct.specificUsage);
                 if (specificUsage != default)
                     whereClause += $" AND usageband = {electronicProduct.specificUsage}";
 

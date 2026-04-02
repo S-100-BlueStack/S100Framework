@@ -24,6 +24,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\S100Framework.Catalogues.ProductSpecifications\S100Framework.Catalogues.ProductSpecifications.csproj" />
 		<ProjectReference Include="..\S100Framework.Catalogues\S100Framework.Catalogues.csproj" />
 		<ProjectReference Include="..\S100Framework.Topology\S100Framework.Topology.csproj" />
 	</ItemGroup>
