@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net10.0-windows10.0.20348.0</TargetFramework>
+		<TargetFramework>net8.0-windows10.0.20348.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Platforms>x64</Platforms>
@@ -11,8 +11,8 @@
 		<PackageId>S100Framework.ArcGIS.Core</PackageId>
 		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
 		<AssemblyVersion>3.0.0.0</AssemblyVersion>
-		<Version>3.7.688</Version>
-		<PackageVersion>3.7.688.1</PackageVersion>
+		<Version>3.6.59527</Version>
+		<PackageVersion>3.6.59527.1</PackageVersion>
 		<Configurations>Debug</Configurations>		
 	</PropertyGroup>
 	
