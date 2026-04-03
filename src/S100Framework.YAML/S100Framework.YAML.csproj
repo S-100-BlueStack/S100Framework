@@ -10,9 +10,10 @@
 		<Product>S100Framework</Product>
 		<PackageId>S100Framework.YAML</PackageId>
 		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
-		<AssemblyVersion>2.0.0.0</AssemblyVersion>
+		<AssemblyVersion>3.0.0.0</AssemblyVersion>
 		<Configurations>Debug</Configurations>
-		<Version>3.7.700</Version>
+		<Version>3.7.688</Version>
+		<PackageVersion>3.7.688.1</PackageVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -31,7 +32,7 @@
 
 	<ItemGroup>
 	  <Reference Include="ArcGIS.Core">
-	    <HintPath>..\..\..\..\..\..\..\..\Program Files\ArcGIS\Pro\bin\ArcGIS.Core.dll</HintPath>
+		  <HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Core.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
 

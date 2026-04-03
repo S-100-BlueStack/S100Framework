@@ -562,9 +562,10 @@ namespace S100FC.ProductCatalogue
 
                 var whereClause = "upper(ps) = 'S-101'";
 
-                var specificUsage = S128.SimpleAttributes.specificUsage.listedValues.FirstOrDefault(e => e.code == electronicProduct.specificUsage);
-                if (specificUsage != default)
-                    whereClause += $" AND usageband = {electronicProduct.specificUsage}";
+                //TODO: ????
+                //var specificUsage = S128.SimpleAttributes.specificUsage.listedValues.FirstOrDefault(e => e.code == electronicProduct.specificUsage);
+                //if (specificUsage != default)
+                //    whereClause += $" AND usageband = {electronicProduct.specificUsage}";
 
 
                 //whereClause += specificUsage switch {
@@ -899,7 +900,7 @@ namespace S100FC.ProductCatalogue
                         if (string.IsNullOrEmpty(json))
                             continue;
 
-                        var file = System.Text.Json.JsonSerializer.Deserialize<S100Horizon.Settings.SupportFile>(json);
+                        var file = System.Text.Json.JsonSerializer.Deserialize<S100BlueStack.Settings.SupportFile>(json);
 
                         if (!supportFiles.Contains(file!.FileName))
                             continue;
