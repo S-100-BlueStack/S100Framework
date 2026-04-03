@@ -11,8 +11,8 @@
 		<PackageId>S100Framework.ProductCatalogue</PackageId>
 		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
 		<AssemblyVersion>2.0.0.0</AssemblyVersion>
-		<Configurations>Debug</Configurations>		
-		<Version>3.6.200</Version>
+		<Configurations>Debug</Configurations>
+		<Version>3.7.700</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
