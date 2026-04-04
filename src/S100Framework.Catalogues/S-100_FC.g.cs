@@ -229,6 +229,9 @@ namespace S100FC
         public virtual string S100FC_name { get; init; } = "";
 
         [JsonIgnore]
+        public virtual int sourceIdentifier { get; init; } = 0;
+
+        [JsonIgnore]
         public virtual bool HasValue { get; }
     }
 
@@ -575,6 +578,9 @@ namespace S100FC
         [JsonIgnore]
         public abstract string S100FC_name { get; }
 
+        [JsonIgnore]
+        public virtual int sourceIdentifier { get; init; } = 0;
+
         [JsonInclude]
         [JsonPropertyName("attr")]
         public attributeBinding[] attributeBindings { get; protected set; } = [];
@@ -675,6 +681,9 @@ namespace S100FC
 
         [JsonIgnore]
         public abstract string S100FC_name { get; }
+
+        [JsonIgnore]
+        public virtual int sourceIdentifier { get; init; } = 0;
 
         [JsonInclude]
         [JsonPropertyName("attr")]

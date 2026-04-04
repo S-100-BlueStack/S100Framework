@@ -150,7 +150,7 @@ namespace TestAttributes
 
         [Fact]
         public void Test_S125_Build() {
-            var ps = XDocument.Load(System.IO.Path.Combine(this._iho, @"S-125-Product-Specification-Development-validation\FC\S125FC.xml"));
+            var ps = XDocument.Load(System.IO.Path.Combine(this._iho, @"S-125-Product-Specification-Development\FC\S125FC.xml"));
 
             var roslyn = this.RoslynBuilder(ps, "S125");
 
@@ -312,6 +312,10 @@ namespace TestAttributes
                     var code = element.Element(XName.Get("code", scopes["S100FC"]))!.Value;
                     var name = element.Element(XName.Get("name", scopes["S100FC"]))!.Value;
 
+                    var sourceIdentifier = element.Element(XName.Get("definitionReference", scopes["S100FC"]))?.Element(XName.Get("sourceIdentifier", scopes["S100FC"]))!.Value;
+                    if (!int.TryParse(sourceIdentifier, out int value))
+                        sourceIdentifier = "0";
+
                     attributesKnown.Add(code);
 
                     derivedTypesAttributes.AppendLine($"\t\t\t\t\ttypeInfo.PolymorphismOptions.DerivedTypes.Add(new System.Text.Json.Serialization.Metadata.JsonDerivedType(typeof({code}), typeDiscriminator: \"{code}\"));");
@@ -336,6 +340,10 @@ namespace TestAttributes
                         roslyn.AppendLine($"\t\tpublic override string S100FC_code => nameof({code});");
                         roslyn.AppendLine("\t\t[JsonIgnore]");
                         roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
+                        if (!string.IsNullOrEmpty(sourceIdentifier)) {
+                            roslyn.AppendLine("\t\t[JsonIgnore]");
+                            roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {int.Parse(sourceIdentifier)};");
+                        }
                         //roslyn.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override listedValue[] listedValues => {code}.listedValues");
 
@@ -382,6 +390,10 @@ namespace TestAttributes
                         roslyn.AppendLine($"\t\tpublic override string S100FC_code => nameof({code});");
                         roslyn.AppendLine("\t\t[JsonIgnore]");
                         roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
+                        if (!string.IsNullOrEmpty(sourceIdentifier)) {
+                            roslyn.AppendLine("\t\t[JsonIgnore]");
+                            roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {int.Parse(sourceIdentifier)};");
+                        }
                         //roslyn.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override listedValue[] listedValues => {code}.listedValues");
 
@@ -492,6 +504,10 @@ namespace TestAttributes
                         roslyn.AppendLine($"\t\tpublic override string S100FC_code => nameof({code});");
                         roslyn.AppendLine("\t\t[JsonIgnore]");
                         roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
+                        if (!string.IsNullOrEmpty(sourceIdentifier)) {
+                            roslyn.AppendLine("\t\t[JsonIgnore]");
+                            roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {int.Parse(sourceIdentifier)};");
+                        }
                         //roslyn.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override string valueType => \"{valueType}\";");
                         //roslyn.AppendLine($"\t\tpublic {prefix}? value {{ get; set; }} = default;");
@@ -954,6 +970,9 @@ namespace TestAttributes
 
             var code = element.Element(XName.Get("code", scopes["S100FC"]))!.Value;
             var name = element.Element(XName.Get("name", scopes["S100FC"]))!.Value;
+            var sourceIdentifier = element.Element(XName.Get("definitionReference", scopes["S100FC"]))?.Element(XName.Get("sourceIdentifier", scopes["S100FC"]))!.Value;
+            if (!int.TryParse(sourceIdentifier, out int value))
+                sourceIdentifier = "0";
             if (host.KnownTypes.Any(a => a.Equals(code, StringComparison.InvariantCultureIgnoreCase)))
                 return true;
 
@@ -989,6 +1008,10 @@ namespace TestAttributes
                 roslyn.AppendLine($"\t\tpublic override string S100FC_code => nameof({code});");
                 roslyn.AppendLine("\t\t[JsonIgnore]");
                 roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
+                if (!string.IsNullOrEmpty(sourceIdentifier)) {
+                    roslyn.AppendLine("\t\t[JsonIgnore]");
+                    roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {int.Parse(sourceIdentifier)};");
+                }
             }
             pre?.Invoke(roslyn);
 

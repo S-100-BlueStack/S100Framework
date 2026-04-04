@@ -15,6 +15,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(administrativeDivision);
 		[JsonIgnore]
 		public override string S100FC_name => "Administrative Division";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator administrativeDivision(String? value) => new administrativeDivision { value = value };
 	}
@@ -28,6 +30,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(agencyName);
 		[JsonIgnore]
 		public override string S100FC_name => "Agency Name";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator agencyName(String? value) => new agencyName { value = value };
 	}
@@ -41,6 +45,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(agencyResponsibleForProduction);
 		[JsonIgnore]
 		public override string S100FC_name => "Agency Responsible for Production";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator agencyResponsibleForProduction(String? value) => new agencyResponsibleForProduction { value = value };
 	}
@@ -54,6 +60,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(applicationProfile);
 		[JsonIgnore]
 		public override string S100FC_name => "Application Profile";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator applicationProfile(String? value) => new applicationProfile { value = value };
 	}
@@ -67,6 +75,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(approximateGridResolution);
 		[JsonIgnore]
 		public override string S100FC_name => "Approximate Grid Resolution";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator approximateGridResolution(decimal? value) => new approximateGridResolution { value = value };
 	}
@@ -80,6 +90,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(catalogueElementClassification);
 		[JsonIgnore]
 		public override string S100FC_name => "Catalogue Element Classification";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public catalogueElementClassification() {
 			base.listedValues = [
 				new listedValue("ENC", "Electronic Navigational Chart",1),
@@ -110,6 +122,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(catalogueElementIdentifier);
 		[JsonIgnore]
 		public override string S100FC_name => "Catalogue Element Identifier";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator catalogueElementIdentifier(String? value) => new catalogueElementIdentifier { value = value };
 	}
@@ -123,6 +137,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(catalogueSectionNumber);
 		[JsonIgnore]
 		public override string S100FC_name => "Catalogue Section Number";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator catalogueSectionNumber(int? value) => new catalogueSectionNumber { value = value };
 	}
@@ -136,6 +152,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(catalogueSectionTitle);
 		[JsonIgnore]
 		public override string S100FC_name => "Catalogue Section Title";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator catalogueSectionTitle(String? value) => new catalogueSectionTitle { value = value };
 	}
@@ -149,6 +167,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfAuthority);
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Authority";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public categoryOfAuthority() {
 			base.listedValues = [
 				new listedValue("Border Control", "The administration to prevent or detect and prosecute violations of rules and regulations at international boundaries.",2),
@@ -184,6 +204,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(characterEncoding);
 		[JsonIgnore]
 		public override string S100FC_name => "Character Encoding";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator characterEncoding(String? value) => new characterEncoding { value = value };
 	}
@@ -197,6 +219,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(cityName);
 		[JsonIgnore]
 		public override string S100FC_name => "City Name";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator cityName(String? value) => new cityName { value = value };
 	}
@@ -210,6 +234,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(classification);
 		[JsonIgnore]
 		public override string S100FC_name => "Classification";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator classification(String? value) => new classification { value = value };
 	}
@@ -223,6 +249,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(comment);
 		[JsonIgnore]
 		public override string S100FC_name => "Comment";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator comment(String? value) => new comment { value = value };
 	}
@@ -236,6 +264,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(compilationScale);
 		[JsonIgnore]
 		public override string S100FC_name => "Compilation Scale";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator compilationScale(int? value) => new compilationScale { value = value };
 	}
@@ -249,6 +279,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(compressionFlag);
 		[JsonIgnore]
 		public override string S100FC_name => "Compression Flag";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator compressionFlag(Boolean? value) => new compressionFlag { value = value };
 	}
@@ -262,6 +294,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(contactInstructions);
 		[JsonIgnore]
 		public override string S100FC_name => "Contact Instructions";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator contactInstructions(String? value) => new contactInstructions { value = value };
 	}
@@ -275,6 +309,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(contractPeriod);
 		[JsonIgnore]
 		public override string S100FC_name => "Contract Period";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator contractPeriod(String? value) => new contractPeriod { value = value };
 	}
@@ -288,6 +324,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(countryName);
 		[JsonIgnore]
 		public override string S100FC_name => "Country Name";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator countryName(String? value) => new countryName { value = value };
 	}
@@ -301,6 +339,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(currency);
 		[JsonIgnore]
 		public override string S100FC_name => "Currency";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator currency(String? value) => new currency { value = value };
 	}
@@ -314,6 +354,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(datasetName);
 		[JsonIgnore]
 		public override string S100FC_name => "Dataset Name";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator datasetName(String? value) => new datasetName { value = value };
 	}
@@ -327,6 +369,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(dateEnd);
 		[JsonIgnore]
 		public override string S100FC_name => "Date End";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator dateEnd(String? value) => new dateEnd { value = value };
 	}
@@ -340,6 +384,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(dateStart);
 		[JsonIgnore]
 		public override string S100FC_name => "Date Start";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator dateStart(String? value) => new dateStart { value = value };
 	}
@@ -353,6 +399,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(deliveryPoint);
 		[JsonIgnore]
 		public override string S100FC_name => "Delivery Point";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator deliveryPoint(String? value) => new deliveryPoint { value = value };
 	}
@@ -366,6 +414,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(digitalSignatureValue);
 		[JsonIgnore]
 		public override string S100FC_name => "Digital Signature Value";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public digitalSignatureValue() {
 			base.listedValues = [
 				new listedValue("ID", "Meta data record identifier for QualityOfBathymetric Coverage",1),
@@ -385,6 +435,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(nameUsage);
 		[JsonIgnore]
 		public override string S100FC_name => "Name Usage";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public nameUsage() {
 			base.listedValues = [
 				new listedValue("Default Name Display", "The name is intended to be displayed when the end-user system is set to the default name/text display setting.",1),
@@ -405,6 +457,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(distributionStatus);
 		[JsonIgnore]
 		public override string S100FC_name => "Distribution Status";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public distributionStatus() {
 			base.listedValues = [
 				new listedValue("Production", "A product or service that is currently in production.",1),
@@ -424,6 +478,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(distributorName);
 		[JsonIgnore]
 		public override string S100FC_name => "Distributor Name";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator distributorName(String? value) => new distributorName { value = value };
 	}
@@ -437,6 +493,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(domesticCarriageRequirements);
 		[JsonIgnore]
 		public override string S100FC_name => "Domestic Carriage Requirements";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator domesticCarriageRequirements(String? value) => new domesticCarriageRequirements { value = value };
 	}
@@ -450,6 +508,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(editionDate);
 		[JsonIgnore]
 		public override string S100FC_name => "Edition Date";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator editionDate(DateOnly? value) => new editionDate { value = value };
 	}
@@ -463,6 +523,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(editionNumber);
 		[JsonIgnore]
 		public override string S100FC_name => "Edition Number";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator editionNumber(int? value) => new editionNumber { value = value };
 	}
@@ -476,6 +538,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(expirationDate);
 		[JsonIgnore]
 		public override string S100FC_name => "Expiration Date";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator expirationDate(DateOnly? value) => new expirationDate { value = value };
 	}
@@ -489,6 +553,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(fileLocator);
 		[JsonIgnore]
 		public override string S100FC_name => "File Locator";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator fileLocator(String? value) => new fileLocator { value = value };
 	}
@@ -502,6 +568,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(fileName);
 		[JsonIgnore]
 		public override string S100FC_name => "File Name";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator fileName(String? value) => new fileName { value = value };
 	}
@@ -515,6 +583,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(fileReference);
 		[JsonIgnore]
 		public override string S100FC_name => "File Reference";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator fileReference(String? value) => new fileReference { value = value };
 	}
@@ -528,6 +598,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(headline);
 		[JsonIgnore]
 		public override string S100FC_name => "Headline";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator headline(String? value) => new headline { value = value };
 	}
@@ -541,6 +613,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(iMOMaritimeService);
 		[JsonIgnore]
 		public override string S100FC_name => "IMO Maritime Service";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public iMOMaritimeService() {
 			base.listedValues = [
 				new listedValue("Vessel Traffic Service", "Any service implemented by a relevant authority primarily designed to improve safety and efficiency of traffic flow and the protection of the environment. It may range from simple information messages, to extensive organization of the traffic involving national or regional schemes.",1),
@@ -574,6 +648,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(internationalCarriageRequirements);
 		[JsonIgnore]
 		public override string S100FC_name => "International Carriage Requirements";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator internationalCarriageRequirements(String? value) => new internationalCarriageRequirements { value = value };
 	}
@@ -587,6 +663,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(iSBN);
 		[JsonIgnore]
 		public override string S100FC_name => "ISBN";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator iSBN(String? value) => new iSBN { value = value };
 	}
@@ -600,6 +678,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(iSO216);
 		[JsonIgnore]
 		public override string S100FC_name => "ISO 216";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public iSO216() {
 			base.listedValues = [
 				new listedValue("A0", "The paper size A0, as defined in ISO 216.",1),
@@ -625,6 +705,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(iSSN);
 		[JsonIgnore]
 		public override string S100FC_name => "ISSN";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator iSSN(String? value) => new iSSN { value = value };
 	}
@@ -638,6 +720,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(issueDate);
 		[JsonIgnore]
 		public override string S100FC_name => "Issue Date";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator issueDate(DateOnly? value) => new issueDate { value = value };
 	}
@@ -651,6 +735,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(issueTime);
 		[JsonIgnore]
 		public override string S100FC_name => "Issue Time";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator issueTime(S100FC.S100.Time? value) => new issueTime { value = value };
 	}
@@ -664,6 +750,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(language);
 		[JsonIgnore]
 		public override string S100FC_name => "Language";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator language(String? value) => new language { value = value };
 	}
@@ -677,6 +765,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(linkage);
 		[JsonIgnore]
 		public override string S100FC_name => "Linkage";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator linkage(String? value) => new linkage { value = value };
 	}
@@ -690,6 +780,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(categoryOfProductMapping);
 		[JsonIgnore]
 		public override string S100FC_name => "Category Of Product Mapping";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public categoryOfProductMapping() {
 			base.listedValues = [
 				new listedValue("Higher Priority Alternative", "A higher prioritized or recommended alternative product or service, that can fully replace another.",1),
@@ -711,6 +803,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(maximumDisplayScale);
 		[JsonIgnore]
 		public override string S100FC_name => "Maximum Display Scale";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator maximumDisplayScale(int? value) => new maximumDisplayScale { value = value };
 	}
@@ -724,6 +818,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(minimumDisplayScale);
 		[JsonIgnore]
 		public override string S100FC_name => "Minimum Display Scale";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator minimumDisplayScale(int? value) => new minimumDisplayScale { value = value };
 	}
@@ -737,6 +833,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(name);
 		[JsonIgnore]
 		public override string S100FC_name => "Name";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator name(String? value) => new name { value = value };
 	}
@@ -750,6 +848,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(nameOfResource);
 		[JsonIgnore]
 		public override string S100FC_name => "Name of Resource";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator nameOfResource(String? value) => new nameOfResource { value = value };
 	}
@@ -763,6 +863,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(notForNavigation);
 		[JsonIgnore]
 		public override string S100FC_name => "Not For Navigation";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator notForNavigation(Boolean? value) => new notForNavigation { value = value };
 	}
@@ -776,6 +878,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(onlineDescription);
 		[JsonIgnore]
 		public override string S100FC_name => "Online Description";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator onlineDescription(String? value) => new onlineDescription { value = value };
 	}
@@ -789,6 +893,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(optimumDisplayScale);
 		[JsonIgnore]
 		public override string S100FC_name => "Optimum Display Scale";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator optimumDisplayScale(int? value) => new optimumDisplayScale { value = value };
 	}
@@ -802,6 +908,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(originalProductNumber);
 		[JsonIgnore]
 		public override string S100FC_name => "Original Product Number";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator originalProductNumber(String? value) => new originalProductNumber { value = value };
 	}
@@ -815,6 +923,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(otherDataTypeDescription);
 		[JsonIgnore]
 		public override string S100FC_name => "Other Data Type Description";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator otherDataTypeDescription(String? value) => new otherDataTypeDescription { value = value };
 	}
@@ -828,6 +938,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(postalCode);
 		[JsonIgnore]
 		public override string S100FC_name => "Postal Code";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator postalCode(String? value) => new postalCode { value = value };
 	}
@@ -841,6 +953,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(price);
 		[JsonIgnore]
 		public override string S100FC_name => "Price";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator price(decimal? value) => new price { value = value };
 	}
@@ -854,6 +968,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(printAgency);
 		[JsonIgnore]
 		public override string S100FC_name => "Print Agency";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator printAgency(String? value) => new printAgency { value = value };
 	}
@@ -867,6 +983,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(printNation);
 		[JsonIgnore]
 		public override string S100FC_name => "Print Nation";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator printNation(String? value) => new printNation { value = value };
 	}
@@ -880,6 +998,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(producerNation);
 		[JsonIgnore]
 		public override string S100FC_name => "Producer Nation";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator producerNation(String? value) => new producerNation { value = value };
 	}
@@ -893,6 +1013,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(productNumber);
 		[JsonIgnore]
 		public override string S100FC_name => "Product Number";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator productNumber(String? value) => new productNumber { value = value };
 	}
@@ -906,6 +1028,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(productReference);
 		[JsonIgnore]
 		public override string S100FC_name => "Product Reference";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator productReference(String? value) => new productReference { value = value };
 	}
@@ -919,6 +1043,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(protocol);
 		[JsonIgnore]
 		public override string S100FC_name => "Protocol";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator protocol(String? value) => new protocol { value = value };
 	}
@@ -932,6 +1058,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(protocolRequest);
 		[JsonIgnore]
 		public override string S100FC_name => "Protocol Request";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator protocolRequest(String? value) => new protocolRequest { value = value };
 	}
@@ -945,6 +1073,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(publicationNumber);
 		[JsonIgnore]
 		public override string S100FC_name => "Publication Number";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator publicationNumber(String? value) => new publicationNumber { value = value };
 	}
@@ -958,6 +1088,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(reprintEdition);
 		[JsonIgnore]
 		public override string S100FC_name => "Reprint Edition";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator reprintEdition(String? value) => new reprintEdition { value = value };
 	}
@@ -971,6 +1103,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(reprintNation);
 		[JsonIgnore]
 		public override string S100FC_name => "Reprint Nation";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator reprintNation(String? value) => new reprintNation { value = value };
 	}
@@ -984,6 +1118,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(reportedDate);
 		[JsonIgnore]
 		public override string S100FC_name => "Reported Date";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator reportedDate(DateOnly? value) => new reportedDate { value = value };
 	}
@@ -997,6 +1133,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(digitalSignatureReference);
 		[JsonIgnore]
 		public override string S100FC_name => "Digital Signature Reference";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public digitalSignatureReference() {
 			base.listedValues = [
 				new listedValue("ECDSA-384-SHA2", "Elliptic Curve Digital Signature Algorithm (ECDSA) that uses signatures based on the issuing certificate and generated using the issuer’s P-384 elliptic curve key.",8),
@@ -1015,6 +1153,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(navigationPurpose);
 		[JsonIgnore]
 		public override string S100FC_name => "Navigation Purpose";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public navigationPurpose() {
 			base.listedValues = [
 				new listedValue("Port", "For port and near shore operations.",1),
@@ -1035,6 +1175,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(supportFileFormat);
 		[JsonIgnore]
 		public override string S100FC_name => "Support File Format";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public supportFileFormat() {
 			base.listedValues = [
 				new listedValue("ASCII", "UTF-8 text excluding control codes.",1),
@@ -1062,6 +1204,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(supportFilePurpose);
 		[JsonIgnore]
 		public override string S100FC_name => "Support File Purpose";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public supportFilePurpose() {
 			base.listedValues = [
 				new listedValue("New", "A file which is new.",1),
@@ -1082,6 +1226,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(serviceName);
 		[JsonIgnore]
 		public override string S100FC_name => "Service Name";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator serviceName(String? value) => new serviceName { value = value };
 	}
@@ -1095,6 +1241,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(serviceStatus);
 		[JsonIgnore]
 		public override string S100FC_name => "Service Status";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public serviceStatus() {
 			base.listedValues = [
 				new listedValue("Provisional", "Indicates a temporary, preliminary, or interim status. A provisional item is not yet finalized or fully approved.",1),
@@ -1116,6 +1264,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(source);
 		[JsonIgnore]
 		public override string S100FC_name => "Source";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator source(String? value) => new source { value = value };
 	}
@@ -1129,6 +1279,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(sourceDate);
 		[JsonIgnore]
 		public override string S100FC_name => "Source Date";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator sourceDate(DateOnly? value) => new sourceDate { value = value };
 	}
@@ -1142,6 +1294,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(sourceType);
 		[JsonIgnore]
 		public override string S100FC_name => "Source Type";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public sourceType() {
 			base.listedValues = [
 				new listedValue("Law or Regulation", "Treaty, convention, or international agreement; law or regulation issued by a national or other authority.",1),
@@ -1170,6 +1324,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(specificUsage);
 		[JsonIgnore]
 		public override string S100FC_name => "Specific Usage";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public specificUsage() {
 			base.listedValues = [
 				new listedValue("Navigational Purpose Overview", "For use in the study of the characteristics of maritime zones, in the formulation of plans, in the selection of routes, etc., showing only relevant elements of the coastline, harbours, islands, principal navigational marks and obstructions, and submarine landforms.",1),
@@ -1193,6 +1349,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(telecommunicationIdentifier);
 		[JsonIgnore]
 		public override string S100FC_name => "Telecommunication Identifier";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator telecommunicationIdentifier(String? value) => new telecommunicationIdentifier { value = value };
 	}
@@ -1206,6 +1364,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(telecommunicationService);
 		[JsonIgnore]
 		public override string S100FC_name => "Telecommunication Service";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public telecommunicationService() {
 			base.listedValues = [
 				new listedValue("Voice", "The transfer or exchange of information by using sounds that are being made by mouth and throat when speaking.",1),
@@ -1231,6 +1391,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(text);
 		[JsonIgnore]
 		public override string S100FC_name => "Text";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator text(String? value) => new text { value = value };
 	}
@@ -1244,6 +1406,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(typeOfPhysicalProduct);
 		[JsonIgnore]
 		public override string S100FC_name => "Type Of Physical Product";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator typeOfPhysicalProduct(String? value) => new typeOfPhysicalProduct { value = value };
 	}
@@ -1257,6 +1421,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(typeOfProductFormat);
 		[JsonIgnore]
 		public override string S100FC_name => "Type Of Product Format";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public typeOfProductFormat() {
 			base.listedValues = [
 				new listedValue("GML", "Geography Markup Language. An XML-based geographic information encoding language developed by the Open GIS Consortium (OGC) to enhance the interoperability of geographic information.",1),
@@ -1286,6 +1452,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(typeOfTimeIntervalUnit);
 		[JsonIgnore]
 		public override string S100FC_name => "Type Of Time Interval Unit";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public typeOfTimeIntervalUnit() {
 			base.listedValues = [
 				new listedValue("Hour", "A unit of time equal to 60 minutes or 3600 seconds.",1),
@@ -1307,6 +1475,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(updateDate);
 		[JsonIgnore]
 		public override string S100FC_name => "Update Date";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator updateDate(DateOnly? value) => new updateDate { value = value };
 	}
@@ -1320,6 +1490,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(updateNumber);
 		[JsonIgnore]
 		public override string S100FC_name => "Update Number";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator updateNumber(int? value) => new updateNumber { value = value };
 	}
@@ -1333,6 +1505,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(valueOfTime);
 		[JsonIgnore]
 		public override string S100FC_name => "Value Of Time";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator valueOfTime(int? value) => new valueOfTime { value = value };
 	}
@@ -1346,6 +1520,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(version);
 		[JsonIgnore]
 		public override string S100FC_name => "Version";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator version(String? value) => new version { value = value };
 	}
@@ -1359,6 +1535,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(paperWidth);
 		[JsonIgnore]
 		public override string S100FC_name => "Paper Width";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator paperWidth(decimal? value) => new paperWidth { value = value };
 	}
@@ -1372,6 +1550,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(paperLength);
 		[JsonIgnore]
 		public override string S100FC_name => "Paper Length";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator paperLength(decimal? value) => new paperLength { value = value };
 	}
@@ -1385,6 +1565,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(publicationDate);
 		[JsonIgnore]
 		public override string S100FC_name => "Publication Date";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator publicationDate(DateOnly? value) => new publicationDate { value = value };
 	}
@@ -1398,6 +1580,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(weekNumber);
 		[JsonIgnore]
 		public override string S100FC_name => "Week Number";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator weekNumber(int? value) => new weekNumber { value = value };
 	}
@@ -1411,6 +1595,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(yearNumber);
 		[JsonIgnore]
 		public override string S100FC_name => "Year Number";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		public static implicit operator yearNumber(int? value) => new yearNumber { value = value };
 	}
@@ -1424,6 +1610,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(horizontalDatumEPSGCode);
 		[JsonIgnore]
 		public override string S100FC_name => "Horizontal Datum EPSG Code";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public static listedValue[] listedValues => [
 				new listedValue("EPSG3395 (World Mercator)", "A global Mercator projection commonly used for mapping applications requiring accurate distance measurements near the equator.",3395),
 				new listedValue("EPSG3857 (Pseudo-Mercator)", "A popular web mapping projection used by Google Maps, OpenStreetMap, and Bing Maps. Distorts at the poles but is widely used in online maps.",3857),
@@ -1440,6 +1628,8 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_code => nameof(verticalDatum);
 		[JsonIgnore]
 		public override string S100FC_name => "Vertical Datum";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 		public verticalDatum() {
 			base.listedValues = [
 				new listedValue("Mean Low Water Springs", "The average height of the low waters of spring tides. This level is used as a tidal datum in some areas.",1),
@@ -1511,6 +1701,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(contactAddress);
 		[JsonIgnore]
 		public override string S100FC_name => "Contact Address";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -1592,6 +1784,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(customPaperSize);
 		[JsonIgnore]
 		public override string S100FC_name => "Custom Paper Size";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -1637,6 +1831,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(defaultLocale);
 		[JsonIgnore]
 		public override string S100FC_name => "Default Locale";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -1694,6 +1890,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(featureName);
 		[JsonIgnore]
 		public override string S100FC_name => "Feature Name";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -1751,6 +1949,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(information);
 		[JsonIgnore]
 		public override string S100FC_name => "Information";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -1832,6 +2032,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(onlineResource);
 		[JsonIgnore]
 		public override string S100FC_name => "Online Resource";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -1925,6 +2127,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(periodicDateRange);
 		[JsonIgnore]
 		public override string S100FC_name => "Periodic Date Range";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -1970,6 +2174,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(pricing);
 		[JsonIgnore]
 		public override string S100FC_name => "Pricing";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2027,6 +2233,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(printSize);
 		[JsonIgnore]
 		public override string S100FC_name => "Print Size";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2073,6 +2281,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(productSpecification);
 		[JsonIgnore]
 		public override string S100FC_name => "Product Specification";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2142,6 +2352,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(supportFileSpecification);
 		[JsonIgnore]
 		public override string S100FC_name => "Support File Specification";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2199,6 +2411,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(serviceSpecification);
 		[JsonIgnore]
 		public override string S100FC_name => "Service Specification";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2256,6 +2470,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(sourceIndication);
 		[JsonIgnore]
 		public override string S100FC_name => "Source Indication";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2351,6 +2567,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(telecommunications);
 		[JsonIgnore]
 		public override string S100FC_name => "Telecommunications";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2409,6 +2627,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(timeIntervalOfCycle);
 		[JsonIgnore]
 		public override string S100FC_name => "Time Interval Of Cycle";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2455,6 +2675,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(weekOfYear);
 		[JsonIgnore]
 		public override string S100FC_name => "Week Of Year";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2500,6 +2722,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(issuanceCycle);
 		[JsonIgnore]
 		public override string S100FC_name => "Issuance Cycle";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2545,6 +2769,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(printInformation);
 		[JsonIgnore]
 		public override string S100FC_name => "Print Information";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2626,6 +2852,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(supportFile);
 		[JsonIgnore]
 		public override string S100FC_name => "Support File";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2795,6 +3023,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(timeIntervalOfProduct);
 		[JsonIgnore]
 		public override string S100FC_name => "Time Interval Of Product";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -2852,6 +3082,8 @@ namespace S100FC.S128.ComplexAttributes
 		public override string S100FC_code => nameof(referenceToNM);
 		[JsonIgnore]
 		public override string S100FC_name => "Reference To NM";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -3089,6 +3321,8 @@ namespace S100FC.S128.InformationTypes
 		public override string S100FC_code => nameof(CatalogueSectionHeader);
 		[JsonIgnore]
 		public override string S100FC_name => "Catalogue Section Header";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -3200,6 +3434,8 @@ namespace S100FC.S128.InformationTypes
 		public override string S100FC_code => nameof(ContactDetails);
 		[JsonIgnore]
 		public override string S100FC_name => "Contact Details";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -3331,6 +3567,8 @@ namespace S100FC.S128.InformationTypes
 		public override string S100FC_code => nameof(IndicationOfCarriageRequirement);
 		[JsonIgnore]
 		public override string S100FC_name => "Indication of Carriage Requirement";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -3393,6 +3631,8 @@ namespace S100FC.S128.InformationTypes
 		public override string S100FC_code => nameof(PriceInformation);
 		[JsonIgnore]
 		public override string S100FC_name => "Price Information";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -3484,6 +3724,8 @@ namespace S100FC.S128.InformationTypes
 		public override string S100FC_code => nameof(ProducerInformation);
 		[JsonIgnore]
 		public override string S100FC_name => "Producer Information";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -3567,6 +3809,8 @@ namespace S100FC.S128.InformationTypes
 		public override string S100FC_code => nameof(DistributorInformation);
 		[JsonIgnore]
 		public override string S100FC_name => "Distributor Information";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -3646,6 +3890,8 @@ namespace S100FC.S128.FeatureTypes
 		public override string S100FC_code => nameof(CatalogueElement);
 		[JsonIgnore]
 		public override string S100FC_name => "Catalogue Element";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -3889,6 +4135,8 @@ namespace S100FC.S128.FeatureTypes
 		public override string S100FC_code => nameof(NavigationalProduct);
 		[JsonIgnore]
 		public override string S100FC_name => "Navigational Product";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -4149,6 +4397,8 @@ namespace S100FC.S128.FeatureTypes
 		public override string S100FC_code => nameof(ElectronicProduct);
 		[JsonIgnore]
 		public override string S100FC_name => "Electronic Product";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -4257,6 +4507,8 @@ namespace S100FC.S128.FeatureTypes
 		public override string S100FC_code => nameof(PhysicalProduct);
 		[JsonIgnore]
 		public override string S100FC_name => "Physical Product";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -4364,6 +4616,8 @@ namespace S100FC.S128.FeatureTypes
 		public override string S100FC_code => nameof(S100Service);
 		[JsonIgnore]
 		public override string S100FC_name => "S100 Service";
+		[JsonIgnore]
+		public override int sourceIdentifier => 0;
 
 		#region Attributes
 		[JsonIgnore]
