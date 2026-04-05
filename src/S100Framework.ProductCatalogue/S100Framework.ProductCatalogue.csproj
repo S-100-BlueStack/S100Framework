@@ -13,7 +13,7 @@
 		<AssemblyVersion>3.0.0.0</AssemblyVersion>
 		<Configurations>Debug</Configurations>
 		<Version>3.7.688</Version>
-		<PackageVersion>3.7.688.2</PackageVersion>
+		<PackageVersion>3.7.688.3</PackageVersion>
 	</PropertyGroup>
 
 	<ItemGroup>

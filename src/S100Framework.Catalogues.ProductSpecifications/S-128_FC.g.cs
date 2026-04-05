@@ -4750,6 +4750,8 @@ namespace S100FC.S128
 			Primitives.surface => ["CatalogueElement","NavigationalProduct","ElectronicProduct","PhysicalProduct","S100Service"],
 			_ => throw new InvalidOperationException(),
 		};
+		public static definitionReference[] definitionReferences => [
+		];
 	}
 
 	public static class Extensions {

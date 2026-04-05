@@ -303,6 +303,7 @@ namespace TestAttributes
             var derivedTypesFeatureBindings = new StringBuilder();
             var derivedTypesAttributes = new StringBuilder();
 
+            definitionReference[] definitionReferences = [];
 
             #region S100_FC_SimpleAttribute
             {
@@ -315,6 +316,10 @@ namespace TestAttributes
                     var sourceIdentifier = element.Element(XName.Get("definitionReference", scopes["S100FC"]))?.Element(XName.Get("sourceIdentifier", scopes["S100FC"]))!.Value;
                     if (!int.TryParse(sourceIdentifier, out int value))
                         sourceIdentifier = "0";
+                    else {
+                        var definitionSource = element.Element(XName.Get("definitionReference", scopes["S100FC"]))!.Element(XName.Get("definitionSource", scopes["S100FC"]))!.Attribute("ref")!.Value;
+                        definitionReferences = [.. definitionReferences, new definitionReference(value, definitionSource, name)];
+                    }
 
                     attributesKnown.Add(code);
 
@@ -571,6 +576,7 @@ namespace TestAttributes
                             KnownAttributeTypes = attributesKnownTypes,
                             Attributes = element.XPathSelectElements("S100FC:subAttributeBinding", xmlNamespaceManager),
                             validation = validation,
+                            definitionReferences = definitionReferences,
                         });
                         if (!success) {
                             notFinished = true;
@@ -607,6 +613,7 @@ namespace TestAttributes
                         KnownAttributeTypes = attributesKnownTypes,
                         Attributes = element.XPathSelectElements("S100FC:attributeBinding", xmlNamespaceManager),
                         validation = validation,
+                        definitionReferences = definitionReferences,
                     }, (b) => {
                         //b.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override string role => \"{role}\";");
@@ -653,6 +660,7 @@ namespace TestAttributes
                         KnownAttributeTypes = attributesKnownTypes,
                         Attributes = element.XPathSelectElements("S100FC:attributeBinding", xmlNamespaceManager),
                         validation = validation,
+                        definitionReferences = definitionReferences,
                     }, (b) => {
                         //b.AppendLine("\t\t[JsonIgnore]");
                         //b.AppendLine($"\t\tpublic override string[] roles => [{string.Join(',', roles)}];");
@@ -700,6 +708,7 @@ namespace TestAttributes
                             informationAssociationCreators = informationAssociationCreators,
                             informationBindings = () => element.XPathSelectElements("S100FC:informationBinding", xmlNamespaceManager),
                             validation = validation,
+                            definitionReferences = definitionReferences,
                         });
                         if (!success) {
                             notFinished = true;
@@ -757,6 +766,7 @@ namespace TestAttributes
                             featureAssociationCreators = featureAssociationCreators,
                             informationBindings = () => spatialAssociation ? informationBindings() : element.XPathSelectElements("S100FC:informationBinding", xmlNamespaceManager),
                             validation = validation,
+                            definitionReferences = definitionReferences,
                         }, (b) => {
 
                         }, (b) => {
@@ -828,6 +838,17 @@ namespace TestAttributes
                 roslyn.AppendLine($"\t\t\tPrimitives.surface => [{string.Join(',', featurePrimitives[Primitives.surface].Select(e => $"\"{e}\""))}],");
                 roslyn.AppendLine("\t\t\t_ => throw new InvalidOperationException(),");
                 roslyn.AppendLine("\t\t};");
+
+
+                if (definitionReferences.Count() != definitionReferences.Select(e => e.sourceIdentifier).Distinct().Count()) {
+                    var duplicated = definitionReferences.GroupBy(e => e.sourceIdentifier).Where(e => e.Count() > 1).ToArray();
+                    System.Diagnostics.Debugger.Break();
+                }
+                roslyn.AppendLine($"\t\tpublic static definitionReference[] definitionReferences => [");
+                foreach(var e in definitionReferences) {
+                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.name}\"),");
+                }
+                roslyn.AppendLine("\t\t];");
 
                 roslyn.AppendLine("\t}");
                 roslyn.AppendLine();
@@ -956,6 +977,8 @@ namespace TestAttributes
             public Func<IEnumerable<XElement>> informationBindings { get; init; } = () => [];
 
             public Action<string, IEnumerable<XElement>, StringBuilder>? validation { get; set; } = default;
+
+            public definitionReference[] definitionReferences { get; set; } = [];
         }
 
         private bool ClassBuilder(StringBuilder roslyn, XElement element, string type, bool skipHeader, ClassBuilderHost host, Action<StringBuilder>? pre = default, Action<StringBuilder>? post = default) {
@@ -973,6 +996,10 @@ namespace TestAttributes
             var sourceIdentifier = element.Element(XName.Get("definitionReference", scopes["S100FC"]))?.Element(XName.Get("sourceIdentifier", scopes["S100FC"]))!.Value;
             if (!int.TryParse(sourceIdentifier, out int value))
                 sourceIdentifier = "0";
+            else {
+                var definitionSource = element.Element(XName.Get("definitionReference", scopes["S100FC"]))!.Element(XName.Get("definitionSource", scopes["S100FC"]))!.Attribute("ref")!.Value;
+                host.definitionReferences = [.. host.definitionReferences, new definitionReference(value, definitionSource, name)];
+            }
             if (host.KnownTypes.Any(a => a.Equals(code, StringComparison.InvariantCultureIgnoreCase)))
                 return true;
 
