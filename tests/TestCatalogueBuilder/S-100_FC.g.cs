@@ -79,7 +79,7 @@ namespace S100FC
         public int UpperBound = upperBound;
     }
 
-    public record definitionReference(int sourceIdentifier, string? definitionSource, string name);
+    public record definitionReference(int sourceIdentifier, string? definitionSource, string code, string name);
 }
 
 namespace S100FC.S100
@@ -967,6 +967,7 @@ namespace S100FC
         public static Version Version => throw new NotImplementedException();
         public static DateOnly VersionDate => throw new NotImplementedException();
 
-        public static definitionReference[] definitionReferences => throw new NotImplementedException();
+        public static definitionReference[] definitionReferenceInformationTypes => throw new NotImplementedException();
+        public static definitionReference[] definitionReferenceFeatureTypes => throw new NotImplementedException();
     }
 }

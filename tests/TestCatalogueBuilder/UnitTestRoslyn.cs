@@ -303,7 +303,8 @@ namespace TestAttributes
             var derivedTypesFeatureBindings = new StringBuilder();
             var derivedTypesAttributes = new StringBuilder();
 
-            definitionReference[] definitionReferences = [];
+            ICollection<definitionReference> definitionReferenceInformationTypes = [];
+            ICollection<definitionReference> definitionReferenceFeatureTypes = [];
 
             #region S100_FC_SimpleAttribute
             {
@@ -316,10 +317,10 @@ namespace TestAttributes
                     var sourceIdentifier = element.Element(XName.Get("definitionReference", scopes["S100FC"]))?.Element(XName.Get("sourceIdentifier", scopes["S100FC"]))!.Value;
                     if (!int.TryParse(sourceIdentifier, out int value))
                         sourceIdentifier = "0";
-                    else {
-                        var definitionSource = element.Element(XName.Get("definitionReference", scopes["S100FC"]))!.Element(XName.Get("definitionSource", scopes["S100FC"]))!.Attribute("ref")!.Value;
-                        definitionReferences = [.. definitionReferences, new definitionReference(value, definitionSource, name)];
-                    }
+                    //else {
+                    //    var definitionSource = element.Element(XName.Get("definitionReference", scopes["S100FC"]))!.Element(XName.Get("definitionSource", scopes["S100FC"]))!.Attribute("ref")!.Value;
+                    //    definitionReferences = [.. definitionReferences, new definitionReference(value, definitionSource, name)];
+                    //}
 
                     attributesKnown.Add(code);
 
@@ -576,7 +577,7 @@ namespace TestAttributes
                             KnownAttributeTypes = attributesKnownTypes,
                             Attributes = element.XPathSelectElements("S100FC:subAttributeBinding", xmlNamespaceManager),
                             validation = validation,
-                            definitionReferences = definitionReferences,
+                            definitionReferences = [],
                         });
                         if (!success) {
                             notFinished = true;
@@ -613,7 +614,7 @@ namespace TestAttributes
                         KnownAttributeTypes = attributesKnownTypes,
                         Attributes = element.XPathSelectElements("S100FC:attributeBinding", xmlNamespaceManager),
                         validation = validation,
-                        definitionReferences = definitionReferences,
+                        definitionReferences = [],
                     }, (b) => {
                         //b.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override string role => \"{role}\";");
@@ -660,7 +661,7 @@ namespace TestAttributes
                         KnownAttributeTypes = attributesKnownTypes,
                         Attributes = element.XPathSelectElements("S100FC:attributeBinding", xmlNamespaceManager),
                         validation = validation,
-                        definitionReferences = definitionReferences,
+                        definitionReferences = [],
                     }, (b) => {
                         //b.AppendLine("\t\t[JsonIgnore]");
                         //b.AppendLine($"\t\tpublic override string[] roles => [{string.Join(',', roles)}];");
@@ -708,7 +709,7 @@ namespace TestAttributes
                             informationAssociationCreators = informationAssociationCreators,
                             informationBindings = () => element.XPathSelectElements("S100FC:informationBinding", xmlNamespaceManager),
                             validation = validation,
-                            definitionReferences = definitionReferences,
+                            definitionReferences = definitionReferenceInformationTypes,
                         });
                         if (!success) {
                             notFinished = true;
@@ -766,7 +767,7 @@ namespace TestAttributes
                             featureAssociationCreators = featureAssociationCreators,
                             informationBindings = () => spatialAssociation ? informationBindings() : element.XPathSelectElements("S100FC:informationBinding", xmlNamespaceManager),
                             validation = validation,
-                            definitionReferences = definitionReferences,
+                            definitionReferences = definitionReferenceFeatureTypes,
                         }, (b) => {
 
                         }, (b) => {
@@ -839,14 +840,23 @@ namespace TestAttributes
                 roslyn.AppendLine("\t\t\t_ => throw new InvalidOperationException(),");
                 roslyn.AppendLine("\t\t};");
 
-
-                if (definitionReferences.Count() != definitionReferences.Select(e => e.sourceIdentifier).Distinct().Count()) {
-                    var duplicated = definitionReferences.GroupBy(e => e.sourceIdentifier).Where(e => e.Count() > 1).ToArray();
+                if (definitionReferenceInformationTypes.Count() != definitionReferenceInformationTypes.Select(e => e.sourceIdentifier).Distinct().Count()) {
+                    var duplicated = definitionReferenceInformationTypes.GroupBy(e => e.sourceIdentifier).Where(e => e.Count() > 1).ToArray();
                     System.Diagnostics.Debugger.Break();
                 }
-                roslyn.AppendLine($"\t\tpublic static definitionReference[] definitionReferences => [");
-                foreach(var e in definitionReferences) {
-                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.name}\"),");
+                roslyn.AppendLine($"\t\tpublic static definitionReference[] definitionReferenceInformationTypes => [");
+                foreach (var e in definitionReferenceInformationTypes) {
+                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\"),");
+                }
+                roslyn.AppendLine("\t\t];");
+
+                if (definitionReferenceFeatureTypes.Count() != definitionReferenceFeatureTypes.Select(e => e.sourceIdentifier).Distinct().Count()) {
+                    var duplicated = definitionReferenceFeatureTypes.GroupBy(e => e.sourceIdentifier).Where(e => e.Count() > 1).ToArray();
+                    System.Diagnostics.Debugger.Break();
+                }
+                roslyn.AppendLine($"\t\tpublic static definitionReference[] definitionReferenceFeatureTypes => [");
+                foreach(var e in definitionReferenceFeatureTypes) {
+                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\"),");
                 }
                 roslyn.AppendLine("\t\t];");
 
@@ -978,7 +988,7 @@ namespace TestAttributes
 
             public Action<string, IEnumerable<XElement>, StringBuilder>? validation { get; set; } = default;
 
-            public definitionReference[] definitionReferences { get; set; } = [];
+            public ICollection<definitionReference> definitionReferences { get; set; } = [];
         }
 
         private bool ClassBuilder(StringBuilder roslyn, XElement element, string type, bool skipHeader, ClassBuilderHost host, Action<StringBuilder>? pre = default, Action<StringBuilder>? post = default) {
@@ -998,7 +1008,7 @@ namespace TestAttributes
                 sourceIdentifier = "0";
             else {
                 var definitionSource = element.Element(XName.Get("definitionReference", scopes["S100FC"]))!.Element(XName.Get("definitionSource", scopes["S100FC"]))!.Attribute("ref")!.Value;
-                host.definitionReferences = [.. host.definitionReferences, new definitionReference(value, definitionSource, name)];
+                host.definitionReferences.Add(new definitionReference(value, definitionSource, code, name));
             }
             if (host.KnownTypes.Any(a => a.Equals(code, StringComparison.InvariantCultureIgnoreCase)))
                 return true;
