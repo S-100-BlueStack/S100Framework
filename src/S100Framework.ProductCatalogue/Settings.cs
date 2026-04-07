@@ -41,7 +41,7 @@ namespace S100FC.ProductCatalogue
     public class ArchiveRow
     {
         public required string Code { get; set; }
-        public string? Flatten { get; set; }
+        public string? AttributeBindings { get; set; }
         public string? FeatureBindings { get; set; }
         public string? InformationBindings { get; set; }
         public bool Deleted { get; set; } = false;

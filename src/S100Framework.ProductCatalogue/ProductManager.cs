@@ -163,7 +163,7 @@ namespace S100FC.ProductCatalogue
 
                         var code = Convert.ToString(c["code"])!;
                         if (code.Equals(nameof(S100FC.S128.FeatureTypes.ElectronicProduct))) {
-                            var json = c["flatten"];
+                            var json = c["attributebindings"];
 
                             var electronicProduct = S100FC.AttributeFlattenExtensions.Unflatten<ElectronicProduct>(json.ToString(), typeof(ElectronicProduct));
                             this._electronicProducts.GetOrAdd(electronicProduct.datasetName!.ToUpperInvariant(), electronicProduct);
@@ -223,7 +223,7 @@ namespace S100FC.ProductCatalogue
 
 
                         var flattened = electronicProduct.Flatten();
-                        buffer["flatten"] = flattened;
+                        buffer["attributebindings"] = flattened;
                         buffer["shape"] = boundary;
                         surface.CreateRow(buffer);
 
@@ -435,7 +435,7 @@ namespace S100FC.ProductCatalogue
                             var id = cur["UID"]?.ToString()!;
                             var code = cur["Code"]?.ToString()!;
 
-                            var flatten = cur["flatten"]?.ToString();
+                            var flatten = cur["attributebindings"]?.ToString();
                             var informationBindings = cur["informationbindings"]?.ToString();
                             var featureBindings = cur["featurebindings"]?.ToString();
         
@@ -445,7 +445,7 @@ namespace S100FC.ProductCatalogue
 
                             var entry = new ArchiveRow() {
                                 Code = code,
-                                Flatten = flatten,
+                                AttributeBindings = flatten,
                                 InformationBindings = informationBindings,
                                 FeatureBindings = featureBindings,
                             };
@@ -544,7 +544,7 @@ namespace S100FC.ProductCatalogue
 
                 using var cursorS128 = surface.Search(new QueryFilter {
                     //WhereClause = $"json LIKE '%datasetName\":\"{name}\"%'",
-                    WhereClause = $"flatten LIKE '%\"{name}\"%'",
+                    WhereClause = $"attributebindings LIKE '%\"{name}\"%'",
                 }, false);
 
                 cursorS128.MoveNext();
@@ -553,10 +553,10 @@ namespace S100FC.ProductCatalogue
 
                 row128 = cursorS128.Current;
 
-                if (row128.IsNull("flatten"))
+                if (row128.IsNull("attributebindings"))
                     throw new System.ArgumentNullException(nameof(name));
 
-                var electronicProduct = S100FC.AttributeFlattenExtensions.Unflatten<ElectronicProduct>(Convert.ToString(row128["flatten"])!, typeof(ElectronicProduct));
+                var electronicProduct = S100FC.AttributeFlattenExtensions.Unflatten<ElectronicProduct>(Convert.ToString(row128["attributebindings"])!, typeof(ElectronicProduct));
 
                 var shapeCoverage = (ArcGIS.Core.Geometry.Polygon)((ArcGIS.Core.Data.Feature)cursorS128.Current).GetShape();
 
@@ -636,10 +636,10 @@ namespace S100FC.ProductCatalogue
 
                         var name = $"{current.UID()}";
                         var code = current["code"].ToString()!;
-                        var flatten = current.FindField("flatten") != -1 &&
-                            current["flatten"] != null &&
-                            current["flatten"] != DBNull.Value ?
-                            current["flatten"].ToString() :
+                        var flatten = current.FindField("attributebindings") != -1 &&
+                            current["attributebindings"] != null &&
+                            current["attributebindings"] != DBNull.Value ?
+                            current["attributebindings"].ToString() :
                             string.Empty;
 
                         var type = featureCatalogue.Assembly!.GetType($"{S100FC.Catalogues.FeatureCatalogue.Namespace("S101", "InformationTypes")}.{code}", true)!;
@@ -678,10 +678,10 @@ namespace S100FC.ProductCatalogue
 
                         var name = $"{current.UID()}";
                         var code = current["code"].ToString()!;
-                        var flatten = current.FindField("flatten") != -1 &&
-                           current["flatten"] != null &&
-                           current["flatten"] != DBNull.Value ?
-                           current["flatten"].ToString() :
+                        var flatten = current.FindField("attributebindings") != -1 &&
+                           current["attributebindings"] != null &&
+                           current["attributebindings"] != DBNull.Value ?
+                           current["attributebindings"].ToString() :
                            string.Empty;
                         var type = featureCatalogue.Assembly!.GetType($"{S100FC.Catalogues.FeatureCatalogue.Namespace("S101", "FeatureTypes")}.{code}", true)!;
 
@@ -761,12 +761,12 @@ namespace S100FC.ProductCatalogue
                                 Log.Error("Could not get type: {type} for feature: {name}", code, name);
                                 continue;
                             }
-                            // var flatten = current["flatten"].ToString()!;
+                            // var flatten = current["attributebindings"].ToString()!;
                             var flatten =
-                            current.FindField("flatten") != -1 &&
-                            current["flatten"] != null &&
-                            current["flatten"] != DBNull.Value
-                            ? current["flatten"].ToString()
+                            current.FindField("attributebindings") != -1 &&
+                            current["attributebindings"] != null &&
+                            current["attributebindings"] != DBNull.Value
+                            ? current["attributebindings"].ToString()
                             : string.Empty;
 
                             var instance = S100FC.AttributeFlattenExtensions.Unflatten<S100FC.FeatureType>(flatten, type);
@@ -940,8 +940,8 @@ namespace S100FC.ProductCatalogue
 
                         using var cursorS128 = surface.Search(new QueryFilter {
                             //WhereClause = $"json LIKE '%\"datasetName\":\"{electronicProduct.datasetName}\"%'",
-                            //WhereClause = $"flatten LIKE '%\"datasetName\":\"{electronicProduct.datasetName}\"%'",
-                            WhereClause = $"flatten LIKE '%\"{electronicProduct.datasetName}\"%'",
+                            //WhereClause = $"attributebindings LIKE '%\"datasetName\":\"{electronicProduct.datasetName}\"%'",
+                            WhereClause = $"attributebindings LIKE '%\"{electronicProduct.datasetName}\"%'",
                         }, false);
 
                         cursorS128.MoveNext();
@@ -951,7 +951,7 @@ namespace S100FC.ProductCatalogue
                         var flatten = electronicProduct.Flatten();
 
                         var row128 = cursorS128.Current;
-                        row128["flatten"] = flatten;
+                        row128["attributebindings"] = flatten;
                         row128.Store();
                         row128.Dispose();
 
@@ -1078,14 +1078,14 @@ namespace S100FC.ProductCatalogue
                 using var surface = this._geodatabase!.OpenDataset<FeatureClass>(this.QualifyTableName("surface"));
 
                 using var cursorS128 = surface.Search(new QueryFilter {
-                    WhereClause = $"flatten LIKE '%\"{dataset.DatasetName}\"%'",
+                    WhereClause = $"attributebindings LIKE '%\"{dataset.DatasetName}\"%'",
                 }, false);
 
                 cursorS128.MoveNext();
 
                 Debug.Assert(cursorS128.Current != null);
 
-                if (cursorS128.Current.IsNull("flatten"))
+                if (cursorS128.Current.IsNull("attributebindings"))
                     throw new System.ArgumentNullException(nameof(dataset.DatasetName));
 
                 // original
