@@ -12,12 +12,41 @@ namespace System.Xml.Linq
 {
     public static class Extension
     {
+        public static string? GetCode(this XElement element) {
+            var navigator = element.CreateNavigator();
+            navigator.MoveToFollowing(XPathNodeType.Element);
+
+            var scopes = navigator.GetNamespacesInScope(XmlNamespaceScope.All);
+
+            return element.Element(XName.Get("code", scopes["S100FC"]))?.Value;
+        }
+
+        public static int? GetSourceIdentifier(this XElement element) {
+            var navigator = element.CreateNavigator();
+            navigator.MoveToFollowing(XPathNodeType.Element);
+
+            var scopes = navigator.GetNamespacesInScope(XmlNamespaceScope.All);
+
+            var source = element.Element(XName.Get("definitionReference", scopes["S100FC"]))?.Element(XName.Get("sourceIdentifier", scopes["S100FC"]))?.Value;
+
+            if (string.IsNullOrEmpty(source)) return default;
+
+            if (int.TryParse(source, out var code)) return code;
+
+            return default;
+        }
+
         public static string[] GetFeatureTypes(this XDocument ps, S100FC.Primitives primitive) {
-            var members = ps.XPathSelectElement("//*[local-name()='S100_FC_FeatureType']");
+            var navigator = ps.CreateNavigator();
+            navigator.MoveToFollowing(XPathNodeType.Element);
+
+            var scopes = navigator.GetNamespacesInScope(XmlNamespaceScope.All);
+
+            ps.Descendants(XName.Get("S100_FC_FeatureType", scopes["S100FC"])).Select(e => e.Element(XName.Get("code", scopes["S100FC"]))!.Value).ToArray();
 
             //var xx = members.Elements(ft => ft.Element("permittedPrimitives")!.Value.Equals($"{primitive}"));
 
-                //xx.Select(e => e.Parent!.Element(XName.Get("code", "")));
+            //xx.Select(e => e.Parent!.Element(XName.Get("code", "")));
             return [];
         }
 
