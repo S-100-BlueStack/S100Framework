@@ -1041,8 +1041,8 @@ namespace S100FC.ProductCatalogue
 
             var path = connectionFile.LocalPath;
 
-            //if (!IO.File.Exists(path))
-            //    throw new ArgumentNullException($"Could not find or authorize to path: {path}");
+            if (!IO.Path.Exists(path))
+                throw new ArgumentNullException($"Could not find or authorize to path: {path}");
 
             if (".sde".Equals(IO.Path.GetExtension(path), StringComparison.InvariantCultureIgnoreCase)) {
                 createGeodatabase = () => { return new Geodatabase(new DatabaseConnectionFile(connectionFile)); };
