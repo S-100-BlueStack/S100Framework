@@ -33,7 +33,7 @@
     </PackageReference>
     <PackageReference Include="Facet" Version="5.9.1" />
     <PackageReference Include="JsonFlatten" Version="1.0.4" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

@@ -12,12 +12,17 @@
 		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
 		<AssemblyVersion>3.0.0.0</AssemblyVersion>
 		<Version>3.7.688</Version>
-		<PackageVersion>3.7.688.1</PackageVersion>
+		<PackageVersion>3.7.688.2</PackageVersion>
 		<Configurations>Debug</Configurations>		
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="NetTopologySuite" Version="2.6.0" />
+	</ItemGroup>
 	
 	<ItemGroup>
 		<ProjectReference Include="..\S100Framework.Catalogues\S100Framework.Catalogues.csproj" />
+		<ProjectReference Include="..\S100Framework.Topology\S100Framework.Topology.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
