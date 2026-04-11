@@ -11,8 +11,8 @@
 		<PackageId>S100Framework.ArcGIS.Core</PackageId>
 		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
 		<AssemblyVersion>3.0.0.0</AssemblyVersion>
-		<Version>3.7.688</Version>
-		<PackageVersion>3.7.688.8</PackageVersion>
+		<Version>3.7.1772</Version>
+		<PackageVersion>3.7.1772.8</PackageVersion>
 		<Configurations>Debug</Configurations>		
 	</PropertyGroup>
 
