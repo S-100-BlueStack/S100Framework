@@ -8,26 +8,26 @@ public sealed class FeatureSpatialFilter
     private FeatureSpatialFilter(
         string geometryJson,
         string geometryType,
-        string? spatialRelation,
+        SpatialRelationship spatialRelationship,
         int? inSrid) {
         GeometryJson = geometryJson;
         GeometryType = geometryType;
-        SpatialRelation = spatialRelation;
+        SpatialRelationship = spatialRelationship;
         InSrid = inSrid;
     }
 
     internal string GeometryJson { get; }
 
-    public string GeometryType { get; }
+    internal string GeometryType { get; }
 
-    public string? SpatialRelation { get; }
+    public SpatialRelationship SpatialRelationship { get; }
 
     public int? InSrid { get; }
 
     public static FeatureSpatialFilter FromEnvelope(
         Envelope envelope,
         int? inSrid,
-        string? spatialRelation = EsriSpatialRelationships.Intersects) {
+        SpatialRelationship spatialRelationship = SpatialRelationship.Intersects) {
         ArgumentNullException.ThrowIfNull(envelope);
 
         if (envelope.IsNull) {
@@ -37,14 +37,14 @@ public sealed class FeatureSpatialFilter
         return new FeatureSpatialFilter(
             EsriQueryGeometryWriter.WriteEnvelope(envelope, inSrid),
             EsriGeometryTypes.Envelope,
-            spatialRelation,
+            spatialRelationship,
             inSrid);
     }
 
     public static FeatureSpatialFilter FromGeometry(
         Geometry geometry,
         int? inSrid = null,
-        string? spatialRelation = EsriSpatialRelationships.Intersects) {
+        SpatialRelationship spatialRelationship = SpatialRelationship.Intersects) {
         ArgumentNullException.ThrowIfNull(geometry);
 
         if (geometry.IsEmpty) {
@@ -57,7 +57,7 @@ public sealed class FeatureSpatialFilter
         return new FeatureSpatialFilter(
             EsriQueryGeometryWriter.WriteGeometry(geometry, resolvedSrid),
             geometryType,
-            spatialRelation,
+            spatialRelationship,
             resolvedSrid);
     }
 

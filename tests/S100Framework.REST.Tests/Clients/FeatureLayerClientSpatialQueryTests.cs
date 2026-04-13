@@ -64,9 +64,9 @@ public sealed class FeatureLayerClientSpatialQueryTests
         var query = new FeatureQuery {
             OutSrid = 25832,
             SpatialFilter = FeatureSpatialFilter.FromEnvelope(
-                new Envelope(10, 30, 20, 40),
-                inSrid: 4326,
-                spatialRelation: EsriSpatialRelationships.Intersects)
+    new Envelope(10, 30, 20, 40),
+    inSrid: 4326,
+    spatialRelationship: SpatialRelationship.Intersects)
         };
 
         var results = new List<FeatureRecord>();
@@ -151,9 +151,9 @@ public sealed class FeatureLayerClientSpatialQueryTests
 
         var query = new FeatureQuery {
             SpatialFilter = FeatureSpatialFilter.FromEnvelope(
-                new Envelope(10, 30, 20, 40),
-                inSrid: 4326,
-                spatialRelation: EsriSpatialRelationships.Intersects)
+    new Envelope(10, 30, 20, 40),
+    inSrid: 4326,
+    spatialRelationship: SpatialRelationship.Intersects)
         };
 
         var results = new List<FeatureRecord>();
@@ -236,8 +236,8 @@ public sealed class FeatureLayerClientSpatialQueryTests
 
         var query = new FeatureQuery {
             SpatialFilter = FeatureSpatialFilter.FromGeometry(
-                polygon,
-                spatialRelation: EsriSpatialRelationships.Intersects)
+    polygon,
+    spatialRelationship: SpatialRelationship.Intersects)
         };
 
         await foreach (var _ in layerClient.QueryAsync(query)) {

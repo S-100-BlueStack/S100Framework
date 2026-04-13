@@ -1,6 +1,6 @@
 ﻿namespace S100Framework.REST.Models;
 
-public static class EsriSpatialRelationships
+internal static class EsriSpatialRelationships
 {
     public const string Intersects = "esriSpatialRelIntersects";
     public const string Contains = "esriSpatialRelContains";

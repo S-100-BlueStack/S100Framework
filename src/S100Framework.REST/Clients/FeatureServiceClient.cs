@@ -7,6 +7,7 @@ using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
+using S100Framework.REST.Internal.EsriGeometry;
 
 namespace S100Framework.REST.Clients;
 
@@ -169,15 +170,15 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     }
 
     private static void ApplySpatialFilter(
-        IDictionary<string, string?> parameters,
-        FeatureSpatialFilter? spatialFilter) {
+    IDictionary<string, string?> parameters,
+    FeatureSpatialFilter? spatialFilter) {
         if (spatialFilter is null) {
             return;
         }
 
         parameters["geometry"] = spatialFilter.GeometryJson;
         parameters["geometryType"] = spatialFilter.GeometryType;
-        parameters["spatialRel"] = spatialFilter.SpatialRelation;
+        parameters["spatialRel"] = SpatialRelationshipMapper.ToEsriValue(spatialFilter.SpatialRelationship);
 
         if (spatialFilter.InSrid.HasValue) {
             parameters["inSR"] = spatialFilter.InSrid.Value.ToString(CultureInfo.InvariantCulture);

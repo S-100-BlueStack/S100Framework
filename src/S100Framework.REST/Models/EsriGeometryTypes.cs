@@ -1,6 +1,6 @@
 ﻿namespace S100Framework.REST.Models;
 
-public static class EsriGeometryTypes
+internal static class EsriGeometryTypes
 {
     public const string Point = "esriGeometryPoint";
     public const string Multipoint = "esriGeometryMultipoint";
