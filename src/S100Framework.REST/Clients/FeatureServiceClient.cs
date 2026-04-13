@@ -1,7 +1,8 @@
-﻿using System.Net.Http.Json;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using S100Framework.REST.Abstractions;
 using S100Framework.REST.Configuration;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
@@ -17,21 +18,29 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     private readonly HttpClient _httpClient;
     private readonly FeatureServiceClientOptions _options;
     private readonly IFeatureServiceRequestAuthorizer? _authorizer;
+    private readonly Uri _serviceUri;
+
+    public FeatureServiceClient(
+        HttpClient httpClient,
+        FeatureServiceClientOptions options)
+        : this(httpClient, options, authorizer: null) {
+    }
 
     public FeatureServiceClient(
         HttpClient httpClient,
         FeatureServiceClientOptions options,
-        IFeatureServiceRequestAuthorizer? authorizer = null) {
+        IFeatureServiceRequestAuthorizer? authorizer) {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _authorizer = authorizer;
 
         _options.Validate();
+        _serviceUri = _options.ServiceUri ?? throw new InvalidOperationException("ServiceUri must be configured.");
     }
 
     public async Task<FeatureServiceMetadata> GetMetadataAsync(CancellationToken cancellationToken = default) {
         var uri = UriUtility.WithQuery(
-            _options.ServiceUri,
+            _serviceUri,
             new Dictionary<string, string?> {
                 ["f"] = "json"
             });
@@ -39,9 +48,9 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         var dto = await GetAsync<EsriServiceMetadataDto>(uri, cancellationToken);
 
         return new FeatureServiceMetadata(
-            _options.ServiceUri,
-            dto.Layers?.Select(MapDataset).ToArray() ?? [],
-            dto.Tables?.Select(MapDataset).ToArray() ?? [],
+            _serviceUri,
+            dto.Layers?.Select(MapDataset).ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
+            dto.Tables?.Select(MapDataset).ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
             dto.Capabilities,
             dto.MaxRecordCount);
     }
@@ -58,7 +67,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         int layerId,
         CancellationToken cancellationToken = default) {
         var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(_options.ServiceUri, layerId.ToString()),
+            UriUtility.AppendPath(_serviceUri, layerId.ToString()),
             new Dictionary<string, string?> {
                 ["f"] = "json"
             });
@@ -81,7 +90,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.AdvancedQueryCapabilities?.SupportsPagination ?? false,
             dto.MaxRecordCount,
             dto.ObjectIdField,
-            dto.Fields?.Select(MapField).ToArray() ?? []);
+            dto.Fields?.Select(MapField).ToArray() ?? Array.Empty<FeatureField>());
     }
 
     internal Task<EsriQueryResponseDto> QueryFeaturesAsync(
@@ -116,7 +125,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         }
 
         var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(_options.ServiceUri, $"{layerId}/query"),
+            UriUtility.AppendPath(_serviceUri, $"{layerId}/query"),
             parameters);
 
         return GetAsync<EsriQueryResponseDto>(uri, cancellationToken);
@@ -127,7 +136,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         FeatureQuery query,
         CancellationToken cancellationToken = default) {
         var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(_options.ServiceUri, $"{layerId}/query"),
+            UriUtility.AppendPath(_serviceUri, $"{layerId}/query"),
             new Dictionary<string, string?> {
                 ["f"] = "json",
                 ["where"] = string.IsNullOrWhiteSpace(query.Where) ? "1=1" : query.Where,
@@ -155,12 +164,62 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             HttpCompletionOption.ResponseHeadersRead,
             timeoutCts.Token);
 
-        response.EnsureSuccessStatusCode();
+        var payload = await response.Content.ReadAsStringAsync(timeoutCts.Token);
 
-        var payload = await response.Content.ReadFromJsonAsync<T>(JsonOptions, timeoutCts.Token);
+        if (string.IsNullOrWhiteSpace(payload)) {
+            throw new FeatureServiceException(
+                "The server returned an empty payload.",
+                uri,
+                statusCode: response.StatusCode);
+        }
 
-        return payload ?? throw new InvalidOperationException(
-            $"Received an empty payload while deserializing '{typeof(T).Name}'.");
+        if (TryParseEsriError(payload, out var esriError)) {
+            throw new FeatureServiceException(
+                esriError.Message ?? "The server returned an Esri error payload.",
+                uri,
+                esriError.Code,
+                esriError.Details?.ToArray(),
+                response.StatusCode);
+        }
+
+        if (!response.IsSuccessStatusCode) {
+            throw new FeatureServiceException(
+                $"The server returned HTTP {(int)response.StatusCode} ({response.StatusCode}).",
+                uri,
+                statusCode: response.StatusCode);
+        }
+
+        try {
+            var result = JsonSerializer.Deserialize<T>(payload, JsonOptions);
+
+            return result ?? throw new FeatureServiceException(
+                $"The payload could not be deserialized to {typeof(T).Name}.",
+                uri,
+                statusCode: response.StatusCode);
+        }
+        catch (JsonException exception) {
+            throw new FeatureServiceException(
+                $"The payload could not be deserialized to {typeof(T).Name}.",
+                uri,
+                statusCode: response.StatusCode,
+                innerException: exception);
+        }
+    }
+
+    private static bool TryParseEsriError(
+        string payload,
+        [NotNullWhen(true)] out EsriErrorDto? error) {
+        error = null;
+
+        try {
+            var envelope = JsonSerializer.Deserialize<EsriErrorEnvelopeDto>(payload, JsonOptions);
+            error = envelope?.Error;
+
+            return error is not null;
+        }
+        catch (JsonException) {
+            return false;
+        }
     }
 
     private static FeatureServiceDatasetInfo MapDataset(EsriDatasetDto dto) {

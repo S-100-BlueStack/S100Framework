@@ -2,17 +2,21 @@
 
 public sealed class FeatureServiceClientOptions
 {
-    public required Uri ServiceUri { get; init; }
+    public Uri? ServiceUri { get; set; }
 
-    public int? DefaultPageSize { get; init; }
+    public int? DefaultPageSize { get; set; }
 
-    public TimeSpan RequestTimeout { get; init; } = TimeSpan.FromSeconds(100);
+    public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(100);
 
-    public bool FixInvalidGeometries { get; init; }
+    public bool FixInvalidGeometries { get; set; }
 
-    public bool PreferLatestWkid { get; init; } = true;
+    public bool PreferLatestWkid { get; set; } = true;
 
     public void Validate() {
+        if (ServiceUri is null) {
+            throw new InvalidOperationException("ServiceUri must be configured.");
+        }
+
         if (!ServiceUri.IsAbsoluteUri) {
             throw new InvalidOperationException("ServiceUri must be an absolute URI.");
         }

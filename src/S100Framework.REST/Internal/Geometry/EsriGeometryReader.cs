@@ -4,7 +4,7 @@ using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Utilities;
 using System.Text.Json;
 
-namespace S100Framework.REST.Internal.Geometry;
+namespace S100Framework.REST.Internal.EsriGeometry;
 
 internal static class EsriGeometryReader
 {
@@ -69,7 +69,7 @@ internal static class EsriGeometryReader
         }
 
         if (TryGetDouble(element, "z", out var z)) {
-            return factory.CreatePoint(new Coordinate(x, y, z));
+            return factory.CreatePoint(new CoordinateZ(x, y, z));
         }
 
         return factory.CreatePoint(new Coordinate(x, y));
@@ -228,7 +228,7 @@ internal static class EsriGeometryReader
             var y = values[1].GetDouble();
 
             if (values.Length >= 3 && values[2].ValueKind != JsonValueKind.Null) {
-                return new Coordinate(x, y, values[2].GetDouble());
+                return new CoordinateZ(x, y, values[2].GetDouble());
             }
 
             return new Coordinate(x, y);
@@ -237,7 +237,7 @@ internal static class EsriGeometryReader
         if (TryGetDouble(pointElement, "x", out var objectX) &&
             TryGetDouble(pointElement, "y", out var objectY)) {
             if (TryGetDouble(pointElement, "z", out var objectZ)) {
-                return new Coordinate(objectX, objectY, objectZ);
+                return new CoordinateZ(objectX, objectY, objectZ);
             }
 
             return new Coordinate(objectX, objectY);
@@ -255,10 +255,16 @@ internal static class EsriGeometryReader
         var last = coordinates[^1];
 
         if (!first.Equals2D(last)) {
-            coordinates.Add(new Coordinate(first.X, first.Y, first.Z));
+            coordinates.Add(CreateCoordinate(first.X, first.Y, first.Z));
         }
 
         return coordinates;
+    }
+
+    private static Coordinate CreateCoordinate(double x, double y, double z) {
+        return double.IsNaN(z)
+            ? new Coordinate(x, y)
+            : new CoordinateZ(x, y, z);
     }
 
     private static int? ReadSrid(JsonElement geometryElement, int? defaultSrid, bool preferLatestWkid) {

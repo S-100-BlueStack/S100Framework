@@ -13,5 +13,6 @@
 	<Project Path="src/S100Framework.YAML/S100Framework.YAML.csproj">
 		<Platform Project="x64" />
 	</Project>
+	<Project Path="tests/S100Framework.REST.Tests/S100Framework.REST.Tests.csproj" Id="7b58d682-2568-41c6-8bda-61166debf032" />
 	<Project Path="tests/TestCatalogueBuilder/TestCatalogueBuilder.csproj" />
 </Solution>

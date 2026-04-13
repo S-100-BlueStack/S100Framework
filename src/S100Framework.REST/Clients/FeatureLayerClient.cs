@@ -1,10 +1,10 @@
-﻿using NetTopologySuite.Geometries;
+﻿using System.Runtime.CompilerServices;
+using System.Text.Json;
+using NetTopologySuite.Geometries;
 using S100Framework.REST.Abstractions;
 using S100Framework.REST.Internal.Dto;
-using S100Framework.REST.Internal.Geometry;
+using S100Framework.REST.Internal.EsriGeometry;
 using S100Framework.REST.Models;
-using System.Runtime.CompilerServices;
-using System.Text.Json;
 
 namespace S100Framework.REST.Clients;
 
@@ -12,16 +12,33 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
 {
     private readonly FeatureServiceClient _serviceClient;
     private readonly int _layerId;
-    private Task<FeatureLayerSchema>? _schemaTask;
+    private readonly SemaphoreSlim _schemaLock = new(1, 1);
+
+    private FeatureLayerSchema? _schema;
 
     internal FeatureLayerClient(FeatureServiceClient serviceClient, int layerId) {
         _serviceClient = serviceClient;
         _layerId = layerId;
     }
 
-    public Task<FeatureLayerSchema> GetSchemaAsync(CancellationToken cancellationToken = default) {
-        _schemaTask ??= _serviceClient.GetLayerSchemaAsync(_layerId, cancellationToken);
-        return _schemaTask;
+    public async Task<FeatureLayerSchema> GetSchemaAsync(CancellationToken cancellationToken = default) {
+        if (_schema is not null) {
+            return _schema;
+        }
+
+        await _schemaLock.WaitAsync(cancellationToken);
+
+        try {
+            if (_schema is not null) {
+                return _schema;
+            }
+
+            _schema = await _serviceClient.GetLayerSchemaAsync(_layerId, cancellationToken);
+            return _schema;
+        }
+        finally {
+            _schemaLock.Release();
+        }
     }
 
     public async IAsyncEnumerable<FeatureRecord> QueryAsync(
@@ -33,22 +50,14 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         var pageSize = ResolvePageSize(query, schema);
 
         if (schema.SupportsPagination) {
-            await foreach (var record in QueryWithOffsetPaginationAsync(
-                schema,
-                query,
-                pageSize,
-                cancellationToken)) {
+            await foreach (var record in QueryWithOffsetPaginationAsync(schema, query, pageSize, cancellationToken)) {
                 yield return record;
             }
 
             yield break;
         }
 
-        await foreach (var record in QueryWithObjectIdFallbackAsync(
-            schema,
-            query,
-            pageSize,
-            cancellationToken)) {
+        await foreach (var record in QueryWithObjectIdFallbackAsync(schema, query, pageSize, cancellationToken)) {
             yield return record;
         }
     }
@@ -75,12 +84,12 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             var response = await _serviceClient.QueryFeaturesAsync(
                 _layerId,
                 query,
-                offset,
-                requestSize,
+                resultOffset: offset,
+                resultRecordCount: requestSize,
                 objectIds: null,
                 cancellationToken);
 
-            var features = response.Features ?? [];
+            var features = response.Features ?? new List<EsriFeatureDto>();
 
             if (features.Count == 0) {
                 yield break;
@@ -109,7 +118,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         int pageSize,
         [EnumeratorCancellation] CancellationToken cancellationToken) {
         var idsResponse = await _serviceClient.QueryIdsAsync(_layerId, query, cancellationToken);
-        var objectIds = idsResponse.ObjectIds ?? [];
+        var objectIds = idsResponse.ObjectIds ?? new List<long>();
 
         if (objectIds.Count == 0) {
             yield break;
@@ -128,15 +137,42 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
                 objectIds: batch,
                 cancellationToken);
 
-            foreach (var feature in response.Features ?? []) {
-                yield return MapFeature(schema, feature);
+            var records = (response.Features ?? new List<EsriFeatureDto>())
+                .Select(feature => MapFeature(schema, feature))
+                .ToList();
+
+            if (string.IsNullOrWhiteSpace(query.OrderBy)) {
+                var positionById = batch
+                    .Select((id, index) => new { id, index })
+                    .ToDictionary(x => x.id, x => x.index);
+
+                foreach (var record in records.OrderBy(record =>
+                             record.ObjectId is long id && positionById.TryGetValue(id, out var index)
+                                 ? index
+                                 : int.MaxValue)) {
+                    yield return record;
+                }
+
+                continue;
+            }
+
+            foreach (var record in records) {
+                yield return record;
             }
         }
     }
 
     private FeatureRecord MapFeature(FeatureLayerSchema schema, EsriFeatureDto feature) {
         var attributes = ReadAttributes(feature.Attributes);
-        var geometry = queryGeometry(feature.Geometry, schema);
+
+        var geometry = feature.Geometry.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null
+            ? null
+            : EsriGeometryReader.Read(
+                feature.Geometry,
+                schema.GeometryType,
+                schema.Srid,
+                _serviceClient.Options.PreferLatestWkid,
+                _serviceClient.Options.FixInvalidGeometries);
 
         long? objectId = null;
 
@@ -146,20 +182,6 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         }
 
         return new FeatureRecord(geometry, attributes, objectId);
-
-        Geometry? queryGeometry(JsonElement geometryElement, FeatureLayerSchema layerSchema) {
-            if (!feature.Geometry.ValueKind.Equals(JsonValueKind.Undefined) &&
-                geometryElement.ValueKind != JsonValueKind.Null) {
-                return EsriGeometryReader.Read(
-                    geometryElement,
-                    layerSchema.GeometryType,
-                    layerSchema.Srid,
-                    _serviceClient.Options.PreferLatestWkid,
-                    _serviceClient.Options.FixInvalidGeometries);
-            }
-
-            return null;
-        }
     }
 
     private static IReadOnlyDictionary<string, object?> ReadAttributes(JsonElement attributesElement) {
@@ -202,14 +224,15 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         };
     }
 
-    private static int ResolvePageSize(FeatureQuery query, FeatureLayerSchema schema) {
-        var requested = query.PageSize;
-        var configured = schema.MaxRecordCount;
-
+    private int ResolvePageSize(FeatureQuery query, FeatureLayerSchema schema) {
         var candidates = new List<int>();
 
-        if (requested is > 0) {
-            candidates.Add(requested.Value);
+        if (query.PageSize is > 0) {
+            candidates.Add(query.PageSize.Value);
+        }
+
+        if (_serviceClient.Options.DefaultPageSize is > 0) {
+            candidates.Add(_serviceClient.Options.DefaultPageSize.Value);
         }
 
         if (schema.MaxRecordCount is > 0) {
