@@ -185,7 +185,7 @@ namespace S100FC.Topology
         public const string DE9IM = "T*****FF*";
 
         protected Matrix() {
-            //  Default protected constructor            
+            //  Default protected constructor
         }
 
         private Action<ICollection<LineString>>? _interceptor = default;
@@ -293,7 +293,7 @@ namespace S100FC.Topology
 
                     //if (curve.Name.Equals("C1371117")) System.Diagnostics.Debugger.Break();
 
-                    //var points = curve.LineString.Factory.CreateMultiPoint([.. endpoints.Except([curve.LineString.StartPoint, curve.LineString.EndPoint])]);                    
+                    //var points = curve.LineString.Factory.CreateMultiPoint([.. endpoints.Except([curve.LineString.StartPoint, curve.LineString.EndPoint])]);
 
                     //curve.LineString.Normalize();
 
