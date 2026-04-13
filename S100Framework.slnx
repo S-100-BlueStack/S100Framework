@@ -2,7 +2,6 @@
   <Configurations>
     <BuildType Name="Debug" />
   </Configurations>
-  <Project Path="S100Framework.REST/S100Framework.REST.csproj" Id="7fb9ccee-6b6f-4b34-9a52-bbbb7b85f3c7" />
   <Project Path="src/S100Framework.ArcGIS.Core/S100Framework.ArcGIS.Core.csproj">
     <Platform Project="x64" />
   </Project>
