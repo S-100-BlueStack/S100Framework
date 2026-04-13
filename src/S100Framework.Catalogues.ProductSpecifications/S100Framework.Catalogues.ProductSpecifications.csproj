@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU</Platforms>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Company>S-100-BlueStack</Company>
+    <Product>S100Framework</Product>   
+    <PackageId>S100Framework.Catalogues.ProductSpecifications</PackageId>
+	<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>	
+	<AssemblyVersion>3.0.0.0</AssemblyVersion>	
+	<Configurations>Debug</Configurations>	
+	<Version>3.1.8</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Dataset.cs" />
+    <Compile Remove="DomainModelBase.cs" />
+    <Compile Remove="Helper.cs" />
+    <Compile Remove="PropertyItemCollection.cs" />
+    <Compile Remove="S-201_FC.g.cs" />
+    <Compile Remove="S-501_FC.g.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JsonFlatten" Version="1.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\S100Framework.Catalogues\S100Framework.Catalogues.csproj" />
+  </ItemGroup>
+
+</Project>

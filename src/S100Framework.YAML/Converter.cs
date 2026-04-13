@@ -73,9 +73,9 @@ namespace S100FC.YAML
                 DateTimeAttribute attr => (attr.value, typeof(DateTime)),
                 TextAttribute attr => (attr.value, typeof(string)),
                 S100_TruncatedDateAttribute attr => (attr.value, typeof(string)),
-                UrnTimeAttribute attr => (attr.value, typeof(string)),
-                UriTimeAttribute attr => (attr.value, typeof(string)),
-                UrlTimeAttribute attr => (attr.value, typeof(string)),
+                UrnAttribute attr => (attr.value, typeof(string)),
+                UriAttribute attr => (attr.value, typeof(string)),
+                UrlAttribute attr => (attr.value, typeof(string)),
 
                 _ => throw new InvalidCastException()
             };

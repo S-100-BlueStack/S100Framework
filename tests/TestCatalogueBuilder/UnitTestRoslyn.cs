@@ -34,7 +34,7 @@ namespace TestAttributes
             this.Test_S127_Build();
             this.Test_S128_Build();
             this.Test_S131_Build();
-            this.Test_S501_Build();
+            //this.Test_S501_Build();
         }
 
         [Fact]
@@ -46,10 +46,10 @@ namespace TestAttributes
 
             var scopes = navigator.GetNamespacesInScope(XmlNamespaceScope.All);
 
-            
+
             var roslyn = this.RoslynBuilder(ps, supportingSpatialAssociation: true, validation: (code, attributes, builder) => {
                 var references = attributes.Select(e => e.Element(XName.Get("attribute", scopes["S100FC"]))!.Attribute("ref")!.Value!);
-                
+
                 if ("UnderwaterAwashRock".Equals(code)) {
                     builder.AppendLine();
                     builder.AppendLine("\t\tpublic override bool Validate(ICollection<string>? errors) {");
@@ -150,7 +150,7 @@ namespace TestAttributes
 
         [Fact]
         public void Test_S125_Build() {
-            var ps = XDocument.Load(System.IO.Path.Combine(this._iho, @"S-125-Product-Specification-Development-validation\FC\S125FC.xml"));
+            var ps = XDocument.Load(System.IO.Path.Combine(this._iho, @"S-125-Product-Specification-Development\FC\S125FC.xml"));
 
             var roslyn = this.RoslynBuilder(ps, "S125");
 
@@ -303,6 +303,8 @@ namespace TestAttributes
             var derivedTypesFeatureBindings = new StringBuilder();
             var derivedTypesAttributes = new StringBuilder();
 
+            ICollection<definitionReference> definitionReferenceInformationTypes = [];
+            ICollection<definitionReference> definitionReferenceFeatureTypes = [];
 
             #region S100_FC_SimpleAttribute
             {
@@ -311,6 +313,14 @@ namespace TestAttributes
                 foreach (var element in ps.XPathSelectElements("//S100FC:S100_FC_SimpleAttribute", xmlNamespaceManager)) {
                     var code = element.Element(XName.Get("code", scopes["S100FC"]))!.Value;
                     var name = element.Element(XName.Get("name", scopes["S100FC"]))!.Value;
+
+                    var sourceIdentifier = element.Element(XName.Get("definitionReference", scopes["S100FC"]))?.Element(XName.Get("sourceIdentifier", scopes["S100FC"]))!.Value;
+                    if (!int.TryParse(sourceIdentifier, out int value))
+                        sourceIdentifier = "0";
+                    //else {
+                    //    var definitionSource = element.Element(XName.Get("definitionReference", scopes["S100FC"]))!.Element(XName.Get("definitionSource", scopes["S100FC"]))!.Attribute("ref")!.Value;
+                    //    definitionReferences = [.. definitionReferences, new definitionReference(value, definitionSource, name)];
+                    //}
 
                     attributesKnown.Add(code);
 
@@ -336,10 +346,15 @@ namespace TestAttributes
                         roslyn.AppendLine($"\t\tpublic override string S100FC_code => nameof({code});");
                         roslyn.AppendLine("\t\t[JsonIgnore]");
                         roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
+                        if (!string.IsNullOrEmpty(sourceIdentifier)) {
+                            roslyn.AppendLine("\t\t[JsonIgnore]");
+                            roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {int.Parse(sourceIdentifier)};");
+                        }
                         //roslyn.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override listedValue[] listedValues => {code}.listedValues");
 
-                        roslyn.AppendLine($"\t\tpublic static listedValue[] listedValues => [");
+                        roslyn.AppendLine($"\t\tpublic {code}() {{");
+                        roslyn.AppendLine($"\t\t\tbase.listedValues = [");
                         foreach (var listedValue in element.Element(XName.Get("listedValues", scopes["S100FC"]))!.Elements()) {
                             var listedValueLabel = listedValue.Element(XName.Get("label", scopes["S100FC"]))!.Value!;
                             var listedValueDefinition = listedValue.Element(XName.Get("definition", scopes["S100FC"]))!.Value!;
@@ -363,7 +378,8 @@ namespace TestAttributes
                                 }
                             }
                         }
-                        roslyn.AppendLine($"\t\t\t];");
+                        roslyn.AppendLine($"\t\t\t\t];");
+                        roslyn.AppendLine($"\t\t\t}}");
                         //roslyn.AppendLine($"\t\tpublic int? value {{ get; set; }} = default;");
                         roslyn.AppendLine();
                         roslyn.AppendLine($"\t\tpublic static implicit operator {code}(int? value) => new {code} {{ value = value }};");
@@ -380,6 +396,10 @@ namespace TestAttributes
                         roslyn.AppendLine($"\t\tpublic override string S100FC_code => nameof({code});");
                         roslyn.AppendLine("\t\t[JsonIgnore]");
                         roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
+                        if (!string.IsNullOrEmpty(sourceIdentifier)) {
+                            roslyn.AppendLine("\t\t[JsonIgnore]");
+                            roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {int.Parse(sourceIdentifier)};");
+                        }
                         //roslyn.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override listedValue[] listedValues => {code}.listedValues");
 
@@ -436,9 +456,9 @@ namespace TestAttributes
                             "datetime" => "DateTimeAttribute",
                             "time" => "TimeAttribute",
                             "integer" => "IntegerAttribute",
-                            "urn" => "UrnTimeAttribute",
-                            "url" => "UrlTimeAttribute",
-                            "uri" => "UriTimeAttribute",
+                            "urn" => "UrnAttribute",
+                            "url" => "UrlAttribute",
+                            "uri" => "UriAttribute",
                             _ => throw new InvalidDataException(),
                         };
 
@@ -466,6 +486,7 @@ namespace TestAttributes
                                             "double" => $"\t[RangeConstraintReal({lowerBound!.Value}d, double.MaxValue, Closure.{closure!.Value})]",   //$"{double.Parse(v, CultureInfo.InvariantCulture)}",
                                             "decimal" => $"\t[RangeConstraintReal({lowerBound!.Value}d, double.MaxValue, Closure.{closure!.Value})]",   //$"{double.Parse(v, CultureInfo.InvariantCulture)}",
                                             "int" => $"\t[RangeConstraintInteger({int.Parse(lowerBound!.Value.Split('.')[0])}, int.MaxValue, Closure.{closure!.Value})]",
+                                            "String" => $"\t[RangeConstraintText({int.Parse(lowerBound!.Value.Split('.')[0])}, {int.Parse(upperBound!.Value.Split('.')[0])}, Closure.{closure!.Value})]",
                                             _ => throw new InvalidOperationException()
                                         });
                                     }
@@ -474,6 +495,7 @@ namespace TestAttributes
                                             "double" => $"\t[RangeConstraintReal({lowerBound!.Value}d, {upperBound!.Value}d, Closure.{closure!.Value})]",   //$"{double.Parse(v, CultureInfo.InvariantCulture)}",
                                             "decimal" => $"\t[RangeConstraintReal({lowerBound!.Value}d, {upperBound!.Value}d, Closure.{closure!.Value})]",   //$"{double.Parse(v, CultureInfo.InvariantCulture)}",
                                             "int" => $"\t[RangeConstraintInteger({int.Parse(lowerBound!.Value.Split('.')[0])}, {int.Parse(upperBound!.Value.Split('.')[0])}, Closure.{closure!.Value})]",
+                                            "String" => $"\t[RangeConstraintText({int.Parse(lowerBound!.Value.Split('.')[0])}, {int.Parse(upperBound!.Value.Split('.')[0])}, Closure.{closure!.Value})]",
                                             _ => throw new InvalidOperationException()
                                         });
                                     }
@@ -488,6 +510,10 @@ namespace TestAttributes
                         roslyn.AppendLine($"\t\tpublic override string S100FC_code => nameof({code});");
                         roslyn.AppendLine("\t\t[JsonIgnore]");
                         roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
+                        if (!string.IsNullOrEmpty(sourceIdentifier)) {
+                            roslyn.AppendLine("\t\t[JsonIgnore]");
+                            roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {int.Parse(sourceIdentifier)};");
+                        }
                         //roslyn.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override string valueType => \"{valueType}\";");
                         //roslyn.AppendLine($"\t\tpublic {prefix}? value {{ get; set; }} = default;");
@@ -544,13 +570,14 @@ namespace TestAttributes
                         derivedTypesAttributes.AppendLine($"\t\t\t\t\ttypeInfo.PolymorphismOptions.DerivedTypes.Add(new System.Text.Json.Serialization.Metadata.JsonDerivedType(typeof({code}), typeDiscriminator: \"{code}\"));");
 
 
-                        var success = this.ClassBuilder(roslyn, element, "ComplexAttribute", new ClassBuilderHost {
+                        var success = this.ClassBuilder(roslyn, element, "ComplexAttribute", skipHeader: false, new ClassBuilderHost {
                             KnownTypes = complexTypesKnown,
                             KnownTypesAbstract = abstractTypesKnown,
                             KnownTypesComplex = attributesKnownComplex,
                             KnownAttributeTypes = attributesKnownTypes,
                             Attributes = element.XPathSelectElements("S100FC:subAttributeBinding", xmlNamespaceManager),
                             validation = validation,
+                            definitionReferences = [],
                         });
                         if (!success) {
                             notFinished = true;
@@ -580,18 +607,24 @@ namespace TestAttributes
 
                     var role = element.Element(XName.Get("role", scopes["S100FC"]))!.Attribute("ref")!.Value;
 
-                    var success = this.ClassBuilder(roslyn, element, "InformationAssociation", new ClassBuilderHost {
+                    var success = this.ClassBuilder(roslyn, element, "association", skipHeader: true, new ClassBuilderHost {
                         KnownTypes = informationAssociationTypesKnown,
                         KnownTypesAbstract = abstractTypesKnown,
                         KnownTypesComplex = attributesKnownComplex,
                         KnownAttributeTypes = attributesKnownTypes,
                         Attributes = element.XPathSelectElements("S100FC:attributeBinding", xmlNamespaceManager),
                         validation = validation,
+                        definitionReferences = [],
                     }, (b) => {
                         //b.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override string role => \"{role}\";");
 
                         roslyn.AppendLine($"\t\tpublic static string role => \"{role}\";");
+
+                        roslyn.AppendLine($"\t\tpublic {code}() {{");
+                        roslyn.AppendLine($"\t\t\tbase.S100FC_code = nameof({code});");
+                        roslyn.AppendLine($"\t\t\tbase.S100FC_name = \"{name}\";");
+                        roslyn.AppendLine($"\t\t}}");
                     });
                     if (!success) {
                         throw new InvalidOperationException();
@@ -621,18 +654,24 @@ namespace TestAttributes
 
                     var roles = element.Elements(XName.Get("role", scopes["S100FC"])).Select(e => e.Attribute("ref")!.Value).Select(e => $"\"{e}\"");
 
-                    var success = this.ClassBuilder(roslyn, element, "FeatureAssociation", new ClassBuilderHost {
+                    var success = this.ClassBuilder(roslyn, element, "association", skipHeader: true, new ClassBuilderHost {
                         KnownTypes = featureAssociationTypesKnown,
                         KnownTypesAbstract = abstractTypesKnown,
                         KnownTypesComplex = attributesKnownComplex,
                         KnownAttributeTypes = attributesKnownTypes,
                         Attributes = element.XPathSelectElements("S100FC:attributeBinding", xmlNamespaceManager),
                         validation = validation,
+                        definitionReferences = [],
                     }, (b) => {
                         //b.AppendLine("\t\t[JsonIgnore]");
                         //b.AppendLine($"\t\tpublic override string[] roles => [{string.Join(',', roles)}];");
 
                         b.AppendLine($"\t\tpublic static string[] roles => [{string.Join(',', roles)}];");
+
+                        roslyn.AppendLine($"\t\tpublic {code}() {{");
+                        roslyn.AppendLine($"\t\t\tbase.S100FC_code = nameof({code});");
+                        roslyn.AppendLine($"\t\t\tbase.S100FC_name = \"{name}\";");
+                        roslyn.AppendLine($"\t\t}}");
                     });
                     if (!success) {
                         throw new InvalidOperationException();
@@ -661,7 +700,7 @@ namespace TestAttributes
                 do {
                     notFinished = false;
                     foreach (var element in ps.XPathSelectElements("//S100FC:S100_FC_InformationType", xmlNamespaceManager)) {
-                        var success = this.ClassBuilder(roslyn, element, "InformationType, IInformationBindings", new ClassBuilderHost {
+                        var success = this.ClassBuilder(roslyn, element, "InformationType, IInformationBindings", skipHeader: false, new ClassBuilderHost {
                             KnownTypes = informationTypesKnown,
                             KnownTypesAbstract = abstractTypesKnown,
                             KnownTypesComplex = attributesKnownComplex,
@@ -670,6 +709,7 @@ namespace TestAttributes
                             informationAssociationCreators = informationAssociationCreators,
                             informationBindings = () => element.XPathSelectElements("S100FC:informationBinding", xmlNamespaceManager),
                             validation = validation,
+                            definitionReferences = definitionReferenceInformationTypes,
                         });
                         if (!success) {
                             notFinished = true;
@@ -717,7 +757,7 @@ namespace TestAttributes
 
                         var spatialAssociation = supportingSpatialAssociation && element.XPathSelectElements("S100FC:permittedPrimitives", xmlNamespaceManager).Any(e => Enum.Parse<Primitives>(e.Value!) != Primitives.noGeometry);
 
-                        var success = this.ClassBuilder(roslyn, element, "FeatureType, IInformationBindings, IFeatureBindings", new ClassBuilderHost {
+                        var success = this.ClassBuilder(roslyn, element, "FeatureType, IInformationBindings, IFeatureBindings", skipHeader: false, new ClassBuilderHost {
                             KnownTypes = featureTypesKnown,
                             KnownTypesAbstract = abstractTypesKnown,
                             KnownTypesComplex = attributesKnownComplex,
@@ -727,6 +767,7 @@ namespace TestAttributes
                             featureAssociationCreators = featureAssociationCreators,
                             informationBindings = () => spatialAssociation ? informationBindings() : element.XPathSelectElements("S100FC:informationBinding", xmlNamespaceManager),
                             validation = validation,
+                            definitionReferences = definitionReferenceFeatureTypes,
                         }, (b) => {
 
                         }, (b) => {
@@ -799,6 +840,26 @@ namespace TestAttributes
                 roslyn.AppendLine("\t\t\t_ => throw new InvalidOperationException(),");
                 roslyn.AppendLine("\t\t};");
 
+                if (definitionReferenceInformationTypes.Count() != definitionReferenceInformationTypes.Select(e => e.sourceIdentifier).Distinct().Count()) {
+                    var duplicated = definitionReferenceInformationTypes.GroupBy(e => e.sourceIdentifier).Where(e => e.Count() > 1).ToArray();
+                    System.Diagnostics.Debugger.Break();
+                }
+                roslyn.AppendLine($"\t\tpublic static definitionReference[] definitionReferenceInformationTypes => [");
+                foreach (var e in definitionReferenceInformationTypes) {
+                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\"),");
+                }
+                roslyn.AppendLine("\t\t];");
+
+                if (definitionReferenceFeatureTypes.Count() != definitionReferenceFeatureTypes.Select(e => e.sourceIdentifier).Distinct().Count()) {
+                    var duplicated = definitionReferenceFeatureTypes.GroupBy(e => e.sourceIdentifier).Where(e => e.Count() > 1).ToArray();
+                    System.Diagnostics.Debugger.Break();
+                }
+                roslyn.AppendLine($"\t\tpublic static definitionReference[] definitionReferenceFeatureTypes => [");
+                foreach(var e in definitionReferenceFeatureTypes) {
+                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\"),");
+                }
+                roslyn.AppendLine("\t\t];");
+
                 roslyn.AppendLine("\t}");
                 roslyn.AppendLine();
 
@@ -858,6 +919,7 @@ namespace TestAttributes
                 roslyn.AppendLine("\t\t\tvar resolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver();");
                 roslyn.AppendLine("\t\t\tresolver.Modifiers.Add(typeInfo => {");
 
+                roslyn.AppendLine("\t\t\t\t/*");
                 roslyn.AppendLine("\t\t\t\tif (typeInfo.Type == typeof(S100FC.informationBinding)) {");
                 roslyn.AppendLine("\t\t\t\t\ttypeInfo.PolymorphismOptions = new System.Text.Json.Serialization.Metadata.JsonPolymorphismOptions {");
                 roslyn.AppendLine("\t\t\t\t\t\tTypeDiscriminatorPropertyName = \"code\",");
@@ -873,6 +935,7 @@ namespace TestAttributes
                 roslyn.AppendLine("\t\t\t\t\t};");
                 roslyn.Append(derivedTypesFeatureBindings.ToString());
                 roslyn.AppendLine("\t\t\t\t}");
+                roslyn.AppendLine("\t\t\t\t*/");
 
                 roslyn.AppendLine("\t\t\t\tif (typeInfo.Type == typeof(S100FC.attributeBinding)) {");
                 roslyn.AppendLine("\t\t\t\t\ttypeInfo.PolymorphismOptions = new System.Text.Json.Serialization.Metadata.JsonPolymorphismOptions {");
@@ -924,9 +987,11 @@ namespace TestAttributes
             public Func<IEnumerable<XElement>> informationBindings { get; init; } = () => [];
 
             public Action<string, IEnumerable<XElement>, StringBuilder>? validation { get; set; } = default;
+
+            public ICollection<definitionReference> definitionReferences { get; set; } = [];
         }
 
-        private bool ClassBuilder(StringBuilder roslyn, XElement element, string type, ClassBuilderHost host, Action<StringBuilder>? pre = default, Action<StringBuilder>? post = default) {
+        private bool ClassBuilder(StringBuilder roslyn, XElement element, string type, bool skipHeader, ClassBuilderHost host, Action<StringBuilder>? pre = default, Action<StringBuilder>? post = default) {
             var navigator = element.CreateNavigator();
             navigator.MoveToFollowing(XPathNodeType.Element);
 
@@ -938,6 +1003,13 @@ namespace TestAttributes
 
             var code = element.Element(XName.Get("code", scopes["S100FC"]))!.Value;
             var name = element.Element(XName.Get("name", scopes["S100FC"]))!.Value;
+            var sourceIdentifier = element.Element(XName.Get("definitionReference", scopes["S100FC"]))?.Element(XName.Get("sourceIdentifier", scopes["S100FC"]))!.Value;
+            if (!int.TryParse(sourceIdentifier, out int value))
+                sourceIdentifier = "0";
+            else {
+                var definitionSource = element.Element(XName.Get("definitionReference", scopes["S100FC"]))!.Element(XName.Get("definitionSource", scopes["S100FC"]))!.Attribute("ref")!.Value;
+                host.definitionReferences.Add(new definitionReference(value, definitionSource, code, name));
+            }
             if (host.KnownTypes.Any(a => a.Equals(code, StringComparison.InvariantCultureIgnoreCase)))
                 return true;
 
@@ -968,11 +1040,16 @@ namespace TestAttributes
 
             roslyn.AppendLine($"\t{accessibility} class {code} : {baseClass}");
             roslyn.AppendLine($"\t{{");
-            roslyn.AppendLine("\t\t[JsonIgnore]");
-            roslyn.AppendLine($"\t\tpublic override string S100FC_code => nameof({code});");
-            roslyn.AppendLine("\t\t[JsonIgnore]");
-            roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
-
+            if (!skipHeader) {
+                roslyn.AppendLine("\t\t[JsonIgnore]");
+                roslyn.AppendLine($"\t\tpublic override string S100FC_code => nameof({code});");
+                roslyn.AppendLine("\t\t[JsonIgnore]");
+                roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
+                if (!string.IsNullOrEmpty(sourceIdentifier)) {
+                    roslyn.AppendLine("\t\t[JsonIgnore]");
+                    roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {int.Parse(sourceIdentifier)};");
+                }
+            }
             pre?.Invoke(roslyn);
 
             var hasAttributes = host.Attributes.Any();

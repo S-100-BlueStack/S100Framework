@@ -1,35 +1,37 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0-windows10.0.20348.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <Platforms>x64</Platforms>
-    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <Company>S-100-BlueStack</Company>
-    <Product>S100Framework</Product>
-    <PackageId>S100Framework.ArcGIS.Core</PackageId>
-	<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>	
-	<AssemblyVersion>2.1.2.0</AssemblyVersion>	
-	<Configurations>Debug</Configurations>	
-	<Version>2.1.12</Version>	 	  
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net10.0-windows10.0.20348.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Platforms>x64</Platforms>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+		<Company>S-100-BlueStack</Company>
+		<Product>S100Framework</Product>
+		<PackageId>S100Framework.ArcGIS.Core</PackageId>
+		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
+		<AssemblyVersion>3.0.0.0</AssemblyVersion>
+		<Version>3.7.1772</Version>
+		<PackageVersion>3.7.1772.8</PackageVersion>
+		<Configurations>Debug</Configurations>		
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="System.Text.Json" Version="8.0.6" />
-  </ItemGroup>
+	<ItemGroup>
+	  <PackageReference Include="NetTopologySuite" Version="2.6.0" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<ProjectReference Include="..\S100Framework.Catalogues\S100Framework.Catalogues.csproj" />
+		<ProjectReference Include="..\S100Framework.Topology\S100Framework.Topology.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\S100Framework.Catalogues\S100Framework.Catalogues.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="ArcGIS.Core">
-      <HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="ArcGIS.Desktop.Framework">
-      <HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Desktop.Framework.dll</HintPath>
-    </Reference>
-  </ItemGroup>
+	<ItemGroup>
+		<Reference Include="ArcGIS.Core">
+			<HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Core.dll</HintPath>
+		</Reference>
+		<Reference Include="ArcGIS.Desktop.Framework">
+			<HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Desktop.Framework.dll</HintPath>
+		</Reference>
+	</ItemGroup>
 
 </Project>

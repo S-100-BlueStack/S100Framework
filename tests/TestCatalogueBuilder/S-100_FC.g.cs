@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Globalization;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -70,6 +71,15 @@ namespace S100FC
         public int LowerBound = lowerBound;
         public int UpperBound = upperBound;
     }
+
+    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false)]
+    public class RangeConstraintTextAttribute(int lowerBound, int upperBound, Closure closure) : RangeConstraintAttribute(closure)
+    {
+        public int LowerBound = lowerBound;
+        public int UpperBound = upperBound;
+    }
+
+    public record definitionReference(int sourceIdentifier, string? definitionSource, string code, string name);
 }
 
 namespace S100FC.S100
@@ -215,22 +225,27 @@ namespace S100FC
     public abstract class attributeBinding
     {
         [JsonIgnore]
-        public abstract string S100FC_code { get; }
+        public virtual string S100FC_code { get; init; } = "";
 
         [JsonIgnore]
-        public abstract string S100FC_name { get; }
+        public virtual string S100FC_name { get; init; } = "";
 
         [JsonIgnore]
-        public abstract bool HasValue { get; }
+        public virtual int sourceIdentifier { get; init; } = 0;
+
+        [JsonIgnore]
+        public virtual bool HasValue { get; }
     }
 
     public abstract class SimpleAttribute : attributeBinding
     {
         [JsonIgnore]
-        public abstract string valueType { get; }
+        public virtual string valueType { get; } = "";
+
+        public abstract void SetValue(string value);
     }
 
-    public abstract class BooleanAttribute : SimpleAttribute
+    public class BooleanAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "boolean";
@@ -239,9 +254,13 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = Boolean.Parse(value);
+        }
     }
 
-    public abstract class IntegerAttribute : SimpleAttribute
+    public class IntegerAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "integer";
@@ -250,9 +269,13 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = int.Parse(value);
+        }
     }
 
-    public abstract class RealAttribute : SimpleAttribute
+    public class RealAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "real";
@@ -261,9 +284,13 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = decimal.Parse(value, CultureInfo.InvariantCulture);
+        }
     }
 
-    public abstract class TextAttribute : SimpleAttribute
+    public class TextAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "text";
@@ -272,9 +299,13 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value != null;
+
+        public override void SetValue(string value) {
+            this.value = (String?)value;
+        }
     }
 
-    public abstract class S100_TruncatedDateAttribute : SimpleAttribute
+    public class S100_TruncatedDateAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "S100_TruncatedDate";
@@ -283,9 +314,13 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value != null;
+
+        public override void SetValue(string value) {
+            this.value = (String?)value;
+        }
     }
 
-    public abstract class DateAttribute : SimpleAttribute
+    public class DateAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "date";
@@ -294,9 +329,13 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = DateOnly.Parse(value);
+        }
     }
 
-    public abstract class DateTimeAttribute : SimpleAttribute
+    public class DateTimeAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "datetime";
@@ -305,9 +344,13 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = DateTime.Parse(value);
+        }
     }
 
-    public abstract class TimeAttribute : SimpleAttribute
+    public class TimeAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "time";
@@ -316,9 +359,13 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = S100FC.S100.Time.Parse(value);
+        }
     }
 
-    public abstract class UrnTimeAttribute : SimpleAttribute
+    public class UrnAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "URN";
@@ -327,9 +374,13 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value != null;
+
+        public override void SetValue(string value) {
+            this.value = (String?)value;
+        }
     }
 
-    public abstract class UrlTimeAttribute : SimpleAttribute
+    public class UrlAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "URL";
@@ -338,9 +389,13 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value != null;
+
+        public override void SetValue(string value) {
+            this.value = (String?)value;
+        }
     }
 
-    public abstract class UriTimeAttribute : SimpleAttribute
+    public class UriAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "URI";
@@ -349,9 +404,13 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value != null;
+
+        public override void SetValue(string value) {
+            this.value = (String?)value;
+        }
     }
 
-    public abstract class EnumerationAttribute : SimpleAttribute
+    public class EnumerationAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "enumeration";
@@ -363,9 +422,15 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = int.Parse(value);
+        }
+
+        public virtual listedValue[] listedValues { get; init; } = [];
     }
 
-    public abstract class CodeListAttribute : SimpleAttribute
+    public class CodeListAttribute : SimpleAttribute
     {
         [JsonIgnore]
         public override string valueType => "S100_CodeList";
@@ -377,6 +442,10 @@ namespace S100FC
 
         [JsonIgnore]
         public override bool HasValue => value.HasValue;
+
+        public override void SetValue(string value) {
+            this.value = int.Parse(value);
+        }
     }
 
 
@@ -400,14 +469,17 @@ namespace S100FC
         static abstract featureBindingDefinition[] featureBindingsDefinitions { get; }
     }
 
-    public abstract class ComplexAttribute : attributeBinding, IAttributeBindings
+
+
+
+    public class ComplexAttribute : attributeBinding, IAttributeBindings
     {
         [JsonInclude]
         [JsonPropertyName("attr")]
-        public attributeBinding[] attributeBindings { get; protected set; } = [];
+        public attributeBinding[] attributeBindings { get; set; } = [];
 
         [JsonIgnore]
-        public virtual attributeBindingDefinition[] attributeBindingsCatalogue { get; } = [];
+        public virtual attributeBindingDefinition[] attributeBindingsCatalogue { get; set; } = [];
 
         public attributeBindingDefinition[] mandatoryBindings() {
             return [.. attributeBindingsCatalogue!.Where(e => e.lower > 0)];
@@ -507,6 +579,9 @@ namespace S100FC
 
         [JsonIgnore]
         public abstract string S100FC_name { get; }
+
+        [JsonIgnore]
+        public virtual int sourceIdentifier { get; init; } = 0;
 
         [JsonInclude]
         [JsonPropertyName("attr")]
@@ -609,6 +684,9 @@ namespace S100FC
         [JsonIgnore]
         public abstract string S100FC_name { get; }
 
+        [JsonIgnore]
+        public virtual int sourceIdentifier { get; init; } = 0;
+
         [JsonInclude]
         [JsonPropertyName("attr")]
         public attributeBinding[] attributeBindings { get; protected set; } = [];
@@ -703,7 +781,7 @@ namespace S100FC
         public int lower { get; init; } = 0;
         public int upper { get; init; } = int.MaxValue;
 
-        public int order { get; init; } = 0;
+        public int order { get; set; } = 0;
 
         public bool IsCollection => this.upper > 1;
         public bool IsMandatory => this.lower > 0;
@@ -748,13 +826,13 @@ namespace S100FC
         public Func<featureBinding?> CreateInstance { get; init; } = () => null;
     }
 
-    public abstract class Association
+    public class association
     {
-        [JsonIgnore]
-        public abstract string S100FC_code { get; }
+        [JsonPropertyName("code")]
+        public string S100FC_code { get; init; } = "";
 
         [JsonIgnore]
-        public abstract string S100FC_name { get; }
+        public string S100FC_name { get; init; } = "";
 
         [JsonInclude]
         public attributeBinding[] attributes { get; protected set; } = [];
@@ -808,7 +886,7 @@ namespace S100FC
             return this.attributes.Where(e => e.S100FC_code.Equals(name)).Cast<TAttribute>().ToArray();
         }
 
-        public Association() {
+        public association() {
             foreach (var binding in attributeBindingsCatalogue.Where(e => e.lower > 0)) {
                 for (int i = 0; i < binding.lower; i++)
                     this.SetAttribute(binding.CreateInstance()!);
@@ -817,25 +895,13 @@ namespace S100FC
 
     }
 
-    public interface IInformationAssociation
+    public class informationBinding
     {
-        public abstract static string role { get; }
-    }
+        //[JsonPropertyName("code")]
+        //public virtual string S100FC_code { get; init; } = "";
 
-    public abstract class InformationAssociation : Association
-    {
-        //[JsonIgnore]
-        //public abstract string role { get; }        
-    }
+        public association? association { get; init; } = null;
 
-    public abstract class FeatureAssociation : Association
-    {
-        //[JsonIgnore]
-        //public abstract string[] roles { get; }
-    }
-
-    public abstract class informationBinding
-    {
         public string roleType { get; init; } = string.Empty;
         public string role { get; init; } = string.Empty;
         public string? informationType { get; set; } = null;
@@ -850,17 +916,24 @@ namespace S100FC
         }
     }
 
-    public class informationBinding<TAssociation> : informationBinding where TAssociation : InformationAssociation, new()
+    public class informationBinding<TAssociation> : informationBinding where TAssociation : association, new()
     {
-        public TAssociation association { get; init; } = new TAssociation();
-
         public override bool Validate(ICollection<string>? errors = default) {
             return base.Validate(errors);
         }
+
+        public informationBinding() {
+            base.association = new TAssociation();
+        }
     }
 
-    public abstract class featureBinding
+    public class featureBinding
     {
+        //[JsonPropertyName("code")]
+        //public virtual string S100FC_code { get; init; } = "";
+
+        public association? association { get; init; } = null;
+
         public string roleType { get; init; } = string.Empty;
         public string role { get; init; } = string.Empty;
         public string? featureType { get; set; } = null;
@@ -875,12 +948,14 @@ namespace S100FC
         }
     }
 
-    public class featureBinding<TAssociation> : featureBinding where TAssociation : FeatureAssociation, new()
+    public class featureBinding<TAssociation> : featureBinding where TAssociation : association, new()
     {
-        public TAssociation association { get; init; } = new TAssociation();
-
         public override bool Validate(ICollection<string>? errors = default) {
             return base.Validate(errors);
+        }
+
+        public featureBinding() {
+            base.association = new TAssociation();
         }
     }
 
@@ -891,5 +966,8 @@ namespace S100FC
         public static string ProductId => string.Empty;
         public static Version Version => throw new NotImplementedException();
         public static DateOnly VersionDate => throw new NotImplementedException();
+
+        public static definitionReference[] definitionReferenceInformationTypes => throw new NotImplementedException();
+        public static definitionReference[] definitionReferenceFeatureTypes => throw new NotImplementedException();
     }
 }

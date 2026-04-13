@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 
-namespace S100Horizon.Settings
+namespace S100BlueStack.Settings
 {
     public class SupportFile
     {
