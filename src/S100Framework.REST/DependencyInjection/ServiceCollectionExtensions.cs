@@ -21,7 +21,7 @@ public static class ServiceCollectionExtensions
 
         services.AddHttpClient<IFeatureServiceClient, FeatureServiceClient>(client => {
             // The library controls request timeout per operation.
-            // Leaving HttpClient.Timeout infinite avoids double-timeout behavior.
+            // Leaving HttpClient.Timeout infinite avoids overlapping timeout behavior.
             client.Timeout = Timeout.InfiniteTimeSpan;
         });
 
