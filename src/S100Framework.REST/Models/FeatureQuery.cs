@@ -13,4 +13,8 @@ public sealed record FeatureQuery
     public string? OrderBy { get; init; }
 
     public int? Limit { get; init; }
+
+    public int? OutSrid { get; init; }
+
+    public FeatureSpatialFilter? SpatialFilter { get; init; }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text.Json;
 using S100Framework.REST.Abstractions;
 using S100Framework.REST.Configuration;
@@ -67,7 +68,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         int layerId,
         CancellationToken cancellationToken = default) {
         var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(_serviceUri, layerId.ToString()),
+            UriUtility.AppendPath(_serviceUri, layerId.ToString(CultureInfo.InvariantCulture)),
             new Dictionary<string, string?> {
                 ["f"] = "json"
             });
@@ -100,32 +101,31 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         int? resultRecordCount,
         IReadOnlyList<long>? objectIds,
         CancellationToken cancellationToken = default) {
-        var parameters = new Dictionary<string, string?> {
-            ["f"] = "json",
-            ["returnGeometry"] = query.ReturnGeometry ? "true" : "false",
-            ["outFields"] = query.OutFields is { Count: > 0 }
-                ? string.Join(",", query.OutFields)
-                : "*",
-            ["orderByFields"] = query.OrderBy
-        };
+        ArgumentNullException.ThrowIfNull(query);
+
+        var parameters = CreateCommonQueryParameters(query, includeOutSrid: true);
+
+        parameters["f"] = "json";
+        parameters["returnGeometry"] = query.ReturnGeometry ? "true" : "false";
+        parameters["outFields"] = query.OutFields is { Count: > 0 }
+            ? string.Join(",", query.OutFields)
+            : "*";
 
         if (objectIds is { Count: > 0 }) {
+            parameters.Remove("where");
             parameters["objectIds"] = string.Join(",", objectIds);
-        }
-        else {
-            parameters["where"] = string.IsNullOrWhiteSpace(query.Where) ? "1=1" : query.Where;
         }
 
         if (resultOffset.HasValue) {
-            parameters["resultOffset"] = resultOffset.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            parameters["resultOffset"] = resultOffset.Value.ToString(CultureInfo.InvariantCulture);
         }
 
         if (resultRecordCount.HasValue) {
-            parameters["resultRecordCount"] = resultRecordCount.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            parameters["resultRecordCount"] = resultRecordCount.Value.ToString(CultureInfo.InvariantCulture);
         }
 
         var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(_serviceUri, $"{layerId}/query"),
+            UriUtility.AppendPath(_serviceUri, $"{layerId.ToString(CultureInfo.InvariantCulture)}/query"),
             parameters);
 
         return GetAsync<EsriQueryResponseDto>(uri, cancellationToken);
@@ -135,19 +135,54 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         int layerId,
         FeatureQuery query,
         CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var parameters = CreateCommonQueryParameters(query, includeOutSrid: false);
+
+        parameters["f"] = "json";
+        parameters["returnIdsOnly"] = "true";
+
         var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(_serviceUri, $"{layerId}/query"),
-            new Dictionary<string, string?> {
-                ["f"] = "json",
-                ["where"] = string.IsNullOrWhiteSpace(query.Where) ? "1=1" : query.Where,
-                ["returnIdsOnly"] = "true",
-                ["orderByFields"] = query.OrderBy
-            });
+            UriUtility.AppendPath(_serviceUri, $"{layerId.ToString(CultureInfo.InvariantCulture)}/query"),
+            parameters);
 
         return GetAsync<EsriIdsResponseDto>(uri, cancellationToken);
     }
 
     internal FeatureServiceClientOptions Options => _options;
+
+    private static Dictionary<string, string?> CreateCommonQueryParameters(
+        FeatureQuery query,
+        bool includeOutSrid) {
+        var parameters = new Dictionary<string, string?> {
+            ["where"] = string.IsNullOrWhiteSpace(query.Where) ? "1=1" : query.Where,
+            ["orderByFields"] = query.OrderBy
+        };
+
+        if (includeOutSrid && query.OutSrid.HasValue) {
+            parameters["outSR"] = query.OutSrid.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        ApplySpatialFilter(parameters, query.SpatialFilter);
+
+        return parameters;
+    }
+
+    private static void ApplySpatialFilter(
+        IDictionary<string, string?> parameters,
+        FeatureSpatialFilter? spatialFilter) {
+        if (spatialFilter is null) {
+            return;
+        }
+
+        parameters["geometry"] = spatialFilter.GeometryJson;
+        parameters["geometryType"] = spatialFilter.GeometryType;
+        parameters["spatialRel"] = spatialFilter.SpatialRelation;
+
+        if (spatialFilter.InSrid.HasValue) {
+            parameters["inSR"] = spatialFilter.InSrid.Value.ToString(CultureInfo.InvariantCulture);
+        }
+    }
 
     private async Task<T> GetAsync<T>(Uri uri, CancellationToken cancellationToken) {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

@@ -1,27 +1,33 @@
-using S100Framework.REST.Clients;
-using S100Framework.REST.Configuration;
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Models;
 
-var httpClient = new HttpClient();
-
-var client = new FeatureServiceClient(
-    httpClient,
-    new FeatureServiceClientOptions
-    {
-        ServiceUri = new Uri("https://example.com/arcgis/rest/services/MyService/FeatureServer"),
-        DefaultPageSize = 500,
-        FixInvalidGeometries = true
-    });
-
-var layer = client.GetLayerClient(0);
-var schema = await layer.GetSchemaAsync();
-
-await foreach (var feature in layer.QueryAsync(
-    new()
-    {
-        Where = "1=1",
-        OutFields = ["OBJECTID", "NAME"],
-        ReturnGeometry = true
-    }))
+var query = new FeatureQuery
 {
-    Console.WriteLine($"{feature.ObjectId}: {feature.Geometry?.GeometryType}");
-}
+    Where = "1=1",
+    OutFields = ["OBJECTID", "NAME"],
+    ReturnGeometry = true,
+    OutSrid = 25832,
+    SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+        new Envelope(530000, 540000, 6150000, 6160000),
+        inSrid: 25832)
+};
+
+
+
+var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 25832);
+
+var polygon = geometryFactory.CreatePolygon(
+    [
+        new Coordinate(530000, 6150000),
+        new Coordinate(540000, 6150000),
+        new Coordinate(540000, 6160000),
+        new Coordinate(530000, 6160000),
+        new Coordinate(530000, 6150000)
+    ]);
+
+var query = new FeatureQuery
+{
+    SpatialFilter = FeatureSpatialFilter.FromGeometry(
+        polygon,
+        spatialRelation: EsriSpatialRelationships.Intersects)
+};
