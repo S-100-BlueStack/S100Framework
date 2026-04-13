@@ -62,6 +62,29 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         }
     }
 
+    public Task<long> QueryCountAsync(
+        FeatureQuery query,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+        return _serviceClient.QueryCountAsync(_layerId, query, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<long>> QueryObjectIdsAsync(
+        FeatureQuery query,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var response = await _serviceClient.QueryIdsAsync(_layerId, query, cancellationToken);
+        return response.ObjectIds?.ToArray() ?? Array.Empty<long>();
+    }
+
+    public Task<FeatureExtent?> QueryExtentAsync(
+        FeatureQuery query,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+        return _serviceClient.QueryExtentAsync(_layerId, query, cancellationToken);
+    }
+
     private async IAsyncEnumerable<FeatureRecord> QueryWithOffsetPaginationAsync(
         FeatureLayerSchema schema,
         FeatureQuery query,

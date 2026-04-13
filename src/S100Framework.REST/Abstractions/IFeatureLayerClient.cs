@@ -9,4 +9,16 @@ public interface IFeatureLayerClient
     IAsyncEnumerable<FeatureRecord> QueryAsync(
         FeatureQuery query,
         CancellationToken cancellationToken = default);
+
+    Task<long> QueryCountAsync(
+        FeatureQuery query,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<long>> QueryObjectIdsAsync(
+        FeatureQuery query,
+        CancellationToken cancellationToken = default);
+
+    Task<FeatureExtent?> QueryExtentAsync(
+        FeatureQuery query,
+        CancellationToken cancellationToken = default);
 }

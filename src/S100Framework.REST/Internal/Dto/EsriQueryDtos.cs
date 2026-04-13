@@ -32,3 +32,33 @@ internal sealed class EsriIdsResponseDto
     [JsonPropertyName("objectIds")]
     public List<long>? ObjectIds { get; init; }
 }
+
+internal sealed class EsriCountResponseDto
+{
+    [JsonPropertyName("count")]
+    public long Count { get; init; }
+}
+
+internal sealed class EsriExtentResponseDto
+{
+    [JsonPropertyName("extent")]
+    public EsriQueryExtentDto? Extent { get; init; }
+}
+
+internal sealed class EsriQueryExtentDto
+{
+    [JsonPropertyName("xmin")]
+    public double? XMin { get; init; }
+
+    [JsonPropertyName("ymin")]
+    public double? YMin { get; init; }
+
+    [JsonPropertyName("xmax")]
+    public double? XMax { get; init; }
+
+    [JsonPropertyName("ymax")]
+    public double? YMax { get; init; }
+
+    [JsonPropertyName("spatialReference")]
+    public EsriSpatialReferenceDto? SpatialReference { get; init; }
+}

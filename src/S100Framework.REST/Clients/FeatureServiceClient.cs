@@ -1,13 +1,14 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
+using NetTopologySuite.Geometries;
 using S100Framework.REST.Abstractions;
 using S100Framework.REST.Configuration;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
+using S100Framework.REST.Internal.EsriGeometry;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
-using S100Framework.REST.Internal.EsriGeometry;
 
 namespace S100Framework.REST.Clients;
 
@@ -104,7 +105,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
-        var parameters = CreateCommonQueryParameters(query, includeOutSrid: true);
+        var parameters = CreateCommonQueryParameters(query, includeOutSrid: true, includeGeometryOptions: true);
 
         parameters["f"] = "json";
         parameters["returnGeometry"] = query.ReturnGeometry ? "true" : "false";
@@ -138,7 +139,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
-        var parameters = CreateCommonQueryParameters(query, includeOutSrid: false);
+        var parameters = CreateCommonQueryParameters(query, includeOutSrid: false, includeGeometryOptions: false);
 
         parameters["f"] = "json";
         parameters["returnIdsOnly"] = "true";
@@ -150,11 +151,71 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         return GetAsync<EsriIdsResponseDto>(uri, cancellationToken);
     }
 
+    internal async Task<long> QueryCountAsync(
+        int layerId,
+        FeatureQuery query,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var parameters = CreateCommonQueryParameters(query, includeOutSrid: false, includeGeometryOptions: false);
+
+        parameters["f"] = "json";
+        parameters["returnCountOnly"] = "true";
+
+        var uri = UriUtility.WithQuery(
+            UriUtility.AppendPath(_serviceUri, $"{layerId.ToString(CultureInfo.InvariantCulture)}/query"),
+            parameters);
+
+        var dto = await GetAsync<EsriCountResponseDto>(uri, cancellationToken);
+        return dto.Count;
+    }
+
+    internal async Task<FeatureExtent?> QueryExtentAsync(
+        int layerId,
+        FeatureQuery query,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var parameters = CreateCommonQueryParameters(query, includeOutSrid: true, includeGeometryOptions: false);
+
+        parameters["f"] = "json";
+        parameters["returnExtentOnly"] = "true";
+
+        var uri = UriUtility.WithQuery(
+            UriUtility.AppendPath(_serviceUri, $"{layerId.ToString(CultureInfo.InvariantCulture)}/query"),
+            parameters);
+
+        var dto = await GetAsync<EsriExtentResponseDto>(uri, cancellationToken);
+
+        if (dto.Extent is null ||
+            dto.Extent.XMin is null ||
+            dto.Extent.YMin is null ||
+            dto.Extent.XMax is null ||
+            dto.Extent.YMax is null) {
+            return null;
+        }
+
+        var srid = dto.Extent.SpatialReference is null
+            ? null
+            : _options.PreferLatestWkid
+                ? dto.Extent.SpatialReference.LatestWkid ?? dto.Extent.SpatialReference.Wkid
+                : dto.Extent.SpatialReference.Wkid ?? dto.Extent.SpatialReference.LatestWkid;
+
+        return new FeatureExtent(
+            new Envelope(
+                dto.Extent.XMin.Value,
+                dto.Extent.XMax.Value,
+                dto.Extent.YMin.Value,
+                dto.Extent.YMax.Value),
+            srid);
+    }
+
     internal FeatureServiceClientOptions Options => _options;
 
     private static Dictionary<string, string?> CreateCommonQueryParameters(
         FeatureQuery query,
-        bool includeOutSrid) {
+        bool includeOutSrid,
+        bool includeGeometryOptions) {
         var parameters = new Dictionary<string, string?> {
             ["where"] = string.IsNullOrWhiteSpace(query.Where) ? "1=1" : query.Where,
             ["orderByFields"] = query.OrderBy
@@ -164,14 +225,36 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             parameters["outSR"] = query.OutSrid.Value.ToString(CultureInfo.InvariantCulture);
         }
 
+        if (query.ReturnDistinctValues) {
+            parameters["returnDistinctValues"] = "true";
+        }
+
+        if (includeGeometryOptions) {
+            if (query.ReturnZ.HasValue) {
+                parameters["returnZ"] = query.ReturnZ.Value ? "true" : "false";
+            }
+
+            if (query.ReturnM.HasValue) {
+                parameters["returnM"] = query.ReturnM.Value ? "true" : "false";
+            }
+
+            if (query.GeometryPrecision.HasValue) {
+                parameters["geometryPrecision"] = query.GeometryPrecision.Value.ToString(CultureInfo.InvariantCulture);
+            }
+
+            if (query.MaxAllowableOffset.HasValue) {
+                parameters["maxAllowableOffset"] = query.MaxAllowableOffset.Value.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
         ApplySpatialFilter(parameters, query.SpatialFilter);
 
         return parameters;
     }
 
     private static void ApplySpatialFilter(
-    IDictionary<string, string?> parameters,
-    FeatureSpatialFilter? spatialFilter) {
+        IDictionary<string, string?> parameters,
+        FeatureSpatialFilter? spatialFilter) {
         if (spatialFilter is null) {
             return;
         }

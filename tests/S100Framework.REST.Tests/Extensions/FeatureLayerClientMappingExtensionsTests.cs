@@ -1,86 +1,192 @@
-﻿using S100Framework.REST.Abstractions;
-using S100Framework.REST.Extensions;
+﻿using NetTopologySuite.Geometries;
+using S100Framework.REST.Abstractions;
+using S100Framework.REST.Clients;
+using S100Framework.REST.Configuration;
 using S100Framework.REST.Models;
-using System.Runtime.CompilerServices;
+using S100Framework.REST.Tests.TestDoubles;
 using Xunit;
 
-namespace S100Framework.REST.Tests.Extensions;
+namespace S100Framework.REST.Tests.Clients;
 
-public sealed class FeatureLayerClientMappingExtensionsTests
+public sealed class FeatureLayerClientQueryOptionsTests
 {
     [Fact]
-    public async Task QueryAsync_MapsFeatureRecordsToTypedProjection() {
-        var layerClient = new FakeFeatureLayerClient(
-            [
-                new FeatureRecord(
-                    Geometry: null,
-                    Attributes: new Dictionary<string, object?>
-                    {
-                        ["OBJECTID"] = 1L,
-                        ["NAME"] = "Harbor A"
-                    },
-                    ObjectId: 1),
-                new FeatureRecord(
-                    Geometry: null,
-                    Attributes: new Dictionary<string, object?>
-                    {
-                        ["OBJECTID"] = 2L,
-                        ["NAME"] = "Harbor B"
-                    },
-                    ObjectId: 2)
-            ]);
+    public async Task QueryAsync_IncludesDistinctZMPAndGeometryOptions() {
+        var requestUris = new List<string>();
 
-        var results = new List<HarborProjection>();
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
 
-        await foreach (var item in layerClient.QueryAsync(
-            new FeatureQuery(),
-            feature => new HarborProjection(
-                feature.GetRequiredInt64("OBJECTID"),
-                feature.GetRequiredString("NAME")))) {
-            results.Add(item);
-        }
-
-        Assert.Equal(2, results.Count);
-        Assert.Equal(1L, results[0].ObjectId);
-        Assert.Equal("Harbor A", results[0].Name);
-        Assert.Equal(2L, results[1].ObjectId);
-        Assert.Equal("Harbor B", results[1].Name);
-    }
-
-    private sealed record HarborProjection(long ObjectId, string Name);
-
-    private sealed class FakeFeatureLayerClient : IFeatureLayerClient
-    {
-        private readonly IReadOnlyList<FeatureRecord> _records;
-
-        public FakeFeatureLayerClient(IReadOnlyList<FeatureRecord> records) {
-            _records = records;
-        }
-
-        public Task<FeatureLayerSchema> GetSchemaAsync(CancellationToken cancellationToken = default) {
-            return Task.FromResult(
-                new FeatureLayerSchema(
-                    LayerId: 0,
-                    Name: "Test Layer",
-                    GeometryType: null,
-                    Srid: null,
-                    HasZ: false,
-                    HasM: false,
-                    SupportsPagination: true,
-                    MaxRecordCount: 1000,
-                    ObjectIdFieldName: "OBJECTID",
-                    Fields: []));
-        }
-
-        public async IAsyncEnumerable<FeatureRecord> QueryAsync(
-            FeatureQuery query,
-            [EnumeratorCancellation] CancellationToken cancellationToken = default) {
-            foreach (var record in _records) {
-                cancellationToken.ThrowIfCancellationRequested();
-                yield return record;
+            if (uri.Contains("/FeatureServer/0?")) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "id": 0,
+                  "name": "DepthAreas",
+                  "geometryType": "esriGeometryPoint",
+                  "objectIdField": "OBJECTID",
+                  "maxRecordCount": 1000,
+                  "advancedQueryCapabilities": {
+                    "supportsPagination": true
+                  },
+                  "fields": [
+                    { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
+                  ],
+                  "extent": {
+                    "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
+                  }
+                }
+                """);
             }
 
-            await Task.CompletedTask;
+            if (uri.Contains("/FeatureServer/0/query?")) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "features": [
+                    { "attributes": { "OBJECTID": 1 }, "geometry": { "x": 10, "y": 20, "z": 5 } }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        IFeatureServiceClient serviceClient = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            });
+
+        var layerClient = serviceClient.GetLayerClient(0);
+
+        var query = new FeatureQuery {
+            ReturnDistinctValues = true,
+            ReturnZ = true,
+            ReturnM = false,
+            GeometryPrecision = 3,
+            MaxAllowableOffset = 0.5,
+            OutFields = ["OBJECTID"]
+        };
+
+        var results = new List<FeatureRecord>();
+
+        await foreach (var feature in layerClient.QueryAsync(query)) {
+            results.Add(feature);
         }
+
+        Assert.Single(results);
+
+        var queryRequest = Assert.Single(requestUris.Where(uri => uri.Contains("/FeatureServer/0/query?")));
+
+        Assert.Contains("returnDistinctValues=true", queryRequest);
+        Assert.Contains("returnZ=true", queryRequest);
+        Assert.Contains("returnM=false", queryRequest);
+        Assert.Contains("geometryPrecision=3", queryRequest);
+        Assert.Contains("maxAllowableOffset=0.5", queryRequest);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_ReturnsCount() {
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.Contains("/FeatureServer/0/query?")) {
+                Assert.Contains("returnCountOnly=true", uri);
+
+                return StubHttpMessageHandler.Json("""
+                {
+                  "count": 42
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            }).GetLayerClient(0);
+
+        var count = await layerClient.QueryCountAsync(new FeatureQuery());
+
+        Assert.Equal(42, count);
+    }
+
+    [Fact]
+    public async Task QueryObjectIdsAsync_ReturnsIds() {
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.Contains("/FeatureServer/0/query?")) {
+                Assert.Contains("returnIdsOnly=true", uri);
+
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "objectIds": [1, 2, 3]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            }).GetLayerClient(0);
+
+        var ids = await layerClient.QueryObjectIdsAsync(new FeatureQuery());
+
+        Assert.Equal(new long[] { 1, 2, 3 }, ids.ToArray());
+    }
+
+    [Fact]
+    public async Task QueryExtentAsync_ReturnsExtentAndSrid() {
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.Contains("/FeatureServer/0/query?")) {
+                Assert.Contains("returnExtentOnly=true", uri);
+                Assert.Contains("outSR=25832", uri);
+
+                return StubHttpMessageHandler.Json("""
+                {
+                  "extent": {
+                    "xmin": 10,
+                    "ymin": 20,
+                    "xmax": 30,
+                    "ymax": 40,
+                    "spatialReference": {
+                      "wkid": 25832,
+                      "latestWkid": 25832
+                    }
+                  }
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            }).GetLayerClient(0);
+
+        var extent = await layerClient.QueryExtentAsync(new FeatureQuery { OutSrid = 25832 });
+
+        Assert.NotNull(extent);
+        Assert.Equal(10, extent!.Envelope.MinX);
+        Assert.Equal(30, extent.Envelope.MaxX);
+        Assert.Equal(20, extent.Envelope.MinY);
+        Assert.Equal(40, extent.Envelope.MaxY);
+        Assert.Equal(25832, extent.Srid);
     }
 }
