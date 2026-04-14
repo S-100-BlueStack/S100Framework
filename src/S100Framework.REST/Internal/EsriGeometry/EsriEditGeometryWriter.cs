@@ -7,7 +7,23 @@ namespace S100Framework.REST.Internal.EsriGeometry;
 
 internal static class EsriEditGeometryWriter
 {
-    public static object? Write(Geometry? geometry) {
+    public static string WriteFeatures(IEnumerable<EditableFeature> features) {
+        ArgumentNullException.ThrowIfNull(features);
+
+        var payload = features.Select(WriteFeature).ToArray();
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private static object WriteFeature(EditableFeature feature) {
+        ArgumentNullException.ThrowIfNull(feature);
+
+        return new Dictionary<string, object?> {
+            ["geometry"] = WriteGeometry(feature.Geometry),
+            ["attributes"] = feature.Attributes
+        };
+    }
+
+    private static object? WriteGeometry(Geometry? geometry) {
         if (geometry is null) {
             return null;
         }
@@ -20,25 +36,15 @@ internal static class EsriEditGeometryWriter
             Point point => WritePoint(point),
             MultiPoint multiPoint => WriteMultiPoint(multiPoint),
             LineString lineString => WritePolyline([lineString], lineString.SRID),
-            MultiLineString multiLineString => WritePolyline(multiLineString.Geometries.Cast<LineString>(), multiLineString.SRID),
+            MultiLineString multiLineString => WritePolyline(
+                multiLineString.Geometries.Cast<LineString>(),
+                multiLineString.SRID),
             Polygon polygon => WritePolygon([polygon], polygon.SRID),
-            MultiPolygon multiPolygon => WritePolygon(multiPolygon.Geometries.Cast<Polygon>(), multiPolygon.SRID),
+            MultiPolygon multiPolygon => WritePolygon(
+                multiPolygon.Geometries.Cast<Polygon>(),
+                multiPolygon.SRID),
             _ => throw new NotSupportedException(
                 $"Geometry type '{geometry.GetType().Name}' is not supported for applyEdits serialization.")
-        };
-    }
-
-    public static string WriteFeatures(IEnumerable<EditableFeature> features) {
-        var payload = features.Select(WriteFeature).ToArray();
-        return JsonSerializer.Serialize(payload);
-    }
-
-    private static object WriteFeature(EditableFeature feature) {
-        ArgumentNullException.ThrowIfNull(feature);
-
-        return new Dictionary<string, object?> {
-            ["geometry"] = Write(feature.Geometry),
-            ["attributes"] = feature.Attributes
         };
     }
 
@@ -67,6 +73,10 @@ internal static class EsriEditGeometryWriter
             ["points"] = points
         };
 
+        if (points.Any(values => values.Length >= 3)) {
+            payload["hasZ"] = true;
+        }
+
         AddSpatialReference(payload, multiPoint.SRID);
 
         return payload;
@@ -83,6 +93,10 @@ internal static class EsriEditGeometryWriter
             ["paths"] = paths
         };
 
+        if (paths.SelectMany(path => path).Any(values => values.Length >= 3)) {
+            payload["hasZ"] = true;
+        }
+
         AddSpatialReference(payload, srid);
 
         return payload;
@@ -94,16 +108,20 @@ internal static class EsriEditGeometryWriter
         var rings = new List<List<double[]>>();
 
         foreach (var polygon in polygons) {
-            rings.Add(ToRingValues(NormalizeRing(polygon.Shell, clockwise: true)));
+            rings.Add(ToRingValues(NormalizeRing((LinearRing)polygon.ExteriorRing, clockwise: true)));
 
-            foreach (var hole in polygon.Holes) {
-                rings.Add(ToRingValues(NormalizeRing(hole, clockwise: false)));
+            for (var index = 0; index < polygon.NumInteriorRings; index++) {
+                rings.Add(ToRingValues(NormalizeRing((LinearRing)polygon.GetInteriorRingN(index), clockwise: false)));
             }
         }
 
         var payload = new Dictionary<string, object?> {
             ["rings"] = rings
         };
+
+        if (rings.SelectMany(ring => ring).Any(values => values.Length >= 3)) {
+            payload["hasZ"] = true;
+        }
 
         AddSpatialReference(payload, srid);
 

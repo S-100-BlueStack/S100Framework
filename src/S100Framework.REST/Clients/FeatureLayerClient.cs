@@ -510,5 +510,5 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         return _serviceClient.ApplyEditsAsync(_layerId, edits, cancellationToken);
     }
 
-    
+
 }
