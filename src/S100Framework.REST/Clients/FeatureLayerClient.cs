@@ -233,6 +233,95 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         return new FeatureRecord(geometry, attributes, objectId);
     }
 
+    private AttachmentInfo MapAttachmentInfo(
+    JsonElement attachmentInfoElement,
+    long? parentObjectId,
+    string? parentGlobalId) {
+        var attributes = ReadObjectAttributes(attachmentInfoElement);
+
+        long attachmentId = 0;
+
+        if (TryGetInt64(attributes, "id", out var id)) {
+            attachmentId = id;
+        }
+        else if (TryGetInt64(attributes, "attachmentid", out var attachmentIdAlias)) {
+            attachmentId = attachmentIdAlias;
+        }
+
+        string? globalId = TryGetString(attributes, "globalId") ?? TryGetString(attributes, "globalid");
+        string? name = TryGetString(attributes, "name") ?? TryGetString(attributes, "att_name");
+        string? contentType = TryGetString(attributes, "contentType") ?? TryGetString(attributes, "content_type");
+        long? size = TryGetNullableInt64(attributes, "size") ?? TryGetNullableInt64(attributes, "data_size");
+        string? url = TryGetString(attributes, "url");
+
+        return new AttachmentInfo(
+            attachmentId,
+            parentObjectId,
+            parentGlobalId,
+            name,
+            contentType,
+            size,
+            globalId,
+            url,
+            attributes);
+    }
+
+    private static IReadOnlyDictionary<string, object?> ReadObjectAttributes(JsonElement objectElement) {
+        if (objectElement.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
+            return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var attributes = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var property in objectElement.EnumerateObject()) {
+            attributes[property.Name] = ConvertJsonValue(property.Value);
+        }
+
+        return attributes;
+    }
+
+    private static bool TryGetInt64(
+        IReadOnlyDictionary<string, object?> attributes,
+        string name,
+        out long value) {
+        value = default;
+
+        if (!attributes.TryGetValue(name, out var raw)) {
+            return false;
+        }
+
+        var converted = ConvertToInt64(raw);
+
+        if (!converted.HasValue) {
+            return false;
+        }
+
+        value = converted.Value;
+        return true;
+    }
+
+    private static long? TryGetNullableInt64(
+        IReadOnlyDictionary<string, object?> attributes,
+        string name) {
+        return attributes.TryGetValue(name, out var raw)
+            ? ConvertToInt64(raw)
+            : null;
+    }
+
+    private static string? TryGetString(
+        IReadOnlyDictionary<string, object?> attributes,
+        string name) {
+        if (!attributes.TryGetValue(name, out var raw)) {
+            return null;
+        }
+
+        return raw switch {
+            null => null,
+            string stringValue => stringValue,
+            _ => Convert.ToString(raw, System.Globalization.CultureInfo.InvariantCulture)
+        };
+    }
+
     private int? ResolveSrid(EsriSpatialReferenceDto? spatialReference) {
         if (spatialReference is null) {
             return null;
@@ -352,5 +441,32 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             .ToArray();
 
         return groups;
+    }
+
+    public async Task<IReadOnlyList<AttachmentGroup>> QueryAttachmentsAsync(
+    AttachmentQuery query,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var response = await _serviceClient.QueryAttachmentsAsync(_layerId, query, cancellationToken);
+
+        return (response.AttachmentGroups ?? new List<EsriAttachmentGroupDto>())
+            .Select(group => new AttachmentGroup(
+                group.ParentObjectId,
+                group.ParentGlobalId,
+                (group.AttachmentInfos ?? new List<JsonElement>())
+                    .Select(info => MapAttachmentInfo(
+                        info,
+                        group.ParentObjectId,
+                        group.ParentGlobalId))
+                    .ToArray()))
+            .ToArray();
+    }
+
+    public Task<AttachmentContent> DownloadAttachmentAsync(
+        long objectId,
+        long attachmentId,
+        CancellationToken cancellationToken = default) {
+        return _serviceClient.DownloadAttachmentAsync(_layerId, objectId, attachmentId, cancellationToken);
     }
 }

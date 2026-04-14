@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
+using System.Net.Http.Headers;
 using NetTopologySuite.Geometries;
 using S100Framework.REST.Abstractions;
 using S100Framework.REST.Configuration;
@@ -433,5 +434,104 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             parameters);
 
         return GetAsync<EsriRelatedRecordsResponseDto>(uri, cancellationToken);
+    }
+
+    internal Task<EsriAttachmentQueryResponseDto> QueryAttachmentsAsync(
+    int layerId,
+    AttachmentQuery query,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+        query.Validate();
+
+        var parameters = new Dictionary<string, string?> {
+            ["f"] = "json",
+            ["objectIds"] = query.ObjectIds is { Count: > 0 }
+                ? string.Join(",", query.ObjectIds)
+                : null,
+            ["definitionExpression"] = query.DefinitionExpression,
+            ["attachmentTypes"] = query.AttachmentTypes is { Count: > 0 }
+                ? string.Join(",", query.AttachmentTypes)
+                : null,
+            ["keywords"] = query.Keywords is { Count: > 0 }
+                ? string.Join(",", query.Keywords)
+                : null,
+            ["returnUrl"] = query.ReturnUrl ? "true" : null,
+            ["returnMetadata"] = query.ReturnMetadata ? "true" : null
+        };
+
+        if (query.MinimumSizeBytes.HasValue || query.MaximumSizeBytes.HasValue) {
+            var min = query.MinimumSizeBytes?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+            var max = query.MaximumSizeBytes?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+            parameters["size"] = $"{min},{max}";
+        }
+
+        var uri = UriUtility.WithQuery(
+            UriUtility.AppendPath(
+                _serviceUri,
+                $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryAttachments"),
+            parameters);
+
+        return GetAsync<EsriAttachmentQueryResponseDto>(uri, cancellationToken);
+    }
+
+    internal async Task<AttachmentContent> DownloadAttachmentAsync(
+        int layerId,
+        long objectId,
+        long attachmentId,
+        CancellationToken cancellationToken = default) {
+        var uri = UriUtility.AppendPath(
+            _serviceUri,
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/{objectId.ToString(CultureInfo.InvariantCulture)}/attachments/{attachmentId.ToString(CultureInfo.InvariantCulture)}");
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(_options.RequestTimeout);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+
+        if (_authorizer is not null) {
+            await _authorizer.ApplyAsync(request, timeoutCts.Token);
+        }
+
+        using var response = await _httpClient.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            timeoutCts.Token);
+
+        if (!response.IsSuccessStatusCode) {
+            var payload = await response.Content.ReadAsStringAsync(timeoutCts.Token);
+
+            if (!string.IsNullOrWhiteSpace(payload) && TryParseEsriError(payload, out var esriError)) {
+                throw new FeatureServiceException(
+                    esriError.Message ?? "The server returned an Esri error payload.",
+                    uri,
+                    esriError.Code,
+                    esriError.Details?.ToArray(),
+                    response.StatusCode);
+            }
+
+            throw new FeatureServiceException(
+                $"The server returned HTTP {(int)response.StatusCode} ({response.StatusCode}).",
+                uri,
+                statusCode: response.StatusCode);
+        }
+
+        var bytes = await response.Content.ReadAsByteArrayAsync(timeoutCts.Token);
+        var contentType = response.Content.Headers.ContentType?.MediaType;
+        var fileName = GetContentDispositionFileName(response.Content.Headers);
+
+        return new AttachmentContent(bytes, contentType, fileName);
+    }
+
+    private static string? GetContentDispositionFileName(HttpContentHeaders headers) {
+        var contentDisposition = headers.ContentDisposition;
+
+        if (contentDisposition is null) {
+            return null;
+        }
+
+        var fileName = contentDisposition.FileNameStar ?? contentDisposition.FileName;
+        return string.IsNullOrWhiteSpace(fileName)
+            ? null
+            : fileName.Trim('"');
     }
 }

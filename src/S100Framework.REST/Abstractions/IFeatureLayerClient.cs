@@ -29,4 +29,13 @@ public interface IFeatureLayerClient
     Task<IReadOnlyList<RelatedRecordGroup>> QueryRelatedRecordsAsync(
         RelatedRecordsQuery query,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AttachmentGroup>> QueryAttachmentsAsync(
+        AttachmentQuery query,
+        CancellationToken cancellationToken = default);
+
+    Task<AttachmentContent> DownloadAttachmentAsync(
+        long objectId,
+        long attachmentId,
+        CancellationToken cancellationToken = default);
 }

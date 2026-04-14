@@ -92,3 +92,21 @@ internal sealed class EsriRelatedRecordGroupDto
     [JsonPropertyName("relatedRecords")]
     public List<EsriFeatureDto>? RelatedRecords { get; init; }
 }
+
+internal sealed class EsriAttachmentQueryResponseDto
+{
+    [JsonPropertyName("attachmentGroups")]
+    public List<EsriAttachmentGroupDto>? AttachmentGroups { get; init; }
+}
+
+internal sealed class EsriAttachmentGroupDto
+{
+    [JsonPropertyName("parentObjectId")]
+    public long? ParentObjectId { get; init; }
+
+    [JsonPropertyName("parentGlobalId")]
+    public string? ParentGlobalId { get; init; }
+
+    [JsonPropertyName("attachmentInfos")]
+    public List<JsonElement>? AttachmentInfos { get; init; }
+}
