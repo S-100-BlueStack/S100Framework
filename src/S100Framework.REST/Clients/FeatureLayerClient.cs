@@ -516,4 +516,11 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         ArgumentNullException.ThrowIfNull(request);
         return _serviceClient.DeleteAttachmentsAsync(_layerId, request, cancellationToken);
     }
+
+    public Task<AddAttachmentResult> AddAttachmentAsync(
+    AddAttachmentRequest request,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        return _serviceClient.AddAttachmentAsync(_layerId, request, cancellationToken);
+    }
 }

@@ -930,4 +930,72 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.Error?.Code,
             dto.Error?.Description);
     }
+
+    internal async Task<AddAttachmentResult> AddAttachmentAsync(
+    int layerId,
+    AddAttachmentRequest request,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        request.Validate();
+
+        var endpointUri = UriUtility.AppendPath(
+            _serviceUri,
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/{request.ObjectId.ToString(CultureInfo.InvariantCulture)}/addAttachment");
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(_options.RequestTimeout);
+
+        using var multipartContent = new MultipartFormDataContent();
+
+        multipartContent.Add(
+            new StringContent("json"),
+            "f");
+
+        if (!string.IsNullOrWhiteSpace(request.GdbVersion)) {
+            multipartContent.Add(
+                new StringContent(request.GdbVersion),
+                "gdbVersion");
+        }
+
+        if (request.ReturnEditMoment) {
+            multipartContent.Add(
+                new StringContent("true"),
+                "returnEditMoment");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Keywords)) {
+            multipartContent.Add(
+                new StringContent(request.Keywords),
+                "keywords");
+        }
+
+        var attachmentContent = new StreamContent(request.Content);
+
+        if (!string.IsNullOrWhiteSpace(request.ContentType)) {
+            attachmentContent.Headers.ContentType = new MediaTypeHeaderValue(request.ContentType);
+        }
+
+        multipartContent.Add(
+            attachmentContent,
+            "attachment",
+            request.FileName);
+
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, endpointUri) {
+            Content = multipartContent
+        };
+
+        var dto = await SendAsync<EsriAddAttachmentResponseDto>(
+            httpRequest,
+            endpointUri,
+            timeoutCts.Token);
+
+        var resultDto = dto.AddAttachmentResult
+            ?? throw new FeatureServiceException(
+                "The server did not return an addAttachmentResult payload.",
+                endpointUri);
+
+        return new AddAttachmentResult(
+            MapAttachmentEditResult(resultDto),
+            dto.EditMoment);
+    }
 }

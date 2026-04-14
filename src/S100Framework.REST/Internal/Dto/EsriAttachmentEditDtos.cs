@@ -25,3 +25,12 @@ internal sealed class EsriAttachmentEditResultDto
     [JsonPropertyName("error")]
     public EsriEditErrorDto? Error { get; init; }
 }
+
+internal sealed class EsriAddAttachmentResponseDto
+{
+    [JsonPropertyName("addAttachmentResult")]
+    public EsriAttachmentEditResultDto? AddAttachmentResult { get; init; }
+
+    [JsonPropertyName("editMoment")]
+    public long? EditMoment { get; init; }
+}

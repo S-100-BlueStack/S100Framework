@@ -58,4 +58,8 @@ public interface IFeatureLayerClient
     Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(
     DeleteAttachmentsRequest request,
     CancellationToken cancellationToken = default);
+
+    Task<AddAttachmentResult> AddAttachmentAsync(
+    AddAttachmentRequest request,
+    CancellationToken cancellationToken = default);
 }
