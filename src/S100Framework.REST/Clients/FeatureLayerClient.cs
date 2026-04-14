@@ -279,4 +279,15 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             yield return batch;
         }
     }
+    public async Task<IReadOnlyList<StatisticRow>> QueryStatisticsAsync(
+    FeatureStatisticsQuery query,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var response = await _serviceClient.QueryStatisticsAsync(_layerId, query, cancellationToken);
+
+        return (response.Features ?? new List<EsriFeatureDto>())
+            .Select(feature => new StatisticRow(ReadAttributes(feature.Attributes)))
+            .ToArray();
+    }
 }

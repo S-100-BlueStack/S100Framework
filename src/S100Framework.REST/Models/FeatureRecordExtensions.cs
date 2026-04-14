@@ -2,30 +2,30 @@
 
 namespace S100Framework.REST.Models;
 
-public static class FeatureRecordExtensions
+public static class AttributeRecordExtensions
 {
-    public static bool HasAttribute(this FeatureRecord feature, string attributeName) {
-        ArgumentNullException.ThrowIfNull(feature);
+    public static bool HasAttribute(this IAttributeRecord record, string attributeName) {
+        ArgumentNullException.ThrowIfNull(record);
         ArgumentException.ThrowIfNullOrWhiteSpace(attributeName);
 
-        return feature.Attributes.ContainsKey(attributeName);
+        return record.Attributes.ContainsKey(attributeName);
     }
 
-    public static object? GetRawValue(this FeatureRecord feature, string attributeName) {
-        ArgumentNullException.ThrowIfNull(feature);
+    public static object? GetRawValue(this IAttributeRecord record, string attributeName) {
+        ArgumentNullException.ThrowIfNull(record);
         ArgumentException.ThrowIfNullOrWhiteSpace(attributeName);
 
-        return feature.Attributes.TryGetValue(attributeName, out var value)
+        return record.Attributes.TryGetValue(attributeName, out var value)
             ? value
             : null;
     }
 
-    public static string? GetString(this FeatureRecord feature, string attributeName) {
-        return ConvertToString(feature.GetRawValue(attributeName));
+    public static string? GetString(this IAttributeRecord record, string attributeName) {
+        return ConvertToString(record.GetRawValue(attributeName));
     }
 
-    public static string GetRequiredString(this FeatureRecord feature, string attributeName) {
-        var value = feature.GetString(attributeName);
+    public static string GetRequiredString(this IAttributeRecord record, string attributeName) {
+        var value = record.GetString(attributeName);
 
         if (value is null) {
             throw CreateMissingOrInvalidValueException(attributeName, "string");
@@ -34,12 +34,12 @@ public static class FeatureRecordExtensions
         return value;
     }
 
-    public static int? GetInt32(this FeatureRecord feature, string attributeName) {
-        return ConvertToInt32(feature.GetRawValue(attributeName));
+    public static int? GetInt32(this IAttributeRecord record, string attributeName) {
+        return ConvertToInt32(record.GetRawValue(attributeName));
     }
 
-    public static int GetRequiredInt32(this FeatureRecord feature, string attributeName) {
-        var value = feature.GetInt32(attributeName);
+    public static int GetRequiredInt32(this IAttributeRecord record, string attributeName) {
+        var value = record.GetInt32(attributeName);
 
         if (value is null) {
             throw CreateMissingOrInvalidValueException(attributeName, "Int32");
@@ -48,12 +48,12 @@ public static class FeatureRecordExtensions
         return value.Value;
     }
 
-    public static long? GetInt64(this FeatureRecord feature, string attributeName) {
-        return ConvertToInt64(feature.GetRawValue(attributeName));
+    public static long? GetInt64(this IAttributeRecord record, string attributeName) {
+        return ConvertToInt64(record.GetRawValue(attributeName));
     }
 
-    public static long GetRequiredInt64(this FeatureRecord feature, string attributeName) {
-        var value = feature.GetInt64(attributeName);
+    public static long GetRequiredInt64(this IAttributeRecord record, string attributeName) {
+        var value = record.GetInt64(attributeName);
 
         if (value is null) {
             throw CreateMissingOrInvalidValueException(attributeName, "Int64");
@@ -62,12 +62,12 @@ public static class FeatureRecordExtensions
         return value.Value;
     }
 
-    public static decimal? GetDecimal(this FeatureRecord feature, string attributeName) {
-        return ConvertToDecimal(feature.GetRawValue(attributeName));
+    public static decimal? GetDecimal(this IAttributeRecord record, string attributeName) {
+        return ConvertToDecimal(record.GetRawValue(attributeName));
     }
 
-    public static decimal GetRequiredDecimal(this FeatureRecord feature, string attributeName) {
-        var value = feature.GetDecimal(attributeName);
+    public static decimal GetRequiredDecimal(this IAttributeRecord record, string attributeName) {
+        var value = record.GetDecimal(attributeName);
 
         if (value is null) {
             throw CreateMissingOrInvalidValueException(attributeName, "Decimal");
@@ -76,12 +76,12 @@ public static class FeatureRecordExtensions
         return value.Value;
     }
 
-    public static double? GetDouble(this FeatureRecord feature, string attributeName) {
-        return ConvertToDouble(feature.GetRawValue(attributeName));
+    public static double? GetDouble(this IAttributeRecord record, string attributeName) {
+        return ConvertToDouble(record.GetRawValue(attributeName));
     }
 
-    public static double GetRequiredDouble(this FeatureRecord feature, string attributeName) {
-        var value = feature.GetDouble(attributeName);
+    public static double GetRequiredDouble(this IAttributeRecord record, string attributeName) {
+        var value = record.GetDouble(attributeName);
 
         if (value is null) {
             throw CreateMissingOrInvalidValueException(attributeName, "Double");
@@ -90,12 +90,12 @@ public static class FeatureRecordExtensions
         return value.Value;
     }
 
-    public static bool? GetBoolean(this FeatureRecord feature, string attributeName) {
-        return ConvertToBoolean(feature.GetRawValue(attributeName));
+    public static bool? GetBoolean(this IAttributeRecord record, string attributeName) {
+        return ConvertToBoolean(record.GetRawValue(attributeName));
     }
 
-    public static bool GetRequiredBoolean(this FeatureRecord feature, string attributeName) {
-        var value = feature.GetBoolean(attributeName);
+    public static bool GetRequiredBoolean(this IAttributeRecord record, string attributeName) {
+        var value = record.GetBoolean(attributeName);
 
         if (value is null) {
             throw CreateMissingOrInvalidValueException(attributeName, "Boolean");

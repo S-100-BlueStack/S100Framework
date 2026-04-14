@@ -21,4 +21,8 @@ public interface IFeatureLayerClient
     Task<FeatureExtent?> QueryExtentAsync(
         FeatureQuery query,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<StatisticRow>> QueryStatisticsAsync(
+        FeatureStatisticsQuery query,
+        CancellationToken cancellationToken = default);
 }

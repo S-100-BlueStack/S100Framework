@@ -353,4 +353,37 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.Nullable ?? true,
             dto.Length);
     }
+
+    internal Task<EsriQueryResponseDto> QueryStatisticsAsync(
+    int layerId,
+    FeatureStatisticsQuery query,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+        query.Validate();
+
+        var parameters = new Dictionary<string, string?> {
+            ["f"] = "json",
+            ["where"] = string.IsNullOrWhiteSpace(query.Where) ? "1=1" : query.Where,
+            ["returnGeometry"] = "false",
+            ["outStatistics"] = JsonSerializer.Serialize(
+                query.Statistics.Select(statistic => new Dictionary<string, object?> {
+                    ["statisticType"] = StatisticTypeMapper.ToEsriValue(statistic.StatisticType),
+                    ["onStatisticField"] = statistic.OnStatisticField,
+                    ["outStatisticFieldName"] = statistic.OutStatisticFieldName
+                }).ToArray()),
+            ["groupByFieldsForStatistics"] = query.GroupByFields is { Count: > 0 }
+                ? string.Join(",", query.GroupByFields)
+                : null,
+            ["havingClause"] = query.HavingClause,
+            ["orderByFields"] = query.OrderBy
+        };
+
+        ApplySpatialFilter(parameters, query.SpatialFilter);
+
+        var uri = UriUtility.WithQuery(
+            UriUtility.AppendPath(_serviceUri, $"{layerId.ToString(CultureInfo.InvariantCulture)}/query"),
+            parameters);
+
+        return GetAsync<EsriQueryResponseDto>(uri, cancellationToken);
+    }
 }
