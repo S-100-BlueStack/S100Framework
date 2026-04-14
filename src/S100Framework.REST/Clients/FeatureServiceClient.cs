@@ -85,16 +85,28 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 : dto.Extent.SpatialReference.Wkid ?? dto.Extent.SpatialReference.LatestWkid;
 
         return new FeatureLayerSchema(
-            dto.Id,
-            dto.Name ?? $"Layer {dto.Id}",
-            dto.GeometryType,
-            srid,
-            dto.HasZ ?? false,
-            dto.HasM ?? false,
-            dto.AdvancedQueryCapabilities?.SupportsPagination ?? false,
-            dto.MaxRecordCount,
-            dto.ObjectIdField,
-            dto.Fields?.Select(MapField).ToArray() ?? Array.Empty<FeatureField>());
+    dto.Id,
+    dto.Name ?? $"Layer {dto.Id}",
+    dto.GeometryType,
+    srid,
+    dto.HasZ ?? false,
+    dto.HasM ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsPagination ?? false,
+    dto.MaxRecordCount,
+    dto.ObjectIdField,
+    dto.Fields?.Select(MapField).ToArray() ?? Array.Empty<FeatureField>(),
+    new FeatureLayerCapabilities(
+        dto.HasAttachments ?? false,
+        dto.SupportsQueryAttachments ?? false,
+        dto.SupportsAttachmentsResizing ?? false,
+        dto.SupportsTopFeaturesQuery ?? false,
+        dto.AdvancedQueryCapabilities?.SupportsPagination ?? false,
+        dto.AdvancedQueryCapabilities?.SupportsPaginationOnAggregatedQueries ?? false,
+        dto.AdvancedQueryCapabilities?.SupportsQueryRelatedPagination ?? false,
+        dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
+        dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
+        dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false),
+    dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>());
     }
 
     internal Task<EsriQueryResponseDto> QueryFeaturesAsync(
@@ -400,6 +412,17 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.Alias,
             dto.Nullable ?? true,
             dto.Length);
+    }
+
+    private static FeatureRelationshipInfo MapRelationship(EsriRelationshipInfoDto dto) {
+        return new FeatureRelationshipInfo(
+            dto.Id,
+            dto.Name,
+            dto.RelatedTableId,
+            dto.Cardinality,
+            dto.Role,
+            dto.KeyField,
+            dto.Composite);
     }
 
     internal Task<EsriQueryResponseDto> QueryStatisticsAsync(

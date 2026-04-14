@@ -10,4 +10,6 @@ public sealed record FeatureLayerSchema(
     bool SupportsPagination,
     int? MaxRecordCount,
     string? ObjectIdFieldName,
-    IReadOnlyList<FeatureField> Fields);
+    IReadOnlyList<FeatureField> Fields,
+    FeatureLayerCapabilities Capabilities,
+    IReadOnlyList<FeatureRelationshipInfo> Relationships);
