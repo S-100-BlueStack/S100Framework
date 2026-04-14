@@ -19,7 +19,8 @@ The library is designed to work without ArcGIS SDK or ArcGIS runtime dependencie
   - related records
   - attachments
   - top features
-- Support initial layer-level editing through `applyEdits`
+- Support feature editing through layer-level and service-level `applyEdits`
+- Support attachment lifecycle operations
 - Keep the public API .NET-friendly while hiding Esri-specific request details where possible
 
 ## Requirements
@@ -59,6 +60,7 @@ A layer client performs layer-specific operations such as:
 - attachment queries and downloads
 - top feature queries
 - layer-level apply-edits operations
+- attachment add, update, and delete operations
 
 ## Authentication
 
@@ -583,6 +585,74 @@ await File.WriteAllBytesAsync(
     attachment.Content);
 ```
 
+### Add attachment
+
+```csharp
+using S100Framework.REST.Models;
+
+await using var stream = File.OpenRead("photo.jpg");
+
+var result = await layerClient.AddAttachmentAsync(
+    new AddAttachmentRequest
+    {
+        ObjectId = 818654,
+        Content = stream,
+        FileName = "photo.jpg",
+        ContentType = "image/jpeg",
+        Keywords = "harbor,photo",
+        ReturnEditMoment = true
+    });
+
+Console.WriteLine(result.Result.AttachmentId);
+Console.WriteLine(result.Result.Success);
+Console.WriteLine(result.EditMoment);
+```
+
+### Update attachment
+
+```csharp
+using S100Framework.REST.Models;
+
+await using var stream = File.OpenRead("photo-updated.jpg");
+
+var result = await layerClient.UpdateAttachmentAsync(
+    new UpdateAttachmentRequest
+    {
+        ObjectId = 818654,
+        AttachmentId = 58,
+        Content = stream,
+        FileName = "photo-updated.jpg",
+        ContentType = "image/jpeg",
+        Keywords = "harbor,photo,updated",
+        ReturnEditMoment = true
+    });
+
+Console.WriteLine(result.Result.AttachmentId);
+Console.WriteLine(result.Result.Success);
+Console.WriteLine(result.EditMoment);
+```
+
+### Delete attachments
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await layerClient.DeleteAttachmentsAsync(
+    new DeleteAttachmentsRequest
+    {
+        ObjectId = 818654,
+        AttachmentIds = [58, 4],
+        RollbackOnFailure = false,
+        ReturnEditMoment = true
+    });
+
+foreach (var edit in result.Results)
+{
+    Console.WriteLine(
+        $"{edit.AttachmentId} | {edit.Success} | {edit.ErrorCode} | {edit.ErrorDescription}");
+}
+```
+
 ## Top features queries
 
 Use `queryTopFeatures` when you need the top N records within groups, based on one or more order-by fields.
@@ -647,13 +717,7 @@ var countResult = await layerClient.QueryTopFeatureCountAsync(
 
 ## Apply edits
 
-The library includes initial layer-level `applyEdits` support for:
-
-- adds
-- updates
-- deletes
-
-Example:
+### Layer-level apply edits
 
 ```csharp
 using NetTopologySuite.Geometries;
@@ -687,14 +751,7 @@ var result = await layerClient.ApplyEditsAsync(
     });
 ```
 
-Current scope is intentionally limited to layer-level feature edits.
-Attachment edits, service-level multi-layer edits, and other advanced edit scenarios are not yet included.
-
-## Service-level multi-layer apply edits
-
-The service client also supports service-level `applyEdits` for applying edits to multiple layers or tables in a single request.
-
-Example:
+### Service-level multi-layer apply edits
 
 ```csharp
 using NetTopologySuite.Geometries;
@@ -750,20 +807,21 @@ The library currently supports:
 - read/query scenarios for Feature Services
 - layer-level feature adds, updates, and deletes through `applyEdits`
 - service-level multi-layer feature adds, updates, and deletes through `applyEdits`
+- layer-level attachment add, update, and delete operations
 
 The library does not currently include:
 
-- attachment edits
+- service-level attachment edit payloads inside multi-layer `applyEdits`
 - asynchronous edit workflows
-- advanced service-level edit options beyond the initial multi-layer apply-edits surface
-- 
+- advanced upload-ID based attachment flows
+
 ## Design notes
 
 - Esri request details are hidden behind typed .NET models where practical.
 - Spatial filters are built from NetTopologySuite `Envelope` and `Geometry`.
 - Attribute values are preserved dynamically and can be accessed through typed helpers.
 - Query families with different response shapes are modeled as separate methods instead of flags on one large request object.
-- Initial editing support is intentionally limited to a small, explicit layer-level surface.
+- Initial editing support is intentionally limited to explicit layer-level and service-level surfaces.
 
 ## ArcGIS REST alignment
 
@@ -777,6 +835,7 @@ The library maps several ArcGIS Feature Service operations to typed .NET APIs, i
 - top features queries
 - layer-level apply-edits
 - service-level multi-layer apply-edits
+- layer-level attachment add, update, and delete operations
 
 Where ArcGIS uses separate REST operations with different response shapes, this library also exposes them as separate methods instead of overloading one large request model.
 
@@ -795,6 +854,7 @@ The project includes unit tests for:
 - top features
 - layer-level apply-edits
 - service-level multi-layer apply-edits
+- layer-level attachment add, update, and delete operations
 
 Run tests with:
 
@@ -808,13 +868,12 @@ dotnet test
 - Authentication setup depends on the consuming application environment.
 - Some ArcGIS query capabilities are server-version or datasource dependent.
 - Support for specific query features still depends on what the target layer advertises through its capabilities.
-- Editing support is currently limited to the initial layer-level `applyEdits` surface.
+- Editing support is currently limited to the initial layer-level and service-level surfaces described above.
 
 ## Roadmap ideas
 
-- query attachments by global ID
-- service-level multi-layer apply-edits
-- attachment edit support
+- service-level attachment edit payloads
+- attachment upload-ID flows
 - additional query capabilities and capability inspection helpers
 - stronger date/time field handling
 - optional convenience APIs for common field mapping patterns

@@ -62,4 +62,8 @@ public interface IFeatureLayerClient
     Task<AddAttachmentResult> AddAttachmentAsync(
     AddAttachmentRequest request,
     CancellationToken cancellationToken = default);
+
+    Task<UpdateAttachmentResult> UpdateAttachmentAsync(
+    UpdateAttachmentRequest request,
+    CancellationToken cancellationToken = default);
 }
