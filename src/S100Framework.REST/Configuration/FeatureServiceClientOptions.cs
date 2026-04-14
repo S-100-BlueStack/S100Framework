@@ -14,6 +14,10 @@ public sealed class FeatureServiceClientOptions
 
     public bool ReturnTrueCurves { get; set; }
 
+    public TrueCurveHandling TrueCurveHandling { get; set; } = TrueCurveHandling.Throw;
+
+    public int CircularArcSegmentCount { get; set; } = 16;
+
     public void Validate() {
         if (ServiceUri is null) {
             throw new InvalidOperationException("ServiceUri must be configured.");
@@ -34,6 +38,10 @@ public sealed class FeatureServiceClientOptions
 
         if (RequestTimeout <= TimeSpan.Zero) {
             throw new InvalidOperationException("RequestTimeout must be greater than zero.");
+        }
+
+        if (CircularArcSegmentCount < 2) {
+            throw new InvalidOperationException("CircularArcSegmentCount must be greater than or equal to 2.");
         }
     }
 }

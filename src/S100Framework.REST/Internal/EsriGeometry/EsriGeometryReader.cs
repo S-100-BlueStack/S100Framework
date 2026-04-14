@@ -3,17 +3,20 @@ using NetTopologySuite.Algorithm;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Utilities;
 using System.Text.Json;
+using S100Framework.REST.Configuration;
 
 namespace S100Framework.REST.Internal.EsriGeometry;
 
 internal static class EsriGeometryReader
 {
     public static Geometry? Read(
-        JsonElement geometryElement,
-        string? geometryType,
-        int? defaultSrid,
-        bool preferLatestWkid,
-        bool fixInvalidGeometries) {
+    JsonElement geometryElement,
+    string? geometryType,
+    int? defaultSrid,
+    bool preferLatestWkid,
+    bool fixInvalidGeometries,
+    TrueCurveHandling trueCurveHandling,
+    int circularArcSegmentCount) {
         if (geometryElement.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
             return null;
         }
@@ -24,10 +27,10 @@ internal static class EsriGeometryReader
         Geometry geometry = geometryType switch {
             "esriGeometryPoint" => ReadPoint(geometryElement, factory),
             "esriGeometryMultipoint" => ReadMultipoint(geometryElement, factory),
-            "esriGeometryPolyline" => ReadPolyline(geometryElement, factory),
-            "esriGeometryPolygon" => ReadPolygon(geometryElement, factory),
+            "esriGeometryPolyline" => ReadPolyline(geometryElement, factory, trueCurveHandling, circularArcSegmentCount),
+            "esriGeometryPolygon" => ReadPolygon(geometryElement, factory, trueCurveHandling, circularArcSegmentCount),
             "esriGeometryEnvelope" => ReadEnvelope(geometryElement, factory),
-            null => InferGeometry(geometryElement, factory),
+            null => InferGeometry(geometryElement, factory, trueCurveHandling, circularArcSegmentCount),
             _ => throw new NotSupportedException($"Unsupported geometry type '{geometryType}'.")
         };
 
@@ -39,7 +42,11 @@ internal static class EsriGeometryReader
         return geometry;
     }
 
-    private static Geometry InferGeometry(JsonElement geometryElement, GeometryFactory factory) {
+    private static Geometry InferGeometry(
+    JsonElement geometryElement,
+    GeometryFactory factory,
+    TrueCurveHandling trueCurveHandling,
+    int circularArcSegmentCount) {
         if (geometryElement.TryGetProperty("x", out _)) {
             return ReadPoint(geometryElement, factory);
         }
@@ -48,12 +55,12 @@ internal static class EsriGeometryReader
             return ReadMultipoint(geometryElement, factory);
         }
 
-        if (geometryElement.TryGetProperty("paths", out _)) {
-            return ReadPolyline(geometryElement, factory);
+        if (geometryElement.TryGetProperty("paths", out _) || geometryElement.TryGetProperty("curvePaths", out _)) {
+            return ReadPolyline(geometryElement, factory, trueCurveHandling, circularArcSegmentCount);
         }
 
-        if (geometryElement.TryGetProperty("rings", out _)) {
-            return ReadPolygon(geometryElement, factory);
+        if (geometryElement.TryGetProperty("rings", out _) || geometryElement.TryGetProperty("curveRings", out _)) {
+            return ReadPolygon(geometryElement, factory, trueCurveHandling, circularArcSegmentCount);
         }
 
         if (geometryElement.TryGetProperty("xmin", out _)) {
@@ -89,17 +96,45 @@ internal static class EsriGeometryReader
         return factory.CreateMultiPoint(points.ToArray());
     }
 
-    private static Geometry ReadPolyline(JsonElement element, GeometryFactory factory) {
-        if (element.TryGetProperty("curvePaths", out _)) {
-            throw new NotSupportedException(
-    "True curve geometries are not supported for direct parsing. Configure the client to request densified geometries by keeping ReturnTrueCurves disabled.");
+    private static Geometry ReadPolyline(
+     JsonElement element,
+     GeometryFactory factory,
+     TrueCurveHandling trueCurveHandling,
+     int circularArcSegmentCount) {
+        if (element.TryGetProperty("curvePaths", out var curvePathsElement)) {
+            if (trueCurveHandling != TrueCurveHandling.LinearizeCircularArcs) {
+                throw new NotSupportedException(
+                    "True curve geometries are not supported for direct parsing. Configure the client to request densified geometries by keeping ReturnTrueCurves disabled, or enable LinearizeCircularArcs handling.");
+            }
+
+            if (curvePathsElement.GetArrayLength() == 0) {
+                return factory.CreateMultiLineString();
+            }
+
+            var lineStrings = new List<LineString>();
+
+            foreach (var pathElement in curvePathsElement.EnumerateArray()) {
+                var coordinates = EsriCurveLinearizer.ReadCurvePath(pathElement, circularArcSegmentCount);
+
+                if (coordinates.Count < 2) {
+                    continue;
+                }
+
+                lineStrings.Add(factory.CreateLineString(coordinates.ToArray()));
+            }
+
+            return lineStrings.Count switch {
+                0 => factory.CreateMultiLineString(),
+                1 => lineStrings[0],
+                _ => factory.CreateMultiLineString(lineStrings.ToArray())
+            };
         }
 
         if (!element.TryGetProperty("paths", out var pathsElement) || pathsElement.GetArrayLength() == 0) {
             return factory.CreateMultiLineString();
         }
 
-        var lineStrings = new List<LineString>();
+        var standardLineStrings = new List<LineString>();
 
         foreach (var pathElement in pathsElement.EnumerateArray()) {
             var coordinates = ReadCoordinateArray(pathElement);
@@ -108,36 +143,61 @@ internal static class EsriGeometryReader
                 continue;
             }
 
-            lineStrings.Add(factory.CreateLineString(coordinates.ToArray()));
+            standardLineStrings.Add(factory.CreateLineString(coordinates.ToArray()));
         }
 
-        return lineStrings.Count switch {
+        return standardLineStrings.Count switch {
             0 => factory.CreateMultiLineString(),
-            1 => lineStrings[0],
-            _ => factory.CreateMultiLineString(lineStrings.ToArray())
+            1 => standardLineStrings[0],
+            _ => factory.CreateMultiLineString(standardLineStrings.ToArray())
         };
     }
 
-    private static Geometry ReadPolygon(JsonElement element, GeometryFactory factory) {
-        if (element.TryGetProperty("curveRings", out _)) {
-            throw new NotSupportedException(
-    "True curve geometries are not supported for direct parsing. Configure the client to request densified geometries by keeping ReturnTrueCurves disabled.");
-        }
+    private static Geometry ReadPolygon(
+    JsonElement element,
+    GeometryFactory factory,
+    TrueCurveHandling trueCurveHandling,
+    int circularArcSegmentCount) {
+        List<LinearRing> rings;
 
-        if (!element.TryGetProperty("rings", out var ringsElement) || ringsElement.GetArrayLength() == 0) {
-            return factory.CreatePolygon();
-        }
-
-        var rings = new List<LinearRing>();
-
-        foreach (var ringElement in ringsElement.EnumerateArray()) {
-            var coordinates = NormalizeRing(ReadCoordinateArray(ringElement));
-
-            if (coordinates.Count < 4) {
-                continue;
+        if (element.TryGetProperty("curveRings", out var curveRingsElement)) {
+            if (trueCurveHandling != TrueCurveHandling.LinearizeCircularArcs) {
+                throw new NotSupportedException(
+                    "True curve geometries are not supported for direct parsing. Configure the client to request densified geometries by keeping ReturnTrueCurves disabled, or enable LinearizeCircularArcs handling.");
             }
 
-            rings.Add(factory.CreateLinearRing(coordinates.ToArray()));
+            if (curveRingsElement.GetArrayLength() == 0) {
+                return factory.CreatePolygon();
+            }
+
+            rings = new List<LinearRing>();
+
+            foreach (var ringElement in curveRingsElement.EnumerateArray()) {
+                var coordinates = EsriCurveLinearizer.ReadCurveRing(ringElement, circularArcSegmentCount);
+
+                if (coordinates.Count < 4) {
+                    continue;
+                }
+
+                rings.Add(factory.CreateLinearRing(coordinates.ToArray()));
+            }
+        }
+        else {
+            if (!element.TryGetProperty("rings", out var ringsElement) || ringsElement.GetArrayLength() == 0) {
+                return factory.CreatePolygon();
+            }
+
+            rings = new List<LinearRing>();
+
+            foreach (var ringElement in ringsElement.EnumerateArray()) {
+                var coordinates = NormalizeRing(ReadCoordinateArray(ringElement));
+
+                if (coordinates.Count < 4) {
+                    continue;
+                }
+
+                rings.Add(factory.CreateLinearRing(coordinates.ToArray()));
+            }
         }
 
         if (rings.Count == 0) {

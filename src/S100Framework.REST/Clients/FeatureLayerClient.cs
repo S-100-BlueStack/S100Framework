@@ -191,11 +191,13 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         var geometry = feature.Geometry.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null
             ? null
             : EsriGeometryReader.Read(
-                feature.Geometry,
-                schema.GeometryType,
-                schema.Srid,
-                _serviceClient.Options.PreferLatestWkid,
-                _serviceClient.Options.FixInvalidGeometries);
+    feature.Geometry,
+    schema.GeometryType,
+    schema.Srid,
+    _serviceClient.Options.PreferLatestWkid,
+    _serviceClient.Options.FixInvalidGeometries,
+    _serviceClient.Options.TrueCurveHandling,
+    _serviceClient.Options.CircularArcSegmentCount);
 
         long? objectId = null;
 
@@ -221,7 +223,9 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
                 geometryType,
                 defaultSrid,
                 _serviceClient.Options.PreferLatestWkid,
-                _serviceClient.Options.FixInvalidGeometries);
+                _serviceClient.Options.FixInvalidGeometries,
+                _serviceClient.Options.TrueCurveHandling,
+                _serviceClient.Options.CircularArcSegmentCount);
 
         long? objectId = null;
 

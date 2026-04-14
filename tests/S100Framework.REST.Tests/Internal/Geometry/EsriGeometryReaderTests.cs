@@ -1,4 +1,5 @@
 ﻿using NetTopologySuite.Geometries;
+using S100Framework.REST.Configuration;
 using S100Framework.REST.Internal.EsriGeometry;
 using System.Text.Json;
 using Xunit;
@@ -23,11 +24,13 @@ public sealed class EsriGeometryReaderTests
         """);
 
         var geometry = EsriGeometryReader.Read(
-            document.RootElement,
-            "esriGeometryPolygon",
-            defaultSrid: null,
-            preferLatestWkid: true,
-            fixInvalidGeometries: false);
+    document.RootElement,
+    "esriGeometryPolygon",
+    defaultSrid: null,
+    preferLatestWkid: true,
+    fixInvalidGeometries: false,
+    trueCurveHandling: TrueCurveHandling.Throw,
+    circularArcSegmentCount: 16);
 
         var polygon = Assert.IsType<Polygon>(geometry);
         Assert.Equal(1, polygon.NumInteriorRings);
