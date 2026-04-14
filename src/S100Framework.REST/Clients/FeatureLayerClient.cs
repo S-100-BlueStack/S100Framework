@@ -469,4 +469,33 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         CancellationToken cancellationToken = default) {
         return _serviceClient.DownloadAttachmentAsync(_layerId, objectId, attachmentId, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<FeatureRecord>> QueryTopFeaturesAsync(
+    TopFeaturesQuery query,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var schema = await GetSchemaAsync(cancellationToken);
+        var response = await _serviceClient.QueryTopFeaturesAsync(_layerId, query, cancellationToken);
+
+        return (response.Features ?? new List<EsriFeatureDto>())
+            .Select(feature => MapFeature(schema, feature))
+            .ToArray();
+    }
+
+    public async Task<IReadOnlyList<long>> QueryTopFeatureObjectIdsAsync(
+        TopFeaturesQuery query,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var response = await _serviceClient.QueryTopFeatureIdsAsync(_layerId, query, cancellationToken);
+        return response.ObjectIds?.ToArray() ?? Array.Empty<long>();
+    }
+
+    public Task<TopFeaturesCountResult> QueryTopFeatureCountAsync(
+        TopFeaturesQuery query,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+        return _serviceClient.QueryTopFeatureCountAsync(_layerId, query, cancellationToken);
+    }
 }

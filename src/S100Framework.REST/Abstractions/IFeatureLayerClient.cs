@@ -38,4 +38,16 @@ public interface IFeatureLayerClient
         long objectId,
         long attachmentId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<FeatureRecord>> QueryTopFeaturesAsync(
+    TopFeaturesQuery query,
+    CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<long>> QueryTopFeatureObjectIdsAsync(
+        TopFeaturesQuery query,
+        CancellationToken cancellationToken = default);
+
+    Task<TopFeaturesCountResult> QueryTopFeatureCountAsync(
+        TopFeaturesQuery query,
+        CancellationToken cancellationToken = default);
 }

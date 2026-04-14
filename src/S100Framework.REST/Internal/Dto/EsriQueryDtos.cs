@@ -110,3 +110,12 @@ internal sealed class EsriAttachmentGroupDto
     [JsonPropertyName("attachmentInfos")]
     public List<JsonElement>? AttachmentInfos { get; init; }
 }
+
+internal sealed class EsriTopFeaturesCountResponseDto
+{
+    [JsonPropertyName("count")]
+    public long Count { get; init; }
+
+    [JsonPropertyName("extent")]
+    public EsriQueryExtentDto? Extent { get; init; }
+}
