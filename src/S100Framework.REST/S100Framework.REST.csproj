@@ -4,11 +4,45 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+
+		<PackageId>S100Framework.REST</PackageId>
+		<Version>0.1.0-alpha.1</Version>
+		<Authors>S-100 BlueStack</Authors>
+		<Company>S-100 BlueStack</Company>
+		<Product>S100Framework</Product>
+		<Description>
+			A .NET library for reading Esri Feature Services through the ArcGIS REST API
+			and exposing results as NetTopologySuite geometries and typed attribute records.
+		</Description>
+		<PackageTags>ArcGIS;Esri;FeatureService;REST;NetTopologySuite;Geometry;S-100</PackageTags>
+
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT-0</PackageLicenseExpression>
+		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageProjectUrl>https://github.com/S-100-BlueStack/S100Framework</PackageProjectUrl>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+		<PackageReleaseNotes>
+			Initial preview release with feature queries, statistics, related records,
+			attachments, top features, typed spatial filters, and schema capability metadata.
+		</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.5" />
-	  <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
-	  <PackageReference Include="NetTopologySuite" Version="2.6.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.5" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
+		<PackageReference Include="NetTopologySuite" Version="2.6.0" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
 </Project>

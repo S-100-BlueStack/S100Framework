@@ -161,6 +161,113 @@ Console.WriteLine($"SRID: {schema.Srid}");
 Console.WriteLine($"Object ID field: {schema.ObjectIdFieldName}");
 ```
 
+## Inspect layer capabilities
+
+Some query families are only available when the target layer advertises support for them.
+
+Use `GetSchemaAsync()` to inspect layer capabilities before calling advanced query operations.
+
+```csharp
+var layerClient = client.GetLayerClient(0);
+var schema = await layerClient.GetSchemaAsync();
+
+Console.WriteLine($"Supports pagination: {schema.Capabilities.SupportsPagination}");
+Console.WriteLine($"Supports query attachments: {schema.Capabilities.SupportsQueryAttachments}");
+Console.WriteLine($"Has attachments: {schema.Capabilities.HasAttachments}");
+Console.WriteLine($"Supports top features query: {schema.Capabilities.SupportsTopFeaturesQuery}");
+Console.WriteLine($"Supports aggregated query pagination: {schema.Capabilities.SupportsPaginationOnAggregatedQueries}");
+Console.WriteLine($"Supports related query pagination: {schema.Capabilities.SupportsQueryRelatedPagination}");
+Console.WriteLine($"Supports advanced related queries: {schema.Capabilities.SupportsAdvancedQueryRelated}");
+Console.WriteLine($"Supports order by: {schema.Capabilities.SupportsOrderBy}");
+Console.WriteLine($"Supports distinct: {schema.Capabilities.SupportsDistinct}");
+```
+
+This is especially useful before calling:
+
+- `QueryAttachmentsAsync`
+- `DownloadAttachmentAsync`
+- `QueryTopFeaturesAsync`
+- `QueryTopFeatureObjectIdsAsync`
+- `QueryTopFeatureCountAsync`
+- `QueryRelatedRecordsAsync`
+- `QueryStatisticsAsync`
+
+## Inspect layer relationships
+
+Layer metadata also exposes relationship definitions so consumers can discover valid `RelationshipId` values programmatically.
+
+```csharp
+var schema = await layerClient.GetSchemaAsync();
+
+foreach (var relationship in schema.Relationships)
+{
+    Console.WriteLine(
+        $"{relationship.Id} | " +
+        $"{relationship.Name} | " +
+        $"{relationship.RelatedTableId} | " +
+        $"{relationship.Cardinality} | " +
+        $"{relationship.Role}");
+}
+```
+
+Example output:
+
+```text
+0 | inspections | 3 | esriRelCardinalityOneToMany | esriRelRoleOrigin
+```
+
+This makes it easier to call related record queries without manually inspecting the ArcGIS REST browser first.
+
+## Example: guard advanced queries with schema capabilities
+
+```csharp
+var schema = await layerClient.GetSchemaAsync();
+
+if (schema.Capabilities.HasAttachments && schema.Capabilities.SupportsQueryAttachments)
+{
+    var attachments = await layerClient.QueryAttachmentsAsync(
+        new AttachmentQuery
+        {
+            ObjectIds = [123]
+        });
+
+    Console.WriteLine($"Attachment groups: {attachments.Count}");
+}
+
+if (schema.Capabilities.SupportsTopFeaturesQuery)
+{
+    var topFeatures = await layerClient.QueryTopFeaturesAsync(
+        new TopFeaturesQuery
+        {
+            OutFields = ["OBJECTID", "NAME", "SCORE"],
+            TopFilter = new TopFeaturesFilter
+            {
+                GroupByFields = ["REGION"],
+                OrderByFields = ["SCORE DESC"],
+                TopCount = 3
+            }
+        });
+
+    Console.WriteLine($"Top features returned: {topFeatures.Count}");
+}
+
+if (schema.Relationships.Count > 0)
+{
+    var relationshipId = schema.Relationships[0].Id;
+
+    var related = await layerClient.QueryRelatedRecordsAsync(
+        new RelatedRecordsQuery
+        {
+            ObjectIds = [123],
+            RelationshipId = relationshipId,
+            OutFields = ["OBJECTID", "NAME"],
+            ReturnGeometry = false
+        });
+
+    Console.WriteLine($"Related record groups returned: {related.Count}");
+}
+```
+
 ## Query features
 
 ### Basic query
@@ -507,6 +614,8 @@ var countResult = await layerClient.QueryTopFeatureCountAsync(
 - Layers return geometry in feature queries.
 - Tables do not return geometry in normal feature queries.
 - Related tables may return only attributes, depending on the relationship target.
+- Some operations are capability-dependent and should be checked against `schema.Capabilities` before use.
+- Relationship-based queries should use `schema.Relationships` to discover valid relationship IDs when possible.
 
 ## Current scope
 
@@ -526,7 +635,16 @@ The library currently focuses on read/query scenarios for Feature Services and r
 
 ## ArcGIS REST alignment
 
-The library currently maps to several ArcGIS Feature Service query families, including standard feature queries, related records, attachments, and top features. Those are separate operations in the ArcGIS REST API and intentionally remain separate in this library as well.
+The library maps several ArcGIS Feature Service query families to typed .NET APIs, including:
+
+- standard feature queries
+- count, object ID, and extent queries
+- statistics queries
+- related records queries
+- attachment queries and downloads
+- top features queries
+
+Where ArcGIS uses separate REST operations with different response shapes, this library also exposes them as separate methods instead of overloading one large request model.
 
 ## Testing
 
