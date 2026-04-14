@@ -775,4 +775,50 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.KeyField,
             dto.Composite);
     }
+
+    internal async Task<ApplyEditsResult> ApplyEditsAsync(
+    int layerId,
+    FeatureEdits edits,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+        edits.Validate();
+
+        var parameters = new Dictionary<string, string?> {
+            ["f"] = "json",
+            ["rollbackOnFailure"] = edits.RollbackOnFailure ? "true" : "false",
+            ["useGlobalIds"] = edits.UseGlobalIds ? "true" : "false",
+            ["adds"] = edits.Adds is { Count: > 0 }
+                ? EsriEditGeometryWriter.WriteFeatures(edits.Adds)
+                : null,
+            ["updates"] = edits.Updates is { Count: > 0 }
+                ? EsriEditGeometryWriter.WriteFeatures(edits.Updates)
+                : null,
+            ["deletes"] = edits.Deletes is { Count: > 0 }
+                ? string.Join(",", edits.Deletes)
+                : null
+        };
+
+        var endpointUri = UriUtility.AppendPath(
+            _serviceUri,
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/applyEdits");
+
+        var dto = await PostFormAsync<EsriApplyEditsResponseDto>(
+            endpointUri,
+            parameters,
+            cancellationToken);
+
+        return new ApplyEditsResult(
+            dto.AddResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
+            dto.UpdateResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
+            dto.DeleteResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>());
+    }
+
+    private static EditResult MapEditResult(EsriEditResultDto dto) {
+        return new EditResult(
+            dto.Success,
+            dto.ObjectId,
+            dto.GlobalId,
+            dto.Error?.Code,
+            dto.Error?.Description);
+    }
 }

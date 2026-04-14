@@ -1,6 +1,6 @@
 # S100Framework.REST
 
-`S100Framework.REST` is a .NET library for reading Esri Feature Services through the ArcGIS REST API and exposing the result as NetTopologySuite geometries and typed attribute records.
+`S100Framework.REST` is a .NET library for reading and editing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite.
 
 The library is designed to work without ArcGIS SDK or ArcGIS runtime dependencies. It communicates directly with Feature Service REST endpoints.
 
@@ -19,6 +19,7 @@ The library is designed to work without ArcGIS SDK or ArcGIS runtime dependencie
   - related records
   - attachments
   - top features
+- Support initial layer-level editing through `applyEdits`
 - Keep the public API .NET-friendly while hiding Esri-specific request details where possible
 
 ## Requirements
@@ -57,6 +58,7 @@ A layer client performs layer-specific operations such as:
 - related record queries
 - attachment queries and downloads
 - top feature queries
+- layer-level apply-edits operations
 
 ## Authentication
 
@@ -115,6 +117,46 @@ var client = new FeatureServiceClient(
 ```
 
 > Do not hardcode secrets in source code. Use a secret store, secure local development configuration, or a runtime prompt in sample applications.
+
+## Query request method selection
+
+Standard layer `query` requests can use GET or POST.
+
+The client supports three modes through `FeatureServiceClientOptions.QueryRequestMethodPreference`:
+
+- `Auto`
+- `Get`
+- `Post`
+
+`Auto` uses GET for shorter requests and switches to POST when the generated query URL becomes too long.
+
+```csharp
+var client = new FeatureServiceClient(
+    httpClient,
+    new FeatureServiceClientOptions
+    {
+        ServiceUri = new Uri("https://example.com/arcgis/rest/services/MyService/FeatureServer"),
+        QueryRequestMethodPreference = QueryRequestMethodPreference.Auto,
+        AutoPostQueryLengthThreshold = 1800
+    });
+```
+
+This transport selection currently applies to standard layer `query` operations such as:
+
+- feature queries
+- count queries
+- object ID queries
+- extent queries
+- statistics queries
+
+## Curve handling
+
+The library returns NetTopologySuite geometries.
+
+When `ReturnTrueCurves` is disabled, the server is expected to return densified linear geometries.
+When `ReturnTrueCurves` is enabled, the client can currently linearize circular-arc true curves for `curvePaths` and `curveRings`.
+
+Other true-curve segment types are not yet supported.
 
 ## Create a service client
 
@@ -603,6 +645,51 @@ var countResult = await layerClient.QueryTopFeatureCountAsync(
     });
 ```
 
+## Apply edits
+
+The library includes initial layer-level `applyEdits` support for:
+
+- adds
+- updates
+- deletes
+
+Example:
+
+```csharp
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Models;
+
+var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+
+var result = await layerClient.ApplyEditsAsync(
+    new FeatureEdits
+    {
+        Adds =
+        [
+            new EditableFeature(
+                geometryFactory.CreatePoint(new Coordinate(10, 20)),
+                new Dictionary<string, object?>
+                {
+                    ["NAME"] = "New feature"
+                })
+        ],
+        Updates =
+        [
+            new EditableFeature(
+                geometryFactory.CreatePoint(new Coordinate(11, 21)),
+                new Dictionary<string, object?>
+                {
+                    ["OBJECTID"] = 42,
+                    ["NAME"] = "Updated feature"
+                })
+        ],
+        Deletes = [99]
+    });
+```
+
+Current scope is intentionally limited to layer-level feature edits.
+Attachment edits, service-level multi-layer edits, and other advanced edit scenarios are not yet included.
+
 ## Notes on querying
 
 - `Where` uses ArcGIS SQL-style where clauses.
@@ -619,12 +706,16 @@ var countResult = await layerClient.QueryTopFeatureCountAsync(
 
 ## Current scope
 
-The library currently focuses on read/query scenarios for Feature Services and related resources. It does not currently include edit operations such as:
+The library currently supports:
 
-- add features
-- update features
-- delete features
-- add or delete attachments
+- read/query scenarios for Feature Services
+- layer-level feature adds, updates, and deletes through `applyEdits`
+
+The library does not currently include:
+
+- attachment edits
+- service-level multi-layer apply-edits
+- asynchronous edit workflows
 
 ## Design notes
 
@@ -632,10 +723,11 @@ The library currently focuses on read/query scenarios for Feature Services and r
 - Spatial filters are built from NetTopologySuite `Envelope` and `Geometry`.
 - Attribute values are preserved dynamically and can be accessed through typed helpers.
 - Query families with different response shapes are modeled as separate methods instead of flags on one large request object.
+- Initial editing support is intentionally limited to a small, explicit layer-level surface.
 
 ## ArcGIS REST alignment
 
-The library maps several ArcGIS Feature Service query families to typed .NET APIs, including:
+The library maps several ArcGIS Feature Service operations to typed .NET APIs, including:
 
 - standard feature queries
 - count, object ID, and extent queries
@@ -643,6 +735,7 @@ The library maps several ArcGIS Feature Service query families to typed .NET API
 - related records queries
 - attachment queries and downloads
 - top features queries
+- layer-level apply-edits
 
 Where ArcGIS uses separate REST operations with different response shapes, this library also exposes them as separate methods instead of overloading one large request model.
 
@@ -659,6 +752,7 @@ The project includes unit tests for:
 - related records
 - attachments
 - top features
+- layer-level apply-edits
 
 Run tests with:
 
@@ -668,22 +762,17 @@ dotnet test
 
 ## Limitations
 
-- True Curve geometries are not supported in the current version.
+- Curve geometries are not supported in full in the current version.
 - Authentication setup depends on the consuming application environment.
 - Some ArcGIS query capabilities are server-version or datasource dependent.
-- Support for specific query features still depends on what the target layer advertises through its capabilities. Standard query, aggregated query behavior, related records, attachments, and top features all have layer- or service-level support requirements in ArcGIS.
-
-## Curve handling
-
-The library currently targets NetTopologySuite as its geometry output model.
-
-In the current phase, true curve geometries are expected to be requested as densified linear geometries when working with standard feature queries. This means curved ArcGIS geometries are consumed as line-based approximations that can be represented by NetTopologySuite.
-
-Direct parsing of raw Esri true-curve segment JSON is not part of the current implementation.
+- Support for specific query features still depends on what the target layer advertises through its capabilities.
+- Editing support is currently limited to the initial layer-level `applyEdits` surface.
 
 ## Roadmap ideas
 
 - query attachments by global ID
+- service-level multi-layer apply-edits
+- attachment edit support
 - additional query capabilities and capability inspection helpers
 - stronger date/time field handling
 - optional convenience APIs for common field mapping patterns

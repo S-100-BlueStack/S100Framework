@@ -502,4 +502,13 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         ArgumentNullException.ThrowIfNull(query);
         return _serviceClient.QueryTopFeatureCountAsync(_layerId, query, cancellationToken);
     }
+
+    public Task<ApplyEditsResult> ApplyEditsAsync(
+    FeatureEdits edits,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+        return _serviceClient.ApplyEditsAsync(_layerId, edits, cancellationToken);
+    }
+
+    
 }

@@ -50,4 +50,8 @@ public interface IFeatureLayerClient
     Task<TopFeaturesCountResult> QueryTopFeatureCountAsync(
         TopFeaturesQuery query,
         CancellationToken cancellationToken = default);
+
+    Task<ApplyEditsResult> ApplyEditsAsync(
+    FeatureEdits edits,
+    CancellationToken cancellationToken = default);
 }
