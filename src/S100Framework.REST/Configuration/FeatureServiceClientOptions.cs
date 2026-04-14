@@ -12,6 +12,8 @@ public sealed class FeatureServiceClientOptions
 
     public bool PreferLatestWkid { get; set; } = true;
 
+    public bool ReturnTrueCurves { get; set; }
+
     public void Validate() {
         if (ServiceUri is null) {
             throw new InvalidOperationException("ServiceUri must be configured.");

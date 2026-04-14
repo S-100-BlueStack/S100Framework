@@ -91,7 +91,8 @@ internal static class EsriGeometryReader
 
     private static Geometry ReadPolyline(JsonElement element, GeometryFactory factory) {
         if (element.TryGetProperty("curvePaths", out _)) {
-            throw new NotSupportedException("Polyline curve paths are not supported in the first version.");
+            throw new NotSupportedException(
+    "True curve geometries are not supported for direct parsing. Configure the client to request densified geometries by keeping ReturnTrueCurves disabled.");
         }
 
         if (!element.TryGetProperty("paths", out var pathsElement) || pathsElement.GetArrayLength() == 0) {
@@ -119,7 +120,8 @@ internal static class EsriGeometryReader
 
     private static Geometry ReadPolygon(JsonElement element, GeometryFactory factory) {
         if (element.TryGetProperty("curveRings", out _)) {
-            throw new NotSupportedException("Polygon curve rings are not supported in the first version.");
+            throw new NotSupportedException(
+    "True curve geometries are not supported for direct parsing. Configure the client to request densified geometries by keeping ReturnTrueCurves disabled.");
         }
 
         if (!element.TryGetProperty("rings", out var ringsElement) || ringsElement.GetArrayLength() == 0) {

@@ -668,10 +668,18 @@ dotnet test
 
 ## Limitations
 
-- Curve geometries are not supported in the current version.
+- True Curve geometries are not supported in the current version.
 - Authentication setup depends on the consuming application environment.
 - Some ArcGIS query capabilities are server-version or datasource dependent.
 - Support for specific query features still depends on what the target layer advertises through its capabilities. Standard query, aggregated query behavior, related records, attachments, and top features all have layer- or service-level support requirements in ArcGIS.
+
+## Curve handling
+
+The library currently targets NetTopologySuite as its geometry output model.
+
+In the current phase, true curve geometries are expected to be requested as densified linear geometries when working with standard feature queries. This means curved ArcGIS geometries are consumed as line-based approximations that can be represented by NetTopologySuite.
+
+Direct parsing of raw Esri true-curve segment JSON is not part of the current implementation.
 
 ## Roadmap ideas
 

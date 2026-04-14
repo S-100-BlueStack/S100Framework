@@ -122,6 +122,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
 
         parameters["f"] = "json";
         parameters["returnGeometry"] = query.ReturnGeometry ? "true" : "false";
+        parameters["returnTrueCurves"] = _options.ReturnTrueCurves ? "true" : "false";
         parameters["outFields"] = query.OutFields is { Count: > 0 }
             ? string.Join(",", query.OutFields)
             : "*";
@@ -474,7 +475,8 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 : "*",
             ["definitionExpression"] = query.DefinitionExpression,
             ["returnGeometry"] = query.ReturnGeometry ? "true" : "false",
-            ["orderByFields"] = query.OrderBy
+            ["orderByFields"] = query.OrderBy,
+            ["returnTrueCurves"] = _options.ReturnTrueCurves ? "true" : "false",
         };
 
         if (query.OutSrid.HasValue) {
@@ -622,7 +624,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         parameters["outFields"] = query.OutFields is { Count: > 0 }
             ? string.Join(",", query.OutFields)
             : "*";
-
+        parameters["returnTrueCurves"] = _options.ReturnTrueCurves ? "true" : "false";
         var uri = UriUtility.WithQuery(
             UriUtility.AppendPath(
                 _serviceUri,
