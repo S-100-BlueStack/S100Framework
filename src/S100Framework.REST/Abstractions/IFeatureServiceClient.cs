@@ -11,4 +11,12 @@ public interface IFeatureServiceClient
     Task<FeatureServiceApplyEditsResult> ApplyEditsAsync(
         FeatureServiceEdits edits,
         CancellationToken cancellationToken = default);
+
+    Task<IFeatureLayerClient> GetLayerClientAsync(
+    string layerName,
+    CancellationToken cancellationToken = default);
+
+    Task<ExtractChangesResult> ExtractChangesAsync(
+        ExtractChangesRequest request,
+        CancellationToken cancellationToken = default);
 }

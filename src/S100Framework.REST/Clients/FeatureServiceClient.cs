@@ -67,6 +67,29 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         return new FeatureLayerClient(this, layerId);
     }
 
+    public async Task<IFeatureLayerClient> GetLayerClientAsync(
+    string layerName,
+    CancellationToken cancellationToken = default) {
+        if (string.IsNullOrWhiteSpace(layerName)) {
+            throw new ArgumentException("Layer name must be provided.", nameof(layerName));
+        }
+
+        var metadata = await GetMetadataAsync(cancellationToken);
+
+        var matches = metadata.Layers
+            .Concat(metadata.Tables)
+            .Where(dataset => string.Equals(dataset.Name, layerName, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        return matches.Length switch {
+            0 => throw new InvalidOperationException(
+                $"No layer or table named '{layerName}' was found in the feature service."),
+            > 1 => throw new InvalidOperationException(
+                $"Multiple layers or tables named '{layerName}' were found in the feature service. Use the layer ID instead."),
+            _ => GetLayerClient(matches[0].Id)
+        };
+    }
+
     internal async Task<FeatureLayerSchema> GetLayerSchemaAsync(
         int layerId,
         CancellationToken cancellationToken = default) {
@@ -1067,5 +1090,183 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         return new UpdateAttachmentResult(
             MapAttachmentEditResult(resultDto),
             dto.EditMoment);
+    }
+
+    public async Task<ExtractChangesResult> ExtractChangesAsync(
+    ExtractChangesRequest request,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        request.Validate();
+
+        var parameters = new Dictionary<string, string?> {
+            ["f"] = "json",
+            ["layers"] = JsonSerializer.Serialize(request.Layers),
+            ["returnInserts"] = request.ReturnInserts ? "true" : "false",
+            ["returnUpdates"] = request.ReturnUpdates ? "true" : "false",
+            ["returnDeletes"] = request.ReturnDeletes ? "true" : "false",
+            ["returnIdsOnly"] = request.ReturnIdsOnly ? "true" : "false",
+            ["returnHasGeometryUpdates"] = request.ReturnHasGeometryUpdates ? "true" : "false",
+            ["returnDeletedFeatures"] = request.ReturnDeletedFeatures ? "true" : "false",
+            ["dataFormat"] = "json"
+        };
+
+        if (request.OutSrid.HasValue) {
+            parameters["outSR"] = request.OutSrid.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (request.ServerGens is not null) {
+            parameters["serverGens"] = request.ServerGens.ToParameterValue();
+        }
+        else {
+            parameters["layerServerGens"] = JsonSerializer.Serialize(
+                request.LayerServerGens!.Select(x => new Dictionary<string, object?> {
+                    ["id"] = x.Id,
+                    ["serverGen"] = x.ServerGen,
+                    ["minServerGen"] = x.MinServerGen
+                }).ToArray());
+        }
+
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "extractChanges");
+        var dto = await PostFormAsync<EsriExtractChangesResponseDto>(endpointUri, parameters, cancellationToken);
+
+        var schemasByLayerId = new Dictionary<int, FeatureLayerSchema>();
+        var edits = new List<ExtractChangesLayerEdits>();
+
+        foreach (var editDto in dto.Edits ?? Enumerable.Empty<EsriExtractChangesLayerEditsDto>()) {
+            FeatureLayerSchema? schema = null;
+
+            if (editDto.Features is not null) {
+                if (!schemasByLayerId.TryGetValue(editDto.Id, out schema)) {
+                    schema = await GetLayerSchemaAsync(editDto.Id, cancellationToken);
+                    schemasByLayerId[editDto.Id] = schema;
+                }
+            }
+
+            edits.Add(new ExtractChangesLayerEdits(
+                editDto.Id,
+                editDto.ObjectIds is null
+                    ? null
+                    : new ExtractChangesIdChanges(
+                        ReadJsonValueList(editDto.ObjectIds.Adds),
+                        ReadJsonValueList(editDto.ObjectIds.Updates),
+                        ReadJsonValueList(editDto.ObjectIds.Deletes)),
+                editDto.Features is null || schema is null
+                    ? null
+                    : new ExtractChangesFeatureChanges(
+                        MapExtractChangesFeatures(schema, editDto.Features.Adds),
+                        MapExtractChangesFeatures(schema, editDto.Features.Updates),
+                        MapExtractChangesFeatures(schema, editDto.Features.Deletes),
+                        ReadJsonValueList(editDto.Features.DeleteIds)),
+                ReadJsonValueList(editDto.FieldUpdates),
+                editDto.HasGeometryUpdates));
+        }
+
+        return new ExtractChangesResult(
+            dto.LayerServerGens?.Select(MapLayerServerGen).ToArray() ?? Array.Empty<ExtractChangesLayerServerGen>(),
+            edits);
+    }
+
+    private static ExtractChangesLayerServerGen MapLayerServerGen(EsriLayerServerGenDto dto) {
+        return new ExtractChangesLayerServerGen(dto.Id, dto.ServerGen, dto.MinServerGen);
+    }
+
+    private IReadOnlyList<FeatureRecord> MapExtractChangesFeatures(
+        FeatureLayerSchema schema,
+        List<EsriFeatureDto>? features) {
+        if (features is null || features.Count == 0) {
+            return Array.Empty<FeatureRecord>();
+        }
+
+        return features.Select(feature => MapExtractChangesFeature(schema, feature)).ToArray();
+    }
+
+    private FeatureRecord MapExtractChangesFeature(
+        FeatureLayerSchema schema,
+        EsriFeatureDto feature) {
+        var attributes = ReadExtractChangesAttributes(feature.Attributes);
+
+        Geometry? geometry = null;
+
+        if (feature.Geometry.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined) {
+            geometry = EsriGeometryReader.Read(
+                feature.Geometry,
+                schema.GeometryType,
+                schema.Srid,
+                _options.PreferLatestWkid,
+                _options.FixInvalidGeometries,
+                _options.TrueCurveHandling,
+                _options.CircularArcSegmentCount);
+        }
+
+        long? objectId = null;
+
+        if (!string.IsNullOrWhiteSpace(schema.ObjectIdFieldName) &&
+            attributes.TryGetValue(schema.ObjectIdFieldName, out var rawObjectId)) {
+            objectId = ConvertToNullableInt64(rawObjectId);
+        }
+
+        return new FeatureRecord(geometry, attributes, objectId);
+    }
+
+    private static IReadOnlyDictionary<string, object?> ReadExtractChangesAttributes(JsonElement attributesElement) {
+        if (attributesElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
+            return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var attributes = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var property in attributesElement.EnumerateObject()) {
+            attributes[property.Name] = ConvertJsonValue(property.Value);
+        }
+
+        return attributes;
+    }
+
+    private static IReadOnlyList<object?> ReadJsonValueList(List<JsonElement>? elements) {
+        if (elements is null || elements.Count == 0) {
+            return Array.Empty<object?>();
+        }
+
+        return elements.Select(ConvertJsonValue).ToArray();
+    }
+
+    private static object? ConvertJsonValue(JsonElement element) {
+        return element.ValueKind switch {
+            JsonValueKind.String => element.GetString(),
+            JsonValueKind.Number when element.TryGetInt64(out var int64Value) => int64Value,
+            JsonValueKind.Number => element.GetDouble(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Null => null,
+            JsonValueKind.Array => element.EnumerateArray().Select(ConvertJsonValue).ToArray(),
+            JsonValueKind.Object => element.EnumerateObject()
+                .ToDictionary(
+                    property => property.Name,
+                    property => ConvertJsonValue(property.Value),
+                    StringComparer.OrdinalIgnoreCase),
+            _ => element.ToString()
+        };
+    }
+
+    private static long? ConvertToNullableInt64(object? value) {
+        return value switch {
+            null => null,
+            long longValue => longValue,
+            int intValue => intValue,
+            decimal decimalValue when decimal.Truncate(decimalValue) == decimalValue &&
+                                      decimalValue >= long.MinValue &&
+                                      decimalValue <= long.MaxValue => (long)decimalValue,
+            double doubleValue when !double.IsNaN(doubleValue) &&
+                                    !double.IsInfinity(doubleValue) &&
+                                    Math.Abs(doubleValue % 1) < double.Epsilon &&
+                                    doubleValue >= long.MinValue &&
+                                    doubleValue <= long.MaxValue => (long)doubleValue,
+            string stringValue when long.TryParse(
+                stringValue,
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var parsed) => parsed,
+            _ => null
+        };
     }
 }
