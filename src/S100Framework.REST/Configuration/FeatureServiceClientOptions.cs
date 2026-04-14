@@ -18,6 +18,11 @@ public sealed class FeatureServiceClientOptions
 
     public int CircularArcSegmentCount { get; set; } = 16;
 
+    public QueryRequestMethodPreference QueryRequestMethodPreference { get; set; } =
+    QueryRequestMethodPreference.Auto;
+
+    public int AutoPostQueryLengthThreshold { get; set; } = 1800;
+
     public void Validate() {
         if (ServiceUri is null) {
             throw new InvalidOperationException("ServiceUri must be configured.");
@@ -42,6 +47,10 @@ public sealed class FeatureServiceClientOptions
 
         if (CircularArcSegmentCount < 2) {
             throw new InvalidOperationException("CircularArcSegmentCount must be greater than or equal to 2.");
+        }
+
+        if (AutoPostQueryLengthThreshold <= 0) {
+            throw new InvalidOperationException("AutoPostQueryLengthThreshold must be greater than zero.");
         }
     }
 }
