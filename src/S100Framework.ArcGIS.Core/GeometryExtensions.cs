@@ -116,7 +116,7 @@ namespace ArcGIS.Core.Geometry
 
                         var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();
 
-                        var name = f.UID();// f.Crc32();
+                        var name = Convert.ToString(f["UID"]);// f.Crc32(); UID
                         if (string.IsNullOrEmpty(name))
                             name = string.Empty;
 
@@ -156,7 +156,7 @@ namespace ArcGIS.Core.Geometry
 
                             var shape = (ArcGIS.Core.Geometry.Polyline)f.GetShape();
 
-                            var name = f.UID();
+                            var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
@@ -187,7 +187,7 @@ namespace ArcGIS.Core.Geometry
 
                             var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();
 
-                            var name = f.UID();
+                            var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
@@ -232,7 +232,7 @@ namespace ArcGIS.Core.Geometry
 
                             var shape = (ArcGIS.Core.Geometry.Polyline)f.GetShape();
 
-                            var name = f.UID();
+                            var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
@@ -256,7 +256,7 @@ namespace ArcGIS.Core.Geometry
 
                             var shape = (ArcGIS.Core.Geometry.Polyline)f.GetShape();
 
-                            var name = f.UID();
+                            var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 

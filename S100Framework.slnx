@@ -8,11 +8,15 @@
 	<Project Path="src/S100Framework.Catalogues.ProductSpecifications/S100Framework.Catalogues.ProductSpecifications.csproj" />
 	<Project Path="src/S100Framework.Catalogues/S100Framework.Catalogues.csproj" />
 	<Project Path="src/S100Framework.GML/S100Framework.GML.csproj" />
-	<Project Path="src/S100Framework.REST/S100Framework.REST.csproj" />
+	<Project Path="src/S100Framework.REST/S100Framework.REST.csproj">
+		<Build Project="false" />
+	</Project>
 	<Project Path="src/S100Framework.Topology/S100Framework.Topology.csproj" />
 	<Project Path="src/S100Framework.YAML/S100Framework.YAML.csproj">
 		<Platform Project="x64" />
 	</Project>
-	<Project Path="tests/S100Framework.REST.Tests/S100Framework.REST.Tests.csproj" Id="7b58d682-2568-41c6-8bda-61166debf032" />
+	<Project Path="tests/S100Framework.REST.Tests/S100Framework.REST.Tests.csproj" Id="7b58d682-2568-41c6-8bda-61166debf032">
+		<Build Project="false" />
+	</Project>	
 	<Project Path="tests/TestCatalogueBuilder/TestCatalogueBuilder.csproj" />
 </Solution>

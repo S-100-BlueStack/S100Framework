@@ -14,7 +14,7 @@
             if (DBNull.Value.Equals(row[fieldName])) return true;
             return false;
         }
-
+#if null
         private static string Prefix(string tabneName) => tabneName.ToLower() switch {
             "point" or "s100.point" => "P102",
             "pointset" or "s100.pointset" => "M103",
@@ -30,5 +30,6 @@
 
         //public static string Crc32(this Row row) => $"{System.IO.Hashing.Crc32.HashToUInt32(row.GetGlobalID().ToByteArray())}";
         public static string UID(this Row row) => $"{Prefix(row.GetTable().GetName())}{row.GetObjectID():00000000}";   // Convert.ToString(row["UID"])!;
+#endif
     }
 }
