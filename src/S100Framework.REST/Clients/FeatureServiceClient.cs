@@ -892,4 +892,42 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.UpdateResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
             dto.DeleteResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>());
     }
+
+    internal async Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(
+    int layerId,
+    DeleteAttachmentsRequest request,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        request.Validate();
+
+        var parameters = new Dictionary<string, string?> {
+            ["f"] = "json",
+            ["attachmentIds"] = string.Join(",", request.AttachmentIds),
+            ["rollbackOnFailure"] = request.RollbackOnFailure ? "true" : "false",
+            ["returnEditMoment"] = request.ReturnEditMoment ? "true" : "false",
+            ["gdbVersion"] = request.GdbVersion
+        };
+
+        var endpointUri = UriUtility.AppendPath(
+            _serviceUri,
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/{request.ObjectId.ToString(CultureInfo.InvariantCulture)}/deleteAttachments");
+
+        var dto = await PostFormAsync<EsriDeleteAttachmentsResponseDto>(
+            endpointUri,
+            parameters,
+            cancellationToken);
+
+        return new DeleteAttachmentsResult(
+            dto.DeleteAttachmentResults?.Select(MapAttachmentEditResult).ToArray() ?? Array.Empty<AttachmentEditResult>(),
+            dto.EditMoment);
+    }
+
+    private static AttachmentEditResult MapAttachmentEditResult(EsriAttachmentEditResultDto dto) {
+        return new AttachmentEditResult(
+            dto.Success,
+            dto.ObjectId,
+            dto.GlobalId,
+            dto.Error?.Code,
+            dto.Error?.Description);
+    }
 }

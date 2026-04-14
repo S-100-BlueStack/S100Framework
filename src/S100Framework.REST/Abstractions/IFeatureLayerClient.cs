@@ -54,4 +54,8 @@ public interface IFeatureLayerClient
     Task<ApplyEditsResult> ApplyEditsAsync(
     FeatureEdits edits,
     CancellationToken cancellationToken = default);
+
+    Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(
+    DeleteAttachmentsRequest request,
+    CancellationToken cancellationToken = default);
 }
