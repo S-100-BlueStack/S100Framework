@@ -690,6 +690,45 @@ var result = await layerClient.ApplyEditsAsync(
 Current scope is intentionally limited to layer-level feature edits.
 Attachment edits, service-level multi-layer edits, and other advanced edit scenarios are not yet included.
 
+## Service-level multi-layer apply edits
+
+The service client also supports service-level `applyEdits` for applying edits to multiple layers or tables in a single request.
+
+Example:
+
+```csharp
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Models;
+
+var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+
+var result = await client.ApplyEditsAsync(
+    new FeatureServiceEdits
+    {
+        Layers =
+        [
+            new ServiceLayerEdits
+            {
+                LayerId = 0,
+                Adds =
+                [
+                    new EditableFeature(
+                        geometryFactory.CreatePoint(new Coordinate(10, 20)),
+                        new Dictionary<string, object?>
+                        {
+                            ["NAME"] = "New feature"
+                        })
+                ]
+            },
+            new ServiceLayerEdits
+            {
+                LayerId = 1,
+                DeleteObjectIds = [42, 43]
+            }
+        ]
+    });
+```
+
 ## Notes on querying
 
 - `Where` uses ArcGIS SQL-style where clauses.
@@ -710,13 +749,14 @@ The library currently supports:
 
 - read/query scenarios for Feature Services
 - layer-level feature adds, updates, and deletes through `applyEdits`
+- service-level multi-layer feature adds, updates, and deletes through `applyEdits`
 
 The library does not currently include:
 
 - attachment edits
-- service-level multi-layer apply-edits
 - asynchronous edit workflows
-
+- advanced service-level edit options beyond the initial multi-layer apply-edits surface
+- 
 ## Design notes
 
 - Esri request details are hidden behind typed .NET models where practical.
@@ -736,6 +776,7 @@ The library maps several ArcGIS Feature Service operations to typed .NET APIs, i
 - attachment queries and downloads
 - top features queries
 - layer-level apply-edits
+- service-level multi-layer apply-edits
 
 Where ArcGIS uses separate REST operations with different response shapes, this library also exposes them as separate methods instead of overloading one large request model.
 
@@ -753,6 +794,7 @@ The project includes unit tests for:
 - attachments
 - top features
 - layer-level apply-edits
+- service-level multi-layer apply-edits
 
 Run tests with:
 

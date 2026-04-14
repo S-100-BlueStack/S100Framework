@@ -821,4 +821,75 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.Error?.Code,
             dto.Error?.Description);
     }
+
+    public async Task<FeatureServiceApplyEditsResult> ApplyEditsAsync(
+    FeatureServiceEdits edits,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+        edits.Validate();
+
+        var parameters = new Dictionary<string, string?> {
+            ["f"] = "json",
+            ["rollbackOnFailure"] = edits.RollbackOnFailure ? "true" : "false",
+            ["useGlobalIds"] = edits.UseGlobalIds ? "true" : "false",
+            ["edits"] = SerializeServiceEdits(edits)
+        };
+
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "applyEdits");
+
+        var dto = await PostFormAsync<List<EsriServiceLayerEditResultsDto>>(
+            endpointUri,
+            parameters,
+            cancellationToken);
+
+        return new FeatureServiceApplyEditsResult(
+            dto?.Select(MapServiceLayerEditResults).ToArray() ?? Array.Empty<ServiceLayerEditResults>());
+    }
+
+    private static string SerializeServiceEdits(FeatureServiceEdits edits) {
+        var payload = edits.Layers
+            .Select(layer => SerializeServiceLayerEdits(layer, edits.UseGlobalIds))
+            .ToArray();
+
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private static Dictionary<string, object?> SerializeServiceLayerEdits(
+        ServiceLayerEdits layer,
+        bool useGlobalIds) {
+        var payload = new Dictionary<string, object?> {
+            ["id"] = layer.LayerId
+        };
+
+        if (layer.Adds is { Count: > 0 }) {
+            payload["adds"] = JsonSerializer.Deserialize<JsonElement>(
+                EsriEditGeometryWriter.WriteFeatures(layer.Adds));
+        }
+
+        if (layer.Updates is { Count: > 0 }) {
+            payload["updates"] = JsonSerializer.Deserialize<JsonElement>(
+                EsriEditGeometryWriter.WriteFeatures(layer.Updates));
+        }
+
+        if (useGlobalIds) {
+            if (layer.DeleteGlobalIds is { Count: > 0 }) {
+                payload["deletes"] = layer.DeleteGlobalIds;
+            }
+        }
+        else {
+            if (layer.DeleteObjectIds is { Count: > 0 }) {
+                payload["deletes"] = layer.DeleteObjectIds;
+            }
+        }
+
+        return payload;
+    }
+
+    private static ServiceLayerEditResults MapServiceLayerEditResults(EsriServiceLayerEditResultsDto dto) {
+        return new ServiceLayerEditResults(
+            dto.Id,
+            dto.AddResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
+            dto.UpdateResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
+            dto.DeleteResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>());
+    }
 }
