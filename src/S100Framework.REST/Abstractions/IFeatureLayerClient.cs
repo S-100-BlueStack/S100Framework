@@ -25,4 +25,8 @@ public interface IFeatureLayerClient
     Task<IReadOnlyList<StatisticRow>> QueryStatisticsAsync(
         FeatureStatisticsQuery query,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<RelatedRecordGroup>> QueryRelatedRecordsAsync(
+        RelatedRecordsQuery query,
+        CancellationToken cancellationToken = default);
 }

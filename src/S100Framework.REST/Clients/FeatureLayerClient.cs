@@ -207,6 +207,42 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         return new FeatureRecord(geometry, attributes, objectId);
     }
 
+    private FeatureRecord MapRelatedRecord(
+    EsriFeatureDto feature,
+    string? geometryType,
+    int? defaultSrid,
+    string? objectIdFieldName) {
+        var attributes = ReadAttributes(feature.Attributes);
+
+        var geometry = feature.Geometry.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null
+            ? null
+            : EsriGeometryReader.Read(
+                feature.Geometry,
+                geometryType,
+                defaultSrid,
+                _serviceClient.Options.PreferLatestWkid,
+                _serviceClient.Options.FixInvalidGeometries);
+
+        long? objectId = null;
+
+        if (!string.IsNullOrWhiteSpace(objectIdFieldName) &&
+            attributes.TryGetValue(objectIdFieldName, out var rawObjectId)) {
+            objectId = ConvertToInt64(rawObjectId);
+        }
+
+        return new FeatureRecord(geometry, attributes, objectId);
+    }
+
+    private int? ResolveSrid(EsriSpatialReferenceDto? spatialReference) {
+        if (spatialReference is null) {
+            return null;
+        }
+
+        return _serviceClient.Options.PreferLatestWkid
+            ? spatialReference.LatestWkid ?? spatialReference.Wkid
+            : spatialReference.Wkid ?? spatialReference.LatestWkid;
+    }
+
     private static IReadOnlyDictionary<string, object?> ReadAttributes(JsonElement attributesElement) {
         if (attributesElement.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
             return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
@@ -289,5 +325,32 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         return (response.Features ?? new List<EsriFeatureDto>())
             .Select(feature => new StatisticRow(ReadAttributes(feature.Attributes)))
             .ToArray();
+    }
+    public async Task<IReadOnlyList<RelatedRecordGroup>> QueryRelatedRecordsAsync(
+    RelatedRecordsQuery query,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var response = await _serviceClient.QueryRelatedRecordsAsync(_layerId, query, cancellationToken);
+
+        var objectIdFieldName = response.Fields?
+            .FirstOrDefault(field => string.Equals(field.Type, "esriFieldTypeOID", StringComparison.OrdinalIgnoreCase))
+            ?.Name;
+
+        var srid = ResolveSrid(response.SpatialReference);
+
+        var groups = (response.RelatedRecordGroups ?? new List<EsriRelatedRecordGroupDto>())
+            .Select(group => new RelatedRecordGroup(
+                group.ObjectId,
+                (group.RelatedRecords ?? new List<EsriFeatureDto>())
+                    .Select(feature => MapRelatedRecord(
+                        feature,
+                        response.GeometryType,
+                        srid,
+                        objectIdFieldName))
+                    .ToArray()))
+            .ToArray();
+
+        return groups;
     }
 }

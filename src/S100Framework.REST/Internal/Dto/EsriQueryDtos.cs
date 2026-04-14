@@ -62,3 +62,33 @@ internal sealed class EsriQueryExtentDto
     [JsonPropertyName("spatialReference")]
     public EsriSpatialReferenceDto? SpatialReference { get; init; }
 }
+
+internal sealed class EsriRelatedRecordsResponseDto
+{
+    [JsonPropertyName("geometryType")]
+    public string? GeometryType { get; init; }
+
+    [JsonPropertyName("spatialReference")]
+    public EsriSpatialReferenceDto? SpatialReference { get; init; }
+
+    [JsonPropertyName("hasZ")]
+    public bool? HasZ { get; init; }
+
+    [JsonPropertyName("hasM")]
+    public bool? HasM { get; init; }
+
+    [JsonPropertyName("fields")]
+    public List<EsriFieldDto>? Fields { get; init; }
+
+    [JsonPropertyName("relatedRecordGroups")]
+    public List<EsriRelatedRecordGroupDto>? RelatedRecordGroups { get; init; }
+}
+
+internal sealed class EsriRelatedRecordGroupDto
+{
+    [JsonPropertyName("objectId")]
+    public long ObjectId { get; init; }
+
+    [JsonPropertyName("relatedRecords")]
+    public List<EsriFeatureDto>? RelatedRecords { get; init; }
+}
