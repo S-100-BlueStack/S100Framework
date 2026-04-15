@@ -10,6 +10,9 @@ internal sealed class EsriExtractChangesResponseDto
 
     [JsonPropertyName("edits")]
     public List<EsriExtractChangesLayerEditsDto>? Edits { get; init; }
+
+    [JsonPropertyName("transportType")]
+    public string? TransportType { get; init; }
 }
 
 internal sealed class EsriLayerServerGenDto
@@ -34,6 +37,9 @@ internal sealed class EsriExtractChangesLayerEditsDto
 
     [JsonPropertyName("features")]
     public EsriExtractChangesFeaturesDto? Features { get; init; }
+
+    [JsonPropertyName("attachments")]
+    public EsriExtractChangesAttachmentsDto? Attachments { get; init; }
 
     [JsonPropertyName("fieldUpdates")]
     public List<JsonElement>? FieldUpdates { get; init; }
@@ -64,6 +70,21 @@ internal sealed class EsriExtractChangesFeaturesDto
 
     [JsonPropertyName("deletes")]
     public List<EsriFeatureDto>? Deletes { get; init; }
+
+    [JsonPropertyName("deleteIds")]
+    public List<JsonElement>? DeleteIds { get; init; }
+}
+
+internal sealed class EsriExtractChangesAttachmentsDto
+{
+    [JsonPropertyName("adds")]
+    public List<JsonElement>? Adds { get; init; }
+
+    [JsonPropertyName("updates")]
+    public List<JsonElement>? Updates { get; init; }
+
+    [JsonPropertyName("deletes")]
+    public List<JsonElement>? Deletes { get; init; }
 
     [JsonPropertyName("deleteIds")]
     public List<JsonElement>? DeleteIds { get; init; }

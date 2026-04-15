@@ -8,6 +8,10 @@ public sealed record ExtractChangesRequest
 
     public IReadOnlyList<ExtractChangesLayerServerGen>? LayerServerGens { get; init; }
 
+    public IReadOnlyDictionary<int, ExtractChangesLayerQuery>? LayerQueries { get; init; }
+
+    public ExtractChangesSpatialFilter? SpatialFilter { get; init; }
+
     public bool ReturnInserts { get; init; } = true;
 
     public bool ReturnUpdates { get; init; } = true;
@@ -19,6 +23,12 @@ public sealed record ExtractChangesRequest
     public bool ReturnHasGeometryUpdates { get; init; }
 
     public bool ReturnDeletedFeatures { get; init; }
+
+    public bool ReturnAttachments { get; init; }
+
+    public bool ReturnAttachmentsDataByUrl { get; init; }
+
+    public IReadOnlyList<string>? FieldsToCompare { get; init; }
 
     public int? OutSrid { get; init; }
 
@@ -43,6 +53,17 @@ public sealed record ExtractChangesRequest
             }
         }
 
+        if (LayerQueries is { Count: > 0 }) {
+            foreach (var pair in LayerQueries) {
+                if (!Layers.Contains(pair.Key)) {
+                    throw new InvalidOperationException(
+                        $"Layer query key '{pair.Key}' must also be present in Layers.");
+                }
+
+                pair.Value.Validate();
+            }
+        }
+
         if (ReturnHasGeometryUpdates && !ReturnUpdates) {
             throw new InvalidOperationException(
                 "ReturnHasGeometryUpdates requires ReturnUpdates to be true.");
@@ -58,6 +79,16 @@ public sealed record ExtractChangesRequest
                 throw new InvalidOperationException(
                     "ReturnDeletedFeatures requires ReturnIdsOnly to be false.");
             }
+        }
+
+        if (FieldsToCompare is { Count: > 0 } && !ReturnUpdates) {
+            throw new InvalidOperationException(
+                "FieldsToCompare requires ReturnUpdates to be true.");
+        }
+
+        if (ReturnAttachmentsDataByUrl && !ReturnAttachments) {
+            throw new InvalidOperationException(
+                "ReturnAttachmentsDataByUrl requires ReturnAttachments to be true.");
         }
     }
 }

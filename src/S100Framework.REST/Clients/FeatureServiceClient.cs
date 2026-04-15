@@ -1168,6 +1168,33 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 }).ToArray());
         }
 
+        if (request.LayerQueries is { Count: > 0 }) {
+            parameters["layerQueries"] = SerializeLayerQueries(request.LayerQueries);
+        }
+
+        if (request.SpatialFilter is not null) {
+            parameters["geometry"] = request.SpatialFilter.GeometryJson;
+            parameters["geometryType"] = request.SpatialFilter.GeometryType;
+
+            if (request.SpatialFilter.InSrid.HasValue) {
+                parameters["inSR"] = request.SpatialFilter.InSrid.Value.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
+        if (request.ReturnAttachments) {
+            parameters["returnAttachments"] = "true";
+        }
+
+        if (request.ReturnAttachmentsDataByUrl) {
+            parameters["returnAttachmentsDataByUrl"] = "true";
+        }
+
+        if (request.FieldsToCompare is { Count: > 0 }) {
+            parameters["fieldsToCompare"] = JsonSerializer.Serialize(new Dictionary<string, object?> {
+                ["fields"] = request.FieldsToCompare
+            });
+        }
+
         var endpointUri = UriUtility.AppendPath(_serviceUri, "extractChanges");
         var dto = await PostFormAsync<EsriExtractChangesResponseDto>(endpointUri, parameters, cancellationToken);
 
@@ -1199,13 +1226,44 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                         MapExtractChangesFeatures(schema, editDto.Features.Updates),
                         MapExtractChangesFeatures(schema, editDto.Features.Deletes),
                         ReadJsonValueList(editDto.Features.DeleteIds)),
+                editDto.Attachments is null
+                    ? null
+                    : new ExtractChangesAttachmentChanges(
+                        ReadJsonValueList(editDto.Attachments.Adds),
+                        ReadJsonValueList(editDto.Attachments.Updates),
+                        ReadJsonValueList(editDto.Attachments.Deletes),
+                        ReadJsonValueList(editDto.Attachments.DeleteIds)),
                 ReadJsonValueList(editDto.FieldUpdates),
                 editDto.HasGeometryUpdates));
         }
 
         return new ExtractChangesResult(
             dto.LayerServerGens?.Select(MapLayerServerGen).ToArray() ?? Array.Empty<ExtractChangesLayerServerGen>(),
-            edits);
+            edits,
+            dto.TransportType);
+    }
+
+    private static string SerializeLayerQueries(
+    IReadOnlyDictionary<int, ExtractChangesLayerQuery> layerQueries) {
+        var payload = layerQueries.ToDictionary(
+            pair => pair.Key.ToString(CultureInfo.InvariantCulture),
+            pair => new Dictionary<string, object?> {
+                ["queryOption"] = MapLayerQueryOption(pair.Value.QueryOption),
+                ["where"] = pair.Value.Where,
+                ["useGeometry"] = pair.Value.UseGeometry,
+                ["includeRelated"] = pair.Value.IncludeRelated
+            });
+
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private static string MapLayerQueryOption(ExtractChangesLayerQueryOption option) {
+        return option switch {
+            ExtractChangesLayerQueryOption.None => "none",
+            ExtractChangesLayerQueryOption.UseFilter => "useFilter",
+            ExtractChangesLayerQueryOption.All => "all",
+            _ => throw new ArgumentOutOfRangeException(nameof(option), option, null)
+        };
     }
 
     private static ExtractChangesLayerServerGen MapLayerServerGen(EsriLayerServerGenDto dto) {
