@@ -19,8 +19,10 @@ The library is designed to work without ArcGIS SDK or ArcGIS runtime dependencie
   - related records
   - attachments
   - top features
+  - extract changes
 - Support feature editing through layer-level and service-level `applyEdits`
 - Support attachment lifecycle operations
+- Provide public converters for Esri JSON geometry and feature payloads
 - Keep the public API .NET-friendly while hiding Esri-specific request details where possible
 
 ## Requirements
@@ -61,6 +63,13 @@ A layer client performs layer-specific operations such as:
 - top feature queries
 - layer-level apply-edits operations
 - attachment add, update, and delete operations
+
+The service client also performs service-level operations such as:
+
+- service metadata retrieval
+- multi-layer `applyEdits`
+- `extractChanges`
+- layer lookup by name
 
 ## Authentication
 
@@ -193,6 +202,20 @@ foreach (var layer in metadata.Layers)
 }
 ```
 
+## Get a layer client
+
+By layer ID:
+
+```csharp
+var layerClient = client.GetLayerClient(0);
+```
+
+By layer name:
+
+```csharp
+var layerClient = await client.GetLayerClientAsync("Harbors");
+```
+
 ## Get a layer client and schema
 
 ```csharp
@@ -224,17 +247,28 @@ Console.WriteLine($"Supports related query pagination: {schema.Capabilities.Supp
 Console.WriteLine($"Supports advanced related queries: {schema.Capabilities.SupportsAdvancedQueryRelated}");
 Console.WriteLine($"Supports order by: {schema.Capabilities.SupportsOrderBy}");
 Console.WriteLine($"Supports distinct: {schema.Capabilities.SupportsDistinct}");
+Console.WriteLine($"Supports async applyEdits: {schema.Capabilities.SupportsAsyncApplyEdits}");
 ```
 
-This is especially useful before calling:
+## Inspect service capabilities
 
-- `QueryAttachmentsAsync`
-- `DownloadAttachmentAsync`
-- `QueryTopFeaturesAsync`
-- `QueryTopFeatureObjectIdsAsync`
-- `QueryTopFeatureCountAsync`
-- `QueryRelatedRecordsAsync`
-- `QueryStatisticsAsync`
+```csharp
+var metadata = await client.GetMetadataAsync();
+
+Console.WriteLine($"Supports query: {metadata.CapabilityInfo.SupportsQuery}");
+Console.WriteLine($"Supports editing: {metadata.CapabilityInfo.SupportsEditing}");
+Console.WriteLine($"Supports uploads: {metadata.CapabilityInfo.SupportsUploads}");
+Console.WriteLine($"Supports change tracking: {metadata.CapabilityInfo.SupportsChangeTracking}");
+Console.WriteLine($"Supports async applyEdits: {metadata.CapabilityInfo.SupportsAsyncApplyEdits}");
+
+if (metadata.ExtractChangesCapabilities is not null)
+{
+    Console.WriteLine($"ExtractChanges supports layerQueries: {metadata.ExtractChangesCapabilities.SupportsLayerQueries}");
+    Console.WriteLine($"ExtractChanges supports geometry filters: {metadata.ExtractChangesCapabilities.SupportsGeometry}");
+    Console.WriteLine($"ExtractChanges supports returnAttachments: {metadata.ExtractChangesCapabilities.SupportsReturnAttachments}");
+    Console.WriteLine($"ExtractChanges supports serverGens: {metadata.ExtractChangesCapabilities.SupportsServerGens}");
+}
+```
 
 ## Inspect layer relationships
 
@@ -251,64 +285,6 @@ foreach (var relationship in schema.Relationships)
         $"{relationship.RelatedTableId} | " +
         $"{relationship.Cardinality} | " +
         $"{relationship.Role}");
-}
-```
-
-Example output:
-
-```text
-0 | inspections | 3 | esriRelCardinalityOneToMany | esriRelRoleOrigin
-```
-
-This makes it easier to call related record queries without manually inspecting the ArcGIS REST browser first.
-
-## Example: guard advanced queries with schema capabilities
-
-```csharp
-var schema = await layerClient.GetSchemaAsync();
-
-if (schema.Capabilities.HasAttachments && schema.Capabilities.SupportsQueryAttachments)
-{
-    var attachments = await layerClient.QueryAttachmentsAsync(
-        new AttachmentQuery
-        {
-            ObjectIds = [123]
-        });
-
-    Console.WriteLine($"Attachment groups: {attachments.Count}");
-}
-
-if (schema.Capabilities.SupportsTopFeaturesQuery)
-{
-    var topFeatures = await layerClient.QueryTopFeaturesAsync(
-        new TopFeaturesQuery
-        {
-            OutFields = ["OBJECTID", "NAME", "SCORE"],
-            TopFilter = new TopFeaturesFilter
-            {
-                GroupByFields = ["REGION"],
-                OrderByFields = ["SCORE DESC"],
-                TopCount = 3
-            }
-        });
-
-    Console.WriteLine($"Top features returned: {topFeatures.Count}");
-}
-
-if (schema.Relationships.Count > 0)
-{
-    var relationshipId = schema.Relationships[0].Id;
-
-    var related = await layerClient.QueryRelatedRecordsAsync(
-        new RelatedRecordsQuery
-        {
-            ObjectIds = [123],
-            RelationshipId = relationshipId,
-            OutFields = ["OBJECTID", "NAME"],
-            ReturnGeometry = false
-        });
-
-    Console.WriteLine($"Related record groups returned: {related.Count}");
 }
 ```
 
@@ -335,10 +311,6 @@ await foreach (var feature in layerClient.QueryAsync(query))
 
 ### Query with spatial filter
 
-Use typed NetTopologySuite spatial filters instead of raw Esri JSON.
-
-#### Envelope filter
-
 ```csharp
 using NetTopologySuite.Geometries;
 using S100Framework.REST.Models;
@@ -358,95 +330,7 @@ var query = new FeatureQuery
 };
 ```
 
-#### Geometry filter
-
-```csharp
-using NetTopologySuite.Geometries;
-using S100Framework.REST.Models;
-
-var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 25832);
-
-var polygon = geometryFactory.CreatePolygon(
-[
-    new Coordinate(530000, 6150000),
-    new Coordinate(540000, 6150000),
-    new Coordinate(540000, 6160000),
-    new Coordinate(530000, 6160000),
-    new Coordinate(530000, 6150000)
-]);
-
-var query = new FeatureQuery
-{
-    SpatialFilter = FeatureSpatialFilter.FromGeometry(
-        polygon,
-        spatialRelationship: SpatialRelationship.Intersects)
-};
-```
-
-## Access attributes
-
-Returned attributes are available in `FeatureRecord.Attributes`.
-
-Use typed helper methods for safer access:
-
-```csharp
-await foreach (var feature in layerClient.QueryAsync(query))
-{
-    var objectId = feature.GetRequiredInt64("OBJECTID");
-    var name = feature.GetString("NAME");
-    var isActive = feature.GetBoolean("IS_ACTIVE");
-    var depth = feature.GetDecimal("DEPTH");
-
-    Console.WriteLine($"{objectId} | {name} | {depth}");
-}
-```
-
-## Map to your own model
-
-Use the mapping extension to project `FeatureRecord` into your own domain model:
-
-```csharp
-using NetTopologySuite.Geometries;
-using S100Framework.REST.Extensions;
-using S100Framework.REST.Models;
-
-var rows = new List<HarborFeature>();
-
-await foreach (var harbor in layerClient.QueryAsync(
-    new FeatureQuery
-    {
-        Where = "1=1",
-        OutFields = ["OBJECTID", "NAME", "DEPTH"],
-        ReturnGeometry = true
-    },
-    feature => new HarborFeature
-    {
-        ObjectId = feature.GetRequiredInt64("OBJECTID"),
-        Name = feature.GetRequiredString("NAME"),
-        Depth = feature.GetDecimal("DEPTH"),
-        Geometry = feature.Geometry
-    }))
-{
-    rows.Add(harbor);
-}
-
-public sealed class HarborFeature
-{
-    public long ObjectId { get; init; }
-
-    public string Name { get; init; } = string.Empty;
-
-    public decimal? Depth { get; init; }
-
-    public Geometry? Geometry { get; init; }
-}
-```
-
 ## Count, object IDs, and extent
-
-These are exposed as separate methods because the ArcGIS REST API returns different response shapes for each of them.
-
-### Count
 
 ```csharp
 var count = await layerClient.QueryCountAsync(
@@ -454,38 +338,22 @@ var count = await layerClient.QueryCountAsync(
     {
         Where = "NAME LIKE '%Harbor%'"
     });
-```
 
-### Object IDs
-
-```csharp
 var objectIds = await layerClient.QueryObjectIdsAsync(
     new FeatureQuery
     {
         Where = "NAME LIKE '%Harbor%'"
     });
-```
 
-### Extent
-
-```csharp
 var extent = await layerClient.QueryExtentAsync(
     new FeatureQuery
     {
         Where = "NAME LIKE '%Harbor%'",
         OutSrid = 4326
     });
-
-if (extent is not null)
-{
-    Console.WriteLine(
-        $"{extent.Envelope.MinX}, {extent.Envelope.MinY}, {extent.Envelope.MaxX}, {extent.Envelope.MaxY}");
-}
 ```
 
 ## Statistics queries
-
-Use `FeatureStatisticsQuery` for grouped or aggregate queries.
 
 ```csharp
 using S100Framework.REST.Models;
@@ -503,19 +371,9 @@ var rows = await layerClient.QueryStatisticsAsync(
             new StatisticDefinition("AOIID", "MAX_AOIID", StatisticType.Max)
         ]
     });
-
-foreach (var row in rows)
-{
-    Console.WriteLine(
-        $"{row.GetString("PLANNAME")} | " +
-        $"{row.GetInt64("FEATURE_COUNT")} | " +
-        $"{row.GetInt64("MAX_AOIID")}");
-}
 ```
 
 ## Related records queries
-
-Use `RelatedRecordsQuery` to retrieve records from related layers or tables.
 
 ```csharp
 using S100Framework.REST.Models;
@@ -529,19 +387,6 @@ var groups = await layerClient.QueryRelatedRecordsAsync(
         ReturnGeometry = false,
         OrderBy = "NAME"
     });
-
-foreach (var group in groups)
-{
-    Console.WriteLine($"Source object ID: {group.SourceObjectId}");
-
-    foreach (var record in group.Records)
-    {
-        Console.WriteLine(
-            $"{record.ObjectId} | " +
-            $"{record.GetString("NAME")} | " +
-            $"{record.GetString("TYPE")}");
-    }
-}
 ```
 
 ## Attachments
@@ -557,20 +402,6 @@ var groups = await layerClient.QueryAttachmentsAsync(
         ObjectIds = [123],
         ReturnUrl = true
     });
-
-foreach (var group in groups)
-{
-    Console.WriteLine($"Source object ID: {group.SourceObjectId}");
-
-    foreach (var attachment in group.Attachments)
-    {
-        Console.WriteLine(
-            $"{attachment.AttachmentId} | " +
-            $"{attachment.Name} | " +
-            $"{attachment.ContentType} | " +
-            $"{attachment.Size}");
-    }
-}
 ```
 
 ### Download attachment content
@@ -602,10 +433,6 @@ var result = await layerClient.AddAttachmentAsync(
         Keywords = "harbor,photo",
         ReturnEditMoment = true
     });
-
-Console.WriteLine(result.Result.AttachmentId);
-Console.WriteLine(result.Result.Success);
-Console.WriteLine(result.EditMoment);
 ```
 
 ### Update attachment
@@ -626,10 +453,6 @@ var result = await layerClient.UpdateAttachmentAsync(
         Keywords = "harbor,photo,updated",
         ReturnEditMoment = true
     });
-
-Console.WriteLine(result.Result.AttachmentId);
-Console.WriteLine(result.Result.Success);
-Console.WriteLine(result.EditMoment);
 ```
 
 ### Delete attachments
@@ -645,17 +468,9 @@ var result = await layerClient.DeleteAttachmentsAsync(
         RollbackOnFailure = false,
         ReturnEditMoment = true
     });
-
-foreach (var edit in result.Results)
-{
-    Console.WriteLine(
-        $"{edit.AttachmentId} | {edit.Success} | {edit.ErrorCode} | {edit.ErrorDescription}");
-}
 ```
 
 ## Top features queries
-
-Use `queryTopFeatures` when you need the top N records within groups, based on one or more order-by fields.
 
 ```csharp
 using S100Framework.REST.Models;
@@ -671,46 +486,6 @@ var features = await layerClient.QueryTopFeaturesAsync(
             GroupByFields = ["REGION"],
             OrderByFields = ["SCORE DESC"],
             TopCount = 3
-        }
-    });
-
-foreach (var feature in features)
-{
-    Console.WriteLine(
-        $"{feature.ObjectId} | " +
-        $"{feature.GetString("REGION")} | " +
-        $"{feature.GetString("PLANNAME")} | " +
-        $"{feature.GetDouble("SCORE")}");
-}
-```
-
-Object IDs only:
-
-```csharp
-var ids = await layerClient.QueryTopFeatureObjectIdsAsync(
-    new TopFeaturesQuery
-    {
-        TopFilter = new TopFeaturesFilter
-        {
-            GroupByFields = ["REGION"],
-            OrderByFields = ["SCORE DESC"],
-            TopCount = 1
-        }
-    });
-```
-
-Count and extent:
-
-```csharp
-var countResult = await layerClient.QueryTopFeatureCountAsync(
-    new TopFeaturesQuery
-    {
-        OutSrid = 4326,
-        TopFilter = new TopFeaturesFilter
-        {
-            GroupByFields = ["REGION"],
-            OrderByFields = ["SCORE DESC"],
-            TopCount = 5
         }
     });
 ```
@@ -786,19 +561,166 @@ var result = await client.ApplyEditsAsync(
     });
 ```
 
+## Extract changes
+
+### Basic extract changes
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await client.ExtractChangesAsync(
+    new ExtractChangesRequest
+    {
+        Layers = [0],
+        ServerGens = new ExtractChangesServerGens
+        {
+            SinceServerGen = 1653608093000
+        },
+        ReturnIdsOnly = false
+    });
+```
+
+### Extract changes with layer queries and geometry filter
+
+```csharp
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Models;
+
+var spatialFilter = ExtractChangesSpatialFilter.FromEnvelope(
+    new Envelope(-104, -94.32, 35.6, 41),
+    inSrid: 4326);
+
+var result = await client.ExtractChangesAsync(
+    new ExtractChangesRequest
+    {
+        Layers = [0],
+        LayerServerGens =
+        [
+            new ExtractChangesLayerServerGen(0, 1653608093000)
+        ],
+        LayerQueries = new Dictionary<int, ExtractChangesLayerQuery>
+        {
+            [0] = new()
+            {
+                QueryOption = ExtractChangesLayerQueryOption.UseFilter,
+                Where = "requires_inspection = 'yes'",
+                UseGeometry = true,
+                IncludeRelated = true
+            }
+        },
+        SpatialFilter = spatialFilter,
+        ReturnIdsOnly = true,
+        ReturnAttachments = true,
+        ReturnAttachmentsDataByUrl = true,
+        FieldsToCompare = ["type"]
+    });
+```
+
+### Extract changes with extent-only response
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await client.ExtractChangesAsync(
+    new ExtractChangesRequest
+    {
+        Layers = [0],
+        LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
+        ReturnExtentOnly = true,
+        ChangesExtentGridCell = ExtractChangesExtentGridCell.Medium
+    });
+```
+
+### Submit async extractChanges job
+
+```csharp
+using S100Framework.REST.Models;
+
+var submission = await client.SubmitExtractChangesAsync(
+    new ExtractChangesRequest
+    {
+        Layers = [0],
+        LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
+        DataFormat = ExtractChangesDataFormat.Sqlite
+    });
+
+if (submission.IsPending)
+{
+    Console.WriteLine(submission.StatusUrl);
+}
+```
+
+### Poll extractChanges job status
+
+```csharp
+var status = await client.GetExtractChangesStatusAsync(submission.StatusUrl!);
+
+Console.WriteLine(status.Status);
+Console.WriteLine(status.ResultUrl);
+```
+
+### Download SQLite extractChanges result
+
+```csharp
+var file = await client.DownloadExtractChangesFileAsync(status.ResultUrl!);
+
+await File.WriteAllBytesAsync(
+    file.FileName ?? "changes.sqlite",
+    file.Content);
+```
+
+### What `dataFormat=sqlite` does
+
+`dataFormat=json` returns changes as JSON payloads that can be mapped into `ExtractChangesResult`.
+
+`dataFormat=sqllite` asks the service to return the changes as a SQLite artifact instead of embedded JSON. In practice this is handled as an asynchronous job plus a downloadable file/result URL flow in this library.
+
+## Esri JSON converters
+
+The package includes public converters for Esri JSON geometry and feature payloads.
+
+### Geometry to Esri JSON
+
+```csharp
+using S100Framework.REST.Serialization;
+
+var esriGeometryJson = EsriJsonGeometryConverter.Serialize(feature.Geometry!);
+```
+
+### Esri JSON to NetTopologySuite geometry
+
+```csharp
+using S100Framework.REST.Serialization;
+
+var geometry = EsriJsonGeometryConverter.Deserialize(esriGeometryJson);
+```
+
+### FeatureRecord to Esri feature JSON
+
+```csharp
+using S100Framework.REST.Serialization;
+
+var esriFeatureJson = EsriJsonFeatureConverter.SerializeFeature(
+    feature,
+    objectIdFieldName: "OBJECTID");
+```
+
+### Feature set to Esri JSON
+
+```csharp
+using S100Framework.REST.Serialization;
+
+var esriFeatureSetJson = EsriJsonFeatureConverter.SerializeFeatureSet(
+    features,
+    schema);
+```
+
 ## Notes on querying
 
 - `Where` uses ArcGIS SQL-style where clauses.
-- For text search, use expressions like:
-  - `NAME = 'Harbor A'`
-  - `NAME LIKE '%Harbor%'`
-- `Envelope` in NetTopologySuite is constructed as:
-  - `new Envelope(minX, maxX, minY, maxY)`
-- Layers return geometry in feature queries.
-- Tables do not return geometry in normal feature queries.
-- Related tables may return only attributes, depending on the relationship target.
-- Some operations are capability-dependent and should be checked against `schema.Capabilities` before use.
+- Some operations are capability-dependent and should be checked against metadata before use.
 - Relationship-based queries should use `schema.Relationships` to discover valid relationship IDs when possible.
+- Date values in Esri feature attributes should be handled as epoch milliseconds in UTC when writing raw Esri JSON payloads.
 
 ## Current scope
 
@@ -808,20 +730,24 @@ The library currently supports:
 - layer-level feature adds, updates, and deletes through `applyEdits`
 - service-level multi-layer feature adds, updates, and deletes through `applyEdits`
 - layer-level attachment add, update, and delete operations
+- `extractChanges` JSON responses
+- `extractChanges` extent-only responses
+- `extractChanges` async status/result flows
+- `extractChanges` SQLite file downloads
+- public Esri JSON converters for geometry and feature payloads
 
 The library does not currently include:
 
 - service-level attachment edit payloads inside multi-layer `applyEdits`
-- asynchronous edit workflows
-- advanced upload-ID based attachment flows
+- higher-level polling orchestration for async extractChanges jobs
+- direct parsing of SQLite extractChanges content
+- full true-curve support for all Esri segment types
 
 ## Design notes
 
 - Esri request details are hidden behind typed .NET models where practical.
 - Spatial filters are built from NetTopologySuite `Envelope` and `Geometry`.
-- Attribute values are preserved dynamically and can be accessed through typed helpers.
-- Query families with different response shapes are modeled as separate methods instead of flags on one large request object.
-- Initial editing support is intentionally limited to explicit layer-level and service-level surfaces.
+- Public Esri JSON converters are included so consuming solutions do not need to reimplement geometry or feature serialization.
 
 ## ArcGIS REST alignment
 
@@ -836,8 +762,8 @@ The library maps several ArcGIS Feature Service operations to typed .NET APIs, i
 - layer-level apply-edits
 - service-level multi-layer apply-edits
 - layer-level attachment add, update, and delete operations
-
-Where ArcGIS uses separate REST operations with different response shapes, this library also exposes them as separate methods instead of overloading one large request model.
+- extractChanges
+- public Esri JSON conversion helpers
 
 ## Testing
 
@@ -855,6 +781,8 @@ The project includes unit tests for:
 - layer-level apply-edits
 - service-level multi-layer apply-edits
 - layer-level attachment add, update, and delete operations
+- extractChanges
+- Esri JSON converters
 
 Run tests with:
 
@@ -866,14 +794,13 @@ dotnet test
 
 - Curve geometries are not supported in full in the current version.
 - Authentication setup depends on the consuming application environment.
-- Some ArcGIS query capabilities are server-version or datasource dependent.
-- Support for specific query features still depends on what the target layer advertises through its capabilities.
-- Editing support is currently limited to the initial layer-level and service-level surfaces described above.
+- SQLite extractChanges results are currently downloaded as files and are not parsed into higher-level models by the library.
 
 ## Roadmap ideas
 
 - service-level attachment edit payloads
-- attachment upload-ID flows
+- polling helpers for async extractChanges jobs
+- SQLite extractChanges parsing helpers
 - additional query capabilities and capability inspection helpers
 - stronger date/time field handling
 - optional convenience APIs for common field mapping patterns

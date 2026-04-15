@@ -13,6 +13,39 @@ internal sealed class EsriExtractChangesResponseDto
 
     [JsonPropertyName("transportType")]
     public string? TransportType { get; init; }
+
+    [JsonPropertyName("responseType")]
+    public string? ResponseType { get; init; }
+
+    [JsonPropertyName("extent")]
+    public EsriExtractChangesExtentDto? Extent { get; init; }
+}
+
+internal sealed class EsriExtractChangesSubmissionDto
+{
+    [JsonPropertyName("statusUrl")]
+    public string? StatusUrl { get; init; }
+}
+
+internal sealed class EsriExtractChangesJobStatusDto
+{
+    [JsonPropertyName("status")]
+    public string? Status { get; init; }
+
+    [JsonPropertyName("responseType")]
+    public string? ResponseType { get; init; }
+
+    [JsonPropertyName("transportType")]
+    public string? TransportType { get; init; }
+
+    [JsonPropertyName("resultUrl")]
+    public string? ResultUrl { get; init; }
+
+    [JsonPropertyName("submissionTime")]
+    public long? SubmissionTime { get; init; }
+
+    [JsonPropertyName("lastUpdatedTime")]
+    public long? LastUpdatedTime { get; init; }
 }
 
 internal sealed class EsriLayerServerGenDto
@@ -88,4 +121,22 @@ internal sealed class EsriExtractChangesAttachmentsDto
 
     [JsonPropertyName("deleteIds")]
     public List<JsonElement>? DeleteIds { get; init; }
+}
+
+internal sealed class EsriExtractChangesExtentDto
+{
+    [JsonPropertyName("xmin")]
+    public double? XMin { get; init; }
+
+    [JsonPropertyName("ymin")]
+    public double? YMin { get; init; }
+
+    [JsonPropertyName("xmax")]
+    public double? XMax { get; init; }
+
+    [JsonPropertyName("ymax")]
+    public double? YMax { get; init; }
+
+    [JsonPropertyName("spatialReference")]
+    public EsriSpatialReferenceDto? SpatialReference { get; init; }
 }

@@ -1135,11 +1135,99 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     }
 
     public async Task<ExtractChangesResult> ExtractChangesAsync(
+     ExtractChangesRequest request,
+     CancellationToken cancellationToken = default) {
+        var submission = await SubmitExtractChangesAsync(request, cancellationToken);
+
+        if (submission.StatusUrl is not null) {
+            throw new InvalidOperationException(
+                "The server returned an asynchronous extractChanges response. Use GetExtractChangesStatusAsync to poll the job.");
+        }
+
+        return submission.Result
+            ?? throw new InvalidOperationException(
+                "The extractChanges request did not return an embedded result.");
+    }
+
+    public async Task<ExtractChangesSubmissionResult> SubmitExtractChangesAsync(
     ExtractChangesRequest request,
     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
         request.Validate();
 
+        var parameters = BuildExtractChangesParameters(request);
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "extractChanges");
+
+        var document = await PostFormAsync<JsonDocument>(endpointUri, parameters, cancellationToken);
+        var root = document.RootElement;
+
+        if (root.TryGetProperty("statusUrl", out var statusUrlElement)) {
+            var rawStatusUrl = statusUrlElement.GetString();
+
+            if (string.IsNullOrWhiteSpace(rawStatusUrl)) {
+                throw new FeatureServiceException(
+                    "The server returned an empty statusUrl for extractChanges.",
+                    endpointUri);
+            }
+
+            return new ExtractChangesSubmissionResult(
+                Result: null,
+                StatusUrl: new Uri(rawStatusUrl, UriKind.Absolute));
+        }
+
+        var result = await MapExtractChangesResultAsync(root, cancellationToken);
+
+        return new ExtractChangesSubmissionResult(
+            Result: result,
+            StatusUrl: null);
+    }
+
+    public async Task<ExtractChangesFileResult> DownloadExtractChangesFileAsync(
+    Uri resultUrl,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(resultUrl);
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(_options.RequestTimeout);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, resultUrl);
+
+        if (_authorizer is not null) {
+            await _authorizer.ApplyAsync(request, timeoutCts.Token);
+        }
+
+        using var response = await _httpClient.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            timeoutCts.Token);
+
+        if (!response.IsSuccessStatusCode) {
+            var payload = await response.Content.ReadAsStringAsync(timeoutCts.Token);
+
+            if (!string.IsNullOrWhiteSpace(payload) && TryParseEsriError(payload, out var esriError)) {
+                throw new FeatureServiceException(
+                    esriError.Message ?? "The server returned an Esri error payload.",
+                    resultUrl,
+                    esriError.Code,
+                    esriError.Details?.ToArray(),
+                    response.StatusCode);
+            }
+
+            throw new FeatureServiceException(
+                $"The server returned HTTP {(int)response.StatusCode} ({response.StatusCode}).",
+                resultUrl,
+                statusCode: response.StatusCode);
+        }
+
+        var bytes = await response.Content.ReadAsByteArrayAsync(timeoutCts.Token);
+        var contentType = response.Content.Headers.ContentType?.MediaType;
+        var fileName = GetContentDispositionFileName(response.Content.Headers);
+
+        return new ExtractChangesFileResult(bytes, contentType, fileName, resultUrl);
+    }
+
+    private Dictionary<string, string?> BuildExtractChangesParameters(
+    ExtractChangesRequest request) {
         var parameters = new Dictionary<string, string?> {
             ["f"] = "json",
             ["layers"] = JsonSerializer.Serialize(request.Layers),
@@ -1149,7 +1237,9 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             ["returnIdsOnly"] = request.ReturnIdsOnly ? "true" : "false",
             ["returnHasGeometryUpdates"] = request.ReturnHasGeometryUpdates ? "true" : "false",
             ["returnDeletedFeatures"] = request.ReturnDeletedFeatures ? "true" : "false",
-            ["dataFormat"] = "json"
+            ["returnExtentOnly"] = request.ReturnExtentOnly ? "true" : "false",
+            ["changesExtentGridCell"] = MapChangesExtentGridCell(request.ChangesExtentGridCell),
+            ["dataFormat"] = MapExtractChangesDataFormat(request.DataFormat)
         };
 
         if (request.OutSrid.HasValue) {
@@ -1195,8 +1285,36 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             });
         }
 
-        var endpointUri = UriUtility.AppendPath(_serviceUri, "extractChanges");
-        var dto = await PostFormAsync<EsriExtractChangesResponseDto>(endpointUri, parameters, cancellationToken);
+        return parameters;
+    }
+
+    private static string MapChangesExtentGridCell(ExtractChangesExtentGridCell value) {
+        return value switch {
+            ExtractChangesExtentGridCell.None => "none",
+            ExtractChangesExtentGridCell.Large => "large",
+            ExtractChangesExtentGridCell.Medium => "medium",
+            ExtractChangesExtentGridCell.Small => "small",
+            _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+        };
+    }
+
+    private static string MapExtractChangesDataFormat(ExtractChangesDataFormat value) {
+        return value switch {
+            ExtractChangesDataFormat.Json => "json",
+            ExtractChangesDataFormat.Sqlite => "sqllite",
+            _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+        };
+    }
+
+    private async Task<ExtractChangesResult> MapExtractChangesResultAsync(
+    JsonElement root,
+    CancellationToken cancellationToken) {
+        var dto = JsonSerializer.Deserialize<EsriExtractChangesResponseDto>(
+                      root.GetRawText(),
+                      JsonOptions)
+                  ?? throw new FeatureServiceException(
+                      "The extractChanges payload could not be deserialized.",
+                      UriUtility.AppendPath(_serviceUri, "extractChanges"));
 
         var schemasByLayerId = new Dictionary<int, FeatureLayerSchema>();
         var edits = new List<ExtractChangesLayerEdits>();
@@ -1240,7 +1358,51 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         return new ExtractChangesResult(
             dto.LayerServerGens?.Select(MapLayerServerGen).ToArray() ?? Array.Empty<ExtractChangesLayerServerGen>(),
             edits,
-            dto.TransportType);
+            dto.TransportType,
+            dto.ResponseType,
+            MapExtractChangesExtent(dto.Extent));
+    }
+
+    private FeatureExtent? MapExtractChangesExtent(EsriExtractChangesExtentDto? dto) {
+        if (dto is null ||
+            dto.XMin is null ||
+            dto.YMin is null ||
+            dto.XMax is null ||
+            dto.YMax is null) {
+            return null;
+        }
+
+        var srid = dto.SpatialReference is null
+            ? null
+            : _options.PreferLatestWkid
+                ? dto.SpatialReference.LatestWkid ?? dto.SpatialReference.Wkid
+                : dto.SpatialReference.Wkid ?? dto.SpatialReference.LatestWkid;
+
+        return new FeatureExtent(
+            new NetTopologySuite.Geometries.Envelope(
+                dto.XMin.Value,
+                dto.XMax.Value,
+                dto.YMin.Value,
+                dto.YMax.Value),
+            srid);
+    }
+
+    public async Task<ExtractChangesJobStatus> GetExtractChangesStatusAsync(
+    Uri statusUrl,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        var dto = await GetAsync<EsriExtractChangesJobStatusDto>(statusUrl, cancellationToken);
+
+        return new ExtractChangesJobStatus(
+            Status: dto.Status ?? "Unknown",
+            ResponseType: dto.ResponseType,
+            TransportType: dto.TransportType,
+            ResultUrl: string.IsNullOrWhiteSpace(dto.ResultUrl)
+                ? null
+                : new Uri(dto.ResultUrl, UriKind.Absolute),
+            SubmissionTime: dto.SubmissionTime,
+            LastUpdatedTime: dto.LastUpdatedTime);
     }
 
     private static string SerializeLayerQueries(

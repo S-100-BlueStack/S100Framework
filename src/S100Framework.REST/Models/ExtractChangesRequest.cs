@@ -28,9 +28,17 @@ public sealed record ExtractChangesRequest
 
     public bool ReturnAttachmentsDataByUrl { get; init; }
 
+    public bool ReturnExtentOnly { get; init; }
+
+    public ExtractChangesExtentGridCell ChangesExtentGridCell { get; init; } =
+        ExtractChangesExtentGridCell.None;
+
     public IReadOnlyList<string>? FieldsToCompare { get; init; }
 
     public int? OutSrid { get; init; }
+
+    public ExtractChangesDataFormat DataFormat { get; init; } =
+        ExtractChangesDataFormat.Json;
 
     public void Validate() {
         if (Layers.Count == 0) {
@@ -89,6 +97,11 @@ public sealed record ExtractChangesRequest
         if (ReturnAttachmentsDataByUrl && !ReturnAttachments) {
             throw new InvalidOperationException(
                 "ReturnAttachmentsDataByUrl requires ReturnAttachments to be true.");
+        }
+
+        if (ChangesExtentGridCell != ExtractChangesExtentGridCell.None && !ReturnExtentOnly) {
+            throw new InvalidOperationException(
+                "ChangesExtentGridCell requires ReturnExtentOnly to be true.");
         }
     }
 }

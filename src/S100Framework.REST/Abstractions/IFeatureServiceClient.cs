@@ -19,4 +19,16 @@ public interface IFeatureServiceClient
     Task<ExtractChangesResult> ExtractChangesAsync(
         ExtractChangesRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<ExtractChangesSubmissionResult> SubmitExtractChangesAsync(
+    ExtractChangesRequest request,
+    CancellationToken cancellationToken = default);
+
+    Task<ExtractChangesJobStatus> GetExtractChangesStatusAsync(
+        Uri statusUrl,
+        CancellationToken cancellationToken = default);
+
+    Task<ExtractChangesFileResult> DownloadExtractChangesFileAsync(
+        Uri resultUrl,
+        CancellationToken cancellationToken = default);
 }

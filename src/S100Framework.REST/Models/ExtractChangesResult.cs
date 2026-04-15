@@ -3,7 +3,9 @@
 public sealed record ExtractChangesResult(
     IReadOnlyList<ExtractChangesLayerServerGen> LayerServerGens,
     IReadOnlyList<ExtractChangesLayerEdits> Edits,
-    string? TransportType);
+    string? TransportType,
+    string? ResponseType,
+    FeatureExtent? Extent);
 
 public sealed record ExtractChangesLayerEdits(
     int LayerId,
