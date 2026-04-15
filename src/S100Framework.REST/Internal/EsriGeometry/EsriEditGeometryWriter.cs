@@ -1,7 +1,7 @@
-﻿using NetTopologySuite.Algorithm;
+﻿using System.Text.Json;
+using NetTopologySuite.Algorithm;
 using NetTopologySuite.Geometries;
 using S100Framework.REST.Models;
-using System.Text.Json;
 
 namespace S100Framework.REST.Internal.EsriGeometry;
 
@@ -14,6 +14,35 @@ internal static class EsriEditGeometryWriter
         return JsonSerializer.Serialize(payload);
     }
 
+    internal static object? WriteGeometry(
+        Geometry? geometry,
+        bool includeSpatialReference = true) {
+        if (geometry is null) {
+            return null;
+        }
+
+        if (geometry.IsEmpty) {
+            throw new InvalidOperationException("Empty geometries cannot be serialized as Esri JSON.");
+        }
+
+        return geometry switch {
+            Point point => WritePoint(point, includeSpatialReference),
+            MultiPoint multiPoint => WriteMultiPoint(multiPoint, includeSpatialReference),
+            LineString lineString => WritePolyline([lineString], lineString.SRID, includeSpatialReference),
+            MultiLineString multiLineString => WritePolyline(
+                multiLineString.Geometries.Cast<LineString>(),
+                multiLineString.SRID,
+                includeSpatialReference),
+            Polygon polygon => WritePolygon([polygon], polygon.SRID, includeSpatialReference),
+            MultiPolygon multiPolygon => WritePolygon(
+                multiPolygon.Geometries.Cast<Polygon>(),
+                multiPolygon.SRID,
+                includeSpatialReference),
+            _ => throw new NotSupportedException(
+                $"Geometry type '{geometry.GetType().Name}' is not supported for Esri JSON serialization.")
+        };
+    }
+
     private static object WriteFeature(EditableFeature feature) {
         ArgumentNullException.ThrowIfNull(feature);
 
@@ -23,32 +52,9 @@ internal static class EsriEditGeometryWriter
         };
     }
 
-    private static object? WriteGeometry(Geometry? geometry) {
-        if (geometry is null) {
-            return null;
-        }
-
-        if (geometry.IsEmpty) {
-            throw new InvalidOperationException("Empty geometries cannot be serialized for applyEdits.");
-        }
-
-        return geometry switch {
-            Point point => WritePoint(point),
-            MultiPoint multiPoint => WriteMultiPoint(multiPoint),
-            LineString lineString => WritePolyline([lineString], lineString.SRID),
-            MultiLineString multiLineString => WritePolyline(
-                multiLineString.Geometries.Cast<LineString>(),
-                multiLineString.SRID),
-            Polygon polygon => WritePolygon([polygon], polygon.SRID),
-            MultiPolygon multiPolygon => WritePolygon(
-                multiPolygon.Geometries.Cast<Polygon>(),
-                multiPolygon.SRID),
-            _ => throw new NotSupportedException(
-                $"Geometry type '{geometry.GetType().Name}' is not supported for applyEdits serialization.")
-        };
-    }
-
-    private static Dictionary<string, object?> WritePoint(Point point) {
+    private static Dictionary<string, object?> WritePoint(
+        Point point,
+        bool includeSpatialReference) {
         var payload = new Dictionary<string, object?> {
             ["x"] = point.X,
             ["y"] = point.Y
@@ -58,12 +64,14 @@ internal static class EsriEditGeometryWriter
             payload["z"] = point.Coordinate.Z;
         }
 
-        AddSpatialReference(payload, point.SRID);
+        AddSpatialReference(payload, point.SRID, includeSpatialReference);
 
         return payload;
     }
 
-    private static Dictionary<string, object?> WriteMultiPoint(MultiPoint multiPoint) {
+    private static Dictionary<string, object?> WriteMultiPoint(
+        MultiPoint multiPoint,
+        bool includeSpatialReference) {
         var points = multiPoint.Geometries
             .Cast<Point>()
             .Select(point => ToCoordinateValues(point.Coordinate))
@@ -77,14 +85,15 @@ internal static class EsriEditGeometryWriter
             payload["hasZ"] = true;
         }
 
-        AddSpatialReference(payload, multiPoint.SRID);
+        AddSpatialReference(payload, multiPoint.SRID, includeSpatialReference);
 
         return payload;
     }
 
     private static Dictionary<string, object?> WritePolyline(
         IEnumerable<LineString> lineStrings,
-        int srid) {
+        int srid,
+        bool includeSpatialReference) {
         var paths = lineStrings
             .Select(line => line.Coordinates.Select(ToCoordinateValues).ToList())
             .ToList();
@@ -97,14 +106,15 @@ internal static class EsriEditGeometryWriter
             payload["hasZ"] = true;
         }
 
-        AddSpatialReference(payload, srid);
+        AddSpatialReference(payload, srid, includeSpatialReference);
 
         return payload;
     }
 
     private static Dictionary<string, object?> WritePolygon(
         IEnumerable<Polygon> polygons,
-        int srid) {
+        int srid,
+        bool includeSpatialReference) {
         var rings = new List<List<double[]>>();
 
         foreach (var polygon in polygons) {
@@ -123,7 +133,7 @@ internal static class EsriEditGeometryWriter
             payload["hasZ"] = true;
         }
 
-        AddSpatialReference(payload, srid);
+        AddSpatialReference(payload, srid, includeSpatialReference);
 
         return payload;
     }
@@ -169,7 +179,14 @@ internal static class EsriEditGeometryWriter
             : new CoordinateZ(x, y, z);
     }
 
-    private static void AddSpatialReference(IDictionary<string, object?> payload, int srid) {
+    private static void AddSpatialReference(
+        IDictionary<string, object?> payload,
+        int srid,
+        bool includeSpatialReference) {
+        if (!includeSpatialReference) {
+            return;
+        }
+
         if (srid > 0) {
             payload["spatialReference"] = new Dictionary<string, object?> {
                 ["wkid"] = srid
