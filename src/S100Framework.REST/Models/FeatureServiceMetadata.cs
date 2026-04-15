@@ -4,9 +4,9 @@ public sealed record FeatureServiceMetadata(
     Uri ServiceUri,
     IReadOnlyList<FeatureServiceDatasetInfo> Layers,
     IReadOnlyList<FeatureServiceDatasetInfo> Tables,
-    string? Capabilities,
+    string? CapabilityText,
     int? MaxRecordCount,
-    FeatureServiceCapabilities CapabilityInfo,
+    FeatureServiceCapabilities Capabilities,
     ExtractChangesCapabilities? ExtractChangesCapabilities);
 
 public sealed record FeatureServiceDatasetInfo(

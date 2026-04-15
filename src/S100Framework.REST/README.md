@@ -23,6 +23,7 @@ The library is designed to work without ArcGIS SDK or ArcGIS runtime dependencie
 - Support feature editing through layer-level and service-level `applyEdits`
 - Support attachment lifecycle operations
 - Provide public converters for Esri JSON geometry and feature payloads
+- Provide convenience helpers for async `extractChanges` polling and file downloads
 - Keep the public API .NET-friendly while hiding Esri-specific request details where possible
 
 ## Requirements
@@ -83,8 +84,7 @@ If your ArcGIS environment is available through Integrated Windows Authenticatio
 using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
 
-var handler = new HttpClientHandler
-{
+var handler = new HttpClientHandler {
     UseDefaultCredentials = true
 };
 
@@ -92,8 +92,7 @@ using var httpClient = new HttpClient(handler);
 
 var client = new FeatureServiceClient(
     httpClient,
-    new FeatureServiceClientOptions
-    {
+    new FeatureServiceClientOptions {
         ServiceUri = new Uri("https://your-server/arcgis/rest/services/YourService/FeatureServer"),
         DefaultPageSize = 100,
         RequestTimeout = TimeSpan.FromSeconds(30),
@@ -114,25 +113,24 @@ using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
 
 var authorizer = new BearerTokenFeatureServiceRequestAuthorizer(
-    _ => ValueTask.FromResult("<token>"));
+    _ => ValueTask.FromResult(""));
 
 using var httpClient = new HttpClient();
 
 var client = new FeatureServiceClient(
     httpClient,
-    new FeatureServiceClientOptions
-    {
+    new FeatureServiceClientOptions {
         ServiceUri = new Uri("https://your-server/arcgis/rest/services/YourService/FeatureServer")
     },
     authorizer);
 ```
 
-> Do not hardcode secrets in source code. Use a secret store, secure local development configuration, or a runtime prompt in sample applications.
+> Do not hardcode secrets in source code.
+> Use a secret store, secure local development configuration, or a runtime prompt in sample applications.
 
 ## Query request method selection
 
 Standard layer `query` requests can use GET or POST.
-
 The client supports three modes through `FeatureServiceClientOptions.QueryRequestMethodPreference`:
 
 - `Auto`
@@ -144,8 +142,7 @@ The client supports three modes through `FeatureServiceClientOptions.QueryReques
 ```csharp
 var client = new FeatureServiceClient(
     httpClient,
-    new FeatureServiceClientOptions
-    {
+    new FeatureServiceClientOptions {
         ServiceUri = new Uri("https://example.com/arcgis/rest/services/MyService/FeatureServer"),
         QueryRequestMethodPreference = QueryRequestMethodPreference.Auto,
         AutoPostQueryLengthThreshold = 1800
@@ -166,7 +163,6 @@ The library returns NetTopologySuite geometries.
 
 When `ReturnTrueCurves` is disabled, the server is expected to return densified linear geometries.
 When `ReturnTrueCurves` is enabled, the client can currently linearize circular-arc true curves for `curvePaths` and `curveRings`.
-
 Other true-curve segment types are not yet supported.
 
 ## Create a service client
@@ -179,8 +175,7 @@ using var httpClient = new HttpClient();
 
 var client = new FeatureServiceClient(
     httpClient,
-    new FeatureServiceClientOptions
-    {
+    new FeatureServiceClientOptions {
         ServiceUri = new Uri("https://example.com/arcgis/rest/services/MyService/FeatureServer"),
         DefaultPageSize = 100,
         RequestTimeout = TimeSpan.FromSeconds(30),
@@ -196,8 +191,7 @@ var metadata = await client.GetMetadataAsync();
 
 Console.WriteLine($"Layers: {metadata.Layers.Count}");
 
-foreach (var layer in metadata.Layers)
-{
+foreach (var layer in metadata.Layers) {
     Console.WriteLine($"{layer.Id}: {layer.Name}");
 }
 ```
@@ -231,7 +225,6 @@ Console.WriteLine($"Object ID field: {schema.ObjectIdFieldName}");
 ## Inspect layer capabilities
 
 Some query families are only available when the target layer advertises support for them.
-
 Use `GetSchemaAsync()` to inspect layer capabilities before calling advanced query operations.
 
 ```csharp
@@ -261,14 +254,39 @@ Console.WriteLine($"Supports uploads: {metadata.CapabilityInfo.SupportsUploads}"
 Console.WriteLine($"Supports change tracking: {metadata.CapabilityInfo.SupportsChangeTracking}");
 Console.WriteLine($"Supports async applyEdits: {metadata.CapabilityInfo.SupportsAsyncApplyEdits}");
 
-if (metadata.ExtractChangesCapabilities is not null)
-{
+if (metadata.ExtractChangesCapabilities is not null) {
     Console.WriteLine($"ExtractChanges supports layerQueries: {metadata.ExtractChangesCapabilities.SupportsLayerQueries}");
     Console.WriteLine($"ExtractChanges supports geometry filters: {metadata.ExtractChangesCapabilities.SupportsGeometry}");
     Console.WriteLine($"ExtractChanges supports returnAttachments: {metadata.ExtractChangesCapabilities.SupportsReturnAttachments}");
+    Console.WriteLine($"ExtractChanges supports returnIdsOnly: {metadata.ExtractChangesCapabilities.SupportsReturnIdsOnly}");
+    Console.WriteLine($"ExtractChanges supports returnExtentOnly: {metadata.ExtractChangesCapabilities.SupportsReturnExtentOnly}");
+    Console.WriteLine($"ExtractChanges supports fieldsToCompare: {metadata.ExtractChangesCapabilities.SupportsFieldsToCompare}");
     Console.WriteLine($"ExtractChanges supports serverGens: {metadata.ExtractChangesCapabilities.SupportsServerGens}");
+    Console.WriteLine($"ExtractChanges supports returnHasGeometryUpdates: {metadata.ExtractChangesCapabilities.SupportsReturnHasGeometryUpdates}");
 }
 ```
+
+## Capability-dependent operations
+
+Some operations should be capability-checked before they are called.
+The client can also enforce these checks at runtime and fail fast with clear exceptions.
+
+| Operation | Recommended capability check |
+|---|---|
+| `QueryAttachmentsAsync` | `schema.Capabilities.HasAttachments && schema.Capabilities.SupportsQueryAttachments` |
+| `DownloadAttachmentAsync` | `schema.Capabilities.HasAttachments` |
+| `AddAttachmentAsync` | `schema.Capabilities.HasAttachments && metadata.CapabilityInfo.SupportsEditing && metadata.CapabilityInfo.SupportsUploads` |
+| `UpdateAttachmentAsync` | `schema.Capabilities.HasAttachments && metadata.CapabilityInfo.SupportsEditing && metadata.CapabilityInfo.SupportsUploads` |
+| `DeleteAttachmentsAsync` | `schema.Capabilities.HasAttachments && metadata.CapabilityInfo.SupportsEditing` |
+| `ExtractChangesAsync` / `SubmitExtractChangesAsync` | `metadata.CapabilityInfo.SupportsChangeTracking` |
+| `ExtractChangesRequest.LayerQueries` | `metadata.ExtractChangesCapabilities?.SupportsLayerQueries == true` |
+| `ExtractChangesRequest.SpatialFilter` | `metadata.ExtractChangesCapabilities?.SupportsGeometry == true` |
+| `ExtractChangesRequest.ReturnAttachments` / `ReturnAttachmentsDataByUrl` | `metadata.ExtractChangesCapabilities?.SupportsReturnAttachments == true` |
+| `ExtractChangesRequest.ReturnIdsOnly` | `metadata.ExtractChangesCapabilities?.SupportsReturnIdsOnly == true` |
+| `ExtractChangesRequest.ReturnExtentOnly` / `ChangesExtentGridCell` | `metadata.ExtractChangesCapabilities?.SupportsReturnExtentOnly == true` |
+| `ExtractChangesRequest.FieldsToCompare` | `metadata.ExtractChangesCapabilities?.SupportsFieldsToCompare == true` |
+| `ExtractChangesRequest.ServerGens` / `LayerServerGens` | `metadata.ExtractChangesCapabilities?.SupportsServerGens == true` |
+| `ExtractChangesRequest.ReturnHasGeometryUpdates` | `metadata.ExtractChangesCapabilities?.SupportsReturnHasGeometryUpdates == true` |
 
 ## Inspect layer relationships
 
@@ -277,8 +295,7 @@ Layer metadata also exposes relationship definitions so consumers can discover v
 ```csharp
 var schema = await layerClient.GetSchemaAsync();
 
-foreach (var relationship in schema.Relationships)
-{
+foreach (var relationship in schema.Relationships) {
     Console.WriteLine(
         $"{relationship.Id} | " +
         $"{relationship.Name} | " +
@@ -295,16 +312,14 @@ foreach (var relationship in schema.Relationships)
 ```csharp
 using S100Framework.REST.Models;
 
-var query = new FeatureQuery
-{
+var query = new FeatureQuery {
     Where = "1=1",
     OutFields = ["OBJECTID", "NAME"],
     ReturnGeometry = true,
     Limit = 10
 };
 
-await foreach (var feature in layerClient.QueryAsync(query))
-{
+await foreach (var feature in layerClient.QueryAsync(query)) {
     Console.WriteLine($"{feature.ObjectId}: {feature.GetString("NAME")}");
 }
 ```
@@ -320,8 +335,7 @@ var spatialFilter = FeatureSpatialFilter.FromEnvelope(
     inSrid: 25832,
     spatialRelationship: SpatialRelationship.Intersects);
 
-var query = new FeatureQuery
-{
+var query = new FeatureQuery {
     Where = "1=1",
     OutFields = ["OBJECTID", "NAME"],
     ReturnGeometry = true,
@@ -334,20 +348,17 @@ var query = new FeatureQuery
 
 ```csharp
 var count = await layerClient.QueryCountAsync(
-    new FeatureQuery
-    {
+    new FeatureQuery {
         Where = "NAME LIKE '%Harbor%'"
     });
 
 var objectIds = await layerClient.QueryObjectIdsAsync(
-    new FeatureQuery
-    {
+    new FeatureQuery {
         Where = "NAME LIKE '%Harbor%'"
     });
 
 var extent = await layerClient.QueryExtentAsync(
-    new FeatureQuery
-    {
+    new FeatureQuery {
         Where = "NAME LIKE '%Harbor%'",
         OutSrid = 4326
     });
@@ -359,14 +370,12 @@ var extent = await layerClient.QueryExtentAsync(
 using S100Framework.REST.Models;
 
 var rows = await layerClient.QueryStatisticsAsync(
-    new FeatureStatisticsQuery
-    {
+    new FeatureStatisticsQuery {
         Where = "1=1",
         GroupByFields = ["PLANNAME"],
         HavingClause = "COUNT(OBJECTID) > 1",
         OrderBy = "PLANNAME",
-        Statistics =
-        [
+        Statistics = [
             new StatisticDefinition("OBJECTID", "FEATURE_COUNT", StatisticType.Count),
             new StatisticDefinition("AOIID", "MAX_AOIID", StatisticType.Max)
         ]
@@ -379,8 +388,7 @@ var rows = await layerClient.QueryStatisticsAsync(
 using S100Framework.REST.Models;
 
 var groups = await layerClient.QueryRelatedRecordsAsync(
-    new RelatedRecordsQuery
-    {
+    new RelatedRecordsQuery {
         ObjectIds = [123, 456],
         RelationshipId = 0,
         OutFields = ["OBJECTID", "NAME", "TYPE"],
@@ -397,8 +405,7 @@ var groups = await layerClient.QueryRelatedRecordsAsync(
 using S100Framework.REST.Models;
 
 var groups = await layerClient.QueryAttachmentsAsync(
-    new AttachmentQuery
-    {
+    new AttachmentQuery {
         ObjectIds = [123],
         ReturnUrl = true
     });
@@ -424,8 +431,7 @@ using S100Framework.REST.Models;
 await using var stream = File.OpenRead("photo.jpg");
 
 var result = await layerClient.AddAttachmentAsync(
-    new AddAttachmentRequest
-    {
+    new AddAttachmentRequest {
         ObjectId = 818654,
         Content = stream,
         FileName = "photo.jpg",
@@ -443,8 +449,7 @@ using S100Framework.REST.Models;
 await using var stream = File.OpenRead("photo-updated.jpg");
 
 var result = await layerClient.UpdateAttachmentAsync(
-    new UpdateAttachmentRequest
-    {
+    new UpdateAttachmentRequest {
         ObjectId = 818654,
         AttachmentId = 58,
         Content = stream,
@@ -461,8 +466,7 @@ var result = await layerClient.UpdateAttachmentAsync(
 using S100Framework.REST.Models;
 
 var result = await layerClient.DeleteAttachmentsAsync(
-    new DeleteAttachmentsRequest
-    {
+    new DeleteAttachmentsRequest {
         ObjectId = 818654,
         AttachmentIds = [58, 4],
         RollbackOnFailure = false,
@@ -476,13 +480,11 @@ var result = await layerClient.DeleteAttachmentsAsync(
 using S100Framework.REST.Models;
 
 var features = await layerClient.QueryTopFeaturesAsync(
-    new TopFeaturesQuery
-    {
+    new TopFeaturesQuery {
         Where = "1=1",
         OutFields = ["OBJECTID", "PLANNAME", "SCORE", "REGION"],
         ReturnGeometry = true,
-        TopFilter = new TopFeaturesFilter
-        {
+        TopFilter = new TopFeaturesFilter {
             GroupByFields = ["REGION"],
             OrderByFields = ["SCORE DESC"],
             TopCount = 3
@@ -501,23 +503,18 @@ using S100Framework.REST.Models;
 var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
 var result = await layerClient.ApplyEditsAsync(
-    new FeatureEdits
-    {
-        Adds =
-        [
+    new FeatureEdits {
+        Adds = [
             new EditableFeature(
                 geometryFactory.CreatePoint(new Coordinate(10, 20)),
-                new Dictionary<string, object?>
-                {
+                new Dictionary<string, object?> {
                     ["NAME"] = "New feature"
                 })
         ],
-        Updates =
-        [
+        Updates = [
             new EditableFeature(
                 geometryFactory.CreatePoint(new Coordinate(11, 21)),
-                new Dictionary<string, object?>
-                {
+                new Dictionary<string, object?> {
                     ["OBJECTID"] = 42,
                     ["NAME"] = "Updated feature"
                 })
@@ -535,25 +532,19 @@ using S100Framework.REST.Models;
 var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
 var result = await client.ApplyEditsAsync(
-    new FeatureServiceEdits
-    {
-        Layers =
-        [
-            new ServiceLayerEdits
-            {
+    new FeatureServiceEdits {
+        Layers = [
+            new ServiceLayerEdits {
                 LayerId = 0,
-                Adds =
-                [
+                Adds = [
                     new EditableFeature(
                         geometryFactory.CreatePoint(new Coordinate(10, 20)),
-                        new Dictionary<string, object?>
-                        {
+                        new Dictionary<string, object?> {
                             ["NAME"] = "New feature"
                         })
                 ]
             },
-            new ServiceLayerEdits
-            {
+            new ServiceLayerEdits {
                 LayerId = 1,
                 DeleteObjectIds = [42, 43]
             }
@@ -569,11 +560,9 @@ var result = await client.ApplyEditsAsync(
 using S100Framework.REST.Models;
 
 var result = await client.ExtractChangesAsync(
-    new ExtractChangesRequest
-    {
+    new ExtractChangesRequest {
         Layers = [0],
-        ServerGens = new ExtractChangesServerGens
-        {
+        ServerGens = new ExtractChangesServerGens {
             SinceServerGen = 1653608093000
         },
         ReturnIdsOnly = false
@@ -591,17 +580,13 @@ var spatialFilter = ExtractChangesSpatialFilter.FromEnvelope(
     inSrid: 4326);
 
 var result = await client.ExtractChangesAsync(
-    new ExtractChangesRequest
-    {
+    new ExtractChangesRequest {
         Layers = [0],
-        LayerServerGens =
-        [
+        LayerServerGens = [
             new ExtractChangesLayerServerGen(0, 1653608093000)
         ],
-        LayerQueries = new Dictionary<int, ExtractChangesLayerQuery>
-        {
-            [0] = new()
-            {
+        LayerQueries = new Dictionary<int, ExtractChangesLayerQuery> {
+            [0] = new() {
                 QueryOption = ExtractChangesLayerQueryOption.UseFilter,
                 Where = "requires_inspection = 'yes'",
                 UseGeometry = true,
@@ -622,10 +607,11 @@ var result = await client.ExtractChangesAsync(
 using S100Framework.REST.Models;
 
 var result = await client.ExtractChangesAsync(
-    new ExtractChangesRequest
-    {
+    new ExtractChangesRequest {
         Layers = [0],
-        LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
+        LayerServerGens = [
+            new ExtractChangesLayerServerGen(0, 1653608093000)
+        ],
         ReturnExtentOnly = true,
         ChangesExtentGridCell = ExtractChangesExtentGridCell.Medium
     });
@@ -637,15 +623,15 @@ var result = await client.ExtractChangesAsync(
 using S100Framework.REST.Models;
 
 var submission = await client.SubmitExtractChangesAsync(
-    new ExtractChangesRequest
-    {
+    new ExtractChangesRequest {
         Layers = [0],
-        LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
+        LayerServerGens = [
+            new ExtractChangesLayerServerGen(0, 1653608093000)
+        ],
         DataFormat = ExtractChangesDataFormat.Sqlite
     });
 
-if (submission.IsPending)
-{
+if (submission.IsPending) {
     Console.WriteLine(submission.StatusUrl);
 }
 ```
@@ -659,7 +645,48 @@ Console.WriteLine(status.Status);
 Console.WriteLine(status.ResultUrl);
 ```
 
-### Download SQLite extractChanges result
+### Wait for extractChanges completion with helper
+
+```csharp
+using S100Framework.REST.Extensions;
+using S100Framework.REST.Models;
+
+var status = await client.WaitForExtractChangesCompletionAsync(
+    submission.StatusUrl!,
+    new ExtractChangesPollingOptions {
+        PollInterval = TimeSpan.FromSeconds(2),
+        Timeout = TimeSpan.FromMinutes(2)
+    });
+
+Console.WriteLine(status.Status);
+Console.WriteLine(status.ResultUrl);
+```
+
+### Submit, poll, and download SQLite extractChanges result
+
+```csharp
+using S100Framework.REST.Extensions;
+using S100Framework.REST.Models;
+
+var file = await client.SubmitAndDownloadExtractChangesFileAsync(
+    new ExtractChangesRequest {
+        Layers = [0],
+        LayerServerGens = [
+            new ExtractChangesLayerServerGen(0, 1653608093000)
+        ],
+        DataFormat = ExtractChangesDataFormat.Sqlite
+    },
+    new ExtractChangesPollingOptions {
+        PollInterval = TimeSpan.FromSeconds(2),
+        Timeout = TimeSpan.FromMinutes(2)
+    });
+
+await File.WriteAllBytesAsync(
+    file.FileName ?? "changes.sqlite",
+    file.Content);
+```
+
+### Download SQLite extractChanges result from a result URL
 
 ```csharp
 var file = await client.DownloadExtractChangesFileAsync(status.ResultUrl!);
@@ -671,9 +698,14 @@ await File.WriteAllBytesAsync(
 
 ### What `dataFormat=sqlite` does
 
-`dataFormat=json` returns changes as JSON payloads that can be mapped into `ExtractChangesResult`.
+In the .NET API, use `ExtractChangesDataFormat.Sqlite`.
 
-`dataFormat=sqllite` asks the service to return the changes as a SQLite artifact instead of embedded JSON. In practice this is handled as an asynchronous job plus a downloadable file/result URL flow in this library.
+On the wire, ArcGIS expects the literal value `sqllite` for this request parameter.
+The library handles that mapping internally.
+
+`dataFormat=json` returns changes as JSON payloads that can be mapped into `ExtractChangesResult`.
+`dataFormat=sqllite` asks the service to return the changes as a SQLite artifact instead of embedded JSON.
+In practice this is handled as an asynchronous job plus a downloadable file/result URL flow in this library.
 
 ## Esri JSON converters
 
@@ -710,9 +742,7 @@ var esriFeatureJson = EsriJsonFeatureConverter.SerializeFeature(
 ```csharp
 using S100Framework.REST.Serialization;
 
-var esriFeatureSetJson = EsriJsonFeatureConverter.SerializeFeatureSet(
-    features,
-    schema);
+var esriFeatureSetJson = EsriJsonFeatureConverter.SerializeFeatureSet(features, schema);
 ```
 
 ## Notes on querying
@@ -730,17 +760,19 @@ The library currently supports:
 - layer-level feature adds, updates, and deletes through `applyEdits`
 - service-level multi-layer feature adds, updates, and deletes through `applyEdits`
 - layer-level attachment add, update, and delete operations
+- runtime capability-gating for attachment and `extractChanges` workflows
 - `extractChanges` JSON responses
 - `extractChanges` extent-only responses
 - `extractChanges` async status/result flows
 - `extractChanges` SQLite file downloads
+- convenience polling helpers for async `extractChanges` jobs
 - public Esri JSON converters for geometry and feature payloads
 
 The library does not currently include:
 
 - service-level attachment edit payloads inside multi-layer `applyEdits`
-- higher-level polling orchestration for async extractChanges jobs
-- direct parsing of SQLite extractChanges content
+- direct parsing of SQLite `extractChanges` content
+- a high-level JSON result parser for async `extractChanges` result URLs
 - full true-curve support for all Esri segment types
 
 ## Design notes
@@ -748,6 +780,7 @@ The library does not currently include:
 - Esri request details are hidden behind typed .NET models where practical.
 - Spatial filters are built from NetTopologySuite `Envelope` and `Geometry`.
 - Public Esri JSON converters are included so consuming solutions do not need to reimplement geometry or feature serialization.
+- Convenience helpers live in extensions so the main client abstractions stay focused on the core REST surface.
 
 ## ArcGIS REST alignment
 
@@ -794,14 +827,13 @@ dotnet test
 
 - Curve geometries are not supported in full in the current version.
 - Authentication setup depends on the consuming application environment.
-- SQLite extractChanges results are currently downloaded as files and are not parsed into higher-level models by the library.
+- SQLite `extractChanges` results are currently downloaded as files and are not parsed into higher-level models by the library.
 
 ## Roadmap ideas
 
 - service-level attachment edit payloads
-- polling helpers for async extractChanges jobs
-- SQLite extractChanges parsing helpers
+- JSON parsing helpers for async `extractChanges` result URLs
+- SQLite `extractChanges` parsing helpers
 - additional query capabilities and capability inspection helpers
 - stronger date/time field handling
 - optional convenience APIs for common field mapping patterns
-- package publishing and versioned consumer guidance

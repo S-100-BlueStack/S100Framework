@@ -1137,6 +1137,9 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     public async Task<ExtractChangesResult> ExtractChangesAsync(
      ExtractChangesRequest request,
      CancellationToken cancellationToken = default) {
+        var metadata = await GetMetadataAsync(cancellationToken);
+        EnsureExtractChangesSupported(metadata, request);
+
         var submission = await SubmitExtractChangesAsync(request, cancellationToken);
 
         if (submission.StatusUrl is not null) {
@@ -1154,6 +1157,9 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
         request.Validate();
+
+        var metadata = await GetMetadataAsync(cancellationToken);
+        EnsureExtractChangesSupported(metadata, request);
 
         var parameters = BuildExtractChangesParameters(request);
         var endpointUri = UriUtility.AppendPath(_serviceUri, "extractChanges");
@@ -1531,4 +1537,66 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             _ => null
         };
     }
+    private static void EnsureExtractChangesSupported(
+        FeatureServiceMetadata metadata,
+        ExtractChangesRequest request) {
+        if (!metadata.Capabilities.SupportsChangeTracking) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support change tracking, so extractChanges is not available.");
+        }
+
+        var capabilities = metadata.ExtractChangesCapabilities;
+        if (capabilities is null) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not expose extractChanges capabilities.");
+        }
+
+        if (request.ReturnIdsOnly && !capabilities.SupportsReturnIdsOnly) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support extractChanges with ReturnIdsOnly.");
+        }
+
+        if (request.ReturnExtentOnly && !capabilities.SupportsReturnExtentOnly) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support extractChanges with ReturnExtentOnly.");
+        }
+
+        if (request.ChangesExtentGridCell != ExtractChangesExtentGridCell.None &&
+            !capabilities.SupportsReturnExtentOnly) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support extractChanges extent grid cells.");
+        }
+
+        if (request.ReturnAttachments && !capabilities.SupportsReturnAttachments) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support extractChanges with ReturnAttachments.");
+        }
+
+        if (request.LayerQueries is { Count: > 0 } && !capabilities.SupportsLayerQueries) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support extractChanges layerQueries.");
+        }
+
+        if (request.SpatialFilter is not null && !capabilities.SupportsGeometry) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support extractChanges geometry filters.");
+        }
+
+        if (request.FieldsToCompare is { Count: > 0 } && !capabilities.SupportsFieldsToCompare) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support extractChanges fieldsToCompare.");
+        }
+
+        if ((request.ServerGens is not null || request.LayerServerGens is { Count: > 0 }) &&
+            !capabilities.SupportsServerGens) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support extractChanges server generation inputs.");
+        }
+
+        if (request.ReturnHasGeometryUpdates && !capabilities.SupportsReturnHasGeometryUpdates) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support extractChanges with ReturnHasGeometryUpdates.");
+        }
+    }
+
 }
