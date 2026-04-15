@@ -152,7 +152,7 @@
             }
         }
         public static IEnumerable<string> GetFileNames(string json) {
-            if(string.IsNullOrWhiteSpace(json))
+            if (string.IsNullOrWhiteSpace(json))
                 return [];
             //using var doc = JsonDocument.Parse(json);
             var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json) ?? [];
@@ -227,6 +227,53 @@
                     }
                 case ArcGIS.Core.Geometry.Polyline polyline:        // Curves are handled in Topology
                 case ArcGIS.Core.Geometry.Polygon polygon:          // Surfaces are handled in Topology
+                    break;
+                default:
+                    throw new ArgumentException($"Unsupported geometry type: {geometry.GeometryType}");
+            }
+        }
+
+
+        public static void AddGeometry(this Dataset dataset, NetTopologySuite.Geometries.Geometry geometry, string name) {
+            switch (geometry) {
+                case NetTopologySuite.Geometries.Point point: {                              // Point
+                        var pointLocation = string.Format(
+                             CultureInfo.InvariantCulture,
+                             "{0:0.#######},{1:0.#######}", point.X, point.Y
+                         );
+
+                        var hashId = System.IO.Hashing.XxHash32.HashToUInt32(new NetTopologySuite.Geometries.Point(point.X, point.Y).ToBinary());
+
+                        var datasetPoint = dataset?.Points?.FirstOrDefault(e => e.Name == $"P{hashId}");
+
+                        // Create point if not exist
+                        if (datasetPoint == default) {
+                            var p = new Point(point.X, point.Y) {
+                                Name = $"P{hashId}"
+                            };
+
+                            dataset?.AddPoint(p);
+                        }
+
+                        dataset?.UpdateFeatureReferences(name, $"P{hashId}"!);
+                        break;
+                    }
+                case NetTopologySuite.Geometries.MultiPoint multiPoint: {   // Depths
+                        var points = multiPoint.Geometries.Select(e => new Coordinate(e.Coordinate.X, e.Coordinate.Y)).ToArray();
+
+                        var depths = multiPoint.Geometries.Select(e => Math.Round(e.Coordinate.Z, 7)).ToArray();
+
+                        var hashId = System.IO.Hashing.XxHash32.HashToUInt32(new NetTopologySuite.Geometries.MultiPoint([.. multiPoint.Geometries.Select(e => new NetTopologySuite.Geometries.Point(e.Coordinate.X, e.Coordinate.Y, e.Coordinate.Z))]).ToBinary());
+
+                        var pointSet = new PointSet(points, depths) { Name = $"P{hashId}" };
+                        dataset.AddPointSet(pointSet);
+
+                        dataset?.UpdateFeatureReferences(name, $"P{hashId}"!);
+                        break;
+                    }
+                case NetTopologySuite.Geometries.MultiLineString:       // Curves are handled in Topology
+                case NetTopologySuite.Geometries.LineString:            // Curves are handled in Topology
+                case NetTopologySuite.Geometries.Polygon:               // Surfaces are handled in Topology
                     break;
                 default:
                     throw new ArgumentException($"Unsupported geometry type: {geometry.GeometryType}");
