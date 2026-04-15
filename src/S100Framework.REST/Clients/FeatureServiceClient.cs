@@ -51,12 +51,53 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
 
         var dto = await GetAsync<EsriServiceMetadataDto>(uri, cancellationToken);
 
+        var serviceCapabilities = ParseServiceCapabilities(
+    dto.Capabilities,
+    dto.SyncEnabled,
+    dto.AdvancedEditingCapabilities);
+
+        var extractChangesCapabilities = dto.ExtractChangesCapabilities is null
+            ? null
+            : new ExtractChangesCapabilities(
+                dto.ExtractChangesCapabilities.SupportsReturnIdsOnly ?? false,
+                dto.ExtractChangesCapabilities.SupportsReturnExtentOnly ?? false,
+                dto.ExtractChangesCapabilities.SupportsReturnAttachments ?? false,
+                dto.ExtractChangesCapabilities.SupportsLayerQueries ?? false,
+                dto.ExtractChangesCapabilities.SupportsGeometry ?? false,
+                dto.ExtractChangesCapabilities.SupportsReturnFeature ?? false,
+                dto.ExtractChangesCapabilities.SupportsFieldsToCompare ?? false,
+                dto.ExtractChangesCapabilities.SupportsServerGens ?? false,
+                dto.ExtractChangesCapabilities.SupportsReturnHasGeometryUpdates ?? false);
+
         return new FeatureServiceMetadata(
             _serviceUri,
             dto.Layers?.Select(MapDataset).ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
             dto.Tables?.Select(MapDataset).ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
             dto.Capabilities,
-            dto.MaxRecordCount);
+            dto.MaxRecordCount,
+            serviceCapabilities,
+            extractChangesCapabilities);
+    }
+
+    private static FeatureServiceCapabilities ParseServiceCapabilities(
+    string? capabilities,
+    bool? syncEnabled,
+    EsriAdvancedEditingCapabilitiesDto? advancedEditingCapabilities) {
+        var values = (capabilities ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return new FeatureServiceCapabilities(
+            SupportsQuery: values.Contains("Query"),
+            SupportsCreate: values.Contains("Create"),
+            SupportsUpdate: values.Contains("Update"),
+            SupportsDelete: values.Contains("Delete"),
+            SupportsEditing: values.Contains("Editing"),
+            SupportsUploads: values.Contains("Uploads"),
+            SupportsSync: values.Contains("Sync"),
+            SupportsChangeTracking: values.Contains("ChangeTracking"),
+            SyncEnabled: syncEnabled ?? false,
+            SupportsAsyncApplyEdits: advancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false);
     }
 
     public IFeatureLayerClient GetLayerClient(int layerId) {
@@ -119,16 +160,17 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.ObjectIdField,
             dto.Fields?.Select(MapField).ToArray() ?? Array.Empty<FeatureField>(),
             new FeatureLayerCapabilities(
-                dto.HasAttachments ?? false,
-                dto.SupportsQueryAttachments ?? false,
-                dto.SupportsAttachmentsResizing ?? false,
-                dto.SupportsTopFeaturesQuery ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsPagination ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsPaginationOnAggregatedQueries ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryRelatedPagination ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false),
+    dto.HasAttachments ?? false,
+    dto.SupportsQueryAttachments ?? false,
+    dto.SupportsAttachmentsResizing ?? false,
+    dto.SupportsTopFeaturesQuery ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsPagination ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsPaginationOnAggregatedQueries ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsQueryRelatedPagination ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
+    dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false),
             dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>());
     }
 

@@ -15,6 +15,15 @@ internal sealed class EsriServiceMetadataDto
 
     [JsonPropertyName("maxRecordCount")]
     public int? MaxRecordCount { get; init; }
+
+    [JsonPropertyName("syncEnabled")]
+    public bool? SyncEnabled { get; init; }
+
+    [JsonPropertyName("advancedEditingCapabilities")]
+    public EsriAdvancedEditingCapabilitiesDto? AdvancedEditingCapabilities { get; init; }
+
+    [JsonPropertyName("extractChangesCapabilities")]
+    public EsriExtractChangesCapabilitiesDto? ExtractChangesCapabilities { get; init; }
 }
 
 internal sealed class EsriDatasetDto
@@ -70,9 +79,19 @@ internal sealed class EsriLayerMetadataDto
     [JsonPropertyName("advancedQueryCapabilities")]
     public EsriAdvancedQueryCapabilitiesDto? AdvancedQueryCapabilities { get; init; }
 
+    [JsonPropertyName("advancedEditingCapabilities")]
+    public EsriAdvancedEditingCapabilitiesDto? AdvancedEditingCapabilities { get; init; }
+
     [JsonPropertyName("extent")]
     public EsriExtentDto? Extent { get; init; }
 }
+
+internal sealed class EsriAdvancedEditingCapabilitiesDto
+{
+    [JsonPropertyName("supportsAsyncApplyEdits")]
+    public bool? SupportsAsyncApplyEdits { get; init; }
+}
+
 
 internal sealed class EsriAdvancedQueryCapabilitiesDto
 {
@@ -150,4 +169,34 @@ internal sealed class EsriSpatialReferenceDto
 
     [JsonPropertyName("latestWkid")]
     public int? LatestWkid { get; init; }
+}
+
+internal sealed class EsriExtractChangesCapabilitiesDto
+{
+    [JsonPropertyName("supportsReturnIdsOnly")]
+    public bool? SupportsReturnIdsOnly { get; init; }
+
+    [JsonPropertyName("supportsReturnExtentOnly")]
+    public bool? SupportsReturnExtentOnly { get; init; }
+
+    [JsonPropertyName("supportsReturnAttachments")]
+    public bool? SupportsReturnAttachments { get; init; }
+
+    [JsonPropertyName("supportsLayerQueries")]
+    public bool? SupportsLayerQueries { get; init; }
+
+    [JsonPropertyName("supportsGeometry")]
+    public bool? SupportsGeometry { get; init; }
+
+    [JsonPropertyName("supportsReturnFeature")]
+    public bool? SupportsReturnFeature { get; init; }
+
+    [JsonPropertyName("supportsFieldsToCompare")]
+    public bool? SupportsFieldsToCompare { get; init; }
+
+    [JsonPropertyName("supportsServerGens")]
+    public bool? SupportsServerGens { get; init; }
+
+    [JsonPropertyName("supportsReturnHasGeometryUpdates")]
+    public bool? SupportsReturnHasGeometryUpdates { get; init; }
 }

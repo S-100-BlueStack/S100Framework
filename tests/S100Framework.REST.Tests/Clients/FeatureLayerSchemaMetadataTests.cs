@@ -49,6 +49,9 @@ public sealed class FeatureLayerSchemaMetadataTests
                     "supportsOrderBy": true,
                     "supportsDistinct": true
                   },
+                                  "advancedEditingCapabilities": {
+                  "supportsAsyncApplyEdits": true
+                },
                   "extent": {
                     "spatialReference": {
                       "wkid": 4326,
@@ -83,6 +86,7 @@ public sealed class FeatureLayerSchemaMetadataTests
         Assert.True(schema.Capabilities.SupportsAdvancedQueryRelated);
         Assert.True(schema.Capabilities.SupportsOrderBy);
         Assert.True(schema.Capabilities.SupportsDistinct);
+        Assert.True(schema.Capabilities.SupportsAsyncApplyEdits);
 
         Assert.Single(schema.Relationships);
         Assert.Equal(7, schema.Relationships[0].Id);

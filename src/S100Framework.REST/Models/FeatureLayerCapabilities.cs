@@ -10,4 +10,5 @@ public sealed record FeatureLayerCapabilities(
     bool SupportsQueryRelatedPagination,
     bool SupportsAdvancedQueryRelated,
     bool SupportsOrderBy,
-    bool SupportsDistinct);
+    bool SupportsDistinct,
+    bool SupportsAsyncApplyEdits);
