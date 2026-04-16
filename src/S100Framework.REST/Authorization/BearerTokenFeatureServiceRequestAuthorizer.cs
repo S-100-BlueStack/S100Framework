@@ -12,6 +12,11 @@ public sealed class BearerTokenFeatureServiceRequestAuthorizer : IFeatureService
         _tokenFactory = tokenFactory ?? throw new ArgumentNullException(nameof(tokenFactory));
     }
 
+    public BearerTokenFeatureServiceRequestAuthorizer(
+        IFeatureServiceAccessTokenProvider tokenProvider)
+        : this(CreateTokenFactory(tokenProvider)) {
+    }
+
     public async ValueTask ApplyAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken = default) {
@@ -22,5 +27,21 @@ public sealed class BearerTokenFeatureServiceRequestAuthorizer : IFeatureService
         }
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    private static Func<CancellationToken, ValueTask<string>> CreateTokenFactory(
+        IFeatureServiceAccessTokenProvider tokenProvider) {
+        ArgumentNullException.ThrowIfNull(tokenProvider);
+
+        return async cancellationToken => {
+            var accessToken = await tokenProvider.GetAccessTokenAsync(cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(accessToken.Token)) {
+                throw new InvalidOperationException(
+                    "The access token provider returned an empty token.");
+            }
+
+            return accessToken.Token;
+        };
     }
 }
