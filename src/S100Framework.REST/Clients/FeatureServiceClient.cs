@@ -148,6 +148,8 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 ? dto.Extent.SpatialReference.LatestWkid ?? dto.Extent.SpatialReference.Wkid
                 : dto.Extent.SpatialReference.Wkid ?? dto.Extent.SpatialReference.LatestWkid;
 
+        var supportsPagination = dto.AdvancedQueryCapabilities?.SupportsPagination ?? false;
+
         return new FeatureLayerSchema(
             dto.Id,
             dto.Name ?? $"Layer {dto.Id}",
@@ -155,33 +157,38 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             srid,
             dto.HasZ ?? false,
             dto.HasM ?? false,
-            dto.AdvancedQueryCapabilities?.SupportsPagination ?? false,
+            supportsPagination,
             dto.MaxRecordCount,
             dto.ObjectIdField,
             dto.Fields?.Select(MapField).ToArray() ?? Array.Empty<FeatureField>(),
             new FeatureLayerCapabilities(
-    dto.HasAttachments ?? false,
-    dto.SupportsQueryAttachments ?? false,
-    dto.SupportsAttachmentsResizing ?? false,
-    dto.SupportsTopFeaturesQuery ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsPagination ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsPaginationOnAggregatedQueries ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsQueryRelatedPagination ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
-    dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false),
+                dto.HasAttachments ?? false,
+                dto.SupportsQueryAttachments ?? false,
+                dto.SupportsAttachmentsResizing ?? false,
+                dto.SupportsTopFeaturesQuery ?? false,
+                supportsPagination,
+                dto.AdvancedQueryCapabilities?.SupportsPaginationOnAggregatedQueries ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsQueryRelatedPagination ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
+                dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false),
             dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>());
     }
 
     internal Task<EsriQueryResponseDto> QueryFeaturesAsync(
-        int layerId,
-        FeatureQuery query,
-        int? resultOffset,
-        int? resultRecordCount,
-        IReadOnlyList<long>? objectIds,
-        CancellationToken cancellationToken = default) {
+    int layerId,
+    FeatureQuery query,
+    int? resultOffset,
+    int? resultRecordCount,
+    IReadOnlyList<long>? objectIds,
+    CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+
+        ValidateFeatureQueryCommon(query);
+        ValidateFeatureQueryProjection(query);
+        ValidateFeatureQueryGeometryOptions(query);
+        ValidateFeatureQueryOutFields(query);
 
         var parameters = CreateCommonQueryParameters(query, includeOutSrid: true, includeGeometryOptions: true);
 
@@ -212,10 +219,12 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     }
 
     internal Task<EsriIdsResponseDto> QueryIdsAsync(
-        int layerId,
-        FeatureQuery query,
-        CancellationToken cancellationToken = default) {
+     int layerId,
+     FeatureQuery query,
+     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+
+        ValidateFeatureQueryCommon(query);
 
         var parameters = CreateCommonQueryParameters(query, includeOutSrid: false, includeGeometryOptions: false);
 
@@ -229,10 +238,12 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     }
 
     internal async Task<long> QueryCountAsync(
-        int layerId,
-        FeatureQuery query,
-        CancellationToken cancellationToken = default) {
+    int layerId,
+    FeatureQuery query,
+    CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+
+        ValidateFeatureQueryCommon(query);
 
         var parameters = CreateCommonQueryParameters(query, includeOutSrid: false, includeGeometryOptions: false);
 
@@ -248,10 +259,13 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     }
 
     internal async Task<FeatureExtent?> QueryExtentAsync(
-        int layerId,
-        FeatureQuery query,
-        CancellationToken cancellationToken = default) {
+    int layerId,
+    FeatureQuery query,
+    CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+
+        ValidateFeatureQueryCommon(query);
+        ValidateFeatureQueryProjection(query);
 
         var parameters = CreateCommonQueryParameters(query, includeOutSrid: true, includeGeometryOptions: false);
 
@@ -620,6 +634,33 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         }
     }
 
+    private static void ValidateFeatureQueryCommon(FeatureQuery query) {
+        if (query.OrderBy is not null && string.IsNullOrWhiteSpace(query.OrderBy)) {
+            throw new InvalidOperationException("OrderBy must not be empty when provided.");
+        }
+    }
+
+    private static void ValidateFeatureQueryProjection(FeatureQuery query) {
+        if (query.OutSrid is <= 0) {
+            throw new InvalidOperationException("OutSrid must be greater than zero when provided.");
+        }
+    }
+
+    private static void ValidateFeatureQueryGeometryOptions(FeatureQuery query) {
+        if (query.GeometryPrecision is < 0) {
+            throw new InvalidOperationException("GeometryPrecision must be greater than or equal to zero when provided.");
+        }
+
+        if (query.MaxAllowableOffset is < 0) {
+            throw new InvalidOperationException("MaxAllowableOffset must be greater than or equal to zero when provided.");
+        }
+    }
+
+    private static void ValidateFeatureQueryOutFields(FeatureQuery query) {
+        if (query.OutFields?.Any(static field => string.IsNullOrWhiteSpace(field)) == true) {
+            throw new InvalidOperationException("OutFields must not contain null, empty, or whitespace-only values.");
+        }
+    }
     private static Dictionary<string, string?> CreateCommonQueryParameters(
         FeatureQuery query,
         bool includeOutSrid,

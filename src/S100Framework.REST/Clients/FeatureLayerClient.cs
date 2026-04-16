@@ -43,14 +43,15 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     }
 
     public async IAsyncEnumerable<FeatureRecord> QueryAsync(
-        FeatureQuery query,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+    FeatureQuery query,
+    [EnumeratorCancellation] CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+        ValidateFeatureQueryPaging(query);
 
         var schema = await GetSchemaAsync(cancellationToken);
         var pageSize = ResolvePageSize(query, schema);
 
-        if (schema.SupportsPagination) {
+        if (schema.Capabilities.SupportsPagination) {
             await foreach (var record in QueryWithOffsetPaginationAsync(schema, query, pageSize, cancellationToken)) {
                 yield return record;
             }
@@ -375,6 +376,16 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             string stringValue when long.TryParse(stringValue, out var parsed) => parsed,
             _ => null
         };
+    }
+
+    private static void ValidateFeatureQueryPaging(FeatureQuery query) {
+        if (query.PageSize is <= 0) {
+            throw new InvalidOperationException("PageSize must be greater than zero when provided.");
+        }
+
+        if (query.Limit is <= 0) {
+            throw new InvalidOperationException("Limit must be greater than zero when provided.");
+        }
     }
 
     private int ResolvePageSize(FeatureQuery query, FeatureLayerSchema schema) {
