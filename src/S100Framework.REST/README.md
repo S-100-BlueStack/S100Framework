@@ -111,7 +111,24 @@ var client = new FeatureServiceClient(
 Authentication is intentionally handled through `HttpClient` and optional request authorizers.
 That keeps authentication concerns outside the query and edit models.
 
-### Windows SSO / integrated authentication
+The library supports three practical patterns:
+
+1. direct Windows / integrated authentication through `HttpClientHandler`
+2. direct bearer tokens
+3. token providers that fetch or exchange tokens for you
+
+### When to use which authentication style
+
+Use this as a rule of thumb:
+
+- If the Feature Service itself is available through Integrated Windows Authentication, configure `HttpClientHandler.UseDefaultCredentials = true` in the consuming application.
+- If you already have a token, use `BearerTokenFeatureServiceRequestAuthorizer` directly.
+- If you need the library to fetch or refresh a token, use an `IFeatureServiceAccessTokenProvider`.
+- If your Feature Service is federated behind Portal for ArcGIS, the common pattern is: **portal token -> server token exchange -> Feature Service requests**.
+
+### Direct Windows SSO / integrated authentication
+
+Use this only when the Feature Service endpoint itself accepts the current Windows identity through integrated authentication.
 
 ```csharp
 using S100Framework.REST.Clients;
@@ -132,7 +149,12 @@ var client = new FeatureServiceClient(
     });
 ```
 
-### Token-based authentication
+This is **not** the same as token-based access through a federated portal.
+If your service expects a token, `UseDefaultCredentials = true` is not enough by itself.
+
+### Direct bearer token
+
+If your application already has a token, pass it through a request authorizer.
 
 ```csharp
 using S100Framework.REST.Authorization;
@@ -153,7 +175,135 @@ var client = new FeatureServiceClient(
     authorizer);
 ```
 
+This is the simplest token-based setup.
+It is a good choice when another part of your application already handles login.
+
+### Static access token provider
+
+If you want to stay on the token-provider model even when you already have a token, use `StaticFeatureServiceAccessTokenProvider`.
+
+```csharp
+using S100Framework.REST.Authorization;
+using S100Framework.REST.Clients;
+using S100Framework.REST.Configuration;
+
+var tokenProvider = new StaticFeatureServiceAccessTokenProvider(
+    new FeatureServiceAccessToken(
+        "your-token",
+        DateTimeOffset.UtcNow.AddHours(1)));
+
+var authorizer = new BearerTokenFeatureServiceRequestAuthorizer(tokenProvider);
+
+using var httpClient = new HttpClient();
+
+var client = new FeatureServiceClient(
+    httpClient,
+    new FeatureServiceClientOptions
+    {
+        ServiceUri = new Uri("https://your-server/arcgis/rest/services/YourService/FeatureServer")
+    },
+    authorizer);
+```
+
+This is useful when you want one code path for both static tokens and future refreshable providers.
+
+### ArcGIS Server `generateToken`
+
+Use `ArcGisServerGenerateTokenProvider` when you are calling an ArcGIS Server token endpoint directly and you want the library to fetch and cache the token for you.
+
+```csharp
+using S100Framework.REST.Authorization;
+using S100Framework.REST.Clients;
+using S100Framework.REST.Configuration;
+
+using var serviceHttpClient = new HttpClient();
+using var tokenHttpClient = new HttpClient();
+
+using var tokenProvider = new ArcGisServerGenerateTokenProvider(
+    tokenHttpClient,
+    new ArcGisServerGenerateTokenOptions
+    {
+        TokenUri = new Uri("https://your-server/arcgis/tokens/generateToken"),
+        Username = "your-username",
+        Password = "your-password",
+        ClientType = ArcGisServerTokenClientType.Referer,
+        Referer = "https://your-app",
+        ExpirationMinutes = 60
+    });
+
+var authorizer = new BearerTokenFeatureServiceRequestAuthorizer(tokenProvider);
+
+var client = new FeatureServiceClient(
+    serviceHttpClient,
+    new FeatureServiceClientOptions
+    {
+        ServiceUri = new Uri("https://your-server/arcgis/rest/services/YourService/FeatureServer")
+    },
+    authorizer);
+```
+
+Use this pattern when the token source is ArcGIS Server itself.
+This provider caches the token and refreshes it before it expires.
+
+### Federated services behind Portal for ArcGIS
+
+If your Feature Service is federated behind Portal for ArcGIS, the typical flow is:
+
+1. get a **portal token**
+2. exchange it for a **server token**
+3. use the server token against the Feature Service
+
+That is what `PortalServerTokenExchangeProvider` is for.
+
+```csharp
+using S100Framework.REST.Authorization;
+using S100Framework.REST.Clients;
+using S100Framework.REST.Configuration;
+
+using var serviceHttpClient = new HttpClient();
+using var portalHttpClient = new HttpClient();
+
+var portalTokenProvider = new StaticFeatureServiceAccessTokenProvider(
+    new FeatureServiceAccessToken(
+        "portal-token-from-your-app",
+        DateTimeOffset.UtcNow.AddHours(1)));
+
+using var featureServiceTokenProvider = new PortalServerTokenExchangeProvider(
+    portalHttpClient,
+    portalTokenProvider,
+    new PortalServerTokenExchangeOptions
+    {
+        GenerateTokenUri = new Uri("https://portal.example.com/portal/sharing/rest/generateToken"),
+        ServerUrl = new Uri("https://server.example.com/server")
+    });
+
+var authorizer = new BearerTokenFeatureServiceRequestAuthorizer(featureServiceTokenProvider);
+
+var client = new FeatureServiceClient(
+    serviceHttpClient,
+    new FeatureServiceClientOptions
+    {
+        ServiceUri = new Uri("https://server.example.com/server/rest/services/MyService/FeatureServer")
+    },
+    authorizer);
+```
+
+In this setup, the library does **not** acquire the portal token itself.
+It expects another part of the application to provide that token.
+
+### What the library does not do
+
+The library currently does **not** handle these parts for you:
+
+- interactive portal login
+- OAuth browser flows
+- Portal for ArcGIS login through Windows / IWA
+- turning the current Windows session into a portal token automatically
+
+If you need one of those flows, handle it in the consuming application and then pass the resulting token into the library through a token provider.
+
 Do not hardcode secrets in source code.
+Use a secret store, secure local development configuration, or a runtime prompt in sample applications.
 
 ---
 
@@ -497,8 +647,6 @@ means roughly:
 
 > Give me changes for layer `0` since server generation `1653608093000`.
 
-This follows Esri's `extractChanges` contract, where requests can include `layerServerGens`, async jobs can return a `statusUrl`, and the response returns updated `layerServerGens` for the next request.
-
 ### Basic `extractChanges` example
 
 ```csharp
@@ -525,7 +673,7 @@ What to remember here:
 - `ReturnInserts`, `ReturnUpdates` and `ReturnDeletes` decide which change types you want
 - `DataFormat = Json` asks for a JSON result
 
-After a successful call, store the returned `layerServerGens` values if you want to continue incremental sync later. Esri documents `layerServerGens` both as request input and response output for this purpose.
+After a successful call, store the returned `layerServerGens` values if you want to continue incremental sync later.
 
 ### `extractChanges` with layer queries and geometry filter
 
@@ -572,7 +720,7 @@ What the extra fields mean:
 - `Where = "STATUS = 'Active'"` means only changes matching that layer filter are returned
 - `SpatialFilter` means only changes inside the given area are returned
 
-These options are capability-dependent and should only be used when the service advertises support for them. Esri documents dedicated capabilities for `layerQueries`, geometry filters, attachments, return IDs only, return extent only, server generations and field comparison.
+These options are capability-dependent and should only be used when the service advertises support for them.
 
 ### `extractChanges` with IDs only
 
@@ -617,12 +765,10 @@ var result = await client.ExtractChangesAsync(new ExtractChangesRequest
 });
 ```
 
-Esri documents `changesExtentGridCell` as an optimization that is only used when `returnExtentOnly=true`, and the allowed data format values are `json` and `sqllite`.
-
 ### Async `extractChanges`
 
 Some `extractChanges` requests are handled asynchronously.
-In that case the first response contains a `statusUrl` instead of the final data, and the job must be polled until completion. Esri documents this async flow explicitly.
+In that case the first response contains a `statusUrl` instead of the final data, and the job must be polled until completion.
 
 You can still use the low-level API directly:
 
@@ -714,14 +860,14 @@ In the .NET API you use:
 ExtractChangesDataFormat.Sqlite
 ```
 
-But Esri's REST parameter value is spelled:
+But the ArcGIS REST parameter value is spelled:
 
 ```text
 sqllite
 ```
 
-That spelling comes from the ArcGIS REST API itself.
-The library handles that mapping internally, so callers should keep using the .NET enum value `Sqlite`. Esri documents the REST parameter values as `sqllite` and `json`.
+That spelling comes from the REST API itself.
+The library handles that mapping internally, so callers should keep using the .NET enum value `Sqlite`.
 
 ---
 
@@ -871,6 +1017,7 @@ Other true-curve segment types are not yet supported.
 - `extractChanges` is mainly for incremental sync scenarios.
 - Async `extractChanges` SQLite results are downloaded as files.
 - The ArcGIS REST API uses the literal `sqllite` for the SQLite data format parameter. The library hides that detail behind `ExtractChangesDataFormat.Sqlite`.
+- Token acquisition for Portal for ArcGIS login is intentionally outside this package.
 
 ---
 
@@ -879,12 +1026,13 @@ Other true-curve segment types are not yet supported.
 If this is your first time using the package, read the sections in this order:
 
 1. Create a service client
-2. Get a layer client
-3. Get layer schema
-4. Basic feature query
-5. Editing features
-6. Attachments
-7. `extractChanges`
-8. Public Esri JSON converters
+2. Authentication
+3. Get a layer client
+4. Get layer schema
+5. Basic feature query
+6. Editing features
+7. Attachments
+8. `extractChanges`
+9. Public Esri JSON converters
 
 That gets the common cases out of the way before the more specialized sync scenarios.
