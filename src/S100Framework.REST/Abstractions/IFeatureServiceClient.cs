@@ -31,4 +31,16 @@ public interface IFeatureServiceClient
     Task<ExtractChangesFileResult> DownloadExtractChangesFileAsync(
         Uri resultUrl,
         CancellationToken cancellationToken = default);
+
+    Task<FeatureServiceApplyEditsSubmissionResult> SubmitApplyEditsAsync(
+    FeatureServiceEdits edits,
+    CancellationToken cancellationToken = default);
+
+    Task<ApplyEditsJobStatus> GetApplyEditsStatusAsync(
+        Uri statusUrl,
+        CancellationToken cancellationToken = default);
+
+    Task<FeatureServiceApplyEditsResult> GetApplyEditsResultAsync(
+        Uri resultUrl,
+        CancellationToken cancellationToken = default);
 }

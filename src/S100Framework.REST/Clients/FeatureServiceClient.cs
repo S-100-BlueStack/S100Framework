@@ -937,7 +937,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             StatusUrl: null);
     }
 
-    internal async Task<ApplyEditsJobStatus> GetApplyEditsStatusAsync(
+    internal async Task<ApplyEditsJobStatus> GetLayerApplyEditsStatusAsync(
         Uri statusUrl,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(statusUrl);
@@ -963,7 +963,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 : null);
     }
 
-    internal async Task<ApplyEditsResult> GetApplyEditsResultAsync(
+    internal async Task<ApplyEditsResult> GetLayerApplyEditsResultAsync(
         Uri resultUrl,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(resultUrl);
@@ -1027,20 +1027,116 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         ArgumentNullException.ThrowIfNull(edits);
         edits.Validate();
 
-        var parameters = new Dictionary<string, string?> {
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "applyEdits");
+        var dto = await PostFormAsync<List<EsriServiceLayerEditResultsDto>>(
+            endpointUri,
+            BuildServiceApplyEditsParameters(edits, applyAsync: false),
+            cancellationToken);
+
+        return MapServiceApplyEditsResult(dto);
+    }
+
+    public async Task<FeatureServiceApplyEditsSubmissionResult> SubmitApplyEditsAsync(
+        FeatureServiceEdits edits,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+        edits.Validate();
+
+        var metadata = await GetMetadataAsync(cancellationToken);
+
+        if (!metadata.Capabilities.SupportsAsyncApplyEdits) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support asynchronous applyEdits.");
+        }
+
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "applyEdits");
+        var document = await PostFormAsync<JsonDocument>(
+            endpointUri,
+            BuildServiceApplyEditsParameters(edits, applyAsync: true),
+            cancellationToken);
+
+        var root = document.RootElement;
+
+        if (root.TryGetProperty("statusUrl", out var statusUrlElement)) {
+            var rawStatusUrl = statusUrlElement.GetString();
+
+            if (string.IsNullOrWhiteSpace(rawStatusUrl)) {
+                throw new FeatureServiceException(
+                    "The server returned an empty statusUrl for applyEdits.",
+                    endpointUri);
+            }
+
+            return new FeatureServiceApplyEditsSubmissionResult(
+                Result: null,
+                StatusUrl: new Uri(rawStatusUrl, UriKind.Absolute));
+        }
+
+        return new FeatureServiceApplyEditsSubmissionResult(
+            Result: MapServiceApplyEditsResult(root, endpointUri),
+            StatusUrl: null);
+    }
+
+    public async Task<ApplyEditsJobStatus> GetApplyEditsStatusAsync(
+        Uri statusUrl,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        var document = await GetAsync<JsonDocument>(statusUrl, cancellationToken);
+        var root = document.RootElement;
+
+        return new ApplyEditsJobStatus(
+            Status: root.TryGetProperty("status", out var statusElement)
+                ? statusElement.GetString() ?? "Unknown"
+                : "Unknown",
+            ResultUrl: root.TryGetProperty("resultUrl", out var resultUrlElement) &&
+                       !string.IsNullOrWhiteSpace(resultUrlElement.GetString())
+                ? new Uri(resultUrlElement.GetString()!, UriKind.Absolute)
+                : null,
+            SubmissionTime: root.TryGetProperty("submissionTime", out var submissionTimeElement) &&
+                            submissionTimeElement.TryGetInt64(out var submissionTime)
+                ? submissionTime
+                : null,
+            LastUpdatedTime: root.TryGetProperty("lastUpdatedTime", out var lastUpdatedTimeElement) &&
+                             lastUpdatedTimeElement.TryGetInt64(out var lastUpdatedTime)
+                ? lastUpdatedTime
+                : null);
+    }
+
+    public async Task<FeatureServiceApplyEditsResult> GetApplyEditsResultAsync(
+        Uri resultUrl,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(resultUrl);
+
+        var document = await GetAsync<JsonDocument>(resultUrl, cancellationToken);
+
+        return MapServiceApplyEditsResult(document.RootElement, resultUrl);
+    }
+
+    private static Dictionary<string, string?> BuildServiceApplyEditsParameters(
+        FeatureServiceEdits edits,
+        bool applyAsync) {
+        return new Dictionary<string, string?> {
             ["f"] = "json",
             ["rollbackOnFailure"] = edits.RollbackOnFailure ? "true" : "false",
             ["useGlobalIds"] = edits.UseGlobalIds ? "true" : "false",
+            ["async"] = applyAsync ? "true" : null,
             ["edits"] = SerializeServiceEdits(edits)
         };
+    }
 
-        var endpointUri = UriUtility.AppendPath(_serviceUri, "applyEdits");
+    private static FeatureServiceApplyEditsResult MapServiceApplyEditsResult(
+        JsonElement root,
+        Uri endpointUri) {
+        var dto = root.Deserialize<List<EsriServiceLayerEditResultsDto>>(JsonOptions)
+            ?? throw new FeatureServiceException(
+                "The applyEdits payload could not be deserialized.",
+                endpointUri);
 
-        var dto = await PostFormAsync<List<EsriServiceLayerEditResultsDto>>(
-            endpointUri,
-            parameters,
-            cancellationToken);
+        return MapServiceApplyEditsResult(dto);
+    }
 
+    private static FeatureServiceApplyEditsResult MapServiceApplyEditsResult(
+        IReadOnlyList<EsriServiceLayerEditResultsDto>? dto) {
         return new FeatureServiceApplyEditsResult(
             dto?.Select(MapServiceLayerEditResults).ToArray() ?? Array.Empty<ServiceLayerEditResults>());
     }

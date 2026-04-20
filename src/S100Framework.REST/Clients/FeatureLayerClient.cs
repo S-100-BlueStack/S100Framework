@@ -586,7 +586,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(statusUrl);
 
-        return _serviceClient.GetApplyEditsStatusAsync(
+        return _serviceClient.GetLayerApplyEditsStatusAsync(
             statusUrl,
             cancellationToken);
     }
@@ -596,7 +596,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(resultUrl);
 
-        return _serviceClient.GetApplyEditsResultAsync(
+        return _serviceClient.GetLayerApplyEditsResultAsync(
             resultUrl,
             cancellationToken);
     }
