@@ -78,4 +78,14 @@ public interface IFeatureLayerClient
     Task<UpdateAttachmentResult> UpdateAttachmentAsync(
         UpdateAttachmentRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<ApplyEditsResult> WaitForApplyEditsCompletionAsync(
+    FeatureEdits edits,
+    ApplyEditsWaitOptions? options = null,
+    CancellationToken cancellationToken = default);
+
+    Task<ApplyEditsResult> WaitForApplyEditsCompletionAsync(
+        Uri statusUrl,
+        ApplyEditsWaitOptions? options = null,
+        CancellationToken cancellationToken = default);
 }

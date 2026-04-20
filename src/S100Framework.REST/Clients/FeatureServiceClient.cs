@@ -881,6 +881,47 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.Composite);
     }
 
+    internal async Task<ApplyEditsResult> WaitForLayerApplyEditsCompletionAsync(
+    int layerId,
+    FeatureEdits edits,
+    ApplyEditsWaitOptions? options = null,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+
+        var submission = await SubmitApplyEditsAsync(layerId, edits, cancellationToken);
+
+        if (submission.Result is not null) {
+            return submission.Result;
+        }
+
+        if (submission.StatusUrl is null) {
+            throw new FeatureServiceException(
+                "The applyEdits submission did not return a statusUrl or a result payload.",
+                UriUtility.AppendPath(
+                    _serviceUri,
+                    $"{layerId.ToString(CultureInfo.InvariantCulture)}/applyEdits"));
+        }
+
+        return await WaitForLayerApplyEditsCompletionAsync(
+            submission.StatusUrl,
+            options,
+            cancellationToken);
+    }
+
+    internal Task<ApplyEditsResult> WaitForLayerApplyEditsCompletionAsync(
+        Uri statusUrl,
+        ApplyEditsWaitOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        return WaitForApplyEditsJobCompletionAsync(
+            statusUrl,
+            options,
+            GetLayerApplyEditsStatusAsync,
+            GetLayerApplyEditsResultAsync,
+            cancellationToken);
+    }
+
     internal async Task<ApplyEditsResult> ApplyEditsAsync(
     int layerId,
     FeatureEdits edits,
@@ -991,6 +1032,74 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 ? string.Join(",", edits.Deletes)
                 : null
         };
+    }
+
+    private async Task<TResult> WaitForApplyEditsJobCompletionAsync<TResult>(
+    Uri statusUrl,
+    ApplyEditsWaitOptions? options,
+    Func<Uri, CancellationToken, Task<ApplyEditsJobStatus>> getStatusAsync,
+    Func<Uri, CancellationToken, Task<TResult>> getResultAsync,
+    CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+        ArgumentNullException.ThrowIfNull(getStatusAsync);
+        ArgumentNullException.ThrowIfNull(getResultAsync);
+
+        var effectiveOptions = GetValidatedApplyEditsWaitOptions(options);
+        var startedAt = DateTimeOffset.UtcNow;
+
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var status = await getStatusAsync(statusUrl, cancellationToken);
+
+            if (status.IsCompleted) {
+                if (status.ResultUrl is null) {
+                    throw new FeatureServiceException(
+                        "The applyEdits job completed without a resultUrl.",
+                        statusUrl);
+                }
+
+                return await getResultAsync(status.ResultUrl, cancellationToken);
+            }
+
+            if (status.IsTerminal) {
+                throw new FeatureServiceException(
+                    $"The applyEdits job ended with terminal status '{status.Status}'.",
+                    statusUrl);
+            }
+
+            if (effectiveOptions.Timeout is { } timeout &&
+                DateTimeOffset.UtcNow - startedAt >= timeout) {
+                throw new TimeoutException(
+                    $"The applyEdits job did not complete within {timeout}.");
+            }
+
+            if (effectiveOptions.PollInterval > TimeSpan.Zero) {
+                await Task.Delay(effectiveOptions.PollInterval, cancellationToken);
+            }
+            else {
+                await Task.Yield();
+            }
+        }
+    }
+
+    private static ApplyEditsWaitOptions GetValidatedApplyEditsWaitOptions(
+        ApplyEditsWaitOptions? options) {
+        var effectiveOptions = options ?? new ApplyEditsWaitOptions();
+
+        if (effectiveOptions.PollInterval < TimeSpan.Zero) {
+            throw new ArgumentOutOfRangeException(
+                nameof(ApplyEditsWaitOptions.PollInterval),
+                "PollInterval cannot be negative.");
+        }
+
+        if (effectiveOptions.Timeout is { } timeout && timeout < TimeSpan.Zero) {
+            throw new ArgumentOutOfRangeException(
+                nameof(ApplyEditsWaitOptions.Timeout),
+                "Timeout cannot be negative.");
+        }
+
+        return effectiveOptions;
     }
 
     private static ApplyEditsResult MapApplyEditsResult(
@@ -1186,6 +1295,44 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.AddResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
             dto.UpdateResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
             dto.DeleteResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>());
+    }
+
+    public async Task<FeatureServiceApplyEditsResult> WaitForApplyEditsCompletionAsync(
+    FeatureServiceEdits edits,
+    ApplyEditsWaitOptions? options = null,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+
+        var submission = await SubmitApplyEditsAsync(edits, cancellationToken);
+
+        if (submission.Result is not null) {
+            return submission.Result;
+        }
+
+        if (submission.StatusUrl is null) {
+            throw new FeatureServiceException(
+                "The applyEdits submission did not return a statusUrl or a result payload.",
+                UriUtility.AppendPath(_serviceUri, "applyEdits"));
+        }
+
+        return await WaitForApplyEditsCompletionAsync(
+            submission.StatusUrl,
+            options,
+            cancellationToken);
+    }
+
+    public Task<FeatureServiceApplyEditsResult> WaitForApplyEditsCompletionAsync(
+        Uri statusUrl,
+        ApplyEditsWaitOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        return WaitForApplyEditsJobCompletionAsync(
+            statusUrl,
+            options,
+            GetApplyEditsStatusAsync,
+            GetApplyEditsResultAsync,
+            cancellationToken);
     }
 
     internal async Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(

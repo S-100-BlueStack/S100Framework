@@ -601,6 +601,31 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             cancellationToken);
     }
 
+    public Task<ApplyEditsResult> WaitForApplyEditsCompletionAsync(
+    FeatureEdits edits,
+    ApplyEditsWaitOptions? options = null,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+
+        return _serviceClient.WaitForLayerApplyEditsCompletionAsync(
+            _layerId,
+            edits,
+            options,
+            cancellationToken);
+    }
+
+    public Task<ApplyEditsResult> WaitForApplyEditsCompletionAsync(
+        Uri statusUrl,
+        ApplyEditsWaitOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        return _serviceClient.WaitForLayerApplyEditsCompletionAsync(
+            statusUrl,
+            options,
+            cancellationToken);
+    }
+
     public async Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(
     DeleteAttachmentsRequest request,
     CancellationToken cancellationToken = default) {

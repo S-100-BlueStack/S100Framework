@@ -43,4 +43,14 @@ public interface IFeatureServiceClient
     Task<FeatureServiceApplyEditsResult> GetApplyEditsResultAsync(
         Uri resultUrl,
         CancellationToken cancellationToken = default);
+
+    Task<FeatureServiceApplyEditsResult> WaitForApplyEditsCompletionAsync(
+    FeatureServiceEdits edits,
+    ApplyEditsWaitOptions? options = null,
+    CancellationToken cancellationToken = default);
+
+    Task<FeatureServiceApplyEditsResult> WaitForApplyEditsCompletionAsync(
+        Uri statusUrl,
+        ApplyEditsWaitOptions? options = null,
+        CancellationToken cancellationToken = default);
 }
