@@ -568,19 +568,16 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         return _serviceClient.ApplyEditsAsync(_layerId, edits, cancellationToken);
     }
 
-    public async Task<ApplyEditsSubmissionResult> SubmitApplyEditsAsync(
+    /// <inheritdoc />
+    public Task<ApplyEditsSubmissionResult> SubmitApplyEditsAsync(
         FeatureEdits edits,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(edits);
 
-        await EnsureAsyncApplyEditsSupportedAsync(cancellationToken);
-
-        return await _serviceClient.SubmitApplyEditsAsync(
-            _layerId,
-            edits,
-            cancellationToken);
+        return _serviceClient.SubmitApplyEditsAsync(_layerId, edits, cancellationToken);
     }
 
+    /// <inheritdoc />
     public Task<ApplyEditsJobStatus> GetApplyEditsStatusAsync(
         Uri statusUrl,
         CancellationToken cancellationToken = default) {
@@ -591,6 +588,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             cancellationToken);
     }
 
+    /// <inheritdoc />
     public Task<ApplyEditsResult> GetApplyEditsResultAsync(
         Uri resultUrl,
         CancellationToken cancellationToken = default) {
@@ -601,10 +599,11 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             cancellationToken);
     }
 
+    /// <inheritdoc />
     public Task<ApplyEditsResult> WaitForApplyEditsCompletionAsync(
-    FeatureEdits edits,
-    ApplyEditsWaitOptions? options = null,
-    CancellationToken cancellationToken = default) {
+        FeatureEdits edits,
+        ApplyEditsWaitOptions? options = null,
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(edits);
 
         return _serviceClient.WaitForLayerApplyEditsCompletionAsync(
@@ -614,6 +613,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             cancellationToken);
     }
 
+    /// <inheritdoc />
     public Task<ApplyEditsResult> WaitForApplyEditsCompletionAsync(
         Uri statusUrl,
         ApplyEditsWaitOptions? options = null,

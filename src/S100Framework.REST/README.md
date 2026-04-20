@@ -556,7 +556,7 @@ var result = await layerClient.DeleteAttachmentsAsync(new DeleteAttachmentsReque
 
 ### Layer-level `applyEdits`
 
-Use this when you are editing one layer.
+Use this when you are editing one layer and want the server to complete the request in a single call.
 
 ```csharp
 using NetTopologySuite.Geometries;
@@ -578,9 +578,9 @@ var result = await layerClient.ApplyEditsAsync(new FeatureEdits
 });
 ```
 
-### Service-level `applyEdits`
+### Layer-level async `applyEdits` with manual submit/status/result
 
-Use this when you need one request that touches multiple layers.
+Use this when you want explicit control over polling, logging, retry behavior, or timeout handling.
 
 ```csharp
 using NetTopologySuite.Geometries;
@@ -588,26 +588,195 @@ using S100Framework.REST.Models;
 
 var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
-var result = await client.ApplyEditsAsync(new FeatureServiceEdits
+var submission = await layerClient.SubmitApplyEditsAsync(new FeatureEdits
 {
-    LayerEdits =
+    Adds =
     [
-        new FeatureServiceLayerEdits(
-            LayerId: 0,
-            Edits: new FeatureEdits
+        new EditableFeature(
+            geometryFactory.CreatePoint(new Coordinate(12.34, 56.78)),
+            new Dictionary<string, object?>
             {
-                Adds =
-                [
-                    new EditableFeature(
-                        geometryFactory.CreatePoint(new Coordinate(12.34, 56.78)),
-                        new Dictionary<string, object?>
-                        {
-                            ["NAME"] = "New harbor"
-                        })
-                ]
+                ["NAME"] = "New harbor"
             })
     ]
 });
+
+ApplyEditsResult result;
+
+if (submission.Result is not null)
+{
+    result = submission.Result;
+}
+else
+{
+    if (submission.StatusUrl is null)
+    {
+        throw new InvalidOperationException("The server did not return a result or a status URL.");
+    }
+
+    while (true)
+    {
+        var status = await layerClient.GetApplyEditsStatusAsync(submission.StatusUrl);
+
+        if (status.IsCompleted && status.ResultUrl is not null)
+        {
+            result = await layerClient.GetApplyEditsResultAsync(status.ResultUrl);
+            break;
+        }
+
+        if (status.IsTerminal)
+        {
+            throw new InvalidOperationException(
+                $"applyEdits ended with terminal status '{status.Status}'.");
+        }
+
+        await Task.Delay(TimeSpan.FromSeconds(2));
+    }
+}
+```
+
+### Layer-level async `applyEdits` with wait helper
+
+Use this when you want a simpler API and the default polling flow is good enough.
+
+```csharp
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Models;
+
+var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+
+var result = await layerClient.WaitForApplyEditsCompletionAsync(
+    new FeatureEdits
+    {
+        Adds =
+        [
+            new EditableFeature(
+                geometryFactory.CreatePoint(new Coordinate(12.34, 56.78)),
+                new Dictionary<string, object?>
+                {
+                    ["NAME"] = "New harbor"
+                })
+        ]
+    },
+    new ApplyEditsWaitOptions
+    {
+        PollInterval = TimeSpan.FromSeconds(2),
+        Timeout = TimeSpan.FromMinutes(1)
+    });
+```
+
+### Service-level `applyEdits`
+
+Use this when you need one request that touches multiple layers and want the server to complete the request in a single call.
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await client.ApplyEditsAsync(new FeatureServiceEdits
+{
+    Layers =
+    [
+        new ServiceLayerEdits
+        {
+            LayerId = 0,
+            DeleteObjectIds = [101]
+        },
+        new ServiceLayerEdits
+        {
+            LayerId = 1,
+            DeleteObjectIds = [202]
+        }
+    ]
+});
+```
+
+### Service-level async `applyEdits` with manual submit/status/result
+
+Use this when you need one request across multiple layers and want explicit control over polling.
+
+```csharp
+using S100Framework.REST.Models;
+
+var submission = await client.SubmitApplyEditsAsync(new FeatureServiceEdits
+{
+    Layers =
+    [
+        new ServiceLayerEdits
+        {
+            LayerId = 0,
+            DeleteObjectIds = [101]
+        },
+        new ServiceLayerEdits
+        {
+            LayerId = 1,
+            DeleteObjectIds = [202]
+        }
+    ]
+});
+
+FeatureServiceApplyEditsResult result;
+
+if (submission.Result is not null)
+{
+    result = submission.Result;
+}
+else
+{
+    if (submission.StatusUrl is null)
+    {
+        throw new InvalidOperationException("The server did not return a result or a status URL.");
+    }
+
+    while (true)
+    {
+        var status = await client.GetApplyEditsStatusAsync(submission.StatusUrl);
+
+        if (status.IsCompleted && status.ResultUrl is not null)
+        {
+            result = await client.GetApplyEditsResultAsync(status.ResultUrl);
+            break;
+        }
+
+        if (status.IsTerminal)
+        {
+            throw new InvalidOperationException(
+                $"applyEdits ended with terminal status '{status.Status}'.");
+        }
+
+        await Task.Delay(TimeSpan.FromSeconds(2));
+    }
+}
+```
+
+### Service-level async `applyEdits` with wait helper
+
+Use this when you want one multi-layer call and the built-in polling behavior is sufficient.
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await client.WaitForApplyEditsCompletionAsync(
+    new FeatureServiceEdits
+    {
+        Layers =
+        [
+            new ServiceLayerEdits
+            {
+                LayerId = 0,
+                DeleteObjectIds = [101]
+            },
+            new ServiceLayerEdits
+            {
+                LayerId = 1,
+                DeleteObjectIds = [202]
+            }
+        ]
+    },
+    new ApplyEditsWaitOptions
+    {
+        PollInterval = TimeSpan.FromSeconds(2),
+        Timeout = TimeSpan.FromMinutes(1)
+    });
 ```
 
 ---

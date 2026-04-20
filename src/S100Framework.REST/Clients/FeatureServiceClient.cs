@@ -1145,6 +1145,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         return MapServiceApplyEditsResult(dto);
     }
 
+    /// <inheritdoc />
     public async Task<FeatureServiceApplyEditsSubmissionResult> SubmitApplyEditsAsync(
         FeatureServiceEdits edits,
         CancellationToken cancellationToken = default) {
@@ -1185,6 +1186,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             StatusUrl: null);
     }
 
+    /// <inheritdoc />
     public async Task<ApplyEditsJobStatus> GetApplyEditsStatusAsync(
         Uri statusUrl,
         CancellationToken cancellationToken = default) {
@@ -1211,6 +1213,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 : null);
     }
 
+    /// <inheritdoc />
     public async Task<FeatureServiceApplyEditsResult> GetApplyEditsResultAsync(
         Uri resultUrl,
         CancellationToken cancellationToken = default) {
@@ -1297,6 +1300,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.DeleteResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>());
     }
 
+    /// <inheritdoc />
     public async Task<FeatureServiceApplyEditsResult> WaitForApplyEditsCompletionAsync(
     FeatureServiceEdits edits,
     ApplyEditsWaitOptions? options = null,
@@ -1321,6 +1325,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             cancellationToken);
     }
 
+    /// <inheritdoc />
     public Task<FeatureServiceApplyEditsResult> WaitForApplyEditsCompletionAsync(
         Uri statusUrl,
         ApplyEditsWaitOptions? options = null,
