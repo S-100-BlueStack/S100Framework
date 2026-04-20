@@ -148,6 +148,8 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 ? dto.Extent.SpatialReference.LatestWkid ?? dto.Extent.SpatialReference.Wkid
                 : dto.Extent.SpatialReference.Wkid ?? dto.Extent.SpatialReference.LatestWkid;
 
+        var supportsPagination = dto.AdvancedQueryCapabilities?.SupportsPagination ?? false;
+
         return new FeatureLayerSchema(
             dto.Id,
             dto.Name ?? $"Layer {dto.Id}",
@@ -155,33 +157,37 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             srid,
             dto.HasZ ?? false,
             dto.HasM ?? false,
-            dto.AdvancedQueryCapabilities?.SupportsPagination ?? false,
             dto.MaxRecordCount,
             dto.ObjectIdField,
             dto.Fields?.Select(MapField).ToArray() ?? Array.Empty<FeatureField>(),
             new FeatureLayerCapabilities(
-    dto.HasAttachments ?? false,
-    dto.SupportsQueryAttachments ?? false,
-    dto.SupportsAttachmentsResizing ?? false,
-    dto.SupportsTopFeaturesQuery ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsPagination ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsPaginationOnAggregatedQueries ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsQueryRelatedPagination ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
-    dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false),
+                dto.HasAttachments ?? false,
+                dto.SupportsQueryAttachments ?? false,
+                dto.SupportsAttachmentsResizing ?? false,
+                dto.SupportsTopFeaturesQuery ?? false,
+                supportsPagination,
+                dto.AdvancedQueryCapabilities?.SupportsPaginationOnAggregatedQueries ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsQueryRelatedPagination ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
+                dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false),
             dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>());
     }
 
     internal Task<EsriQueryResponseDto> QueryFeaturesAsync(
-        int layerId,
-        FeatureQuery query,
-        int? resultOffset,
-        int? resultRecordCount,
-        IReadOnlyList<long>? objectIds,
-        CancellationToken cancellationToken = default) {
+    int layerId,
+    FeatureQuery query,
+    int? resultOffset,
+    int? resultRecordCount,
+    IReadOnlyList<long>? objectIds,
+    CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+
+        ValidateFeatureQueryCommon(query);
+        ValidateFeatureQueryProjection(query);
+        ValidateFeatureQueryGeometryOptions(query);
+        ValidateFeatureQueryOutFields(query);
 
         var parameters = CreateCommonQueryParameters(query, includeOutSrid: true, includeGeometryOptions: true);
 
@@ -212,10 +218,12 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     }
 
     internal Task<EsriIdsResponseDto> QueryIdsAsync(
-        int layerId,
-        FeatureQuery query,
-        CancellationToken cancellationToken = default) {
+     int layerId,
+     FeatureQuery query,
+     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+
+        ValidateFeatureQueryCommon(query);
 
         var parameters = CreateCommonQueryParameters(query, includeOutSrid: false, includeGeometryOptions: false);
 
@@ -229,10 +237,12 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     }
 
     internal async Task<long> QueryCountAsync(
-        int layerId,
-        FeatureQuery query,
-        CancellationToken cancellationToken = default) {
+    int layerId,
+    FeatureQuery query,
+    CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+
+        ValidateFeatureQueryCommon(query);
 
         var parameters = CreateCommonQueryParameters(query, includeOutSrid: false, includeGeometryOptions: false);
 
@@ -248,10 +258,13 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     }
 
     internal async Task<FeatureExtent?> QueryExtentAsync(
-        int layerId,
-        FeatureQuery query,
-        CancellationToken cancellationToken = default) {
+    int layerId,
+    FeatureQuery query,
+    CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+
+        ValidateFeatureQueryCommon(query);
+        ValidateFeatureQueryProjection(query);
 
         var parameters = CreateCommonQueryParameters(query, includeOutSrid: true, includeGeometryOptions: false);
 
@@ -620,6 +633,33 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         }
     }
 
+    private static void ValidateFeatureQueryCommon(FeatureQuery query) {
+        if (query.OrderBy is not null && string.IsNullOrWhiteSpace(query.OrderBy)) {
+            throw new InvalidOperationException("OrderBy must not be empty when provided.");
+        }
+    }
+
+    private static void ValidateFeatureQueryProjection(FeatureQuery query) {
+        if (query.OutSrid is <= 0) {
+            throw new InvalidOperationException("OutSrid must be greater than zero when provided.");
+        }
+    }
+
+    private static void ValidateFeatureQueryGeometryOptions(FeatureQuery query) {
+        if (query.GeometryPrecision is < 0) {
+            throw new InvalidOperationException("GeometryPrecision must be greater than or equal to zero when provided.");
+        }
+
+        if (query.MaxAllowableOffset is < 0) {
+            throw new InvalidOperationException("MaxAllowableOffset must be greater than or equal to zero when provided.");
+        }
+    }
+
+    private static void ValidateFeatureQueryOutFields(FeatureQuery query) {
+        if (query.OutFields?.Any(static field => string.IsNullOrWhiteSpace(field)) == true) {
+            throw new InvalidOperationException("OutFields must not contain null, empty, or whitespace-only values.");
+        }
+    }
     private static Dictionary<string, string?> CreateCommonQueryParameters(
         FeatureQuery query,
         bool includeOutSrid,
@@ -841,6 +881,47 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.Composite);
     }
 
+    internal async Task<ApplyEditsResult> WaitForLayerApplyEditsCompletionAsync(
+    int layerId,
+    FeatureEdits edits,
+    ApplyEditsWaitOptions? options = null,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+
+        var submission = await SubmitApplyEditsAsync(layerId, edits, cancellationToken);
+
+        if (submission.Result is not null) {
+            return submission.Result;
+        }
+
+        if (submission.StatusUrl is null) {
+            throw new FeatureServiceException(
+                "The applyEdits submission did not return a statusUrl or a result payload.",
+                UriUtility.AppendPath(
+                    _serviceUri,
+                    $"{layerId.ToString(CultureInfo.InvariantCulture)}/applyEdits"));
+        }
+
+        return await WaitForLayerApplyEditsCompletionAsync(
+            submission.StatusUrl,
+            options,
+            cancellationToken);
+    }
+
+    internal Task<ApplyEditsResult> WaitForLayerApplyEditsCompletionAsync(
+        Uri statusUrl,
+        ApplyEditsWaitOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        return WaitForApplyEditsJobCompletionAsync(
+            statusUrl,
+            options,
+            GetLayerApplyEditsStatusAsync,
+            GetLayerApplyEditsResultAsync,
+            cancellationToken);
+    }
+
     internal async Task<ApplyEditsResult> ApplyEditsAsync(
     int layerId,
     FeatureEdits edits,
@@ -848,10 +929,99 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         ArgumentNullException.ThrowIfNull(edits);
         edits.Validate();
 
-        var parameters = new Dictionary<string, string?> {
+        var endpointUri = UriUtility.AppendPath(
+            _serviceUri,
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/applyEdits");
+
+        var dto = await PostFormAsync<EsriApplyEditsResponseDto>(
+            endpointUri,
+            BuildLayerApplyEditsParameters(edits, applyAsync: false),
+            cancellationToken);
+
+        return MapApplyEditsResult(dto);
+    }
+
+    internal async Task<ApplyEditsSubmissionResult> SubmitApplyEditsAsync(
+        int layerId,
+        FeatureEdits edits,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+        edits.Validate();
+
+        var endpointUri = UriUtility.AppendPath(
+            _serviceUri,
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/applyEdits");
+
+        var document = await PostFormAsync<JsonDocument>(
+            endpointUri,
+            BuildLayerApplyEditsParameters(edits, applyAsync: true),
+            cancellationToken);
+
+        var root = document.RootElement;
+
+        if (root.TryGetProperty("statusUrl", out var statusUrlElement)) {
+            var rawStatusUrl = statusUrlElement.GetString();
+
+            if (string.IsNullOrWhiteSpace(rawStatusUrl)) {
+                throw new FeatureServiceException(
+                    "The server returned an empty statusUrl for applyEdits.",
+                    endpointUri);
+            }
+
+            return new ApplyEditsSubmissionResult(
+                Result: null,
+                StatusUrl: new Uri(rawStatusUrl, UriKind.Absolute));
+        }
+
+        return new ApplyEditsSubmissionResult(
+            Result: MapApplyEditsResult(root, endpointUri),
+            StatusUrl: null);
+    }
+
+    internal async Task<ApplyEditsJobStatus> GetLayerApplyEditsStatusAsync(
+        Uri statusUrl,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        var document = await GetAsync<JsonDocument>(statusUrl, cancellationToken);
+        var root = document.RootElement;
+
+        return new ApplyEditsJobStatus(
+            Status: root.TryGetProperty("status", out var statusElement)
+                ? statusElement.GetString() ?? "Unknown"
+                : "Unknown",
+            ResultUrl: root.TryGetProperty("resultUrl", out var resultUrlElement) &&
+                       !string.IsNullOrWhiteSpace(resultUrlElement.GetString())
+                ? new Uri(resultUrlElement.GetString()!, UriKind.Absolute)
+                : null,
+            SubmissionTime: root.TryGetProperty("submissionTime", out var submissionTimeElement) &&
+                            submissionTimeElement.TryGetInt64(out var submissionTime)
+                ? submissionTime
+                : null,
+            LastUpdatedTime: root.TryGetProperty("lastUpdatedTime", out var lastUpdatedTimeElement) &&
+                             lastUpdatedTimeElement.TryGetInt64(out var lastUpdatedTime)
+                ? lastUpdatedTime
+                : null);
+    }
+
+    internal async Task<ApplyEditsResult> GetLayerApplyEditsResultAsync(
+        Uri resultUrl,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(resultUrl);
+
+        var document = await GetAsync<JsonDocument>(resultUrl, cancellationToken);
+
+        return MapApplyEditsResult(document.RootElement, resultUrl);
+    }
+
+    private static Dictionary<string, string?> BuildLayerApplyEditsParameters(
+        FeatureEdits edits,
+        bool applyAsync) {
+        return new Dictionary<string, string?> {
             ["f"] = "json",
             ["rollbackOnFailure"] = edits.RollbackOnFailure ? "true" : "false",
             ["useGlobalIds"] = edits.UseGlobalIds ? "true" : "false",
+            ["async"] = applyAsync ? "true" : null,
             ["adds"] = edits.Adds is { Count: > 0 }
                 ? EsriEditGeometryWriter.WriteFeatures(edits.Adds)
                 : null,
@@ -862,16 +1032,89 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 ? string.Join(",", edits.Deletes)
                 : null
         };
+    }
 
-        var endpointUri = UriUtility.AppendPath(
-            _serviceUri,
-            $"{layerId.ToString(CultureInfo.InvariantCulture)}/applyEdits");
+    private async Task<TResult> WaitForApplyEditsJobCompletionAsync<TResult>(
+    Uri statusUrl,
+    ApplyEditsWaitOptions? options,
+    Func<Uri, CancellationToken, Task<ApplyEditsJobStatus>> getStatusAsync,
+    Func<Uri, CancellationToken, Task<TResult>> getResultAsync,
+    CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+        ArgumentNullException.ThrowIfNull(getStatusAsync);
+        ArgumentNullException.ThrowIfNull(getResultAsync);
 
-        var dto = await PostFormAsync<EsriApplyEditsResponseDto>(
-            endpointUri,
-            parameters,
-            cancellationToken);
+        var effectiveOptions = GetValidatedApplyEditsWaitOptions(options);
+        var startedAt = DateTimeOffset.UtcNow;
 
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var status = await getStatusAsync(statusUrl, cancellationToken);
+
+            if (status.IsCompleted) {
+                if (status.ResultUrl is null) {
+                    throw new FeatureServiceException(
+                        "The applyEdits job completed without a resultUrl.",
+                        statusUrl);
+                }
+
+                return await getResultAsync(status.ResultUrl, cancellationToken);
+            }
+
+            if (status.IsTerminal) {
+                throw new FeatureServiceException(
+                    $"The applyEdits job ended with terminal status '{status.Status}'.",
+                    statusUrl);
+            }
+
+            if (effectiveOptions.Timeout is { } timeout &&
+                DateTimeOffset.UtcNow - startedAt >= timeout) {
+                throw new TimeoutException(
+                    $"The applyEdits job did not complete within {timeout}.");
+            }
+
+            if (effectiveOptions.PollInterval > TimeSpan.Zero) {
+                await Task.Delay(effectiveOptions.PollInterval, cancellationToken);
+            }
+            else {
+                await Task.Yield();
+            }
+        }
+    }
+
+    private static ApplyEditsWaitOptions GetValidatedApplyEditsWaitOptions(
+        ApplyEditsWaitOptions? options) {
+        var effectiveOptions = options ?? new ApplyEditsWaitOptions();
+
+        if (effectiveOptions.PollInterval < TimeSpan.Zero) {
+            throw new ArgumentOutOfRangeException(
+                nameof(ApplyEditsWaitOptions.PollInterval),
+                "PollInterval cannot be negative.");
+        }
+
+        if (effectiveOptions.Timeout is { } timeout && timeout < TimeSpan.Zero) {
+            throw new ArgumentOutOfRangeException(
+                nameof(ApplyEditsWaitOptions.Timeout),
+                "Timeout cannot be negative.");
+        }
+
+        return effectiveOptions;
+    }
+
+    private static ApplyEditsResult MapApplyEditsResult(
+        JsonElement root,
+        Uri endpointUri) {
+        var dto = root.Deserialize<EsriApplyEditsResponseDto>(JsonOptions)
+            ?? throw new FeatureServiceException(
+                "The applyEdits payload could not be deserialized.",
+                endpointUri);
+
+        return MapApplyEditsResult(dto);
+    }
+
+    private static ApplyEditsResult MapApplyEditsResult(
+        EsriApplyEditsResponseDto dto) {
         return new ApplyEditsResult(
             dto.AddResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
             dto.UpdateResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
@@ -893,20 +1136,119 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         ArgumentNullException.ThrowIfNull(edits);
         edits.Validate();
 
-        var parameters = new Dictionary<string, string?> {
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "applyEdits");
+        var dto = await PostFormAsync<List<EsriServiceLayerEditResultsDto>>(
+            endpointUri,
+            BuildServiceApplyEditsParameters(edits, applyAsync: false),
+            cancellationToken);
+
+        return MapServiceApplyEditsResult(dto);
+    }
+
+    /// <inheritdoc />
+    public async Task<FeatureServiceApplyEditsSubmissionResult> SubmitApplyEditsAsync(
+        FeatureServiceEdits edits,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+        edits.Validate();
+
+        var metadata = await GetMetadataAsync(cancellationToken);
+
+        if (!metadata.Capabilities.SupportsAsyncApplyEdits) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support asynchronous applyEdits.");
+        }
+
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "applyEdits");
+        var document = await PostFormAsync<JsonDocument>(
+            endpointUri,
+            BuildServiceApplyEditsParameters(edits, applyAsync: true),
+            cancellationToken);
+
+        var root = document.RootElement;
+
+        if (root.TryGetProperty("statusUrl", out var statusUrlElement)) {
+            var rawStatusUrl = statusUrlElement.GetString();
+
+            if (string.IsNullOrWhiteSpace(rawStatusUrl)) {
+                throw new FeatureServiceException(
+                    "The server returned an empty statusUrl for applyEdits.",
+                    endpointUri);
+            }
+
+            return new FeatureServiceApplyEditsSubmissionResult(
+                Result: null,
+                StatusUrl: new Uri(rawStatusUrl, UriKind.Absolute));
+        }
+
+        return new FeatureServiceApplyEditsSubmissionResult(
+            Result: MapServiceApplyEditsResult(root, endpointUri),
+            StatusUrl: null);
+    }
+
+    /// <inheritdoc />
+    public async Task<ApplyEditsJobStatus> GetApplyEditsStatusAsync(
+        Uri statusUrl,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        var document = await GetAsync<JsonDocument>(statusUrl, cancellationToken);
+        var root = document.RootElement;
+
+        return new ApplyEditsJobStatus(
+            Status: root.TryGetProperty("status", out var statusElement)
+                ? statusElement.GetString() ?? "Unknown"
+                : "Unknown",
+            ResultUrl: root.TryGetProperty("resultUrl", out var resultUrlElement) &&
+                       !string.IsNullOrWhiteSpace(resultUrlElement.GetString())
+                ? new Uri(resultUrlElement.GetString()!, UriKind.Absolute)
+                : null,
+            SubmissionTime: root.TryGetProperty("submissionTime", out var submissionTimeElement) &&
+                            submissionTimeElement.TryGetInt64(out var submissionTime)
+                ? submissionTime
+                : null,
+            LastUpdatedTime: root.TryGetProperty("lastUpdatedTime", out var lastUpdatedTimeElement) &&
+                             lastUpdatedTimeElement.TryGetInt64(out var lastUpdatedTime)
+                ? lastUpdatedTime
+                : null);
+    }
+
+    /// <inheritdoc />
+    public async Task<FeatureServiceApplyEditsResult> GetApplyEditsResultAsync(
+        Uri resultUrl,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(resultUrl);
+
+        var document = await GetAsync<JsonDocument>(resultUrl, cancellationToken);
+
+        return MapServiceApplyEditsResult(document.RootElement, resultUrl);
+    }
+
+    private static Dictionary<string, string?> BuildServiceApplyEditsParameters(
+        FeatureServiceEdits edits,
+        bool applyAsync) {
+        return new Dictionary<string, string?> {
             ["f"] = "json",
             ["rollbackOnFailure"] = edits.RollbackOnFailure ? "true" : "false",
             ["useGlobalIds"] = edits.UseGlobalIds ? "true" : "false",
+            ["async"] = applyAsync ? "true" : null,
             ["edits"] = SerializeServiceEdits(edits)
         };
+    }
 
-        var endpointUri = UriUtility.AppendPath(_serviceUri, "applyEdits");
+    private static FeatureServiceApplyEditsResult MapServiceApplyEditsResult(
+        JsonElement root,
+        Uri endpointUri) {
+        var dto = root.Deserialize<List<EsriServiceLayerEditResultsDto>>(JsonOptions)
+            ?? throw new FeatureServiceException(
+                "The applyEdits payload could not be deserialized.",
+                endpointUri);
 
-        var dto = await PostFormAsync<List<EsriServiceLayerEditResultsDto>>(
-            endpointUri,
-            parameters,
-            cancellationToken);
+        return MapServiceApplyEditsResult(dto);
+    }
 
+    private static FeatureServiceApplyEditsResult MapServiceApplyEditsResult(
+        IReadOnlyList<EsriServiceLayerEditResultsDto>? dto) {
         return new FeatureServiceApplyEditsResult(
             dto?.Select(MapServiceLayerEditResults).ToArray() ?? Array.Empty<ServiceLayerEditResults>());
     }
@@ -956,6 +1298,46 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.AddResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
             dto.UpdateResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
             dto.DeleteResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>());
+    }
+
+    /// <inheritdoc />
+    public async Task<FeatureServiceApplyEditsResult> WaitForApplyEditsCompletionAsync(
+    FeatureServiceEdits edits,
+    ApplyEditsWaitOptions? options = null,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+
+        var submission = await SubmitApplyEditsAsync(edits, cancellationToken);
+
+        if (submission.Result is not null) {
+            return submission.Result;
+        }
+
+        if (submission.StatusUrl is null) {
+            throw new FeatureServiceException(
+                "The applyEdits submission did not return a statusUrl or a result payload.",
+                UriUtility.AppendPath(_serviceUri, "applyEdits"));
+        }
+
+        return await WaitForApplyEditsCompletionAsync(
+            submission.StatusUrl,
+            options,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<FeatureServiceApplyEditsResult> WaitForApplyEditsCompletionAsync(
+        Uri statusUrl,
+        ApplyEditsWaitOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        return WaitForApplyEditsJobCompletionAsync(
+            statusUrl,
+            options,
+            GetApplyEditsStatusAsync,
+            GetApplyEditsResultAsync,
+            cancellationToken);
     }
 
     internal async Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(

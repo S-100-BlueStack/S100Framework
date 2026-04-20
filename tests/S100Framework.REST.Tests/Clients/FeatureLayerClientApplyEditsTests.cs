@@ -152,4 +152,97 @@ public sealed class FeatureLayerClientApplyEditsTests
 
         Assert.Contains("Adds, Updates, or Deletes", exception.Message);
     }
+
+    [Fact]
+    public async Task WaitForApplyEditsCompletionAsync_PollsStatusUntilCompleted_AndReturnsResult() {
+        const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/applyEdits-123/status";
+        const string resultUrl = "https://example.test/arcgis/rest/directories/arcgisoutput/Test_MapServer/applyEdits-123.json";
+
+        var statusCalls = 0;
+
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri == statusUrl) {
+                statusCalls++;
+
+                return statusCalls == 1
+                    ? StubHttpMessageHandler.Json("""
+                {
+                  "status": "InProgress"
+                }
+                """)
+                    : StubHttpMessageHandler.Json($$"""
+                {
+                  "status": "Completed",
+                  "resultUrl": "{{resultUrl}}"
+                }
+                """);
+            }
+
+            if (uri == resultUrl) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "addResults": [
+                { "success": true, "objectId": 101 }
+              ],
+              "updateResults": [],
+              "deleteResults": []
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request URI: {uri}");
+        });
+
+        var layerClient = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            }).GetLayerClient(0);
+
+        var result = await layerClient.WaitForApplyEditsCompletionAsync(
+            new Uri(statusUrl),
+            new ApplyEditsWaitOptions {
+                PollInterval = TimeSpan.Zero,
+                Timeout = TimeSpan.FromSeconds(1)
+            });
+
+        Assert.Equal(2, statusCalls);
+        Assert.Single(result.AddResults);
+        Assert.Equal(101, result.AddResults[0].ObjectId);
+    }
+
+    [Fact]
+    public async Task WaitForApplyEditsCompletionAsync_ThrowsTimeout_WhenJobDoesNotComplete() {
+        const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/applyEdits-123/status";
+
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri == statusUrl) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "status": "InProgress"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request URI: {uri}");
+        });
+
+        var layerClient = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            }).GetLayerClient(0);
+
+        await Assert.ThrowsAsync<TimeoutException>(() =>
+            layerClient.WaitForApplyEditsCompletionAsync(
+                new Uri(statusUrl),
+                new ApplyEditsWaitOptions {
+                    PollInterval = TimeSpan.Zero,
+                    Timeout = TimeSpan.Zero
+                }));
+    }
 }

@@ -43,14 +43,15 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     }
 
     public async IAsyncEnumerable<FeatureRecord> QueryAsync(
-        FeatureQuery query,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+    FeatureQuery query,
+    [EnumeratorCancellation] CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+        ValidateFeatureQueryPaging(query);
 
         var schema = await GetSchemaAsync(cancellationToken);
         var pageSize = ResolvePageSize(query, schema);
 
-        if (schema.SupportsPagination) {
+        if (schema.Capabilities.SupportsPagination) {
             await foreach (var record in QueryWithOffsetPaginationAsync(schema, query, pageSize, cancellationToken)) {
                 yield return record;
             }
@@ -377,6 +378,16 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         };
     }
 
+    private static void ValidateFeatureQueryPaging(FeatureQuery query) {
+        if (query.PageSize is <= 0) {
+            throw new InvalidOperationException("PageSize must be greater than zero when provided.");
+        }
+
+        if (query.Limit is <= 0) {
+            throw new InvalidOperationException("Limit must be greater than zero when provided.");
+        }
+    }
+
     private int ResolvePageSize(FeatureQuery query, FeatureLayerSchema schema) {
         var candidates = new List<int>();
 
@@ -553,7 +564,66 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     FeatureEdits edits,
     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(edits);
+
         return _serviceClient.ApplyEditsAsync(_layerId, edits, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<ApplyEditsSubmissionResult> SubmitApplyEditsAsync(
+        FeatureEdits edits,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+
+        return _serviceClient.SubmitApplyEditsAsync(_layerId, edits, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<ApplyEditsJobStatus> GetApplyEditsStatusAsync(
+        Uri statusUrl,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        return _serviceClient.GetLayerApplyEditsStatusAsync(
+            statusUrl,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<ApplyEditsResult> GetApplyEditsResultAsync(
+        Uri resultUrl,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(resultUrl);
+
+        return _serviceClient.GetLayerApplyEditsResultAsync(
+            resultUrl,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<ApplyEditsResult> WaitForApplyEditsCompletionAsync(
+        FeatureEdits edits,
+        ApplyEditsWaitOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+
+        return _serviceClient.WaitForLayerApplyEditsCompletionAsync(
+            _layerId,
+            edits,
+            options,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<ApplyEditsResult> WaitForApplyEditsCompletionAsync(
+        Uri statusUrl,
+        ApplyEditsWaitOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        return _serviceClient.WaitForLayerApplyEditsCompletionAsync(
+            statusUrl,
+            options,
+            cancellationToken);
     }
 
     public async Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(
@@ -599,5 +669,15 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             _layerId,
             request,
             cancellationToken);
+    }
+
+    private async Task EnsureAsyncApplyEditsSupportedAsync(
+    CancellationToken cancellationToken) {
+        var schema = await GetSchemaAsync(cancellationToken);
+
+        if (!schema.Capabilities.SupportsAsyncApplyEdits) {
+            throw new FeatureServiceCapabilityException(
+                $"Layer '{schema.Name}' ({schema.LayerId}) does not support asynchronous applyEdits.");
+        }
     }
 }

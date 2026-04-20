@@ -9,7 +9,7 @@ namespace S100Framework.REST.Tests.Clients;
 public sealed class FeatureServiceClientTests
 {
     [Fact]
-    public async Task GetMetadataAsync_MapsLayersAndTables() {
+    public async Task GetMetadataAsync_MapsLayersTablesAndCapabilities() {
         var handler = new StubHttpMessageHandler(_ =>
             StubHttpMessageHandler.Json("""
             {
@@ -19,8 +19,9 @@ public sealed class FeatureServiceClientTests
               "tables": [
                 { "id": 1, "name": "MetadataTable" }
               ],
-              "capabilities": "Query",
-              "maxRecordCount": 2000
+              "capabilities": "Query,ChangeTracking",
+              "maxRecordCount": 2000,
+              "syncEnabled": true
             }
             """));
 
@@ -36,7 +37,11 @@ public sealed class FeatureServiceClientTests
         Assert.Single(metadata.Tables);
         Assert.Equal("DepthAreas", metadata.Layers[0].Name);
         Assert.Equal("MetadataTable", metadata.Tables[0].Name);
+        Assert.Equal("Query,ChangeTracking", metadata.CapabilityText);
         Assert.Equal(2000, metadata.MaxRecordCount);
+        Assert.True(metadata.Capabilities.SupportsQuery);
+        Assert.True(metadata.Capabilities.SupportsChangeTracking);
+        Assert.True(metadata.Capabilities.SyncEnabled);
     }
 
     [Fact]
