@@ -888,10 +888,99 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         ArgumentNullException.ThrowIfNull(edits);
         edits.Validate();
 
-        var parameters = new Dictionary<string, string?> {
+        var endpointUri = UriUtility.AppendPath(
+            _serviceUri,
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/applyEdits");
+
+        var dto = await PostFormAsync<EsriApplyEditsResponseDto>(
+            endpointUri,
+            BuildLayerApplyEditsParameters(edits, applyAsync: false),
+            cancellationToken);
+
+        return MapApplyEditsResult(dto);
+    }
+
+    internal async Task<ApplyEditsSubmissionResult> SubmitApplyEditsAsync(
+        int layerId,
+        FeatureEdits edits,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+        edits.Validate();
+
+        var endpointUri = UriUtility.AppendPath(
+            _serviceUri,
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/applyEdits");
+
+        var document = await PostFormAsync<JsonDocument>(
+            endpointUri,
+            BuildLayerApplyEditsParameters(edits, applyAsync: true),
+            cancellationToken);
+
+        var root = document.RootElement;
+
+        if (root.TryGetProperty("statusUrl", out var statusUrlElement)) {
+            var rawStatusUrl = statusUrlElement.GetString();
+
+            if (string.IsNullOrWhiteSpace(rawStatusUrl)) {
+                throw new FeatureServiceException(
+                    "The server returned an empty statusUrl for applyEdits.",
+                    endpointUri);
+            }
+
+            return new ApplyEditsSubmissionResult(
+                Result: null,
+                StatusUrl: new Uri(rawStatusUrl, UriKind.Absolute));
+        }
+
+        return new ApplyEditsSubmissionResult(
+            Result: MapApplyEditsResult(root, endpointUri),
+            StatusUrl: null);
+    }
+
+    internal async Task<ApplyEditsJobStatus> GetApplyEditsStatusAsync(
+        Uri statusUrl,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        var document = await GetAsync<JsonDocument>(statusUrl, cancellationToken);
+        var root = document.RootElement;
+
+        return new ApplyEditsJobStatus(
+            Status: root.TryGetProperty("status", out var statusElement)
+                ? statusElement.GetString() ?? "Unknown"
+                : "Unknown",
+            ResultUrl: root.TryGetProperty("resultUrl", out var resultUrlElement) &&
+                       !string.IsNullOrWhiteSpace(resultUrlElement.GetString())
+                ? new Uri(resultUrlElement.GetString()!, UriKind.Absolute)
+                : null,
+            SubmissionTime: root.TryGetProperty("submissionTime", out var submissionTimeElement) &&
+                            submissionTimeElement.TryGetInt64(out var submissionTime)
+                ? submissionTime
+                : null,
+            LastUpdatedTime: root.TryGetProperty("lastUpdatedTime", out var lastUpdatedTimeElement) &&
+                             lastUpdatedTimeElement.TryGetInt64(out var lastUpdatedTime)
+                ? lastUpdatedTime
+                : null);
+    }
+
+    internal async Task<ApplyEditsResult> GetApplyEditsResultAsync(
+        Uri resultUrl,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(resultUrl);
+
+        var document = await GetAsync<JsonDocument>(resultUrl, cancellationToken);
+
+        return MapApplyEditsResult(document.RootElement, resultUrl);
+    }
+
+    private static Dictionary<string, string?> BuildLayerApplyEditsParameters(
+        FeatureEdits edits,
+        bool applyAsync) {
+        return new Dictionary<string, string?> {
             ["f"] = "json",
             ["rollbackOnFailure"] = edits.RollbackOnFailure ? "true" : "false",
             ["useGlobalIds"] = edits.UseGlobalIds ? "true" : "false",
+            ["async"] = applyAsync ? "true" : null,
             ["adds"] = edits.Adds is { Count: > 0 }
                 ? EsriEditGeometryWriter.WriteFeatures(edits.Adds)
                 : null,
@@ -902,16 +991,21 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 ? string.Join(",", edits.Deletes)
                 : null
         };
+    }
 
-        var endpointUri = UriUtility.AppendPath(
-            _serviceUri,
-            $"{layerId.ToString(CultureInfo.InvariantCulture)}/applyEdits");
+    private static ApplyEditsResult MapApplyEditsResult(
+        JsonElement root,
+        Uri endpointUri) {
+        var dto = root.Deserialize<EsriApplyEditsResponseDto>(JsonOptions)
+            ?? throw new FeatureServiceException(
+                "The applyEdits payload could not be deserialized.",
+                endpointUri);
 
-        var dto = await PostFormAsync<EsriApplyEditsResponseDto>(
-            endpointUri,
-            parameters,
-            cancellationToken);
+        return MapApplyEditsResult(dto);
+    }
 
+    private static ApplyEditsResult MapApplyEditsResult(
+        EsriApplyEditsResponseDto dto) {
         return new ApplyEditsResult(
             dto.AddResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
             dto.UpdateResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),

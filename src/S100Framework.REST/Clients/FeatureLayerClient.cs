@@ -564,7 +564,41 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     FeatureEdits edits,
     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(edits);
+
         return _serviceClient.ApplyEditsAsync(_layerId, edits, cancellationToken);
+    }
+
+    public async Task<ApplyEditsSubmissionResult> SubmitApplyEditsAsync(
+        FeatureEdits edits,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(edits);
+
+        await EnsureAsyncApplyEditsSupportedAsync(cancellationToken);
+
+        return await _serviceClient.SubmitApplyEditsAsync(
+            _layerId,
+            edits,
+            cancellationToken);
+    }
+
+    public Task<ApplyEditsJobStatus> GetApplyEditsStatusAsync(
+        Uri statusUrl,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(statusUrl);
+
+        return _serviceClient.GetApplyEditsStatusAsync(
+            statusUrl,
+            cancellationToken);
+    }
+
+    public Task<ApplyEditsResult> GetApplyEditsResultAsync(
+        Uri resultUrl,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(resultUrl);
+
+        return _serviceClient.GetApplyEditsResultAsync(
+            resultUrl,
+            cancellationToken);
     }
 
     public async Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(
@@ -610,5 +644,15 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             _layerId,
             request,
             cancellationToken);
+    }
+
+    private async Task EnsureAsyncApplyEditsSupportedAsync(
+    CancellationToken cancellationToken) {
+        var schema = await GetSchemaAsync(cancellationToken);
+
+        if (!schema.Capabilities.SupportsAsyncApplyEdits) {
+            throw new FeatureServiceCapabilityException(
+                $"Layer '{schema.Name}' ({schema.LayerId}) does not support asynchronous applyEdits.");
+        }
     }
 }

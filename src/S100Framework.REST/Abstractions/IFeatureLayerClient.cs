@@ -40,8 +40,8 @@ public interface IFeatureLayerClient
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<FeatureRecord>> QueryTopFeaturesAsync(
-    TopFeaturesQuery query,
-    CancellationToken cancellationToken = default);
+        TopFeaturesQuery query,
+        CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<long>> QueryTopFeatureObjectIdsAsync(
         TopFeaturesQuery query,
@@ -52,18 +52,30 @@ public interface IFeatureLayerClient
         CancellationToken cancellationToken = default);
 
     Task<ApplyEditsResult> ApplyEditsAsync(
-    FeatureEdits edits,
-    CancellationToken cancellationToken = default);
+        FeatureEdits edits,
+        CancellationToken cancellationToken = default);
+
+    Task<ApplyEditsSubmissionResult> SubmitApplyEditsAsync(
+        FeatureEdits edits,
+        CancellationToken cancellationToken = default);
+
+    Task<ApplyEditsJobStatus> GetApplyEditsStatusAsync(
+        Uri statusUrl,
+        CancellationToken cancellationToken = default);
+
+    Task<ApplyEditsResult> GetApplyEditsResultAsync(
+        Uri resultUrl,
+        CancellationToken cancellationToken = default);
 
     Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(
-    DeleteAttachmentsRequest request,
-    CancellationToken cancellationToken = default);
+        DeleteAttachmentsRequest request,
+        CancellationToken cancellationToken = default);
 
     Task<AddAttachmentResult> AddAttachmentAsync(
-    AddAttachmentRequest request,
-    CancellationToken cancellationToken = default);
+        AddAttachmentRequest request,
+        CancellationToken cancellationToken = default);
 
     Task<UpdateAttachmentResult> UpdateAttachmentAsync(
-    UpdateAttachmentRequest request,
-    CancellationToken cancellationToken = default);
+        UpdateAttachmentRequest request,
+        CancellationToken cancellationToken = default);
 }
