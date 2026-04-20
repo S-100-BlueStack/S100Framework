@@ -5,6 +5,9 @@ using S100Framework.REST.Exceptions;
 
 namespace S100Framework.REST.Authorization;
 
+/// <summary>
+/// Acquires and refreshes ArcGIS Server access tokens from a <c>tokens/generateToken</c> endpoint.
+/// </summary>
 public sealed class ArcGisServerGenerateTokenProvider :
     IFeatureServiceAccessTokenProvider,
     IDisposable
@@ -20,6 +23,11 @@ public sealed class ArcGisServerGenerateTokenProvider :
     private FeatureServiceAccessToken? _cachedToken;
     private bool _disposed;
 
+    /// <summary>
+    /// Initializes the provider.
+    /// </summary>
+    /// <param name="httpClient">The HTTP client used to call the token endpoint.</param>
+    /// <param name="options">The token acquisition options.</param>
     public ArcGisServerGenerateTokenProvider(
         HttpClient httpClient,
         ArcGisServerGenerateTokenOptions options) {
@@ -29,6 +37,7 @@ public sealed class ArcGisServerGenerateTokenProvider :
         _options.Validate();
     }
 
+    /// <inheritdoc />
     public async ValueTask<FeatureServiceAccessToken> GetAccessTokenAsync(
         CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
@@ -53,6 +62,7 @@ public sealed class ArcGisServerGenerateTokenProvider :
         }
     }
 
+    /// <inheritdoc />
     public void Dispose() {
         if (_disposed) {
             return;
@@ -197,7 +207,9 @@ public sealed class ArcGisServerGenerateTokenProvider :
         }
 
         if (error.Details is { Count: > 0 }) {
-            parts.Add(string.Join(" | ", error.Details.Where(static detail => !string.IsNullOrWhiteSpace(detail))));
+            parts.Add(string.Join(
+                " | ",
+                error.Details.Where(static detail => !string.IsNullOrWhiteSpace(detail))));
         }
 
         return parts.Count > 0

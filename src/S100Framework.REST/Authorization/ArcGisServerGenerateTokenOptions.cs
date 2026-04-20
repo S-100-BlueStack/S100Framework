@@ -1,26 +1,59 @@
 ﻿namespace S100Framework.REST.Authorization;
 
+/// <summary>
+/// Configures token acquisition against an ArcGIS Server <c>tokens/generateToken</c> endpoint.
+/// </summary>
 public sealed class ArcGisServerGenerateTokenOptions
 {
+    /// <summary>
+    /// Gets or sets the ArcGIS Server token endpoint URI.
+    /// </summary>
     public Uri? TokenUri { get; set; }
 
+    /// <summary>
+    /// Gets or sets the username used to request the token.
+    /// </summary>
     public string? Username { get; set; }
 
+    /// <summary>
+    /// Gets or sets the password used to request the token.
+    /// </summary>
     public string? Password { get; set; }
 
+    /// <summary>
+    /// Gets or sets how the token should be bound to the caller.
+    /// </summary>
     public ArcGisServerTokenClientType ClientType { get; set; } =
         ArcGisServerTokenClientType.Referer;
 
+    /// <summary>
+    /// Gets or sets the referer URL used when <see cref="ClientType"/> is <see cref="ArcGisServerTokenClientType.Referer"/>.
+    /// </summary>
     public string? Referer { get; set; }
 
+    /// <summary>
+    /// Gets or sets the IP address used when <see cref="ClientType"/> is <see cref="ArcGisServerTokenClientType.Ip"/>.
+    /// </summary>
     public string? IpAddress { get; set; }
 
+    /// <summary>
+    /// Gets or sets the requested token lifetime in minutes.
+    /// </summary>
     public int ExpirationMinutes { get; set; } = 60;
 
+    /// <summary>
+    /// Gets or sets the timeout for the token request.
+    /// </summary>
     public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
+    /// <summary>
+    /// Gets or sets how long before expiration the token should be refreshed.
+    /// </summary>
     public TimeSpan RefreshBeforeExpiration { get; set; } = TimeSpan.FromMinutes(1);
 
+    /// <summary>
+    /// Validates the configured options.
+    /// </summary>
     public void Validate() {
         if (TokenUri is null) {
             throw new InvalidOperationException("TokenUri must be configured.");

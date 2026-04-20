@@ -4,6 +4,9 @@ using S100Framework.REST.Exceptions;
 
 namespace S100Framework.REST.Authorization;
 
+/// <summary>
+/// Exchanges a portal access token for a federated ArcGIS Server token and refreshes it when needed.
+/// </summary>
 public sealed class PortalServerTokenExchangeProvider :
     IFeatureServiceAccessTokenProvider,
     IDisposable
@@ -20,6 +23,12 @@ public sealed class PortalServerTokenExchangeProvider :
     private FeatureServiceAccessToken? _cachedToken;
     private bool _disposed;
 
+    /// <summary>
+    /// Initializes the provider.
+    /// </summary>
+    /// <param name="httpClient">The HTTP client used to call the portal endpoint.</param>
+    /// <param name="portalTokenProvider">The provider that supplies portal access tokens.</param>
+    /// <param name="options">The portal-to-server token exchange options.</param>
     public PortalServerTokenExchangeProvider(
         HttpClient httpClient,
         IFeatureServiceAccessTokenProvider portalTokenProvider,
@@ -31,6 +40,7 @@ public sealed class PortalServerTokenExchangeProvider :
         _options.Validate();
     }
 
+    /// <inheritdoc />
     public async ValueTask<FeatureServiceAccessToken> GetAccessTokenAsync(
         CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
@@ -55,6 +65,7 @@ public sealed class PortalServerTokenExchangeProvider :
         }
     }
 
+    /// <inheritdoc />
     public void Dispose() {
         if (_disposed) {
             return;

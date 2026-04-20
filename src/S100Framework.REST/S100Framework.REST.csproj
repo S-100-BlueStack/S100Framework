@@ -4,19 +4,23 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
 		<Version>0.1.0-alpha.1</Version>
+
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
 		<Product>S100Framework</Product>
+
 		<Description>
 			A .NET library for reading Esri Feature Services through the ArcGIS REST API
 			and exposing results as NetTopologySuite geometries and typed attribute records.
 		</Description>
-		<PackageTags>ArcGIS;Esri;FeatureService;REST;NetTopologySuite;Geometry;S-100</PackageTags>
 
+		<PackageTags>ArcGIS;Esri;FeatureService;REST;NetTopologySuite;Geometry;S-100</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT-0</PackageLicenseExpression>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
