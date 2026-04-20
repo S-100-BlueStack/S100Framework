@@ -157,7 +157,6 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             srid,
             dto.HasZ ?? false,
             dto.HasM ?? false,
-            supportsPagination,
             dto.MaxRecordCount,
             dto.ObjectIdField,
             dto.Fields?.Select(MapField).ToArray() ?? Array.Empty<FeatureField>(),
