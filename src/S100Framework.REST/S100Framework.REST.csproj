@@ -10,7 +10,7 @@
 		<NoWarn>$(NoWarn);CS1591</NoWarn>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>0.1.0-alpha.1</Version>
+		<Version>1.0.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
@@ -35,7 +35,7 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			Initial preview release with feature queries, statistics, related records,
+			Initial  release with feature queries, statistics, related records,
 			attachments, top features, typed spatial filters, and schema capability metadata.
 		</PackageReleaseNotes>
 	</PropertyGroup>
