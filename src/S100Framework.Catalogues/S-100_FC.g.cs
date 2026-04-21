@@ -446,6 +446,8 @@ namespace S100FC
         public override void SetValue(string value) {
             this.value = int.Parse(value);
         }
+
+        public virtual listedValue[] listedValues { get; init; } = [];
     }
 
 
