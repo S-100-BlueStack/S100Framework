@@ -1,6 +1,7 @@
 ﻿using NetTopologySuite.Geometries;
 using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Models;
 using S100Framework.REST.Tests.TestDoubles;
 using System.Net.Http;
@@ -244,5 +245,97 @@ public sealed class FeatureLayerClientApplyEditsTests
                     PollInterval = TimeSpan.Zero,
                     Timeout = TimeSpan.Zero
                 }));
+    }
+
+    [Fact]
+    public async Task WaitForApplyEditsCompletionAsync_TreatsCompletedWithErrorsStatusAsCompleted() {
+        const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/applyEdits-123/status";
+        const string resultUrl = "https://example.test/arcgis/rest/directories/arcgisoutput/Test_MapServer/applyEdits-123.json";
+
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri == statusUrl) {
+                return StubHttpMessageHandler.Json($$"""
+            {
+              "status": "Completed_With_Errors",
+              "resultUrl": "{{resultUrl}}"
+            }
+            """);
+            }
+
+            if (uri == resultUrl) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "addResults": [
+                {
+                  "success": false,
+                  "error": {
+                    "code": 1000,
+                    "description": "Validation failed."
+                  }
+                }
+              ],
+              "updateResults": [],
+              "deleteResults": []
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request URI: {uri}");
+        });
+
+        var layerClient = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            }).GetLayerClient(0);
+
+        var result = await layerClient.WaitForApplyEditsCompletionAsync(
+            new Uri(statusUrl),
+            new ApplyEditsWaitOptions {
+                PollInterval = TimeSpan.Zero,
+                Timeout = TimeSpan.FromSeconds(1)
+            });
+
+        Assert.Single(result.AddResults);
+        Assert.False(result.AddResults[0].Success);
+        Assert.Equal(1000, result.AddResults[0].ErrorCode);
+        Assert.Equal("Validation failed.", result.AddResults[0].ErrorDescription);
+    }
+
+    [Fact]
+    public async Task WaitForApplyEditsCompletionAsync_Throws_WhenCompletedStatusHasNoResultUrl() {
+        const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/applyEdits-123/status";
+
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri == statusUrl) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "status": "Completed"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request URI: {uri}");
+        });
+
+        var layerClient = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            }).GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            layerClient.WaitForApplyEditsCompletionAsync(
+                new Uri(statusUrl),
+                new ApplyEditsWaitOptions {
+                    PollInterval = TimeSpan.Zero,
+                    Timeout = TimeSpan.FromSeconds(1)
+                }));
+
+        Assert.Contains("completed without a resultUrl", exception.Message);
     }
 }
