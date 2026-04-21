@@ -3,8 +3,21 @@ using S100Framework.REST.Models;
 
 namespace S100Framework.REST.Extensions;
 
+/// <summary>
+/// Provides convenience helpers for asynchronous <c>extractChanges</c> workflows.
+/// </summary>
 public static class FeatureServiceClientExtractChangesExtensions
 {
+    /// <summary>
+    /// Polls an asynchronous <c>extractChanges</c> job until it reaches a terminal state.
+    /// </summary>
+    /// <param name="client">The feature service client.</param>
+    /// <param name="statusUrl">The status URL returned from <c>SubmitExtractChangesAsync</c>.</param>
+    /// <param name="options">
+    /// Polling options. When <see langword="null"/>, default polling behavior is used.
+    /// </param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The final terminal job status.</returns>
     public static async Task<ExtractChangesJobStatus> WaitForExtractChangesCompletionAsync(
         this IFeatureServiceClient client,
         Uri statusUrl,
@@ -30,6 +43,16 @@ public static class FeatureServiceClientExtractChangesExtensions
         }
     }
 
+    /// <summary>
+    /// Submits an asynchronous SQLite <c>extractChanges</c> job, waits for completion, and downloads the result file.
+    /// </summary>
+    /// <param name="client">The feature service client.</param>
+    /// <param name="request">The <c>extractChanges</c> request.</param>
+    /// <param name="options">
+    /// Polling options. When <see langword="null"/>, default polling behavior is used.
+    /// </param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The downloaded result file.</returns>
     public static async Task<ExtractChangesFileResult> SubmitAndDownloadExtractChangesFileAsync(
         this IFeatureServiceClient client,
         ExtractChangesRequest request,

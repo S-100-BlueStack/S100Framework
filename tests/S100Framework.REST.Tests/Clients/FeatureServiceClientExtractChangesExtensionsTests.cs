@@ -1,6 +1,10 @@
-﻿using S100Framework.REST.Abstractions;
+﻿using System.Net;
+using System.Net.Http.Headers;
+using S100Framework.REST.Clients;
+using S100Framework.REST.Configuration;
 using S100Framework.REST.Extensions;
 using S100Framework.REST.Models;
+using S100Framework.REST.Tests.TestDoubles;
 using Xunit;
 
 namespace S100Framework.REST.Tests.Extensions;
@@ -8,78 +12,114 @@ namespace S100Framework.REST.Tests.Extensions;
 public sealed class FeatureServiceClientExtractChangesExtensionsTests
 {
     [Fact]
-    public async Task WaitForExtractChangesCompletionAsync_ReturnsCompletedStatus() {
-        var client = new FakeFeatureServiceClient(
-            submission: new ExtractChangesSubmissionResult(
-                Result: null,
-                StatusUrl: new Uri("https://example.test/jobs/j123")),
-            statuses:
-            [
-                new ExtractChangesJobStatus(
-                    Status: "Executing",
-                    ResponseType: null,
-                    TransportType: null,
-                    ResultUrl: null,
-                    SubmissionTime: null,
-                    LastUpdatedTime: null),
-                new ExtractChangesJobStatus(
-                    Status: "Completed",
-                    ResponseType: "esriDataChangesResponseTypeEdits",
-                    TransportType: "esriTransportTypeUrl",
-                    ResultUrl: new Uri("https://example.test/output/changes.sqlite"),
-                    SubmissionTime: 1,
-                    LastUpdatedTime: 2)
-            ],
-            downloadResult: new ExtractChangesFileResult(
-                Content: [1, 2, 3],
-                ContentType: "application/octet-stream",
-                FileName: "changes.sqlite",
-                ResultUrl: new Uri("https://example.test/output/changes.sqlite")));
+    public async Task WaitForExtractChangesCompletionAsync_ReturnsCompletedStatus_WhenStatusContainsSpaces() {
+        const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/extractChanges-123/status";
+        const string resultUrl = "https://example.test/arcgis/rest/directories/arcgisoutput/Test_MapServer/extractChanges-123.sqlite";
+
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri == statusUrl) {
+                return StubHttpMessageHandler.Json($$"""
+                {
+                  "status": "Completed With Errors",
+                  "resultUrl": "{{resultUrl}}",
+                  "responseType": "esriReplicaResponseTypeData",
+                  "transportType": "esriTransportTypeURL",
+                  "submissionTime": 1000,
+                  "lastUpdatedTime": 2000
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request URI: {uri}");
+        });
+
+        var client = CreateClient(handler);
 
         var status = await client.WaitForExtractChangesCompletionAsync(
-            new Uri("https://example.test/jobs/j123"),
+            new Uri(statusUrl),
             new ExtractChangesPollingOptions {
                 PollInterval = TimeSpan.FromMilliseconds(1),
                 Timeout = TimeSpan.FromSeconds(1)
             });
 
+        Assert.True(status.IsTerminal);
         Assert.True(status.IsCompleted);
-        Assert.Equal(2, client.StatusRequestCount);
+        Assert.Equal("Completed With Errors", status.Status);
+        Assert.Equal(new Uri(resultUrl), status.ResultUrl);
+        Assert.Equal(1000, status.SubmissionTime);
+        Assert.Equal(2000, status.LastUpdatedTime);
     }
 
     [Fact]
-    public async Task SubmitAndDownloadExtractChangesFileAsync_SubmitsPollsAndDownloadsResult() {
-        var client = new FakeFeatureServiceClient(
-            submission: new ExtractChangesSubmissionResult(
-                Result: null,
-                StatusUrl: new Uri("https://example.test/jobs/j123")),
-            statuses:
-            [
-                new ExtractChangesJobStatus(
-                    Status: "Pending",
-                    ResponseType: null,
-                    TransportType: null,
-                    ResultUrl: null,
-                    SubmissionTime: null,
-                    LastUpdatedTime: null),
-                new ExtractChangesJobStatus(
-                    Status: "Completed",
-                    ResponseType: "esriDataChangesResponseTypeEdits",
-                    TransportType: "esriTransportTypeUrl",
-                    ResultUrl: new Uri("https://example.test/output/changes.sqlite"),
-                    SubmissionTime: 1,
-                    LastUpdatedTime: 2)
-            ],
-            downloadResult: new ExtractChangesFileResult(
-                Content: [1, 2, 3],
-                ContentType: "application/octet-stream",
-                FileName: "changes.sqlite",
-                ResultUrl: new Uri("https://example.test/output/changes.sqlite")));
+    public async Task SubmitAndDownloadExtractChangesFileAsync_SubmitsPollsAndDownloadsSqliteFile() {
+        const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/extractChanges-123/status";
+        const string resultUrl = "https://example.test/arcgis/rest/directories/arcgisoutput/Test_MapServer/extractChanges-123.sqlite";
 
-        var result = await client.SubmitAndDownloadExtractChangesFileAsync(
+        string? requestBody = null;
+        var statusCalls = 0;
+        byte[] expectedContent = [1, 2, 3, 4];
+
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer/extractChanges") {
+                requestBody = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
+
+                return StubHttpMessageHandler.Json($$"""
+                {
+                  "statusUrl": "{{statusUrl}}"
+                }
+                """);
+            }
+
+            if (uri == statusUrl) {
+                statusCalls++;
+
+                return statusCalls == 1
+                    ? StubHttpMessageHandler.Json("""
+                    {
+                      "status": "InProgress",
+                      "responseType": "esriReplicaResponseTypeData",
+                      "transportType": "esriTransportTypeURL"
+                    }
+                    """)
+                    : StubHttpMessageHandler.Json($$"""
+                    {
+                      "status": "Completed",
+                      "resultUrl": "{{resultUrl}}",
+                      "responseType": "esriReplicaResponseTypeData",
+                      "transportType": "esriTransportTypeURL"
+                    }
+                    """);
+            }
+
+            if (uri == resultUrl) {
+                var response = new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(expectedContent)
+                };
+
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-sqlite3");
+                response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") {
+                    FileName = "changes.sqlite"
+                };
+
+                return response;
+            }
+
+            throw new InvalidOperationException($"Unexpected request URI: {uri}");
+        });
+
+        var client = CreateClient(handler);
+
+        var file = await client.SubmitAndDownloadExtractChangesFileAsync(
             new ExtractChangesRequest {
                 Layers = [0],
                 LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
+                ReturnInserts = true,
+                ReturnUpdates = true,
+                ReturnDeletes = true,
                 DataFormat = ExtractChangesDataFormat.Sqlite
             },
             new ExtractChangesPollingOptions {
@@ -87,38 +127,55 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTests
                 Timeout = TimeSpan.FromSeconds(1)
             });
 
-        Assert.Equal("changes.sqlite", result.FileName);
-        Assert.Equal("https://example.test/output/changes.sqlite", client.DownloadedResultUrl!.AbsoluteUri);
-        Assert.Equal(2, client.StatusRequestCount);
+        Assert.NotNull(requestBody);
+        Assert.Contains("async=true", requestBody!);
+        Assert.Contains("dataFormat=sqllite", requestBody!);
+        Assert.Equal(2, statusCalls);
+        Assert.Equal(expectedContent, file.Content);
+        Assert.Equal("application/x-sqlite3", file.ContentType);
+        Assert.NotNull(file.FileName);
+        Assert.Contains("changes.sqlite", file.FileName!, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(new Uri(resultUrl), file.ResultUrl);
     }
 
     [Fact]
-    public async Task SubmitAndDownloadExtractChangesFileAsync_Throws_WhenJobFails() {
-        var client = new FakeFeatureServiceClient(
-            submission: new ExtractChangesSubmissionResult(
-                Result: null,
-                StatusUrl: new Uri("https://example.test/jobs/j123")),
-            statuses:
-            [
-                new ExtractChangesJobStatus(
-                    Status: "Failed",
-                    ResponseType: null,
-                    TransportType: null,
-                    ResultUrl: null,
-                    SubmissionTime: null,
-                    LastUpdatedTime: null)
-            ],
-            downloadResult: new ExtractChangesFileResult(
-                Content: [1, 2, 3],
-                ContentType: "application/octet-stream",
-                FileName: "changes.sqlite",
-                ResultUrl: new Uri("https://example.test/output/changes.sqlite")));
+    public async Task SubmitAndDownloadExtractChangesFileAsync_Throws_WhenCompletedJobHasNoResultUrl() {
+        const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/extractChanges-123/status";
+
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer/extractChanges") {
+                return StubHttpMessageHandler.Json($$"""
+                {
+                  "statusUrl": "{{statusUrl}}"
+                }
+                """);
+            }
+
+            if (uri == statusUrl) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "status": "Completed",
+                  "responseType": "esriReplicaResponseTypeData",
+                  "transportType": "esriTransportTypeURL"
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request URI: {uri}");
+        });
+
+        var client = CreateClient(handler);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             client.SubmitAndDownloadExtractChangesFileAsync(
                 new ExtractChangesRequest {
                     Layers = [0],
                     LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
+                    ReturnInserts = true,
+                    ReturnUpdates = true,
+                    ReturnDeletes = true,
                     DataFormat = ExtractChangesDataFormat.Sqlite
                 },
                 new ExtractChangesPollingOptions {
@@ -126,71 +183,33 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTests
                     Timeout = TimeSpan.FromSeconds(1)
                 }));
 
-        Assert.Contains("Failed", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("completed without a result URL", exception.Message);
     }
 
-    private sealed class FakeFeatureServiceClient : IFeatureServiceClient
-    {
-        private readonly Queue<ExtractChangesJobStatus> _statuses;
-        private readonly ExtractChangesSubmissionResult _submission;
-        private readonly ExtractChangesFileResult _downloadResult;
+    [Fact]
+    public async Task SubmitAndDownloadExtractChangesFileAsync_Throws_WhenRequestIsNotSqlite() {
+        var client = CreateClient(new StubHttpMessageHandler(_ =>
+            throw new InvalidOperationException("The HTTP request should not be executed.")));
 
-        public FakeFeatureServiceClient(
-            ExtractChangesSubmissionResult submission,
-            IReadOnlyList<ExtractChangesJobStatus> statuses,
-            ExtractChangesFileResult downloadResult) {
-            _submission = submission;
-            _statuses = new Queue<ExtractChangesJobStatus>(statuses);
-            _downloadResult = downloadResult;
-        }
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.SubmitAndDownloadExtractChangesFileAsync(
+                new ExtractChangesRequest {
+                    Layers = [0],
+                    LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
+                    ReturnInserts = true,
+                    ReturnUpdates = true,
+                    ReturnDeletes = true,
+                    DataFormat = ExtractChangesDataFormat.Json
+                }));
 
-        public int StatusRequestCount { get; private set; }
+        Assert.Contains("requires DataFormat.Sqlite", exception.Message);
+    }
 
-        public Uri? DownloadedResultUrl { get; private set; }
-
-        public Task<FeatureServiceMetadata> GetMetadataAsync(CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
-
-        public IFeatureLayerClient GetLayerClient(int layerId)
-            => throw new NotSupportedException();
-
-        public Task<FeatureServiceApplyEditsResult> ApplyEditsAsync(
-            FeatureServiceEdits edits,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
-
-        public Task<IFeatureLayerClient> GetLayerClientAsync(
-            string layerName,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
-
-        public Task<ExtractChangesResult> ExtractChangesAsync(
-            ExtractChangesRequest request,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
-
-        public Task<ExtractChangesSubmissionResult> SubmitExtractChangesAsync(
-            ExtractChangesRequest request,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult(_submission);
-
-        public Task<ExtractChangesJobStatus> GetExtractChangesStatusAsync(
-            Uri statusUrl,
-            CancellationToken cancellationToken = default) {
-            StatusRequestCount++;
-
-            if (_statuses.Count == 0) {
-                throw new InvalidOperationException("No more statuses were configured.");
-            }
-
-            return Task.FromResult(_statuses.Dequeue());
-        }
-
-        public Task<ExtractChangesFileResult> DownloadExtractChangesFileAsync(
-            Uri resultUrl,
-            CancellationToken cancellationToken = default) {
-            DownloadedResultUrl = resultUrl;
-            return Task.FromResult(_downloadResult);
-        }
+    private static FeatureServiceClient CreateClient(HttpMessageHandler handler) {
+        return new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            });
     }
 }

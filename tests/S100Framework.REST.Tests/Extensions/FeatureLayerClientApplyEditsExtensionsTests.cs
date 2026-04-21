@@ -265,5 +265,13 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
             UpdateAttachmentRequest request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
+
+        Task<ApplyEditsResult> IFeatureLayerClient.WaitForApplyEditsCompletionAsync(FeatureEdits edits, ApplyEditsWaitOptions? options, CancellationToken cancellationToken) {
+            throw new NotImplementedException();
+        }
+
+        Task<ApplyEditsResult> IFeatureLayerClient.WaitForApplyEditsCompletionAsync(Uri statusUrl, ApplyEditsWaitOptions? options, CancellationToken cancellationToken) {
+            throw new NotImplementedException();
+        }
     }
 }
