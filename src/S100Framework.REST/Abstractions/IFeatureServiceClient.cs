@@ -4,8 +4,18 @@ namespace S100Framework.REST.Abstractions;
 
 public interface IFeatureServiceClient
 {
+    /// <summary>
+    /// Gets metadata for the current feature service.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The service metadata.</returns>
     Task<FeatureServiceMetadata> GetMetadataAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Creates a layer client for the specified layer ID.
+    /// </summary>
+    /// <param name="layerId">The layer ID.</param>
+    /// <returns>A layer client bound to the specified layer.</returns>
     IFeatureLayerClient GetLayerClient(int layerId);
 
     /// <summary>

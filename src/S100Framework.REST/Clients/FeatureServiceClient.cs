@@ -42,6 +42,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         _serviceUri = _options.ServiceUri ?? throw new InvalidOperationException("ServiceUri must be configured.");
     }
 
+    /// <inheritdoc />
     public async Task<FeatureServiceMetadata> GetMetadataAsync(CancellationToken cancellationToken = default) {
         var uri = UriUtility.WithQuery(
             _serviceUri,
@@ -100,6 +101,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             SupportsAsyncApplyEdits: advancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false);
     }
 
+    /// <inheritdoc />
     public IFeatureLayerClient GetLayerClient(int layerId) {
         if (layerId < 0) {
             throw new ArgumentOutOfRangeException(nameof(layerId));
