@@ -29,17 +29,23 @@ public static class FeatureServiceClientExtractChangesExtensions
         options ??= new ExtractChangesPollingOptions();
         options.Validate();
 
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(options.Timeout);
+        var startedAt = DateTimeOffset.UtcNow;
 
         while (true) {
-            var status = await client.GetExtractChangesStatusAsync(statusUrl, timeoutCts.Token);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var status = await client.GetExtractChangesStatusAsync(statusUrl, cancellationToken);
 
             if (status.IsTerminal) {
                 return status;
             }
 
-            await Task.Delay(options.PollInterval, timeoutCts.Token);
+            if (DateTimeOffset.UtcNow - startedAt >= options.Timeout) {
+                throw new TimeoutException(
+                    $"The extractChanges job did not complete within {options.Timeout}.");
+            }
+
+            await Task.Delay(options.PollInterval, cancellationToken);
         }
     }
 
