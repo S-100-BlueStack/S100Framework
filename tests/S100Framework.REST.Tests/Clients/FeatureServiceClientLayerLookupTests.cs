@@ -215,4 +215,68 @@ public sealed class FeatureServiceClientLayerLookupTests
         Assert.Equal("StatusLookup", schema.Name);
         Assert.Equal(9, schema.LayerId);
     }
+    [Fact]
+    public async Task GetLayerClientAsync_Throws_WhenLayerNameIsWhitespace() {
+        var client = new FeatureServiceClient(
+            new HttpClient(new StubHttpMessageHandler(_ =>
+                throw new InvalidOperationException("The HTTP request should not be executed."))),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            });
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            client.GetLayerClientAsync("   "));
+
+        Assert.Equal("layerName", exception.ParamName);
+        Assert.Contains("Layer name must be provided", exception.Message);
+    }
+
+    [Fact]
+    public async Task GetLayerClientAsync_Throws_WhenMultipleDatasetsMatchName() {
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.EndsWith("/FeatureServer?f=json", StringComparison.Ordinal)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                { "id": 0, "name": "SharedName" }
+              ],
+              "tables": [
+                { "id": 7, "name": "SharedName" }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var client = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            });
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClientAsync("sharedname"));
+
+        Assert.Contains("Multiple layers or tables named 'sharedname' were found", exception.Message);
+        Assert.Contains("Use the layer ID instead", exception.Message);
+    }
+
+    [Fact]
+    public void GetLayerClient_Throws_WhenLayerIdIsNegative() {
+        var client = new FeatureServiceClient(
+            new HttpClient(new StubHttpMessageHandler(_ =>
+                throw new InvalidOperationException("The HTTP request should not be executed."))),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            });
+
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            client.GetLayerClient(-1));
+
+        Assert.Equal("layerId", exception.ParamName);
+    }
 }
