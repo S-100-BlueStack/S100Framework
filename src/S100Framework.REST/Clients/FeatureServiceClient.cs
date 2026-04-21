@@ -1573,6 +1573,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             StatusUrl: null);
     }
 
+    /// <inheritdoc />
     public async Task<ExtractChangesFileResult> DownloadExtractChangesFileAsync(
     Uri resultUrl,
     CancellationToken cancellationToken = default) {
@@ -1778,6 +1779,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             srid);
     }
 
+    /// <inheritdoc />
     public async Task<ExtractChangesJobStatus> GetExtractChangesStatusAsync(
     Uri statusUrl,
     CancellationToken cancellationToken = default) {
