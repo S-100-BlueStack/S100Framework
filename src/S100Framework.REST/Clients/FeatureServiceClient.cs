@@ -1517,6 +1517,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.EditMoment);
     }
 
+    /// <inheritdoc />
     public async Task<ExtractChangesResult> ExtractChangesAsync(
      ExtractChangesRequest request,
      CancellationToken cancellationToken = default) {
@@ -1535,6 +1536,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 "The extractChanges request did not return an embedded result.");
     }
 
+    /// <inheritdoc />
     public async Task<ExtractChangesSubmissionResult> SubmitExtractChangesAsync(
     ExtractChangesRequest request,
     CancellationToken cancellationToken = default) {
