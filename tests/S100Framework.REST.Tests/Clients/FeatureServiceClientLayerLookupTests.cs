@@ -96,4 +96,123 @@ public sealed class FeatureServiceClientLayerLookupTests
 
         Assert.Contains("Missing", exception.Message);
     }
+
+    [Fact]
+    public async Task GetLayerClientAsync_ResolvesTableByName_WhenOnlyTableMatches() {
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.EndsWith("/FeatureServer?f=json", StringComparison.Ordinal)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                { "id": 0, "name": "Facilities" },
+                { "id": 1, "name": "Harbors" }
+              ],
+              "tables": [
+                { "id": 7, "name": "HarborCodes" }
+              ]
+            }
+            """);
+            }
+
+            if (uri.Contains("/FeatureServer/7?")) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "id": 7,
+              "name": "HarborCodes",
+              "geometryType": "esriGeometryPoint",
+              "objectIdField": "OBJECTID",
+              "maxRecordCount": 1000,
+              "advancedQueryCapabilities": {
+                "supportsPagination": true
+              },
+              "fields": [
+                { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
+              ],
+              "relationships": [],
+              "hasAttachments": false,
+              "supportsQueryAttachments": false,
+              "supportsAttachmentsResizing": false,
+              "supportsTopFeaturesQuery": false,
+              "extent": {
+                "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
+              }
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var client = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            });
+
+        var layerClient = await client.GetLayerClientAsync("HarborCodes");
+        var schema = await layerClient.GetSchemaAsync();
+
+        Assert.Equal("HarborCodes", schema.Name);
+        Assert.Equal(7, schema.LayerId);
+    }
+
+    [Fact]
+    public async Task GetLayerClientAsync_ResolvesTableByName_CaseInsensitive() {
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.EndsWith("/FeatureServer?f=json", StringComparison.Ordinal)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [],
+              "tables": [
+                { "id": 9, "name": "StatusLookup" }
+              ]
+            }
+            """);
+            }
+
+            if (uri.Contains("/FeatureServer/9?")) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "id": 9,
+              "name": "StatusLookup",
+              "geometryType": "esriGeometryPoint",
+              "objectIdField": "OBJECTID",
+              "maxRecordCount": 1000,
+              "advancedQueryCapabilities": {
+                "supportsPagination": true
+              },
+              "fields": [
+                { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
+              ],
+              "relationships": [],
+              "hasAttachments": false,
+              "supportsQueryAttachments": false,
+              "supportsAttachmentsResizing": false,
+              "supportsTopFeaturesQuery": false,
+              "extent": {
+                "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
+              }
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var client = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            });
+
+        var layerClient = await client.GetLayerClientAsync("statuslookup");
+        var schema = await layerClient.GetSchemaAsync();
+
+        Assert.Equal("StatusLookup", schema.Name);
+        Assert.Equal(9, schema.LayerId);
+    }
 }
