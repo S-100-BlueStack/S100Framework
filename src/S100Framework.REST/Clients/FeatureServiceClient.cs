@@ -1130,6 +1130,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.Error?.Description);
     }
 
+    /// <inheritdoc />
     public async Task<FeatureServiceApplyEditsResult> ApplyEditsAsync(
     FeatureServiceEdits edits,
     CancellationToken cancellationToken = default) {

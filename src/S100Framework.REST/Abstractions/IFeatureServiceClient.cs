@@ -8,6 +8,12 @@ public interface IFeatureServiceClient
 
     IFeatureLayerClient GetLayerClient(int layerId);
 
+    /// <summary>
+    /// Sends a service-level <c>applyEdits</c> request and waits for the server to return the final multi-layer edit result.
+    /// </summary>
+    /// <param name="edits">The multi-layer edits to apply.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The final multi-layer edit result returned by the server.</returns>
     Task<FeatureServiceApplyEditsResult> ApplyEditsAsync(
         FeatureServiceEdits edits,
         CancellationToken cancellationToken = default);

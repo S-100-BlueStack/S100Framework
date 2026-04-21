@@ -51,6 +51,12 @@ public interface IFeatureLayerClient
         TopFeaturesQuery query,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Sends a layer-level <c>applyEdits</c> request and waits for the server to return the final edit result.
+    /// </summary>
+    /// <param name="edits">The edits to apply to the current layer.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The final edit result returned by the server.</returns>
     Task<ApplyEditsResult> ApplyEditsAsync(
         FeatureEdits edits,
         CancellationToken cancellationToken = default);
