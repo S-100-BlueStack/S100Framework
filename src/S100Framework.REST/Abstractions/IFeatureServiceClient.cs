@@ -28,6 +28,12 @@ public interface IFeatureServiceClient
         FeatureServiceEdits edits,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Resolves a layer or table by name and creates a client for the matching dataset.
+    /// </summary>
+    /// <param name="layerName">The layer or table name to look up.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A layer client bound to the resolved layer or table.</returns>
     Task<IFeatureLayerClient> GetLayerClientAsync(
     string layerName,
     CancellationToken cancellationToken = default);

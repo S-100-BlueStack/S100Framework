@@ -110,6 +110,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         return new FeatureLayerClient(this, layerId);
     }
 
+    /// <inheritdoc />
     public async Task<IFeatureLayerClient> GetLayerClientAsync(
     string layerName,
     CancellationToken cancellationToken = default) {
