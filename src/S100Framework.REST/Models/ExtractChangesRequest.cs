@@ -1,45 +1,105 @@
 ﻿namespace S100Framework.REST.Models;
 
+/// <summary>
+/// Defines a service-level <c>extractChanges</c> request.
+/// </summary>
 public sealed record ExtractChangesRequest
 {
+    /// <summary>
+    /// Gets the layer IDs to include in the request.
+    /// </summary>
     public IReadOnlyList<int> Layers { get; init; } = Array.Empty<int>();
 
+    /// <summary>
+    /// Gets the service-level server generation configuration.
+    /// Exactly one of <see cref="ServerGens"/> or <see cref="LayerServerGens"/> must be provided.
+    /// </summary>
     public ExtractChangesServerGens? ServerGens { get; init; }
 
+    /// <summary>
+    /// Gets the layer-level server generation configuration.
+    /// Exactly one of <see cref="LayerServerGens"/> or <see cref="ServerGens"/> must be provided.
+    /// </summary>
     public IReadOnlyList<ExtractChangesLayerServerGen>? LayerServerGens { get; init; }
 
+    /// <summary>
+    /// Gets optional per-layer query filters.
+    /// </summary>
     public IReadOnlyDictionary<int, ExtractChangesLayerQuery>? LayerQueries { get; init; }
 
+    /// <summary>
+    /// Gets an optional spatial filter.
+    /// </summary>
     public ExtractChangesSpatialFilter? SpatialFilter { get; init; }
 
+    /// <summary>
+    /// Gets a value indicating whether inserted features should be returned.
+    /// </summary>
     public bool ReturnInserts { get; init; } = true;
 
+    /// <summary>
+    /// Gets a value indicating whether updated features should be returned.
+    /// </summary>
     public bool ReturnUpdates { get; init; } = true;
 
+    /// <summary>
+    /// Gets a value indicating whether deleted features should be returned.
+    /// </summary>
     public bool ReturnDeletes { get; init; } = true;
 
+    /// <summary>
+    /// Gets a value indicating whether only IDs should be returned for changes, when supported.
+    /// </summary>
     public bool ReturnIdsOnly { get; init; }
 
+    /// <summary>
+    /// Gets a value indicating whether update results should include whether geometry changed.
+    /// </summary>
     public bool ReturnHasGeometryUpdates { get; init; }
 
+    /// <summary>
+    /// Gets a value indicating whether deleted feature payloads should be returned instead of only delete IDs.
+    /// </summary>
     public bool ReturnDeletedFeatures { get; init; }
 
+    /// <summary>
+    /// Gets a value indicating whether attachment changes should be returned.
+    /// </summary>
     public bool ReturnAttachments { get; init; }
 
+    /// <summary>
+    /// Gets a value indicating whether attachment data should be returned by URL instead of inline content.
+    /// </summary>
     public bool ReturnAttachmentsDataByUrl { get; init; }
 
+    /// <summary>
+    /// Gets a value indicating whether only the extent of changes should be returned.
+    /// </summary>
     public bool ReturnExtentOnly { get; init; }
 
-    public ExtractChangesExtentGridCell ChangesExtentGridCell { get; init; } =
-        ExtractChangesExtentGridCell.None;
+    /// <summary>
+    /// Gets the optional grid-cell level used when requesting change extents.
+    /// </summary>
+    public ExtractChangesExtentGridCell ChangesExtentGridCell { get; init; } = ExtractChangesExtentGridCell.None;
 
+    /// <summary>
+    /// Gets the fields to compare when determining update changes.
+    /// </summary>
     public IReadOnlyList<string>? FieldsToCompare { get; init; }
 
+    /// <summary>
+    /// Gets the output spatial reference ID for returned geometries, when specified.
+    /// </summary>
     public int? OutSrid { get; init; }
 
-    public ExtractChangesDataFormat DataFormat { get; init; } =
-        ExtractChangesDataFormat.Json;
+    /// <summary>
+    /// Gets the requested response format.
+    /// </summary>
+    public ExtractChangesDataFormat DataFormat { get; init; } = ExtractChangesDataFormat.Json;
 
+    /// <summary>
+    /// Validates the request configuration.
+    /// </summary>
     public void Validate() {
         if (Layers.Count == 0) {
             throw new InvalidOperationException("At least one layer ID must be provided.");
@@ -106,14 +166,29 @@ public sealed record ExtractChangesRequest
     }
 }
 
+/// <summary>
+/// Defines service-level server generation values for <c>extractChanges</c>.
+/// </summary>
 public sealed record ExtractChangesServerGens
 {
+    /// <summary>
+    /// Gets the starting server generation for incremental extraction.
+    /// </summary>
     public long? SinceServerGen { get; init; }
 
+    /// <summary>
+    /// Gets the minimum server generation for range-based extraction.
+    /// </summary>
     public long? MinServerGen { get; init; }
 
+    /// <summary>
+    /// Gets the maximum server generation for range-based extraction.
+    /// </summary>
     public long? MaxServerGen { get; init; }
 
+    /// <summary>
+    /// Validates the server generation configuration.
+    /// </summary>
     public void Validate() {
         var hasSince = SinceServerGen.HasValue;
         var hasRange = MinServerGen.HasValue || MaxServerGen.HasValue;
@@ -128,7 +203,9 @@ public sealed record ExtractChangesServerGens
                 "Both MinServerGen and MaxServerGen must be provided together.");
         }
 
-        if (MinServerGen.HasValue && MaxServerGen.HasValue && MinServerGen.Value > MaxServerGen.Value) {
+        if (MinServerGen.HasValue &&
+            MaxServerGen.HasValue &&
+            MinServerGen.Value > MaxServerGen.Value) {
             throw new InvalidOperationException(
                 "MinServerGen must be less than or equal to MaxServerGen.");
         }
@@ -143,14 +220,24 @@ public sealed record ExtractChangesServerGens
     }
 }
 
+/// <summary>
+/// Defines a server generation value for a specific layer in <c>extractChanges</c>.
+/// </summary>
+/// <param name="Id">The layer ID.</param>
+/// <param name="ServerGen">The current server generation for the layer.</param>
+/// <param name="MinServerGen">An optional minimum server generation for the layer.</param>
 public sealed record ExtractChangesLayerServerGen(
     int Id,
     long ServerGen,
     long? MinServerGen = null)
 {
+    /// <summary>
+    /// Validates the layer server generation configuration.
+    /// </summary>
     public void Validate() {
         if (Id < 0) {
-            throw new InvalidOperationException("Layer server generation IDs must be greater than or equal to zero.");
+            throw new InvalidOperationException(
+                "Layer server generation IDs must be greater than or equal to zero.");
         }
     }
 }
