@@ -39,7 +39,6 @@ public sealed class EsriJsonFeatureConverterTests
             4326,
             false,
             false,
-            true,
             1000,
             "OBJECTID",
             Array.Empty<FeatureField>(),
@@ -57,19 +56,16 @@ public sealed class EsriJsonFeatureConverterTests
                 SupportsAsyncApplyEdits: false),
             Array.Empty<FeatureRelationshipInfo>());
 
-        var features = new[]
-        {
+        var features = new[] {
             new FeatureRecord(
                 geometryFactory.CreatePoint(new Coordinate(10, 20)),
-                new Dictionary<string, object?>
-                {
+                new Dictionary<string, object?> {
                     ["NAME"] = "Harbor A"
                 },
                 1),
             new FeatureRecord(
                 geometryFactory.CreatePoint(new Coordinate(11, 21)),
-                new Dictionary<string, object?>
-                {
+                new Dictionary<string, object?> {
                     ["NAME"] = "Harbor B"
                 },
                 2)

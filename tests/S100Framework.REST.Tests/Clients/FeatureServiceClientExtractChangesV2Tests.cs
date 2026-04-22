@@ -11,6 +11,7 @@ public sealed class FeatureServiceClientExtractChangesV2Tests
 {
     [Fact]
     public async Task ExtractChangesAsync_IncludesLayerQueriesGeometryAttachmentsAndFieldsToCompare() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         string? requestBody = null;
 
         var handler = FeatureServiceTestHandlers.WithExtractChangesMetadata(request => {
@@ -19,29 +20,29 @@ public sealed class FeatureServiceClientExtractChangesV2Tests
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
-        {
-          "layerServerGens": [
-            { "id": 0, "serverGen": 1653614103746 }
-          ],
-          "edits": [
             {
-              "id": 0,
-              "objectIds": {
-                "adds": [73143],
-                "updates": [65715],
-                "deletes": []
-              },
-              "fieldUpdates": [65715],
-              "attachments": {
-                "adds": [],
-                "updates": [],
-                "deleteIds": []
-              }
+              "layerServerGens": [
+                { "id": 0, "serverGen": 1653614103746 }
+              ],
+              "edits": [
+                {
+                  "id": 0,
+                  "objectIds": {
+                    "adds": [73143],
+                    "updates": [65715],
+                    "deletes": []
+                  },
+                  "fieldUpdates": [65715],
+                  "attachments": {
+                    "adds": [],
+                    "updates": [],
+                    "deleteIds": []
+                  }
+                }
+              ],
+              "transportType": "esriTransportTypeUrl"
             }
-          ],
-          "transportType": "esriTransportTypeUrl"
-        }
-        """);
+            """);
         });
 
         var client = new FeatureServiceClient(
@@ -57,8 +58,7 @@ public sealed class FeatureServiceClientExtractChangesV2Tests
         var result = await client.ExtractChangesAsync(
             new ExtractChangesRequest {
                 Layers = [0],
-                LayerServerGens =
-                [
+                LayerServerGens = [
                     new ExtractChangesLayerServerGen(0, 1653608093000)
                 ],
                 LayerQueries = new Dictionary<int, ExtractChangesLayerQuery> {
@@ -73,7 +73,8 @@ public sealed class FeatureServiceClientExtractChangesV2Tests
                 ReturnAttachments = true,
                 ReturnAttachmentsDataByUrl = true,
                 FieldsToCompare = ["type"]
-            });
+            },
+            cancellationToken);
 
         Assert.NotNull(requestBody);
         Assert.Contains("layerQueries=", requestBody);
@@ -86,12 +87,16 @@ public sealed class FeatureServiceClientExtractChangesV2Tests
 
         Assert.Equal("esriTransportTypeUrl", result.TransportType);
         Assert.Single(result.Edits);
-        Assert.NotNull(result.Edits[0].Attachments);
+
+        var attachmentChanges = Assert.IsType<ExtractChangesAttachmentChanges>(result.Edits[0].Attachments);
         Assert.Single(result.Edits[0].FieldUpdates);
+        Assert.Empty(attachmentChanges.DeleteIds);
     }
 
     [Fact]
     public async Task ExtractChangesAsync_MapsAttachmentDeleteIdsAlongsideFeatureDeletes() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
@@ -172,21 +177,24 @@ public sealed class FeatureServiceClientExtractChangesV2Tests
                 ReturnDeletedFeatures = false,
                 ReturnAttachments = true,
                 ReturnAttachmentsDataByUrl = true
-            });
+            },
+            cancellationToken);
 
         Assert.Single(result.Edits);
-        Assert.NotNull(result.Edits[0].Features);
-        Assert.NotNull(result.Edits[0].Attachments);
 
-        Assert.Single(result.Edits[0].Features!.DeleteIds);
-        Assert.Equal("{FEATURE-GID}", result.Edits[0].Features.DeleteIds[0]);
+        var featureChanges = Assert.IsType<ExtractChangesFeatureChanges>(result.Edits[0].Features);
+        var attachmentChanges = Assert.IsType<ExtractChangesAttachmentChanges>(result.Edits[0].Attachments);
 
-        Assert.Single(result.Edits[0].Attachments!.DeleteIds);
-        Assert.Equal("{ATT-GID}", result.Edits[0].Attachments.DeleteIds[0]);
+        Assert.Single(featureChanges.DeleteIds);
+        Assert.Equal("{FEATURE-GID}", featureChanges.DeleteIds[0]);
+        Assert.Single(attachmentChanges.DeleteIds);
+        Assert.Equal("{ATT-GID}", attachmentChanges.DeleteIds[0]);
     }
 
     [Fact]
     public async Task ExtractChangesAsync_Throws_WhenFieldsToCompareIsUsedWithoutUpdates() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(_ =>
                 throw new InvalidOperationException("The HTTP request should not be executed."))),
@@ -203,7 +211,8 @@ public sealed class FeatureServiceClientExtractChangesV2Tests
                     },
                     ReturnUpdates = false,
                     FieldsToCompare = ["type"]
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("FieldsToCompare", exception.Message);
     }

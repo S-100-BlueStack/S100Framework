@@ -10,6 +10,7 @@ public sealed class FeatureServiceClientExtractChangesTests
 {
     [Fact]
     public async Task ExtractChangesAsync_ReturnsIdsOnlyChanges() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         string? requestBody = null;
 
         var handler = FeatureServiceTestHandlers.WithExtractChangesMetadata(request => {
@@ -18,22 +19,22 @@ public sealed class FeatureServiceClientExtractChangesTests
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
-        {
-          "layerServerGens": [
-            { "id": 0, "serverGen": 1526588581400 }
-          ],
-          "edits": [
             {
-              "id": 0,
-              "objectIds": {
-                "adds": [2027, 2028],
-                "updates": [2026],
-                "deletes": []
-              }
+              "layerServerGens": [
+                { "id": 0, "serverGen": 1526588581400 }
+              ],
+              "edits": [
+                {
+                  "id": 0,
+                  "objectIds": {
+                    "adds": [2027, 2028],
+                    "updates": [2026],
+                    "deletes": []
+                  }
+                }
+              ]
             }
-          ]
-        }
-        """);
+            """);
         });
 
         var client = new FeatureServiceClient(
@@ -47,7 +48,8 @@ public sealed class FeatureServiceClientExtractChangesTests
                 Layers = [0],
                 LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
                 ReturnIdsOnly = true
-            });
+            },
+            cancellationToken);
 
         Assert.NotNull(requestBody);
         Assert.Contains("layers=%5B0%5D", requestBody);
@@ -57,12 +59,15 @@ public sealed class FeatureServiceClientExtractChangesTests
         Assert.Single(result.LayerServerGens);
         Assert.Single(result.Edits);
         Assert.Equal(0, result.Edits[0].LayerId);
-        Assert.NotNull(result.Edits[0].ObjectIds);
-        Assert.Equal(2, result.Edits[0].ObjectIds!.Adds.Count);
+
+        var idChanges = Assert.IsType<ExtractChangesIdChanges>(result.Edits[0].ObjectIds);
+        Assert.Equal(2, idChanges.Adds.Count);
     }
 
     [Fact]
     public async Task ExtractChangesAsync_ReturnsFullFeatureChanges() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
@@ -140,16 +145,17 @@ public sealed class FeatureServiceClientExtractChangesTests
                     SinceServerGen = 1653608093000
                 },
                 ReturnIdsOnly = false
-            });
+            },
+            cancellationToken);
 
         Assert.Single(result.Edits);
-        Assert.NotNull(result.Edits[0].Features);
-        Assert.Single(result.Edits[0].Features!.Adds);
-        Assert.Single(result.Edits[0].Features.Updates);
-        Assert.Single(result.Edits[0].Features.DeleteIds);
 
-        Assert.Equal(125, result.Edits[0].Features.Adds[0].ObjectId);
-        Assert.Equal("Added", result.Edits[0].Features.Adds[0].GetRequiredString("NAME"));
-        Assert.Equal("ABC", result.Edits[0].Features.DeleteIds[0]);
+        var featureChanges = Assert.IsType<ExtractChangesFeatureChanges>(result.Edits[0].Features);
+        Assert.Single(featureChanges.Adds);
+        Assert.Single(featureChanges.Updates);
+        Assert.Single(featureChanges.DeleteIds);
+        Assert.Equal(125, featureChanges.Adds[0].ObjectId);
+        Assert.Equal("Added", featureChanges.Adds[0].GetRequiredString("NAME"));
+        Assert.Equal("ABC", featureChanges.DeleteIds[0]);
     }
 }

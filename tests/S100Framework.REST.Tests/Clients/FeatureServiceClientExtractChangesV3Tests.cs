@@ -11,6 +11,7 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
 {
     [Fact]
     public async Task ExtractChangesAsync_ReturnExtentOnly_MapsExtent_AndSendsGridCell() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         string? requestBody = null;
 
         var handler = FeatureServiceTestHandlers.WithExtractChangesMetadata(request => {
@@ -50,7 +51,8 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
                 LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
                 ReturnExtentOnly = true,
                 ChangesExtentGridCell = ExtractChangesExtentGridCell.Medium
-            });
+            },
+            cancellationToken);
 
         Assert.NotNull(requestBody);
         Assert.Contains("returnExtentOnly=true", requestBody);
@@ -64,6 +66,8 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
 
     [Fact]
     public async Task SubmitExtractChangesAsync_ReturnsStatusUrl_WhenServerRespondsAsynchronously() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = FeatureServiceTestHandlers.WithExtractChangesMetadata(_ =>
             StubHttpMessageHandler.Json("""
             {
@@ -82,7 +86,8 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
                 Layers = [0],
                 LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
                 ReturnIdsOnly = false
-            });
+            },
+            cancellationToken);
 
         Assert.True(submission.IsPending);
         Assert.NotNull(submission.StatusUrl);
@@ -92,6 +97,8 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
 
     [Fact]
     public async Task GetExtractChangesStatusAsync_MapsCompletedStatus() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = new StubHttpMessageHandler(_ =>
             StubHttpMessageHandler.Json("""
             {
@@ -111,7 +118,8 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
             });
 
         var status = await client.GetExtractChangesStatusAsync(
-            new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/j123"));
+            new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/j123"),
+            cancellationToken);
 
         Assert.True(status.IsTerminal);
         Assert.True(status.IsCompleted);
@@ -122,6 +130,7 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
 
     [Fact]
     public async Task DownloadExtractChangesFileAsync_DownloadsSqliteResult() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var bytes = new byte[] { 1, 2, 3, 4 };
 
         var handler = new StubHttpMessageHandler(_ => {
@@ -144,7 +153,8 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
             });
 
         var result = await client.DownloadExtractChangesFileAsync(
-            new Uri("https://example.test/output/changes.sqlite"));
+            new Uri("https://example.test/output/changes.sqlite"),
+            cancellationToken);
 
         Assert.Equal(bytes, result.Content);
         Assert.Equal("application/octet-stream", result.ContentType);
@@ -154,6 +164,7 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
 
     [Fact]
     public async Task SubmitExtractChangesAsync_SendsSqlliteDataFormat_WhenRequested() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         string? requestBody = null;
 
         var handler = FeatureServiceTestHandlers.WithExtractChangesMetadata(request => {
@@ -179,7 +190,8 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
                 Layers = [0],
                 LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
                 DataFormat = ExtractChangesDataFormat.Sqlite
-            });
+            },
+            cancellationToken);
 
         Assert.True(submission.IsPending);
         Assert.NotNull(requestBody);

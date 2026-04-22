@@ -9,6 +9,8 @@ public sealed class FeatureLayerSchemaMetadataTests
 {
     [Fact]
     public async Task GetSchemaAsync_MapsCapabilitiesAndRelationships() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
@@ -49,14 +51,11 @@ public sealed class FeatureLayerSchemaMetadataTests
                     "supportsOrderBy": true,
                     "supportsDistinct": true
                   },
-                                  "advancedEditingCapabilities": {
-                  "supportsAsyncApplyEdits": true
-                },
+                  "advancedEditingCapabilities": {
+                    "supportsAsyncApplyEdits": true
+                  },
                   "extent": {
-                    "spatialReference": {
-                      "wkid": 4326,
-                      "latestWkid": 4326
-                    }
+                    "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
                   }
                 }
                 """);
@@ -71,12 +70,11 @@ public sealed class FeatureLayerSchemaMetadataTests
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             });
 
-        var schema = await client.GetLayerClient(0).GetSchemaAsync();
+        var schema = await client.GetLayerClient(0).GetSchemaAsync(cancellationToken);
 
         Assert.Equal("Facilities", schema.Name);
         Assert.Equal(4326, schema.Srid);
-        Assert.True(schema.SupportsPagination);
-
+        Assert.True(schema.Capabilities.SupportsPagination);
         Assert.True(schema.Capabilities.HasAttachments);
         Assert.True(schema.Capabilities.SupportsQueryAttachments);
         Assert.True(schema.Capabilities.SupportsAttachmentsResizing);
@@ -87,7 +85,6 @@ public sealed class FeatureLayerSchemaMetadataTests
         Assert.True(schema.Capabilities.SupportsOrderBy);
         Assert.True(schema.Capabilities.SupportsDistinct);
         Assert.True(schema.Capabilities.SupportsAsyncApplyEdits);
-
         Assert.Single(schema.Relationships);
         Assert.Equal(7, schema.Relationships[0].Id);
         Assert.Equal("facility_inspections", schema.Relationships[0].Name);

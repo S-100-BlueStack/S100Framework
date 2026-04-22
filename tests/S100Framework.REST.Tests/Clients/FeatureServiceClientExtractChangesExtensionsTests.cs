@@ -13,6 +13,7 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTests
 {
     [Fact]
     public async Task WaitForExtractChangesCompletionAsync_ReturnsCompletedStatus_WhenStatusContainsSpaces() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/extractChanges-123/status";
         const string resultUrl = "https://example.test/arcgis/rest/directories/arcgisoutput/Test_MapServer/extractChanges-123.sqlite";
 
@@ -42,7 +43,8 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTests
             new ExtractChangesPollingOptions {
                 PollInterval = TimeSpan.FromMilliseconds(1),
                 Timeout = TimeSpan.FromSeconds(1)
-            });
+            },
+            cancellationToken);
 
         Assert.True(status.IsTerminal);
         Assert.True(status.IsCompleted);
@@ -54,6 +56,7 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTests
 
     [Fact]
     public async Task SubmitAndDownloadExtractChangesFileAsync_SubmitsPollsAndDownloadsSqliteFile() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/extractChanges-123/status";
         const string resultUrl = "https://example.test/arcgis/rest/directories/arcgisoutput/Test_MapServer/extractChanges-123.sqlite";
 
@@ -130,7 +133,8 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTests
             new ExtractChangesPollingOptions {
                 PollInterval = TimeSpan.FromMilliseconds(1),
                 Timeout = TimeSpan.FromSeconds(1)
-            });
+            },
+            cancellationToken);
 
         Assert.NotNull(requestBody);
         Assert.Contains("async=true", requestBody!);
@@ -145,6 +149,7 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTests
 
     [Fact]
     public async Task SubmitAndDownloadExtractChangesFileAsync_Throws_WhenCompletedJobHasNoResultUrl() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/extractChanges-123/status";
 
         var handler = FeatureServiceTestHandlers.WithExtractChangesMetadata(request => {
@@ -152,20 +157,20 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTests
 
             if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer/extractChanges") {
                 return StubHttpMessageHandler.Json($$"""
-            {
-              "statusUrl": "{{statusUrl}}"
-            }
-            """);
+                {
+                  "statusUrl": "{{statusUrl}}"
+                }
+                """);
             }
 
             if (uri == statusUrl) {
                 return StubHttpMessageHandler.Json("""
-            {
-              "status": "Completed",
-              "responseType": "esriReplicaResponseTypeData",
-              "transportType": "esriTransportTypeURL"
-            }
-            """);
+                {
+                  "status": "Completed",
+                  "responseType": "esriReplicaResponseTypeData",
+                  "transportType": "esriTransportTypeURL"
+                }
+                """);
             }
 
             throw new InvalidOperationException($"Unexpected request URI: {uri}");
@@ -186,13 +191,16 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTests
                 new ExtractChangesPollingOptions {
                     PollInterval = TimeSpan.FromMilliseconds(1),
                     Timeout = TimeSpan.FromSeconds(1)
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("completed without a result URL", exception.Message);
     }
 
     [Fact]
     public async Task SubmitAndDownloadExtractChangesFileAsync_Throws_WhenRequestIsNotSqlite() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = CreateClient(new StubHttpMessageHandler(_ =>
             throw new InvalidOperationException("The HTTP request should not be executed.")));
 
@@ -205,7 +213,8 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTests
                     ReturnUpdates = true,
                     ReturnDeletes = true,
                     DataFormat = ExtractChangesDataFormat.Json
-                }));
+                },
+                cancellationToken: cancellationToken));
 
         Assert.Contains("requires DataFormat.Sqlite", exception.Message);
     }

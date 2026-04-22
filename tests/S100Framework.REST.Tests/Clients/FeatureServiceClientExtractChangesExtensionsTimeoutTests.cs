@@ -9,6 +9,7 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTimeoutTests
 {
     [Fact]
     public async Task WaitForExtractChangesCompletionAsync_ThrowsTimeoutException_WhenJobDoesNotComplete() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var client = new NeverCompletingFeatureServiceClient();
 
         var exception = await Assert.ThrowsAsync<TimeoutException>(() =>
@@ -17,7 +18,8 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTimeoutTests
                 new ExtractChangesPollingOptions {
                     PollInterval = TimeSpan.FromMilliseconds(5),
                     Timeout = TimeSpan.FromMilliseconds(25)
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("did not complete within", exception.Message);
         Assert.True(client.StatusRequestCount >= 1);
@@ -25,6 +27,7 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTimeoutTests
 
     [Fact]
     public async Task SubmitAndDownloadExtractChangesFileAsync_ThrowsTimeoutException_WhenJobDoesNotComplete() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var client = new NeverCompletingFeatureServiceClient();
 
         var exception = await Assert.ThrowsAsync<TimeoutException>(() =>
@@ -40,7 +43,8 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTimeoutTests
                 new ExtractChangesPollingOptions {
                     PollInterval = TimeSpan.FromMilliseconds(5),
                     Timeout = TimeSpan.FromMilliseconds(25)
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("did not complete within", exception.Message);
         Assert.True(client.StatusRequestCount >= 1);

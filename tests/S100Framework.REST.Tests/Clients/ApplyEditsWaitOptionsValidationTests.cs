@@ -11,6 +11,8 @@ public sealed class ApplyEditsWaitOptionsValidationTests
 {
     [Fact]
     public async Task ServiceWaitForApplyEditsCompletionAsync_Throws_WhenPollIntervalIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(_ =>
                 throw new InvalidOperationException("The HTTP request should not be executed."))),
@@ -23,13 +25,16 @@ public sealed class ApplyEditsWaitOptionsValidationTests
                 new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/applyEdits-123/status"),
                 new ApplyEditsWaitOptions {
                     PollInterval = TimeSpan.FromMilliseconds(-1)
-                }));
+                },
+                cancellationToken));
 
         Assert.Equal(nameof(ApplyEditsWaitOptions.PollInterval), exception.ParamName);
     }
 
     [Fact]
     public async Task LayerWaitForApplyEditsCompletionAsync_Throws_WhenTimeoutIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var layerClient = new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(_ =>
                 throw new InvalidOperationException("The HTTP request should not be executed."))),
@@ -42,7 +47,8 @@ public sealed class ApplyEditsWaitOptionsValidationTests
                 new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/applyEdits-123/status"),
                 new ApplyEditsWaitOptions {
                     Timeout = TimeSpan.FromMilliseconds(-1)
-                }));
+                },
+                cancellationToken));
 
         Assert.Equal(nameof(ApplyEditsWaitOptions.Timeout), exception.ParamName);
     }
