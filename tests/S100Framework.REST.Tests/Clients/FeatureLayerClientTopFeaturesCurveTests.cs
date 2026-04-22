@@ -10,6 +10,7 @@ public sealed class FeatureLayerClientTopFeaturesCurveTests
 {
     [Fact]
     public async Task QueryTopFeaturesAsync_SendsReturnTrueCurvesFlag() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -48,13 +49,8 @@ public sealed class FeatureLayerClientTopFeaturesCurveTests
                   "objectIdFieldName": "OBJECTID",
                   "features": [
                     {
-                      "attributes": {
-                        "OBJECTID": 1
-                      },
-                      "geometry": {
-                        "x": 10,
-                        "y": 20
-                      }
+                      "attributes": { "OBJECTID": 1 },
+                      "geometry": { "x": 10, "y": 20 }
                     }
                   ]
                 }
@@ -79,11 +75,11 @@ public sealed class FeatureLayerClientTopFeaturesCurveTests
                     OrderByFields = ["SCORE DESC"],
                     TopCount = 1
                 }
-            });
+            },
+            cancellationToken);
 
         Assert.Single(result);
-
-        var requestUri = Assert.Single(requestUris.Where(x => x.Contains("/queryTopFeatures?")));
+        var requestUri = Assert.Single(requestUris, x => x.Contains("/queryTopFeatures?"));
         Assert.Contains("returnTrueCurves=true", requestUri);
     }
 }

@@ -11,6 +11,7 @@ public sealed class FeatureLayerClientCurveQueryTests
 {
     [Fact]
     public async Task QueryAsync_SendsReturnTrueCurvesFalse_ByDefault() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -50,11 +51,7 @@ public sealed class FeatureLayerClientCurveQueryTests
                   "features": [
                     {
                       "attributes": { "OBJECTID": 1 },
-                      "geometry": {
-                        "paths": [
-                          [[10,20],[11,21]]
-                        ]
-                      }
+                      "geometry": { "paths": [ [[10,20],[11,21]] ] }
                     }
                   ]
                 }
@@ -71,21 +68,20 @@ public sealed class FeatureLayerClientCurveQueryTests
             });
 
         var layerClient = serviceClient.GetLayerClient(0);
-
         var results = new List<FeatureRecord>();
 
-        await foreach (var feature in layerClient.QueryAsync(new FeatureQuery())) {
+        await foreach (var feature in layerClient.QueryAsync(new FeatureQuery(), cancellationToken)) {
             results.Add(feature);
         }
 
         Assert.Single(results);
-
-        var queryRequest = Assert.Single(requestUris.Where(uri => uri.Contains("/FeatureServer/0/query?")));
+        var queryRequest = Assert.Single(requestUris, uri => uri.Contains("/FeatureServer/0/query?"));
         Assert.Contains("returnTrueCurves=false", queryRequest);
     }
 
     [Fact]
     public async Task QueryAsync_SendsReturnTrueCurvesTrue_WhenEnabled() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -125,11 +121,7 @@ public sealed class FeatureLayerClientCurveQueryTests
                   "features": [
                     {
                       "attributes": { "OBJECTID": 1 },
-                      "geometry": {
-                        "paths": [
-                          [[10,20],[11,21]]
-                        ]
-                      }
+                      "geometry": { "paths": [ [[10,20],[11,21]] ] }
                     }
                   ]
                 }
@@ -147,16 +139,14 @@ public sealed class FeatureLayerClientCurveQueryTests
             });
 
         var layerClient = serviceClient.GetLayerClient(0);
-
         var results = new List<FeatureRecord>();
 
-        await foreach (var feature in layerClient.QueryAsync(new FeatureQuery())) {
+        await foreach (var feature in layerClient.QueryAsync(new FeatureQuery(), cancellationToken)) {
             results.Add(feature);
         }
 
         Assert.Single(results);
-
-        var queryRequest = Assert.Single(requestUris.Where(uri => uri.Contains("/FeatureServer/0/query?")));
+        var queryRequest = Assert.Single(requestUris, uri => uri.Contains("/FeatureServer/0/query?"));
         Assert.Contains("returnTrueCurves=true", queryRequest);
     }
 }

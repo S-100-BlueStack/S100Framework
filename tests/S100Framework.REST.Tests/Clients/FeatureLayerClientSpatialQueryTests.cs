@@ -12,6 +12,7 @@ public sealed class FeatureLayerClientSpatialQueryTests
 {
     [Fact]
     public async Task QueryAsync_IncludesEnvelopeFilterAndOutSrid_WhenPaginationIsSupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -44,7 +45,10 @@ public sealed class FeatureLayerClientSpatialQueryTests
                 {
                   "objectIdFieldName": "OBJECTID",
                   "features": [
-                    { "attributes": { "OBJECTID": 1 }, "geometry": { "x": 10, "y": 20 } }
+                    {
+                      "attributes": { "OBJECTID": 1 },
+                      "geometry": { "x": 10, "y": 20 }
+                    }
                   ]
                 }
                 """);
@@ -60,25 +64,22 @@ public sealed class FeatureLayerClientSpatialQueryTests
             });
 
         var layerClient = serviceClient.GetLayerClient(0);
-
         var query = new FeatureQuery {
             OutSrid = 25832,
             SpatialFilter = FeatureSpatialFilter.FromEnvelope(
-    new Envelope(10, 30, 20, 40),
-    inSrid: 4326,
-    spatialRelationship: SpatialRelationship.Intersects)
+                new Envelope(10, 30, 20, 40),
+                inSrid: 4326,
+                spatialRelationship: SpatialRelationship.Intersects)
         };
 
         var results = new List<FeatureRecord>();
 
-        await foreach (var feature in layerClient.QueryAsync(query)) {
+        await foreach (var feature in layerClient.QueryAsync(query, cancellationToken)) {
             results.Add(feature);
         }
 
         Assert.Single(results);
-
-        var queryRequest = Assert.Single(requestUris.Where(uri => uri.Contains("/FeatureServer/0/query?")));
-
+        var queryRequest = Assert.Single(requestUris, uri => uri.Contains("/FeatureServer/0/query?"));
         Assert.Contains("geometry=", queryRequest);
         Assert.Contains("geometryType=esriGeometryEnvelope", queryRequest);
         Assert.Contains("spatialRel=esriSpatialRelIntersects", queryRequest);
@@ -90,6 +91,7 @@ public sealed class FeatureLayerClientSpatialQueryTests
 
     [Fact]
     public async Task QueryAsync_ForwardsEnvelopeFilterToIdQueryFallback_WhenPaginationIsNotSupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -131,8 +133,14 @@ public sealed class FeatureLayerClientSpatialQueryTests
                 {
                   "objectIdFieldName": "OBJECTID",
                   "features": [
-                    { "attributes": { "OBJECTID": 1 }, "geometry": { "x": 10, "y": 20 } },
-                    { "attributes": { "OBJECTID": 2 }, "geometry": { "x": 11, "y": 21 } }
+                    {
+                      "attributes": { "OBJECTID": 1 },
+                      "geometry": { "x": 10, "y": 20 }
+                    },
+                    {
+                      "attributes": { "OBJECTID": 2 },
+                      "geometry": { "x": 11, "y": 21 }
+                    }
                   ]
                 }
                 """);
@@ -148,24 +156,21 @@ public sealed class FeatureLayerClientSpatialQueryTests
             });
 
         var layerClient = serviceClient.GetLayerClient(0);
-
         var query = new FeatureQuery {
             SpatialFilter = FeatureSpatialFilter.FromEnvelope(
-    new Envelope(10, 30, 20, 40),
-    inSrid: 4326,
-    spatialRelationship: SpatialRelationship.Intersects)
+                new Envelope(10, 30, 20, 40),
+                inSrid: 4326,
+                spatialRelationship: SpatialRelationship.Intersects)
         };
 
         var results = new List<FeatureRecord>();
 
-        await foreach (var feature in layerClient.QueryAsync(query)) {
+        await foreach (var feature in layerClient.QueryAsync(query, cancellationToken)) {
             results.Add(feature);
         }
 
         Assert.Equal(2, results.Count);
-
-        var idsRequest = Assert.Single(requestUris.Where(uri => uri.Contains("returnIdsOnly=true")));
-
+        var idsRequest = Assert.Single(requestUris, uri => uri.Contains("returnIdsOnly=true"));
         Assert.Contains("geometry=", idsRequest);
         Assert.Contains("geometryType=esriGeometryEnvelope", idsRequest);
         Assert.Contains("spatialRel=esriSpatialRelIntersects", idsRequest);
@@ -174,6 +179,7 @@ public sealed class FeatureLayerClientSpatialQueryTests
 
     [Fact]
     public async Task QueryAsync_IncludesPolygonGeometryFilter_WhenUsingNtsGeometry() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -206,7 +212,10 @@ public sealed class FeatureLayerClientSpatialQueryTests
                 {
                   "objectIdFieldName": "OBJECTID",
                   "features": [
-                    { "attributes": { "OBJECTID": 1 }, "geometry": { "x": 10, "y": 20 } }
+                    {
+                      "attributes": { "OBJECTID": 1 },
+                      "geometry": { "x": 10, "y": 20 }
+                    }
                   ]
                 }
                 """);
@@ -216,15 +225,14 @@ public sealed class FeatureLayerClientSpatialQueryTests
         });
 
         var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 25832);
-
         var polygon = geometryFactory.CreatePolygon(
-            [
-                new Coordinate(530000, 6150000),
-                new Coordinate(540000, 6150000),
-                new Coordinate(540000, 6160000),
-                new Coordinate(530000, 6160000),
-                new Coordinate(530000, 6150000)
-            ]);
+        [
+            new Coordinate(530000, 6150000),
+            new Coordinate(540000, 6150000),
+            new Coordinate(540000, 6160000),
+            new Coordinate(530000, 6160000),
+            new Coordinate(530000, 6150000)
+        ]);
 
         IFeatureServiceClient serviceClient = new FeatureServiceClient(
             new HttpClient(handler),
@@ -233,18 +241,16 @@ public sealed class FeatureLayerClientSpatialQueryTests
             });
 
         var layerClient = serviceClient.GetLayerClient(0);
-
         var query = new FeatureQuery {
             SpatialFilter = FeatureSpatialFilter.FromGeometry(
-    polygon,
-    spatialRelationship: SpatialRelationship.Intersects)
+                polygon,
+                spatialRelationship: SpatialRelationship.Intersects)
         };
 
-        await foreach (var _ in layerClient.QueryAsync(query)) {
+        await foreach (var _ in layerClient.QueryAsync(query, cancellationToken)) {
         }
 
-        var queryRequest = Assert.Single(requestUris.Where(uri => uri.Contains("/FeatureServer/0/query?")));
-
+        var queryRequest = Assert.Single(requestUris, uri => uri.Contains("/FeatureServer/0/query?"));
         Assert.Contains("geometryType=esriGeometryPolygon", queryRequest);
         Assert.Contains("spatialRel=esriSpatialRelIntersects", queryRequest);
         Assert.Contains("inSR=25832", queryRequest);

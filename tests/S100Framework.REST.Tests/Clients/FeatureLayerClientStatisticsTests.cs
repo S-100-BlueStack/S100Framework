@@ -12,6 +12,7 @@ public sealed class FeatureLayerClientStatisticsTests
 {
     [Fact]
     public async Task QueryStatisticsAsync_SendsStatisticsParameters_AndMapsRows() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -44,7 +45,6 @@ public sealed class FeatureLayerClientStatisticsTests
             });
 
         var layerClient = serviceClient.GetLayerClient(0);
-
         var query = new FeatureStatisticsQuery {
             Where = "1=1",
             GroupByFields = ["PLANNAME"],
@@ -54,21 +54,20 @@ public sealed class FeatureLayerClientStatisticsTests
                 new Envelope(10, 30, 20, 40),
                 inSrid: 4326,
                 spatialRelationship: SpatialRelationship.Intersects),
-            Statistics =
-            [
+            Statistics = [
                 new StatisticDefinition("OBJECTID", "PLAN_COUNT", StatisticType.Count),
                 new StatisticDefinition("AOIID", "MAX_AOIID", StatisticType.Max)
             ]
         };
 
-        var rows = await layerClient.QueryStatisticsAsync(query);
+        var rows = await layerClient.QueryStatisticsAsync(query, cancellationToken);
 
         Assert.Single(rows);
         Assert.Equal("Plan A", rows[0].GetRequiredString("PLANNAME"));
         Assert.Equal(2L, rows[0].GetRequiredInt64("PLAN_COUNT"));
         Assert.Equal(99L, rows[0].GetRequiredInt64("MAX_AOIID"));
 
-        var queryRequest = Assert.Single(requestUris.Where(uri => uri.Contains("/FeatureServer/0/query?")));
+        var queryRequest = Assert.Single(requestUris, uri => uri.Contains("/FeatureServer/0/query?"));
         var decoded = Uri.UnescapeDataString(queryRequest);
 
         Assert.Contains("outStatistics=", decoded);
@@ -84,15 +83,16 @@ public sealed class FeatureLayerClientStatisticsTests
 
     [Fact]
     public async Task QueryStatisticsAsync_Throws_WhenNoStatisticsAreProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var layerClient = new FeatureServiceClient(
-            new HttpClient(new StubHttpMessageHandler(_ =>
-                throw new InvalidOperationException("The HTTP request should not be executed."))),
+            new HttpClient(new StubHttpMessageHandler(_ => throw new InvalidOperationException("The HTTP request should not be executed."))),
             new FeatureServiceClientOptions {
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             }).GetLayerClient(0);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            layerClient.QueryStatisticsAsync(new FeatureStatisticsQuery()));
+            layerClient.QueryStatisticsAsync(new FeatureStatisticsQuery(), cancellationToken));
 
         Assert.Contains("statistic definition", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

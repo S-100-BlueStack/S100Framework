@@ -12,6 +12,7 @@ public sealed class FeatureLayerClientQueryOptionsTests
 {
     [Fact]
     public async Task QueryAsync_IncludesDistinctZMPAndGeometryOptions() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -44,7 +45,10 @@ public sealed class FeatureLayerClientQueryOptionsTests
                 {
                   "objectIdFieldName": "OBJECTID",
                   "features": [
-                    { "attributes": { "OBJECTID": 1 }, "geometry": { "x": 10, "y": 20, "z": 5 } }
+                    {
+                      "attributes": { "OBJECTID": 1 },
+                      "geometry": { "x": 10, "y": 20, "z": 5 }
+                    }
                   ]
                 }
                 """);
@@ -60,7 +64,6 @@ public sealed class FeatureLayerClientQueryOptionsTests
             });
 
         var layerClient = serviceClient.GetLayerClient(0);
-
         var query = new FeatureQuery {
             ReturnDistinctValues = true,
             ReturnZ = true,
@@ -72,14 +75,12 @@ public sealed class FeatureLayerClientQueryOptionsTests
 
         var results = new List<FeatureRecord>();
 
-        await foreach (var feature in layerClient.QueryAsync(query)) {
+        await foreach (var feature in layerClient.QueryAsync(query, cancellationToken)) {
             results.Add(feature);
         }
 
         Assert.Single(results);
-
-        var queryRequest = Assert.Single(requestUris.Where(uri => uri.Contains("/FeatureServer/0/query?")));
-
+        var queryRequest = Assert.Single(requestUris, uri => uri.Contains("/FeatureServer/0/query?"));
         Assert.Contains("returnDistinctValues=true", queryRequest);
         Assert.Contains("returnZ=true", queryRequest);
         Assert.Contains("returnM=false", queryRequest);
@@ -89,6 +90,8 @@ public sealed class FeatureLayerClientQueryOptionsTests
 
     [Fact]
     public async Task QueryCountAsync_ReturnsCount() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
@@ -111,13 +114,15 @@ public sealed class FeatureLayerClientQueryOptionsTests
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             }).GetLayerClient(0);
 
-        var count = await layerClient.QueryCountAsync(new FeatureQuery());
+        var count = await layerClient.QueryCountAsync(new FeatureQuery(), cancellationToken);
 
         Assert.Equal(42, count);
     }
 
     [Fact]
     public async Task QueryObjectIdsAsync_ReturnsIds() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
@@ -141,13 +146,15 @@ public sealed class FeatureLayerClientQueryOptionsTests
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             }).GetLayerClient(0);
 
-        var ids = await layerClient.QueryObjectIdsAsync(new FeatureQuery());
+        var ids = await layerClient.QueryObjectIdsAsync(new FeatureQuery(), cancellationToken);
 
         Assert.Equal(new long[] { 1, 2, 3 }, ids.ToArray());
     }
 
     [Fact]
     public async Task QueryExtentAsync_ReturnsExtentAndSrid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
@@ -162,10 +169,7 @@ public sealed class FeatureLayerClientQueryOptionsTests
                     "ymin": 20,
                     "xmax": 30,
                     "ymax": 40,
-                    "spatialReference": {
-                      "wkid": 25832,
-                      "latestWkid": 25832
-                    }
+                    "spatialReference": { "wkid": 25832, "latestWkid": 25832 }
                   }
                 }
                 """);
@@ -180,7 +184,9 @@ public sealed class FeatureLayerClientQueryOptionsTests
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             }).GetLayerClient(0);
 
-        var extent = await layerClient.QueryExtentAsync(new FeatureQuery { OutSrid = 25832 });
+        var extent = await layerClient.QueryExtentAsync(
+            new FeatureQuery { OutSrid = 25832 },
+            cancellationToken);
 
         Assert.NotNull(extent);
         Assert.Equal(10, extent!.Envelope.MinX);
