@@ -463,6 +463,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     AttachmentQuery query,
     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+        query.Validate();
 
         var schema = await GetSchemaAsync(cancellationToken);
         EnsureAttachmentQuerySupported(schema);
@@ -641,6 +642,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     DeleteAttachmentsRequest request,
     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
+        request.Validate();
 
         await EnsureAttachmentEditingSupportedAsync(
             requireUploadSupport: false,
@@ -656,6 +658,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     AddAttachmentRequest request,
     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
+        request.Validate();
 
         await EnsureAttachmentEditingSupportedAsync(
             requireUploadSupport: true,
@@ -668,9 +671,10 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     }
 
     public async Task<UpdateAttachmentResult> UpdateAttachmentAsync(
-    UpdateAttachmentRequest request,
-    CancellationToken cancellationToken = default) {
+      UpdateAttachmentRequest request,
+      CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
+        request.Validate();
 
         await EnsureAttachmentEditingSupportedAsync(
             requireUploadSupport: true,

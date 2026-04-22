@@ -147,25 +147,25 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTests
     public async Task SubmitAndDownloadExtractChangesFileAsync_Throws_WhenCompletedJobHasNoResultUrl() {
         const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/extractChanges-123/status";
 
-        var handler = new StubHttpMessageHandler(request => {
+        var handler = FeatureServiceTestHandlers.WithExtractChangesMetadata(request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
             if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer/extractChanges") {
                 return StubHttpMessageHandler.Json($$"""
-                {
-                  "statusUrl": "{{statusUrl}}"
-                }
-                """);
+            {
+              "statusUrl": "{{statusUrl}}"
+            }
+            """);
             }
 
             if (uri == statusUrl) {
                 return StubHttpMessageHandler.Json("""
-                {
-                  "status": "Completed",
-                  "responseType": "esriReplicaResponseTypeData",
-                  "transportType": "esriTransportTypeURL"
-                }
-                """);
+            {
+              "status": "Completed",
+              "responseType": "esriReplicaResponseTypeData",
+              "transportType": "esriTransportTypeURL"
+            }
+            """);
             }
 
             throw new InvalidOperationException($"Unexpected request URI: {uri}");

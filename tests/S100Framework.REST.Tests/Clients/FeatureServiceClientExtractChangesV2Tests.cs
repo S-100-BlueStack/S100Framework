@@ -13,35 +13,35 @@ public sealed class FeatureServiceClientExtractChangesV2Tests
     public async Task ExtractChangesAsync_IncludesLayerQueriesGeometryAttachmentsAndFieldsToCompare() {
         string? requestBody = null;
 
-        var handler = new StubHttpMessageHandler(request => {
+        var handler = FeatureServiceTestHandlers.WithExtractChangesMetadata(request => {
             requestBody = request.Content is null
                 ? null
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
+        {
+          "layerServerGens": [
+            { "id": 0, "serverGen": 1653614103746 }
+          ],
+          "edits": [
             {
-              "layerServerGens": [
-                { "id": 0, "serverGen": 1653614103746 }
-              ],
-              "edits": [
-                {
-                  "id": 0,
-                  "objectIds": {
-                    "adds": [73143],
-                    "updates": [65715],
-                    "deletes": []
-                  },
-                  "fieldUpdates": [65715],
-                  "attachments": {
-                    "adds": [],
-                    "updates": [],
-                    "deleteIds": []
-                  }
-                }
-              ],
-              "transportType": "esriTransportTypeUrl"
+              "id": 0,
+              "objectIds": {
+                "adds": [73143],
+                "updates": [65715],
+                "deletes": []
+              },
+              "fieldUpdates": [65715],
+              "attachments": {
+                "adds": [],
+                "updates": [],
+                "deleteIds": []
+              }
             }
-            """);
+          ],
+          "transportType": "esriTransportTypeUrl"
+        }
+        """);
         });
 
         var client = new FeatureServiceClient(

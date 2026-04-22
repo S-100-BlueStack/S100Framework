@@ -17,7 +17,7 @@ public sealed class FeatureLayerClientAddAttachmentTests
         string? contentType = null;
         string? requestBody = null;
 
-        var handler = new StubHttpMessageHandler(request => {
+        var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, request => {
             method = request.Method;
             requestUri = request.RequestUri!.AbsoluteUri;
             contentType = request.Content?.Headers.ContentType?.ToString();
@@ -82,7 +82,7 @@ public sealed class FeatureLayerClientAddAttachmentTests
     public async Task AddAttachmentAsync_IncludesGdbVersion_WhenProvided() {
         string? requestBody = null;
 
-        var handler = new StubHttpMessageHandler(request => {
+        var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, request => {
             requestBody = request.Content is null
                 ? null
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
@@ -122,7 +122,7 @@ public sealed class FeatureLayerClientAddAttachmentTests
 
     [Fact]
     public async Task AddAttachmentAsync_MapsFailedResult() {
-        var handler = new StubHttpMessageHandler(_ =>
+        var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, _ =>
             StubHttpMessageHandler.Json("""
             {
               "addAttachmentResult": {

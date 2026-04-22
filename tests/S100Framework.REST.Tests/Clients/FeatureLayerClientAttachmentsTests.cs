@@ -16,38 +16,38 @@ public sealed class FeatureLayerClientAttachmentsTests
     public async Task QueryAttachmentsAsync_SendsExpectedParameters_AndMapsGroups() {
         var requestUris = new List<string>();
 
-        var handler = new StubHttpMessageHandler(request => {
+        var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, request => {
             var uri = request.RequestUri!.AbsoluteUri;
             requestUris.Add(uri);
 
             if (uri.Contains("/FeatureServer/0/queryAttachments?")) {
                 return StubHttpMessageHandler.Json("""
+            {
+              "attachmentGroups": [
                 {
-                  "attachmentGroups": [
+                  "parentObjectId": 100,
+                  "parentGlobalId": "{AAA}",
+                  "attachmentInfos": [
                     {
-                      "parentObjectId": 100,
-                      "parentGlobalId": "{AAA}",
-                      "attachmentInfos": [
-                        {
-                          "id": 1,
-                          "globalId": "{ATT-1}",
-                          "name": "photo-a.jpg",
-                          "contentType": "image/jpeg",
-                          "size": 1234,
-                          "keywords": "harbor,photo",
-                          "url": "https://example.test/a.jpg"
-                        },
-                        {
-                          "id": 2,
-                          "name": "report.pdf",
-                          "contentType": "application/pdf",
-                          "size": 9999
-                        }
-                      ]
+                      "id": 1,
+                      "globalId": "{ATT-1}",
+                      "name": "photo-a.jpg",
+                      "contentType": "image/jpeg",
+                      "size": 1234,
+                      "keywords": "harbor,photo",
+                      "url": "https://example.test/a.jpg"
+                    },
+                    {
+                      "id": 2,
+                      "name": "report.pdf",
+                      "contentType": "application/pdf",
+                      "size": 9999
                     }
                   ]
                 }
-                """);
+              ]
+            }
+            """);
             }
 
             throw new InvalidOperationException($"Unexpected request: {uri}");
@@ -99,7 +99,7 @@ public sealed class FeatureLayerClientAttachmentsTests
     public async Task DownloadAttachmentAsync_ReturnsBytesContentTypeAndFileName() {
         var fileBytes = Encoding.UTF8.GetBytes("attachment-content");
 
-        var handler = new StubHttpMessageHandler(request => {
+        var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
             if (uri.Contains("/FeatureServer/0/100/attachments/7")) {

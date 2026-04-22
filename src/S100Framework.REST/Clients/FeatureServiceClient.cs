@@ -1536,8 +1536,11 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
 
     /// <inheritdoc />
     public async Task<ExtractChangesResult> ExtractChangesAsync(
-     ExtractChangesRequest request,
-     CancellationToken cancellationToken = default) {
+        ExtractChangesRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        request.Validate();
+
         var metadata = await GetMetadataAsync(cancellationToken);
         EnsureExtractChangesSupported(metadata, request);
 

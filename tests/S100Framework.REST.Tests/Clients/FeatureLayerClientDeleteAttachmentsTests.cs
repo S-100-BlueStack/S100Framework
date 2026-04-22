@@ -15,7 +15,7 @@ public sealed class FeatureLayerClientDeleteAttachmentsTests
         string? requestUri = null;
         string? requestBody = null;
 
-        var handler = new StubHttpMessageHandler(request => {
+        var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, request => {
             method = request.Method;
             requestUri = request.RequestUri!.AbsoluteUri;
             requestBody = request.Content is null
@@ -23,26 +23,26 @@ public sealed class FeatureLayerClientDeleteAttachmentsTests
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
+        {
+          "deleteAttachmentResults": [
             {
-              "deleteAttachmentResults": [
-                {
-                  "objectId": 58,
-                  "globalId": null,
-                  "success": true
-                },
-                {
-                  "objectId": 4,
-                  "globalId": null,
-                  "success": false,
-                  "error": {
-                    "code": 50,
-                    "description": "Attachment not found"
-                  }
-                }
-              ],
-              "editMoment": 1735689600000
+              "objectId": 58,
+              "globalId": null,
+              "success": true
+            },
+            {
+              "objectId": 4,
+              "globalId": null,
+              "success": false,
+              "error": {
+                "code": 50,
+                "description": "Attachment not found"
+              }
             }
-            """);
+          ],
+          "editMoment": 1735689600000
+        }
+        """);
         });
 
         var layerClient = new FeatureServiceClient(
@@ -86,22 +86,22 @@ public sealed class FeatureLayerClientDeleteAttachmentsTests
     public async Task DeleteAttachmentsAsync_IncludesGdbVersion_WhenProvided() {
         string? requestBody = null;
 
-        var handler = new StubHttpMessageHandler(request => {
+        var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, request => {
             requestBody = request.Content is null
                 ? null
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
+        {
+          "deleteAttachmentResults": [
             {
-              "deleteAttachmentResults": [
-                {
-                  "objectId": 58,
-                  "globalId": null,
-                  "success": true
-                }
-              ]
+              "objectId": 58,
+              "globalId": null,
+              "success": true
             }
-            """);
+          ]
+        }
+        """);
         });
 
         var layerClient = new FeatureServiceClient(

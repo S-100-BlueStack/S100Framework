@@ -13,7 +13,7 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
     public async Task ExtractChangesAsync_ReturnExtentOnly_MapsExtent_AndSendsGridCell() {
         string? requestBody = null;
 
-        var handler = new StubHttpMessageHandler(request => {
+        var handler = FeatureServiceTestHandlers.WithExtractChangesMetadata(request => {
             requestBody = request.Content is null
                 ? null
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
@@ -64,7 +64,7 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
 
     [Fact]
     public async Task SubmitExtractChangesAsync_ReturnsStatusUrl_WhenServerRespondsAsynchronously() {
-        var handler = new StubHttpMessageHandler(_ =>
+        var handler = FeatureServiceTestHandlers.WithExtractChangesMetadata(_ =>
             StubHttpMessageHandler.Json("""
             {
               "statusUrl": "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/j123"
@@ -156,7 +156,7 @@ public sealed class FeatureServiceClientExtractChangesV3Tests
     public async Task SubmitExtractChangesAsync_SendsSqlliteDataFormat_WhenRequested() {
         string? requestBody = null;
 
-        var handler = new StubHttpMessageHandler(request => {
+        var handler = FeatureServiceTestHandlers.WithExtractChangesMetadata(request => {
             requestBody = request.Content is null
                 ? null
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();

@@ -12,28 +12,28 @@ public sealed class FeatureServiceClientExtractChangesTests
     public async Task ExtractChangesAsync_ReturnsIdsOnlyChanges() {
         string? requestBody = null;
 
-        var handler = new StubHttpMessageHandler(request => {
+        var handler = FeatureServiceTestHandlers.WithExtractChangesMetadata(request => {
             requestBody = request.Content is null
                 ? null
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
+        {
+          "layerServerGens": [
+            { "id": 0, "serverGen": 1526588581400 }
+          ],
+          "edits": [
             {
-              "layerServerGens": [
-                { "id": 0, "serverGen": 1526588581400 }
-              ],
-              "edits": [
-                {
-                  "id": 0,
-                  "objectIds": {
-                    "adds": [2027, 2028],
-                    "updates": [2026],
-                    "deletes": []
-                  }
-                }
-              ]
+              "id": 0,
+              "objectIds": {
+                "adds": [2027, 2028],
+                "updates": [2026],
+                "deletes": []
+              }
             }
-            """);
+          ]
+        }
+        """);
         });
 
         var client = new FeatureServiceClient(
