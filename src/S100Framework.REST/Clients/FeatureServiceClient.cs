@@ -1651,7 +1651,8 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             ["returnDeletedFeatures"] = request.ReturnDeletedFeatures ? "true" : "false",
             ["returnExtentOnly"] = request.ReturnExtentOnly ? "true" : "false",
             ["changesExtentGridCell"] = MapChangesExtentGridCell(request.ChangesExtentGridCell),
-            ["dataFormat"] = MapExtractChangesDataFormat(request.DataFormat)
+            ["dataFormat"] = MapExtractChangesDataFormat(request.DataFormat),
+            ["async"] = request.DataFormat == ExtractChangesDataFormat.Sqlite ? "true" : null
         };
 
         if (request.OutSrid.HasValue) {

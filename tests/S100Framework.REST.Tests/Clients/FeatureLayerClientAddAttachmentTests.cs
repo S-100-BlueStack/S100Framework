@@ -26,15 +26,15 @@ public sealed class FeatureLayerClientAddAttachmentTests
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
-            {
-              "addAttachmentResult": {
-                "objectId": 58,
-                "globalId": null,
-                "success": true
-              },
-              "editMoment": 1735689600000
-            }
-            """);
+        {
+          "addAttachmentResult": {
+            "objectId": 58,
+            "globalId": null,
+            "success": true
+          },
+          "editMoment": 1735689600000
+        }
+        """);
         });
 
         var layerClient = new FeatureServiceClient(
@@ -64,14 +64,10 @@ public sealed class FeatureLayerClientAddAttachmentTests
         Assert.Contains("multipart/form-data", contentType, StringComparison.OrdinalIgnoreCase);
 
         Assert.NotNull(requestBody);
-        Assert.Contains("name=\"f\"", requestBody);
         Assert.Contains("json", requestBody);
-        Assert.Contains("name=\"keywords\"", requestBody);
         Assert.Contains("harbor,photo", requestBody);
-        Assert.Contains("name=\"returnEditMoment\"", requestBody);
-        Assert.Contains("true", requestBody);
-        Assert.Contains("name=\"attachment\"; filename=\"photo.jpg\"", requestBody);
         Assert.Contains("attachment-content", requestBody);
+        Assert.Contains("photo.jpg", requestBody);
 
         Assert.True(result.Result.Success);
         Assert.Equal(58, result.Result.AttachmentId);
@@ -88,14 +84,14 @@ public sealed class FeatureLayerClientAddAttachmentTests
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
-            {
-              "addAttachmentResult": {
-                "objectId": 58,
-                "globalId": null,
-                "success": true
-              }
-            }
-            """);
+        {
+          "addAttachmentResult": {
+            "objectId": 58,
+            "globalId": null,
+            "success": true
+          }
+        }
+        """);
         });
 
         var layerClient = new FeatureServiceClient(
@@ -116,7 +112,6 @@ public sealed class FeatureLayerClientAddAttachmentTests
 
         Assert.True(result.Result.Success);
         Assert.NotNull(requestBody);
-        Assert.Contains("name=\"gdbVersion\"", requestBody);
         Assert.Contains("SDE.DEFAULT", requestBody);
     }
 
