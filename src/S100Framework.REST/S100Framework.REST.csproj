@@ -7,7 +7,6 @@
 
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<NoWarn>$(NoWarn);CS1591</NoWarn>
 
 		<PackageId>S100Framework.REST</PackageId>
 		<Version>1.0.0</Version>
