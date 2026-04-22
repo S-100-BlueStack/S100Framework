@@ -66,6 +66,11 @@ public sealed class FeatureServiceClientExtractChangesTests
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer?f=json") {
+                return StubHttpMessageHandler.Json(
+                    FeatureServiceTestResponses.CreateExtractChangesSupportedMetadataResponse());
+            }
+
             if (uri.Contains("/FeatureServer/0?")) {
                 return StubHttpMessageHandler.Json("""
                 {

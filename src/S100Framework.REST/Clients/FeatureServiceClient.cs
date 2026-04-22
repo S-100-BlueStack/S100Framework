@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using NetTopologySuite.Geometries;
 using S100Framework.REST.Abstractions;
 using S100Framework.REST.Configuration;
@@ -24,6 +25,7 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     private readonly IFeatureServiceRequestAuthorizer? _authorizer;
     private readonly Uri _serviceUri;
 
+    [ActivatorUtilitiesConstructor]
     public FeatureServiceClient(
         HttpClient httpClient,
         FeatureServiceClientOptions options)
@@ -1170,6 +1172,18 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             cancellationToken);
 
         var root = document.RootElement;
+
+        if (root.ValueKind == JsonValueKind.Array) {
+            return new FeatureServiceApplyEditsSubmissionResult(
+                Result: MapServiceApplyEditsResult(root, endpointUri),
+                StatusUrl: null);
+        }
+
+        if (root.ValueKind != JsonValueKind.Object) {
+            throw new FeatureServiceException(
+                "The applyEdits payload had an unexpected JSON shape.",
+                endpointUri);
+        }
 
         if (root.TryGetProperty("statusUrl", out var statusUrlElement)) {
             var rawStatusUrl = statusUrlElement.GetString();

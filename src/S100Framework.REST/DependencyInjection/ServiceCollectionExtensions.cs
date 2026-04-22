@@ -19,10 +19,18 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton(options);
 
-        services.AddHttpClient<IFeatureServiceClient, FeatureServiceClient>(client => {
+        services.AddHttpClient(nameof(IFeatureServiceClient), client => {
             // The library controls request timeout per operation.
             // Leaving HttpClient.Timeout infinite avoids overlapping timeout behavior.
             client.Timeout = Timeout.InfiniteTimeSpan;
+        });
+
+        services.AddTransient<IFeatureServiceClient>(sp => {
+            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient(nameof(IFeatureServiceClient));
+            var authorizer = sp.GetService<IFeatureServiceRequestAuthorizer>();
+
+            return new FeatureServiceClient(httpClient, options, authorizer);
         });
 
         return services;

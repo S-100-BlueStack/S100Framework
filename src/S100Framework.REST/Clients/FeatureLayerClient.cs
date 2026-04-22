@@ -570,12 +570,22 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     }
 
     /// <inheritdoc />
-    public Task<ApplyEditsSubmissionResult> SubmitApplyEditsAsync(
+    public async Task<ApplyEditsSubmissionResult> SubmitApplyEditsAsync(
         FeatureEdits edits,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(edits);
 
-        return _serviceClient.SubmitApplyEditsAsync(_layerId, edits, cancellationToken);
+        var schema = await GetSchemaAsync(cancellationToken);
+
+        if (!schema.Capabilities.SupportsAsyncApplyEdits) {
+            throw new FeatureServiceCapabilityException(
+                $"Layer '{schema.Name}' ({schema.LayerId}) does not support asynchronous applyEdits.");
+        }
+
+        return await _serviceClient.SubmitApplyEditsAsync(
+            _layerId,
+            edits,
+            cancellationToken);
     }
 
     /// <inheritdoc />

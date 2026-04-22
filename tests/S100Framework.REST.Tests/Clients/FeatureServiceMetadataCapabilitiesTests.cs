@@ -51,16 +51,16 @@ public sealed class FeatureServiceMetadataCapabilitiesTests
 
         var metadata = await client.GetMetadataAsync();
 
-        Assert.True(metadata.CapabilityInfo.SupportsQuery);
-        Assert.True(metadata.CapabilityInfo.SupportsCreate);
-        Assert.True(metadata.CapabilityInfo.SupportsUpdate);
-        Assert.True(metadata.CapabilityInfo.SupportsDelete);
-        Assert.True(metadata.CapabilityInfo.SupportsEditing);
-        Assert.True(metadata.CapabilityInfo.SupportsUploads);
-        Assert.True(metadata.CapabilityInfo.SupportsChangeTracking);
-        Assert.False(metadata.CapabilityInfo.SupportsSync);
-        Assert.False(metadata.CapabilityInfo.SyncEnabled);
-        Assert.True(metadata.CapabilityInfo.SupportsAsyncApplyEdits);
+        Assert.True(metadata.Capabilities.SupportsQuery);
+        Assert.True(metadata.Capabilities.SupportsCreate);
+        Assert.True(metadata.Capabilities.SupportsUpdate);
+        Assert.True(metadata.Capabilities.SupportsDelete);
+        Assert.True(metadata.Capabilities.SupportsEditing);
+        Assert.True(metadata.Capabilities.SupportsUploads);
+        Assert.True(metadata.Capabilities.SupportsChangeTracking);
+        Assert.False(metadata.Capabilities.SupportsSync);
+        Assert.False(metadata.Capabilities.SyncEnabled);
+        Assert.True(metadata.Capabilities.SupportsAsyncApplyEdits);
 
         Assert.NotNull(metadata.ExtractChangesCapabilities);
         Assert.True(metadata.ExtractChangesCapabilities!.SupportsReturnIdsOnly);
