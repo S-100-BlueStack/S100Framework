@@ -11,13 +11,34 @@ public static class FeatureServiceClientExtractChangesExtensions
     /// <summary>
     /// Polls an asynchronous <c>extractChanges</c> job until it reaches a terminal state.
     /// </summary>
-    /// <param name="client">The feature service client.</param>
-    /// <param name="statusUrl">The status URL returned from <c>SubmitExtractChangesAsync</c>.</param>
-    /// <param name="options">
-    /// Polling options. When <see langword="null"/>, default polling behavior is used.
+    /// <param name="client">
+    /// The feature service client.
     /// </param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The final terminal job status.</returns>
+    /// <param name="statusUrl">
+    /// The status URL returned from <c>SubmitExtractChangesAsync</c>.
+    /// </param>
+    /// <param name="options">
+    /// Polling options. When <see langword="null" />, default polling behavior is used.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token.
+    /// </param>
+    /// <returns>
+    /// The final terminal job status.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="client" /> or <paramref name="statusUrl" /> is
+    /// <see langword="null" />.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="options" /> is invalid.
+    /// </exception>
+    /// <exception cref="TimeoutException">
+    /// Thrown when the job does not complete within the configured timeout.
+    /// </exception>
+    /// <exception cref="OperationCanceledException">
+    /// Thrown when the caller cancels the operation.
+    /// </exception>
     public static async Task<ExtractChangesJobStatus> WaitForExtractChangesCompletionAsync(
         this IFeatureServiceClient client,
         Uri statusUrl,
@@ -50,15 +71,40 @@ public static class FeatureServiceClientExtractChangesExtensions
     }
 
     /// <summary>
-    /// Submits an asynchronous SQLite <c>extractChanges</c> job, waits for completion, and downloads the result file.
+    /// Submits an asynchronous SQLite <c>extractChanges</c> job, waits for completion,
+    /// and downloads the resulting file.
     /// </summary>
-    /// <param name="client">The feature service client.</param>
-    /// <param name="request">The <c>extractChanges</c> request.</param>
-    /// <param name="options">
-    /// Polling options. When <see langword="null"/>, default polling behavior is used.
+    /// <param name="client">
+    /// The feature service client.
     /// </param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The downloaded result file.</returns>
+    /// <param name="request">
+    /// The <c>extractChanges</c> request.
+    /// </param>
+    /// <param name="options">
+    /// Polling options. When <see langword="null" />, default polling behavior is used.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token.
+    /// </param>
+    /// <returns>
+    /// The downloaded result file.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="client" /> or <paramref name="request" /> is
+    /// <see langword="null" />.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="request" /> does not use
+    /// <see cref="ExtractChangesDataFormat.Sqlite" />, when the submission does not return
+    /// a pending async job with a status URL, when the job ends in a non-completed terminal
+    /// state, or when a completed job does not expose a result URL.
+    /// </exception>
+    /// <exception cref="TimeoutException">
+    /// Thrown when the job does not complete within the configured timeout.
+    /// </exception>
+    /// <exception cref="OperationCanceledException">
+    /// Thrown when the caller cancels the operation.
+    /// </exception>
     public static async Task<ExtractChangesFileResult> SubmitAndDownloadExtractChangesFileAsync(
         this IFeatureServiceClient client,
         ExtractChangesRequest request,
