@@ -10,6 +10,8 @@ public sealed class FeatureServiceClientTests
 {
     [Fact]
     public async Task GetMetadataAsync_MapsLayersTablesAndCapabilities() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = new StubHttpMessageHandler(_ =>
             StubHttpMessageHandler.Json("""
             {
@@ -31,7 +33,7 @@ public sealed class FeatureServiceClientTests
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             });
 
-        var metadata = await client.GetMetadataAsync();
+        var metadata = await client.GetMetadataAsync(cancellationToken);
 
         Assert.Single(metadata.Layers);
         Assert.Single(metadata.Tables);
@@ -46,13 +48,17 @@ public sealed class FeatureServiceClientTests
 
     [Fact]
     public async Task GetMetadataAsync_ThrowsFeatureServiceException_WhenEsriErrorPayloadReturned() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = new StubHttpMessageHandler(_ =>
             StubHttpMessageHandler.Json("""
             {
               "error": {
                 "code": 400,
                 "message": "Invalid or missing input parameters.",
-                "details": [ "f is required" ]
+                "details": [
+                  "f is required"
+                ]
               }
             }
             """, System.Net.HttpStatusCode.BadRequest));
@@ -63,7 +69,8 @@ public sealed class FeatureServiceClientTests
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             });
 
-        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() => client.GetMetadataAsync());
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetMetadataAsync(cancellationToken));
 
         Assert.Equal(400, exception.ErrorCode);
         Assert.Contains("f is required", exception.Details);

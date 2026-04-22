@@ -9,6 +9,8 @@ public sealed class FeatureServiceMetadataCapabilitiesTests
 {
     [Fact]
     public async Task GetMetadataAsync_MapsServiceAndExtractChangesCapabilities() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
@@ -49,7 +51,7 @@ public sealed class FeatureServiceMetadataCapabilitiesTests
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             });
 
-        var metadata = await client.GetMetadataAsync();
+        var metadata = await client.GetMetadataAsync(cancellationToken);
 
         Assert.True(metadata.Capabilities.SupportsQuery);
         Assert.True(metadata.Capabilities.SupportsCreate);

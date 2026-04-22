@@ -12,6 +12,8 @@ public sealed class FeatureServiceClientExtractChangesCapabilityTests
 {
     [Fact]
     public async Task SubmitExtractChangesAsync_Throws_WhenServiceDoesNotSupportChangeTracking() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = CreateClient(request => {
             if (IsServiceMetadataRequest(request)) {
                 return CreateServiceMetadataResponse("Query");
@@ -21,16 +23,20 @@ public sealed class FeatureServiceClientExtractChangesCapabilityTests
         });
 
         var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
-            client.SubmitExtractChangesAsync(new ExtractChangesRequest {
-                Layers = [0],
-                LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)]
-            }));
+            client.SubmitExtractChangesAsync(
+                new ExtractChangesRequest {
+                    Layers = [0],
+                    LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)]
+                },
+                cancellationToken));
 
         Assert.Contains("change tracking", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task SubmitExtractChangesAsync_Throws_WhenLayerQueriesAreNotSupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = CreateClient(request => {
             if (IsServiceMetadataRequest(request)) {
                 return CreateServiceMetadataResponse(
@@ -54,22 +60,26 @@ public sealed class FeatureServiceClientExtractChangesCapabilityTests
         });
 
         var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
-            client.SubmitExtractChangesAsync(new ExtractChangesRequest {
-                Layers = [0],
-                LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
-                LayerQueries = new Dictionary<int, ExtractChangesLayerQuery> {
-                    [0] = new() {
-                        QueryOption = ExtractChangesLayerQueryOption.UseFilter,
-                        Where = "1=1"
+            client.SubmitExtractChangesAsync(
+                new ExtractChangesRequest {
+                    Layers = [0],
+                    LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
+                    LayerQueries = new Dictionary<int, ExtractChangesLayerQuery> {
+                        [0] = new() {
+                            QueryOption = ExtractChangesLayerQueryOption.UseFilter,
+                            Where = "1=1"
+                        }
                     }
-                }
-            }));
+                },
+                cancellationToken));
 
         Assert.Contains("layerQueries", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task SubmitExtractChangesAsync_Throws_WhenFieldsToCompareAreNotSupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = CreateClient(request => {
             if (IsServiceMetadataRequest(request)) {
                 return CreateServiceMetadataResponse(
@@ -93,11 +103,13 @@ public sealed class FeatureServiceClientExtractChangesCapabilityTests
         });
 
         var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
-            client.SubmitExtractChangesAsync(new ExtractChangesRequest {
-                Layers = [0],
-                LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
-                FieldsToCompare = ["STATUS"]
-            }));
+            client.SubmitExtractChangesAsync(
+                new ExtractChangesRequest {
+                    Layers = [0],
+                    LayerServerGens = [new ExtractChangesLayerServerGen(0, 1653608093000)],
+                    FieldsToCompare = ["STATUS"]
+                },
+                cancellationToken));
 
         Assert.Contains("fieldsToCompare", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

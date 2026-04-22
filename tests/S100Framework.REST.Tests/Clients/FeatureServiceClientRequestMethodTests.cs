@@ -11,6 +11,7 @@ public sealed class FeatureServiceClientRequestMethodTests
 {
     [Fact]
     public async Task QueryCountAsync_UsesGet_WhenAutoAndRequestIsShort() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         HttpMethod? method = null;
         string? requestUri = null;
         string? requestBody = null;
@@ -37,7 +38,7 @@ public sealed class FeatureServiceClientRequestMethodTests
                 AutoPostQueryLengthThreshold = 5000
             });
 
-        var count = await client.GetLayerClient(0).QueryCountAsync(new FeatureQuery());
+        var count = await client.GetLayerClient(0).QueryCountAsync(new FeatureQuery(), cancellationToken);
 
         Assert.Equal(5, count);
         Assert.Equal(HttpMethod.Get, method);
@@ -48,6 +49,7 @@ public sealed class FeatureServiceClientRequestMethodTests
 
     [Fact]
     public async Task QueryCountAsync_UsesPost_WhenPreferenceIsPost() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         HttpMethod? method = null;
         string? requestUri = null;
         string? requestBody = null;
@@ -73,7 +75,7 @@ public sealed class FeatureServiceClientRequestMethodTests
                 QueryRequestMethodPreference = QueryRequestMethodPreference.Post
             });
 
-        var count = await client.GetLayerClient(0).QueryCountAsync(new FeatureQuery());
+        var count = await client.GetLayerClient(0).QueryCountAsync(new FeatureQuery(), cancellationToken);
 
         Assert.Equal(7, count);
         Assert.Equal(HttpMethod.Post, method);
@@ -86,6 +88,7 @@ public sealed class FeatureServiceClientRequestMethodTests
 
     [Fact]
     public async Task QueryStatisticsAsync_UsesPost_WhenAutoAndRequestBecomesLong() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         HttpMethod? method = null;
         string? requestUri = null;
         string? requestBody = null;
@@ -128,7 +131,8 @@ public sealed class FeatureServiceClientRequestMethodTests
                     new StatisticDefinition("OBJECTID", "FEATURE_COUNT", StatisticType.Count),
                     new StatisticDefinition("AOIID", "MAX_AOIID", StatisticType.Max)
                 ]
-            });
+            },
+            cancellationToken);
 
         Assert.Single(result);
         Assert.Equal(HttpMethod.Post, method);

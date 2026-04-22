@@ -11,6 +11,7 @@ public sealed class FeatureLayerClientTests
 {
     [Fact]
     public async Task QueryAsync_UsesObjectIdFallback_WhenPaginationIsNotSupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requests = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -52,8 +53,14 @@ public sealed class FeatureLayerClientTests
                 {
                   "objectIdFieldName": "OBJECTID",
                   "features": [
-                    { "attributes": { "OBJECTID": 1 }, "geometry": { "x": 10, "y": 20 } },
-                    { "attributes": { "OBJECTID": 2 }, "geometry": { "x": 11, "y": 21 } }
+                    {
+                      "attributes": { "OBJECTID": 1 },
+                      "geometry": { "x": 10, "y": 20 }
+                    },
+                    {
+                      "attributes": { "OBJECTID": 2 },
+                      "geometry": { "x": 11, "y": 21 }
+                    }
                   ]
                 }
                 """);
@@ -64,7 +71,10 @@ public sealed class FeatureLayerClientTests
                 {
                   "objectIdFieldName": "OBJECTID",
                   "features": [
-                    { "attributes": { "OBJECTID": 3 }, "geometry": { "x": 12, "y": 22 } }
+                    {
+                      "attributes": { "OBJECTID": 3 },
+                      "geometry": { "x": 12, "y": 22 }
+                    }
                   ]
                 }
                 """);
@@ -80,16 +90,14 @@ public sealed class FeatureLayerClientTests
             });
 
         var layerClient = serviceClient.GetLayerClient(0);
-
         var results = new List<FeatureRecord>();
 
-        await foreach (var feature in layerClient.QueryAsync(new FeatureQuery())) {
+        await foreach (var feature in layerClient.QueryAsync(new FeatureQuery(), cancellationToken)) {
             results.Add(feature);
         }
 
         Assert.Equal(3, results.Count);
         Assert.Equal(new long[] { 1, 2, 3 }, results.Select(x => x.ObjectId).Cast<long>().ToArray());
-
         Assert.Contains(requests, request => request.Contains("returnIdsOnly=true"));
         Assert.DoesNotContain(requests, request => request.Contains("resultOffset="));
         Assert.DoesNotContain(requests, request => request.Contains("resultRecordCount="));
