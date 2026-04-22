@@ -8,6 +8,8 @@ public sealed class BearerTokenFeatureServiceRequestAuthorizerTests
 {
     [Fact]
     public async Task ApplyAsync_SetsBearerHeader_WhenUsingAccessTokenProvider() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var authorizer = new BearerTokenFeatureServiceRequestAuthorizer(
             new FakeAccessTokenProvider("provider-token"));
 
@@ -15,7 +17,7 @@ public sealed class BearerTokenFeatureServiceRequestAuthorizerTests
             HttpMethod.Get,
             "https://example.test/arcgis/rest/services/Test/FeatureServer");
 
-        await authorizer.ApplyAsync(request);
+        await authorizer.ApplyAsync(request, cancellationToken);
 
         Assert.NotNull(request.Headers.Authorization);
         Assert.Equal("Bearer", request.Headers.Authorization!.Scheme);

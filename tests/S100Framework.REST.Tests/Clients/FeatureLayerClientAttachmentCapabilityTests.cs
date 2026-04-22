@@ -13,6 +13,8 @@ public sealed class FeatureLayerClientAttachmentCapabilityTests
 {
     [Fact]
     public async Task QueryAttachmentsAsync_Throws_WhenLayerDoesNotSupportAttachments() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = CreateClient(request => {
             if (IsLayerMetadataRequest(request)) {
                 return CreateLayerMetadataResponse(
@@ -26,15 +28,17 @@ public sealed class FeatureLayerClientAttachmentCapabilityTests
         var layerClient = client.GetLayerClient(0);
 
         var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
-            layerClient.QueryAttachmentsAsync(new AttachmentQuery {
-                ObjectIds = [1]
-            }));
+            layerClient.QueryAttachmentsAsync(
+                new AttachmentQuery { ObjectIds = [1] },
+                cancellationToken));
 
         Assert.Contains("does not support attachments", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task QueryAttachmentsAsync_Throws_WhenLayerDoesNotSupportAttachmentQueries() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = CreateClient(request => {
             if (IsLayerMetadataRequest(request)) {
                 return CreateLayerMetadataResponse(
@@ -48,15 +52,17 @@ public sealed class FeatureLayerClientAttachmentCapabilityTests
         var layerClient = client.GetLayerClient(0);
 
         var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
-            layerClient.QueryAttachmentsAsync(new AttachmentQuery {
-                ObjectIds = [1]
-            }));
+            layerClient.QueryAttachmentsAsync(
+                new AttachmentQuery { ObjectIds = [1] },
+                cancellationToken));
 
         Assert.Contains("attachment queries", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task AddAttachmentAsync_Throws_WhenServiceDoesNotSupportUploads() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = CreateClient(request => {
             if (IsLayerMetadataRequest(request)) {
                 return CreateLayerMetadataResponse(
@@ -72,22 +78,25 @@ public sealed class FeatureLayerClientAttachmentCapabilityTests
         });
 
         var layerClient = client.GetLayerClient(0);
-
         using var content = new MemoryStream([1, 2, 3]);
 
         var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
-            layerClient.AddAttachmentAsync(new AddAttachmentRequest {
-                ObjectId = 1,
-                Content = content,
-                FileName = "test.bin",
-                ContentType = "application/octet-stream"
-            }));
+            layerClient.AddAttachmentAsync(
+                new AddAttachmentRequest {
+                    ObjectId = 1,
+                    Content = content,
+                    FileName = "test.bin",
+                    ContentType = "application/octet-stream"
+                },
+                cancellationToken));
 
         Assert.Contains("uploads", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task DeleteAttachmentsAsync_Throws_WhenServiceDoesNotSupportEditing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = CreateClient(request => {
             if (IsLayerMetadataRequest(request)) {
                 return CreateLayerMetadataResponse(
@@ -105,10 +114,12 @@ public sealed class FeatureLayerClientAttachmentCapabilityTests
         var layerClient = client.GetLayerClient(0);
 
         var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
-            layerClient.DeleteAttachmentsAsync(new DeleteAttachmentsRequest {
-                ObjectId = 1,
-                AttachmentIds = [10]
-            }));
+            layerClient.DeleteAttachmentsAsync(
+                new DeleteAttachmentsRequest {
+                    ObjectId = 1,
+                    AttachmentIds = [10]
+                },
+                cancellationToken));
 
         Assert.Contains("editing", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

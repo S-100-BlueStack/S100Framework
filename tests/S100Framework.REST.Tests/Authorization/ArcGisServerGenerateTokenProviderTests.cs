@@ -9,6 +9,8 @@ public sealed class ArcGisServerGenerateTokenProviderTests
 {
     [Fact]
     public async Task GetAccessTokenAsync_PostsGenerateTokenRequestAndReturnsToken() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         string? requestBody = null;
         HttpMethod? method = null;
         Uri? requestUri = null;
@@ -37,14 +39,13 @@ public sealed class ArcGisServerGenerateTokenProviderTests
                 ExpirationMinutes = 60
             });
 
-        var token = await provider.GetAccessTokenAsync();
+        var token = await provider.GetAccessTokenAsync(cancellationToken);
 
         Assert.Equal("server-token-1", token.Token);
         Assert.Equal(HttpMethod.Post, method);
         Assert.Equal(
             "https://example.test/arcgis/tokens/generateToken",
             requestUri!.AbsoluteUri);
-
         Assert.NotNull(requestBody);
         Assert.Contains("username=testUser", requestBody!, StringComparison.Ordinal);
         Assert.Contains("password=testPassword", requestBody!, StringComparison.Ordinal);
@@ -59,6 +60,7 @@ public sealed class ArcGisServerGenerateTokenProviderTests
 
     [Fact]
     public async Task GetAccessTokenAsync_CachesToken_WhenItIsStillReusable() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestCount = 0;
 
         using var httpClient = new HttpClient(new StubHttpMessageHandler(_ => {
@@ -83,8 +85,8 @@ public sealed class ArcGisServerGenerateTokenProviderTests
                 RefreshBeforeExpiration = TimeSpan.FromMinutes(1)
             });
 
-        var first = await provider.GetAccessTokenAsync();
-        var second = await provider.GetAccessTokenAsync();
+        var first = await provider.GetAccessTokenAsync(cancellationToken);
+        var second = await provider.GetAccessTokenAsync(cancellationToken);
 
         Assert.Equal("cached-token", first.Token);
         Assert.Equal("cached-token", second.Token);
@@ -93,6 +95,7 @@ public sealed class ArcGisServerGenerateTokenProviderTests
 
     [Fact]
     public async Task GetAccessTokenAsync_RefreshesToken_WhenInsideRefreshWindow() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestCount = 0;
 
         using var httpClient = new HttpClient(new StubHttpMessageHandler(_ => {
@@ -128,8 +131,8 @@ public sealed class ArcGisServerGenerateTokenProviderTests
                 RefreshBeforeExpiration = TimeSpan.FromMinutes(5)
             });
 
-        var first = await provider.GetAccessTokenAsync();
-        var second = await provider.GetAccessTokenAsync();
+        var first = await provider.GetAccessTokenAsync(cancellationToken);
+        var second = await provider.GetAccessTokenAsync(cancellationToken);
 
         Assert.Equal("soon-expiring-token", first.Token);
         Assert.Equal("refreshed-token", second.Token);
@@ -138,6 +141,8 @@ public sealed class ArcGisServerGenerateTokenProviderTests
 
     [Fact]
     public async Task GetAccessTokenAsync_Throws_WhenServerReturnsErrorPayload() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         using var httpClient = new HttpClient(new StubHttpMessageHandler(_ =>
             StubHttpMessageHandler.Json("""
             {
@@ -159,7 +164,7 @@ public sealed class ArcGisServerGenerateTokenProviderTests
             });
 
         var exception = await Assert.ThrowsAsync<FeatureServiceAuthenticationException>(() =>
-            provider.GetAccessTokenAsync().AsTask());
+            provider.GetAccessTokenAsync(cancellationToken).AsTask());
 
         Assert.Contains("Invalid token or credentials", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

@@ -10,6 +10,8 @@ public sealed class PortalServerTokenExchangeProviderTests
 {
     [Fact]
     public async Task GetAccessTokenAsync_PostsPortalTokenAndServerUrlAndReturnsServerToken() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         string? requestBody = null;
         HttpMethod? method = null;
         Uri? requestUri = null;
@@ -36,14 +38,13 @@ public sealed class PortalServerTokenExchangeProviderTests
                 ServerUrl = new Uri("https://server.example.com/server")
             });
 
-        var token = await provider.GetAccessTokenAsync();
+        var token = await provider.GetAccessTokenAsync(cancellationToken);
 
         Assert.Equal("server-token-1", token.Token);
         Assert.Equal(HttpMethod.Post, method);
         Assert.Equal(
             "https://portal.example.com/portal/sharing/rest/generateToken",
             requestUri!.AbsoluteUri);
-
         Assert.NotNull(requestBody);
         Assert.Contains("token=portal-token-1", requestBody!, StringComparison.Ordinal);
         Assert.Contains(
@@ -55,6 +56,7 @@ public sealed class PortalServerTokenExchangeProviderTests
 
     [Fact]
     public async Task GetAccessTokenAsync_CachesServerToken_WhenItIsStillReusable() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestCount = 0;
 
         using var httpClient = new HttpClient(new StubHttpMessageHandler(_ => {
@@ -77,8 +79,8 @@ public sealed class PortalServerTokenExchangeProviderTests
                 RefreshBeforeExpiration = TimeSpan.FromMinutes(1)
             });
 
-        var first = await provider.GetAccessTokenAsync();
-        var second = await provider.GetAccessTokenAsync();
+        var first = await provider.GetAccessTokenAsync(cancellationToken);
+        var second = await provider.GetAccessTokenAsync(cancellationToken);
 
         Assert.Equal("server-token-cached", first.Token);
         Assert.Equal("server-token-cached", second.Token);
@@ -87,6 +89,7 @@ public sealed class PortalServerTokenExchangeProviderTests
 
     [Fact]
     public async Task GetAccessTokenAsync_RefreshesServerToken_WhenInsideRefreshWindow() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestCount = 0;
 
         using var httpClient = new HttpClient(new StubHttpMessageHandler(_ => {
@@ -120,8 +123,8 @@ public sealed class PortalServerTokenExchangeProviderTests
                 RefreshBeforeExpiration = TimeSpan.FromMinutes(5)
             });
 
-        var first = await provider.GetAccessTokenAsync();
-        var second = await provider.GetAccessTokenAsync();
+        var first = await provider.GetAccessTokenAsync(cancellationToken);
+        var second = await provider.GetAccessTokenAsync(cancellationToken);
 
         Assert.Equal("soon-expiring-server-token", first.Token);
         Assert.Equal("refreshed-server-token", second.Token);
@@ -130,6 +133,8 @@ public sealed class PortalServerTokenExchangeProviderTests
 
     [Fact]
     public async Task GetAccessTokenAsync_Throws_WhenPortalReturnsErrorPayload() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         using var httpClient = new HttpClient(new StubHttpMessageHandler(_ =>
             StubHttpMessageHandler.Json("""
             {
@@ -149,13 +154,14 @@ public sealed class PortalServerTokenExchangeProviderTests
             });
 
         var exception = await Assert.ThrowsAsync<FeatureServiceAuthenticationException>(() =>
-            provider.GetAccessTokenAsync().AsTask());
+            provider.GetAccessTokenAsync(cancellationToken).AsTask());
 
         Assert.Contains("Invalid token", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task GetAccessTokenAsync_UsesLatestPortalToken_WhenRefreshing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestCount = 0;
         string? lastRequestBody = null;
 
@@ -195,8 +201,8 @@ public sealed class PortalServerTokenExchangeProviderTests
                 RefreshBeforeExpiration = TimeSpan.FromMinutes(5)
             });
 
-        await provider.GetAccessTokenAsync();
-        await provider.GetAccessTokenAsync();
+        await provider.GetAccessTokenAsync(cancellationToken);
+        await provider.GetAccessTokenAsync(cancellationToken);
 
         Assert.Equal(2, requestCount);
         Assert.NotNull(lastRequestBody);

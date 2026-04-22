@@ -9,6 +9,8 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
 {
     [Fact]
     public async Task WaitForApplyEditsCompletionAsync_ReturnsCompletedStatus() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = new FakeFeatureLayerClient(
             submission: new ApplyEditsSubmissionResult(
                 Result: null,
@@ -36,7 +38,8 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
             new ApplyEditsPollingOptions {
                 PollInterval = TimeSpan.FromMilliseconds(1),
                 Timeout = TimeSpan.FromSeconds(1)
-            });
+            },
+            cancellationToken);
 
         Assert.True(status.IsCompleted);
         Assert.Equal(2, client.StatusRequestCount);
@@ -44,6 +47,8 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
 
     [Fact]
     public async Task SubmitAndWaitForApplyEditsAsync_ReturnsEmbeddedResult_WhenSubmissionIsSynchronous() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var embeddedResult = new ApplyEditsResult(
             AddResults: [new EditResult(true, 101, null, null, null)],
             UpdateResults: Array.Empty<EditResult>(),
@@ -57,9 +62,8 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
             result: embeddedResult);
 
         var result = await client.SubmitAndWaitForApplyEditsAsync(
-            new FeatureEdits {
-                Deletes = [1]
-            });
+            new FeatureEdits { Deletes = [1] },
+            cancellationToken: cancellationToken);
 
         Assert.Same(embeddedResult, result);
         Assert.Equal(0, client.StatusRequestCount);
@@ -68,6 +72,8 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
 
     [Fact]
     public async Task SubmitAndWaitForApplyEditsAsync_SubmitsPollsAndFetchesResult() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = new FakeFeatureLayerClient(
             submission: new ApplyEditsSubmissionResult(
                 Result: null,
@@ -91,13 +97,12 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
                 DeleteResults: Array.Empty<EditResult>()));
 
         var result = await client.SubmitAndWaitForApplyEditsAsync(
-            new FeatureEdits {
-                Deletes = [1]
-            },
+            new FeatureEdits { Deletes = [1] },
             new ApplyEditsPollingOptions {
                 PollInterval = TimeSpan.FromMilliseconds(1),
                 Timeout = TimeSpan.FromSeconds(1)
-            });
+            },
+            cancellationToken);
 
         Assert.Single(result.AddResults);
         Assert.Equal(101, result.AddResults[0].ObjectId);
@@ -110,6 +115,8 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
 
     [Fact]
     public async Task SubmitAndWaitForApplyEditsAsync_Throws_WhenJobFails() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var client = new FakeFeatureLayerClient(
             submission: new ApplyEditsSubmissionResult(
                 Result: null,
@@ -129,13 +136,12 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             client.SubmitAndWaitForApplyEditsAsync(
-                new FeatureEdits {
-                    Deletes = [1]
-                },
+                new FeatureEdits { Deletes = [1] },
                 new ApplyEditsPollingOptions {
                     PollInterval = TimeSpan.FromMilliseconds(1),
                     Timeout = TimeSpan.FromSeconds(1)
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("FAILED", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -161,74 +167,74 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
 
         public Uri? ResultUrlRequested { get; private set; }
 
-        public Task<FeatureLayerSchema> GetSchemaAsync(CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        public Task<FeatureLayerSchema> GetSchemaAsync(CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public IAsyncEnumerable<FeatureRecord> QueryAsync(
             FeatureQuery query,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<long> QueryCountAsync(
             FeatureQuery query,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<IReadOnlyList<long>> QueryObjectIdsAsync(
             FeatureQuery query,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<FeatureExtent?> QueryExtentAsync(
             FeatureQuery query,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<IReadOnlyList<StatisticRow>> QueryStatisticsAsync(
             FeatureStatisticsQuery query,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<IReadOnlyList<RelatedRecordGroup>> QueryRelatedRecordsAsync(
             RelatedRecordsQuery query,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<IReadOnlyList<AttachmentGroup>> QueryAttachmentsAsync(
             AttachmentQuery query,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<AttachmentContent> DownloadAttachmentAsync(
             long objectId,
             long attachmentId,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<IReadOnlyList<FeatureRecord>> QueryTopFeaturesAsync(
             TopFeaturesQuery query,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<IReadOnlyList<long>> QueryTopFeatureObjectIdsAsync(
             TopFeaturesQuery query,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<TopFeaturesCountResult> QueryTopFeatureCountAsync(
             TopFeaturesQuery query,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<ApplyEditsResult> ApplyEditsAsync(
             FeatureEdits edits,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<ApplyEditsSubmissionResult> SubmitApplyEditsAsync(
             FeatureEdits edits,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult(_submission);
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(_submission);
 
         public Task<ApplyEditsJobStatus> GetApplyEditsStatusAsync(
             Uri statusUrl,
@@ -253,25 +259,29 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
 
         public Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(
             DeleteAttachmentsRequest request,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<AddAttachmentResult> AddAttachmentAsync(
             AddAttachmentRequest request,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<UpdateAttachmentResult> UpdateAttachmentAsync(
             UpdateAttachmentRequest request,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
-        Task<ApplyEditsResult> IFeatureLayerClient.WaitForApplyEditsCompletionAsync(FeatureEdits edits, ApplyEditsWaitOptions? options, CancellationToken cancellationToken) {
+        Task<ApplyEditsResult> IFeatureLayerClient.WaitForApplyEditsCompletionAsync(
+            FeatureEdits edits,
+            ApplyEditsWaitOptions? options,
+            CancellationToken cancellationToken) =>
             throw new NotImplementedException();
-        }
 
-        Task<ApplyEditsResult> IFeatureLayerClient.WaitForApplyEditsCompletionAsync(Uri statusUrl, ApplyEditsWaitOptions? options, CancellationToken cancellationToken) {
+        Task<ApplyEditsResult> IFeatureLayerClient.WaitForApplyEditsCompletionAsync(
+            Uri statusUrl,
+            ApplyEditsWaitOptions? options,
+            CancellationToken cancellationToken) =>
             throw new NotImplementedException();
-        }
     }
 }

@@ -7,12 +7,14 @@ public sealed class StaticFeatureServiceAccessTokenProviderTests
 {
     [Fact]
     public async Task GetAccessTokenAsync_ReturnsConfiguredToken() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var provider = new StaticFeatureServiceAccessTokenProvider(
             new FeatureServiceAccessToken(
                 "static-token",
                 DateTimeOffset.UtcNow.AddHours(1)));
 
-        var token = await provider.GetAccessTokenAsync();
+        var token = await provider.GetAccessTokenAsync(cancellationToken);
 
         Assert.Equal("static-token", token.Token);
     }
