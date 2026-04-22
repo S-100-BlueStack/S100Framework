@@ -3,28 +3,44 @@
 /// <summary>
 /// Defines a service-level <c>extractChanges</c> request.
 /// </summary>
+/// <remarks>
+/// This model is used with <c>IFeatureServiceClient</c> to request incremental changes
+/// for one or more layers in a feature service.
+/// </remarks>
 public sealed record ExtractChangesRequest
 {
     /// <summary>
     /// Gets the layer IDs to include in the request.
     /// </summary>
+    /// <remarks>
+    /// At least one layer ID must be provided.
+    /// </remarks>
     public IReadOnlyList<int> Layers { get; init; } = Array.Empty<int>();
 
     /// <summary>
     /// Gets the service-level server generation configuration.
-    /// Exactly one of <see cref="ServerGens"/> or <see cref="LayerServerGens"/> must be provided.
     /// </summary>
+    /// <remarks>
+    /// Exactly one of <see cref="ServerGens" /> or <see cref="LayerServerGens" />
+    /// must be provided.
+    /// </remarks>
     public ExtractChangesServerGens? ServerGens { get; init; }
 
     /// <summary>
     /// Gets the layer-level server generation configuration.
-    /// Exactly one of <see cref="LayerServerGens"/> or <see cref="ServerGens"/> must be provided.
     /// </summary>
+    /// <remarks>
+    /// Exactly one of <see cref="ServerGens" /> or <see cref="LayerServerGens" />
+    /// must be provided.
+    /// </remarks>
     public IReadOnlyList<ExtractChangesLayerServerGen>? LayerServerGens { get; init; }
 
     /// <summary>
     /// Gets optional per-layer query filters.
     /// </summary>
+    /// <remarks>
+    /// Each key must reference a layer that is also included in <see cref="Layers" />.
+    /// </remarks>
     public IReadOnlyDictionary<int, ExtractChangesLayerQuery>? LayerQueries { get; init; }
 
     /// <summary>
@@ -48,18 +64,27 @@ public sealed record ExtractChangesRequest
     public bool ReturnDeletes { get; init; } = true;
 
     /// <summary>
-    /// Gets a value indicating whether only IDs should be returned for changes, when supported.
+    /// Gets a value indicating whether only object IDs should be returned for changes,
+    /// when supported by the service.
     /// </summary>
     public bool ReturnIdsOnly { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether update results should include whether geometry changed.
     /// </summary>
+    /// <remarks>
+    /// This option requires <see cref="ReturnUpdates" /> to be <see langword="true" />.
+    /// </remarks>
     public bool ReturnHasGeometryUpdates { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether deleted feature payloads should be returned instead of only delete IDs.
+    /// Gets a value indicating whether deleted feature payloads should be returned instead
+    /// of only delete IDs.
     /// </summary>
+    /// <remarks>
+    /// This option requires <see cref="ReturnDeletes" /> to be <see langword="true" />
+    /// and <see cref="ReturnIdsOnly" /> to be <see langword="false" />.
+    /// </remarks>
     public bool ReturnDeletedFeatures { get; init; }
 
     /// <summary>
@@ -68,8 +93,12 @@ public sealed record ExtractChangesRequest
     public bool ReturnAttachments { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether attachment data should be returned by URL instead of inline content.
+    /// Gets a value indicating whether attachment data should be returned by URL instead
+    /// of inline content.
     /// </summary>
+    /// <remarks>
+    /// This option requires <see cref="ReturnAttachments" /> to be <see langword="true" />.
+    /// </remarks>
     public bool ReturnAttachmentsDataByUrl { get; init; }
 
     /// <summary>
@@ -78,13 +107,19 @@ public sealed record ExtractChangesRequest
     public bool ReturnExtentOnly { get; init; }
 
     /// <summary>
-    /// Gets the optional grid-cell level used when requesting change extents.
+    /// Gets the optional grid cell level used when requesting change extents.
     /// </summary>
+    /// <remarks>
+    /// This option requires <see cref="ReturnExtentOnly" /> to be <see langword="true" />.
+    /// </remarks>
     public ExtractChangesExtentGridCell ChangesExtentGridCell { get; init; } = ExtractChangesExtentGridCell.None;
 
     /// <summary>
     /// Gets the fields to compare when determining update changes.
     /// </summary>
+    /// <remarks>
+    /// This option requires <see cref="ReturnUpdates" /> to be <see langword="true" />.
+    /// </remarks>
     public IReadOnlyList<string>? FieldsToCompare { get; init; }
 
     /// <summary>
@@ -100,6 +135,9 @@ public sealed record ExtractChangesRequest
     /// <summary>
     /// Validates the request configuration.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the request configuration is incomplete or internally inconsistent.
+    /// </exception>
     public void Validate() {
         if (Layers.Count == 0) {
             throw new InvalidOperationException("At least one layer ID must be provided.");
@@ -189,6 +227,10 @@ public sealed record ExtractChangesServerGens
     /// <summary>
     /// Validates the server generation configuration.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the configuration does not define either a single starting generation
+    /// or a complete min/max range.
+    /// </exception>
     public void Validate() {
         var hasSince = SinceServerGen.HasValue;
         var hasRange = MinServerGen.HasValue || MaxServerGen.HasValue;
@@ -211,6 +253,12 @@ public sealed record ExtractChangesServerGens
         }
     }
 
+    /// <summary>
+    /// Converts the configured server generation values to the ArcGIS REST parameter format.
+    /// </summary>
+    /// <returns>
+    /// The serialized parameter value expected by the service.
+    /// </returns>
     internal string ToParameterValue() {
         if (SinceServerGen.HasValue) {
             return SinceServerGen.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -223,9 +271,15 @@ public sealed record ExtractChangesServerGens
 /// <summary>
 /// Defines a server generation value for a specific layer in <c>extractChanges</c>.
 /// </summary>
-/// <param name="Id">The layer ID.</param>
-/// <param name="ServerGen">The current server generation for the layer.</param>
-/// <param name="MinServerGen">An optional minimum server generation for the layer.</param>
+/// <param name="Id">
+/// The layer ID.
+/// </param>
+/// <param name="ServerGen">
+/// The current server generation for the layer.
+/// </param>
+/// <param name="MinServerGen">
+/// An optional minimum server generation for the layer.
+/// </param>
 public sealed record ExtractChangesLayerServerGen(
     int Id,
     long ServerGen,
@@ -234,6 +288,9 @@ public sealed record ExtractChangesLayerServerGen(
     /// <summary>
     /// Validates the layer server generation configuration.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the layer ID is negative.
+    /// </exception>
     public void Validate() {
         if (Id < 0) {
             throw new InvalidOperationException(

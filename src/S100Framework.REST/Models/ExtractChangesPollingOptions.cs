@@ -18,6 +18,9 @@ public sealed record ExtractChangesPollingOptions
     /// <summary>
     /// Validates the polling configuration.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the configured timing values are invalid.
+    /// </exception>
     public void Validate() {
         if (PollInterval <= TimeSpan.Zero) {
             throw new InvalidOperationException("PollInterval must be greater than zero.");

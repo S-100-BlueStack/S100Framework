@@ -3,11 +3,21 @@
 /// <summary>
 /// Represents the final result of a completed <c>extractChanges</c> operation.
 /// </summary>
-/// <param name="LayerServerGens">The returned server generations per layer.</param>
-/// <param name="Edits">The returned changes per layer.</param>
-/// <param name="TransportType">The reported transport type, when available.</param>
-/// <param name="ResponseType">The reported response type, when available.</param>
-/// <param name="Extent">The returned extent when extent-only mode is used.</param>
+/// <param name="LayerServerGens">
+/// The returned server generations per layer.
+/// </param>
+/// <param name="Edits">
+/// The returned changes per layer.
+/// </param>
+/// <param name="TransportType">
+/// The reported transport type, when available.
+/// </param>
+/// <param name="ResponseType">
+/// The reported response type, when available.
+/// </param>
+/// <param name="Extent">
+/// The returned extent when extent-only mode is used.
+/// </param>
 public sealed record ExtractChangesResult(
     IReadOnlyList<ExtractChangesLayerServerGen> LayerServerGens,
     IReadOnlyList<ExtractChangesLayerEdits> Edits,
@@ -18,12 +28,24 @@ public sealed record ExtractChangesResult(
 /// <summary>
 /// Represents the changes returned for a single layer.
 /// </summary>
-/// <param name="LayerId">The layer ID.</param>
-/// <param name="ObjectIds">The changed object IDs, when ID-only mode is used.</param>
-/// <param name="Features">The changed feature payloads, when feature results are returned.</param>
-/// <param name="Attachments">The changed attachments, when attachment results are returned.</param>
-/// <param name="FieldUpdates">The fields reported as updated.</param>
-/// <param name="HasGeometryUpdates">Whether geometry updates were reported for the layer.</param>
+/// <param name="LayerId">
+/// The layer ID.
+/// </param>
+/// <param name="ObjectIds">
+/// The changed object IDs, when ID-only mode is used.
+/// </param>
+/// <param name="Features">
+/// The changed feature payloads, when feature results are returned.
+/// </param>
+/// <param name="Attachments">
+/// The changed attachments, when attachment results are returned.
+/// </param>
+/// <param name="FieldUpdates">
+/// The fields reported as updated.
+/// </param>
+/// <param name="HasGeometryUpdates">
+/// Indicates whether geometry updates were reported for the layer.
+/// </param>
 public sealed record ExtractChangesLayerEdits(
     int LayerId,
     ExtractChangesIdChanges? ObjectIds,
@@ -35,9 +57,19 @@ public sealed record ExtractChangesLayerEdits(
 /// <summary>
 /// Represents changed object IDs for a layer.
 /// </summary>
-/// <param name="Adds">The added object IDs.</param>
-/// <param name="Updates">The updated object IDs.</param>
-/// <param name="Deletes">The deleted object IDs.</param>
+/// <param name="Adds">
+/// The added object IDs.
+/// </param>
+/// <param name="Updates">
+/// The updated object IDs.
+/// </param>
+/// <param name="Deletes">
+/// The deleted object IDs.
+/// </param>
+/// <remarks>
+/// The raw values are kept as deserialized JSON values because ArcGIS payloads may vary
+/// across services and versions.
+/// </remarks>
 public sealed record ExtractChangesIdChanges(
     IReadOnlyList<object?> Adds,
     IReadOnlyList<object?> Updates,
@@ -46,10 +78,22 @@ public sealed record ExtractChangesIdChanges(
 /// <summary>
 /// Represents changed features for a layer.
 /// </summary>
-/// <param name="Adds">The added features.</param>
-/// <param name="Updates">The updated features.</param>
-/// <param name="Deletes">The deleted features, when returned as features.</param>
-/// <param name="DeleteIds">The deleted feature IDs, when returned separately.</param>
+/// <param name="Adds">
+/// The added features.
+/// </param>
+/// <param name="Updates">
+/// The updated features.
+/// </param>
+/// <param name="Deletes">
+/// The deleted features, when returned as features.
+/// </param>
+/// <param name="DeleteIds">
+/// The deleted feature IDs, when returned separately.
+/// </param>
+/// <remarks>
+/// <paramref name="DeleteIds" /> is intentionally kept as raw JSON-converted values because
+/// services may not always return a strict numeric shape.
+/// </remarks>
 public sealed record ExtractChangesFeatureChanges(
     IReadOnlyList<FeatureRecord> Adds,
     IReadOnlyList<FeatureRecord> Updates,
@@ -59,10 +103,22 @@ public sealed record ExtractChangesFeatureChanges(
 /// <summary>
 /// Represents changed attachments for a layer.
 /// </summary>
-/// <param name="Adds">The added attachments.</param>
-/// <param name="Updates">The updated attachments.</param>
-/// <param name="Deletes">The deleted attachments, when returned as attachment payloads.</param>
-/// <param name="DeleteIds">The deleted attachment IDs, when returned separately.</param>
+/// <param name="Adds">
+/// The added attachments.
+/// </param>
+/// <param name="Updates">
+/// The updated attachments.
+/// </param>
+/// <param name="Deletes">
+/// The deleted attachments, when returned as raw payload values.
+/// </param>
+/// <param name="DeleteIds">
+/// The deleted attachment IDs, when returned separately.
+/// </param>
+/// <remarks>
+/// Attachment change payloads are kept as raw JSON-converted values because the service can
+/// return different shapes depending on format and endpoint behavior.
+/// </remarks>
 public sealed record ExtractChangesAttachmentChanges(
     IReadOnlyList<object?> Adds,
     IReadOnlyList<object?> Updates,

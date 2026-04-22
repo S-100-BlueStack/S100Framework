@@ -3,12 +3,24 @@
 /// <summary>
 /// Represents the current state of an asynchronous <c>extractChanges</c> job.
 /// </summary>
-/// <param name="Status">The raw job status returned by the feature service.</param>
-/// <param name="ResponseType">The response type returned by the job, when available.</param>
-/// <param name="TransportType">The transport type returned by the job, when available.</param>
-/// <param name="ResultUrl">The result URL for a completed job, when available.</param>
-/// <param name="SubmissionTime">The server submission timestamp, when available.</param>
-/// <param name="LastUpdatedTime">The server last-updated timestamp, when available.</param>
+/// <param name="Status">
+/// The raw job status returned by the feature service.
+/// </param>
+/// <param name="ResponseType">
+/// The response type returned by the job, when available.
+/// </param>
+/// <param name="TransportType">
+/// The transport type returned by the job, when available.
+/// </param>
+/// <param name="ResultUrl">
+/// The result URL for a completed job, when available.
+/// </param>
+/// <param name="SubmissionTime">
+/// The server submission timestamp, when available.
+/// </param>
+/// <param name="LastUpdatedTime">
+/// The server last-updated timestamp, when available.
+/// </param>
 public sealed record ExtractChangesJobStatus(
     string Status,
     string? ResponseType,

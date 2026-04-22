@@ -14,7 +14,8 @@ public sealed record ExtractChangesSubmissionResult(
     Uri? StatusUrl)
 {
     /// <summary>
-    /// Gets a value indicating whether the submission is pending and should be polled through the status endpoint.
+    /// Gets a value indicating whether the submission is pending and should be polled
+    /// through the status endpoint.
     /// </summary>
     public bool IsPending => StatusUrl is not null && Result is null;
 }
