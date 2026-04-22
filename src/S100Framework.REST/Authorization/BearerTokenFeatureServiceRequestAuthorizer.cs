@@ -6,6 +6,10 @@ namespace S100Framework.REST.Authorization;
 /// <summary>
 /// Applies bearer token authorization headers to outgoing Feature Service requests.
 /// </summary>
+/// <remarks>
+/// This authorizer supports either a raw token factory delegate or an
+/// <see cref="IFeatureServiceAccessTokenProvider" />.
+/// </remarks>
 public sealed class BearerTokenFeatureServiceRequestAuthorizer : IFeatureServiceRequestAuthorizer
 {
     private readonly Func<CancellationToken, ValueTask<string>> _tokenFactory;
@@ -16,6 +20,9 @@ public sealed class BearerTokenFeatureServiceRequestAuthorizer : IFeatureService
     /// <param name="tokenFactory">
     /// A delegate that returns the raw bearer token value for an outgoing request.
     /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="tokenFactory" /> is <see langword="null" />.
+    /// </exception>
     public BearerTokenFeatureServiceRequestAuthorizer(
         Func<CancellationToken, ValueTask<string>> tokenFactory) {
         _tokenFactory = tokenFactory ?? throw new ArgumentNullException(nameof(tokenFactory));
@@ -29,10 +36,23 @@ public sealed class BearerTokenFeatureServiceRequestAuthorizer : IFeatureService
     /// </param>
     public BearerTokenFeatureServiceRequestAuthorizer(
         IFeatureServiceAccessTokenProvider tokenProvider)
-        : this(CreateTokenFactory(tokenProvider)) {
-    }
+        : this(CreateTokenFactory(tokenProvider)) { }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Applies a bearer token to the specified outgoing request.
+    /// </summary>
+    /// <param name="request">
+    /// The HTTP request to authorize.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// A token that can be used to cancel token resolution.
+    /// </param>
+    /// <returns>
+    /// A task that completes when the authorization header has been applied.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the token factory or provider returns an empty token value.
+    /// </exception>
     public async ValueTask ApplyAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken = default) {
