@@ -13,6 +13,7 @@ public sealed class FeatureLayerClientAsyncApplyEditsTests
 {
     [Fact]
     public async Task SubmitApplyEditsAsync_PostsAsyncParameterAndReturnsStatusUrl() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         HttpMethod? method = null;
         string? requestUri = null;
         string? requestBody = null;
@@ -49,7 +50,8 @@ public sealed class FeatureLayerClientAsyncApplyEditsTests
                             ["NAME"] = "Added feature"
                         })
                 ]
-            });
+            },
+            cancellationToken);
 
         Assert.Equal(HttpMethod.Post, method);
         Assert.Equal(
@@ -69,6 +71,7 @@ public sealed class FeatureLayerClientAsyncApplyEditsTests
 
     [Fact]
     public async Task SubmitApplyEditsAsync_Throws_WhenLayerDoesNotSupportAsyncApplyEdits() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var handler = new StubHttpMessageHandler(request => {
             if (IsLayerMetadataRequest(request)) {
                 return CreateLayerMetadataResponse(supportsAsyncApplyEdits: false);
@@ -83,13 +86,15 @@ public sealed class FeatureLayerClientAsyncApplyEditsTests
             layerClient.SubmitApplyEditsAsync(
                 new FeatureEdits {
                     Deletes = [1]
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("asynchronous applyEdits", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task GetApplyEditsStatusAsync_MapsCompletedStatus() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var handler = new StubHttpMessageHandler(_ =>
             StubHttpMessageHandler.Json("""
             {
@@ -103,7 +108,8 @@ public sealed class FeatureLayerClientAsyncApplyEditsTests
         var layerClient = CreateClient(handler).GetLayerClient(0);
 
         var status = await layerClient.GetApplyEditsStatusAsync(
-            new Uri("https://example.test/jobs/apply-edits-1/status"));
+            new Uri("https://example.test/jobs/apply-edits-1/status"),
+            cancellationToken);
 
         Assert.True(status.IsTerminal);
         Assert.True(status.IsCompleted);
@@ -117,6 +123,7 @@ public sealed class FeatureLayerClientAsyncApplyEditsTests
 
     [Fact]
     public async Task GetApplyEditsResultAsync_MapsEditResults() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var handler = new StubHttpMessageHandler(_ =>
             StubHttpMessageHandler.Json("""
             {
@@ -133,7 +140,8 @@ public sealed class FeatureLayerClientAsyncApplyEditsTests
         var layerClient = CreateClient(handler).GetLayerClient(0);
 
         var result = await layerClient.GetApplyEditsResultAsync(
-            new Uri("https://example.test/results/apply-edits-1.json"));
+            new Uri("https://example.test/results/apply-edits-1.json"),
+            cancellationToken);
 
         Assert.Single(result.AddResults);
         Assert.Single(result.UpdateResults);

@@ -13,6 +13,7 @@ public sealed class FeatureServiceClientApplyEditsTests
 {
     [Fact]
     public async Task ApplyEditsAsync_PostsServiceLevelMultiLayerEdits() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         HttpMethod? method = null;
         string? requestUri = null;
         string? requestBody = null;
@@ -77,7 +78,8 @@ public sealed class FeatureServiceClientApplyEditsTests
                         DeleteObjectIds = [202]
                     }
                 ]
-            });
+            },
+            cancellationToken);
 
         Assert.Equal(HttpMethod.Post, method);
         Assert.Equal("https://example.test/arcgis/rest/services/Test/FeatureServer/applyEdits", requestUri);
@@ -105,6 +107,7 @@ public sealed class FeatureServiceClientApplyEditsTests
 
     [Fact]
     public async Task ApplyEditsAsync_UsesGlobalIdsForDeletes_WhenEnabled() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         string? requestBody = null;
 
         var handler = new StubHttpMessageHandler(request => {
@@ -143,7 +146,8 @@ public sealed class FeatureServiceClientApplyEditsTests
                         DeleteGlobalIds = ["{ABC}"]
                     }
                 ]
-            });
+            },
+            cancellationToken);
 
         var decodedBody = Uri.UnescapeDataString(requestBody!);
 
@@ -157,6 +161,7 @@ public sealed class FeatureServiceClientApplyEditsTests
 
     [Fact]
     public async Task ApplyEditsAsync_Throws_WhenDeleteObjectIdsAreUsedWithGlobalIds() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var client = new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(_ =>
                 throw new InvalidOperationException("The HTTP request should not be executed."))),
@@ -176,13 +181,15 @@ public sealed class FeatureServiceClientApplyEditsTests
                             DeleteObjectIds = [1]
                         }
                     ]
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("DeleteObjectIds", exception.Message);
     }
 
     [Fact]
     public async Task SubmitApplyEditsAsync_PostsAsyncFlagAndReturnsStatusUrl_WhenServiceSupportsAsyncApplyEdits() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         string? requestBody = null;
 
         var handler = new StubHttpMessageHandler(request => {
@@ -214,12 +221,13 @@ public sealed class FeatureServiceClientApplyEditsTests
                 Layers =
                 [
                     new ServiceLayerEdits
-                {
-                    LayerId = 0,
-                    DeleteObjectIds = [202]
-                }
+                    {
+                        LayerId = 0,
+                        DeleteObjectIds = [202]
+                    }
                 ]
-            });
+            },
+            cancellationToken);
 
         var decodedBody = Uri.UnescapeDataString(requestBody!);
 
@@ -234,6 +242,7 @@ public sealed class FeatureServiceClientApplyEditsTests
 
     [Fact]
     public async Task SubmitApplyEditsAsync_Throws_WhenServiceDoesNotSupportAsyncApplyEdits() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var handler = new StubHttpMessageHandler(_ =>
             StubHttpMessageHandler.Json(CreateServiceMetadataResponse(supportsAsyncApplyEdits: false)));
 
@@ -249,18 +258,20 @@ public sealed class FeatureServiceClientApplyEditsTests
                     Layers =
                     [
                         new ServiceLayerEdits
-                    {
-                        LayerId = 0,
-                        DeleteObjectIds = [202]
-                    }
+                        {
+                            LayerId = 0,
+                            DeleteObjectIds = [202]
+                        }
                     ]
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("does not support asynchronous applyEdits", exception.Message);
     }
 
     [Fact]
     public async Task GetApplyEditsStatusAsync_MapsAsyncStatusPayload() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var handler = new StubHttpMessageHandler(_ =>
             StubHttpMessageHandler.Json("""
         {
@@ -278,7 +289,8 @@ public sealed class FeatureServiceClientApplyEditsTests
             });
 
         var status = await client.GetApplyEditsStatusAsync(
-            new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/applyEdits-123/status"));
+            new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/applyEdits-123/status"),
+            cancellationToken);
 
         Assert.Equal("COMPLETED", status.Status);
         Assert.True(status.IsCompleted);
@@ -291,6 +303,7 @@ public sealed class FeatureServiceClientApplyEditsTests
 
     [Fact]
     public async Task GetApplyEditsResultAsync_MapsServiceLevelAsyncResult() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var handler = new StubHttpMessageHandler(_ =>
             StubHttpMessageHandler.Json("""
         [
@@ -320,7 +333,8 @@ public sealed class FeatureServiceClientApplyEditsTests
             });
 
         var result = await client.GetApplyEditsResultAsync(
-            new Uri("https://example.test/arcgis/rest/directories/arcgisoutput/Test_MapServer/applyEdits-123.json"));
+            new Uri("https://example.test/arcgis/rest/directories/arcgisoutput/Test_MapServer/applyEdits-123.json"),
+            cancellationToken);
 
         Assert.Equal(2, result.LayerResults.Count);
         Assert.Equal(0, result.LayerResults[0].LayerId);
@@ -344,6 +358,7 @@ public sealed class FeatureServiceClientApplyEditsTests
 
     [Fact]
     public async Task WaitForApplyEditsCompletionAsync_ReturnsImmediateResult_WhenSubmitReturnsResult() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -379,15 +394,16 @@ public sealed class FeatureServiceClientApplyEditsTests
                 Layers =
                 [
                     new ServiceLayerEdits {
-                    LayerId = 0,
-                    DeleteObjectIds = [202]
-                }
+                        LayerId = 0,
+                        DeleteObjectIds = [202]
+                    }
                 ]
             },
             new ApplyEditsWaitOptions {
                 PollInterval = TimeSpan.Zero,
                 Timeout = TimeSpan.FromSeconds(1)
-            });
+            },
+            cancellationToken);
 
         Assert.Single(result.LayerResults);
         Assert.Equal(0, result.LayerResults[0].LayerId);
@@ -399,6 +415,7 @@ public sealed class FeatureServiceClientApplyEditsTests
 
     [Fact]
     public async Task WaitForApplyEditsCompletionAsync_PollsStatusUntilCompleted_AndReturnsResult() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/applyEdits-123/status";
         const string resultUrl = "https://example.test/arcgis/rest/directories/arcgisoutput/Test_MapServer/applyEdits-123.json";
 
@@ -453,7 +470,8 @@ public sealed class FeatureServiceClientApplyEditsTests
             new ApplyEditsWaitOptions {
                 PollInterval = TimeSpan.Zero,
                 Timeout = TimeSpan.FromSeconds(1)
-            });
+            },
+            cancellationToken);
 
         Assert.Equal(2, statusCalls);
         Assert.Single(result.LayerResults);
@@ -462,6 +480,7 @@ public sealed class FeatureServiceClientApplyEditsTests
 
     [Fact]
     public async Task WaitForApplyEditsCompletionAsync_Throws_WhenJobEndsInFailedStatus() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/applyEdits-123/status";
 
         var handler = new StubHttpMessageHandler(request => {
@@ -490,13 +509,15 @@ public sealed class FeatureServiceClientApplyEditsTests
                 new ApplyEditsWaitOptions {
                     PollInterval = TimeSpan.Zero,
                     Timeout = TimeSpan.FromSeconds(1)
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("terminal status 'Failed'", exception.Message);
     }
 
     [Fact]
     public async Task SubmitApplyEditsAsync_Throws_WhenServerReturnsEmptyStatusUrl() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
@@ -523,17 +544,19 @@ public sealed class FeatureServiceClientApplyEditsTests
                     Layers =
                     [
                         new ServiceLayerEdits {
-                        LayerId = 0,
-                        DeleteObjectIds = [202]
-                    }
+                            LayerId = 0,
+                            DeleteObjectIds = [202]
+                        }
                     ]
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("empty statusUrl", exception.Message);
     }
 
     [Fact]
     public async Task WaitForApplyEditsCompletionAsync_Throws_WhenCompletedStatusHasNoResultUrl() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/applyEdits-123/status";
 
         var handler = new StubHttpMessageHandler(request => {
@@ -562,7 +585,8 @@ public sealed class FeatureServiceClientApplyEditsTests
                 new ApplyEditsWaitOptions {
                     PollInterval = TimeSpan.Zero,
                     Timeout = TimeSpan.FromSeconds(1)
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("completed without a resultUrl", exception.Message);
     }
