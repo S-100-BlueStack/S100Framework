@@ -11,6 +11,7 @@ public sealed class FeatureLayerClientDeleteAttachmentsTests
 {
     [Fact]
     public async Task DeleteAttachmentsAsync_PostsAttachmentIds_AndMapsResults() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         HttpMethod? method = null;
         string? requestUri = null;
         string? requestBody = null;
@@ -23,26 +24,26 @@ public sealed class FeatureLayerClientDeleteAttachmentsTests
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
-        {
-          "deleteAttachmentResults": [
             {
-              "objectId": 58,
-              "globalId": null,
-              "success": true
-            },
-            {
-              "objectId": 4,
-              "globalId": null,
-              "success": false,
-              "error": {
-                "code": 50,
-                "description": "Attachment not found"
-              }
+              "deleteAttachmentResults": [
+                {
+                  "objectId": 58,
+                  "globalId": null,
+                  "success": true
+                },
+                {
+                  "objectId": 4,
+                  "globalId": null,
+                  "success": false,
+                  "error": {
+                    "code": 50,
+                    "description": "Attachment not found"
+                  }
+                }
+              ],
+              "editMoment": 1735689600000
             }
-          ],
-          "editMoment": 1735689600000
-        }
-        """);
+            """);
         });
 
         var layerClient = new FeatureServiceClient(
@@ -57,7 +58,8 @@ public sealed class FeatureLayerClientDeleteAttachmentsTests
                 AttachmentIds = [58, 4],
                 RollbackOnFailure = false,
                 ReturnEditMoment = true
-            });
+            },
+            cancellationToken);
 
         Assert.Equal(HttpMethod.Post, method);
         Assert.Equal(
@@ -92,16 +94,16 @@ public sealed class FeatureLayerClientDeleteAttachmentsTests
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
-        {
-          "deleteAttachmentResults": [
             {
-              "objectId": 58,
-              "globalId": null,
-              "success": true
+              "deleteAttachmentResults": [
+                {
+                  "objectId": 58,
+                  "globalId": null,
+                  "success": true
+                }
+              ]
             }
-          ]
-        }
-        """);
+            """);
         });
 
         var layerClient = new FeatureServiceClient(
@@ -115,7 +117,8 @@ public sealed class FeatureLayerClientDeleteAttachmentsTests
                 ObjectId = 1,
                 AttachmentIds = [58],
                 GdbVersion = "SDE.DEFAULT"
-            });
+            },
+            TestContext.Current.CancellationToken);
 
         Assert.Single(result.Results);
         Assert.NotNull(requestBody);
@@ -124,6 +127,8 @@ public sealed class FeatureLayerClientDeleteAttachmentsTests
 
     [Fact]
     public async Task DeleteAttachmentsAsync_Throws_WhenAttachmentIdsAreMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var layerClient = new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(_ =>
                 throw new InvalidOperationException("The HTTP request should not be executed."))),
@@ -136,7 +141,8 @@ public sealed class FeatureLayerClientDeleteAttachmentsTests
                 new DeleteAttachmentsRequest {
                     ObjectId = 1,
                     AttachmentIds = []
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("attachment ID", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

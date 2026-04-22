@@ -11,6 +11,7 @@ public sealed class FeatureLayerClientRelatedRecordsTests
 {
     [Fact]
     public async Task QueryRelatedRecordsAsync_SendsExpectedParameters_AndMapsGroupedRows() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -21,10 +22,7 @@ public sealed class FeatureLayerClientRelatedRecordsTests
                 return StubHttpMessageHandler.Json("""
                 {
                   "geometryType": "esriGeometryPoint",
-                  "spatialReference": {
-                    "wkid": 4326,
-                    "latestWkid": 4326
-                  },
+                  "spatialReference": { "wkid": 4326, "latestWkid": 4326 },
                   "fields": [
                     { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false },
                     { "name": "NAME", "type": "esriFieldTypeString", "nullable": true }
@@ -34,24 +32,12 @@ public sealed class FeatureLayerClientRelatedRecordsTests
                       "objectId": 100,
                       "relatedRecords": [
                         {
-                          "attributes": {
-                            "OBJECTID": 1,
-                            "NAME": "Related A"
-                          },
-                          "geometry": {
-                            "x": 10,
-                            "y": 20
-                          }
+                          "attributes": { "OBJECTID": 1, "NAME": "Related A" },
+                          "geometry": { "x": 10, "y": 20 }
                         },
                         {
-                          "attributes": {
-                            "OBJECTID": 2,
-                            "NAME": "Related B"
-                          },
-                          "geometry": {
-                            "x": 11,
-                            "y": 21
-                          }
+                          "attributes": { "OBJECTID": 2, "NAME": "Related B" },
+                          "geometry": { "x": 11, "y": 21 }
                         }
                       ]
                     },
@@ -59,14 +45,8 @@ public sealed class FeatureLayerClientRelatedRecordsTests
                       "objectId": 200,
                       "relatedRecords": [
                         {
-                          "attributes": {
-                            "OBJECTID": 3,
-                            "NAME": "Related C"
-                          },
-                          "geometry": {
-                            "x": 12,
-                            "y": 22
-                          }
+                          "attributes": { "OBJECTID": 3, "NAME": "Related C" },
+                          "geometry": { "x": 12, "y": 22 }
                         }
                       ]
                     }
@@ -99,10 +79,10 @@ public sealed class FeatureLayerClientRelatedRecordsTests
                 GeometryPrecision = 3,
                 MaxAllowableOffset = 0.5,
                 OrderBy = "NAME"
-            });
+            },
+            cancellationToken);
 
         Assert.Equal(2, groups.Count);
-
         Assert.Equal(100, groups[0].SourceObjectId);
         Assert.Equal(2, groups[0].Records.Count);
         Assert.Equal(1, groups[0].Records[0].ObjectId);
@@ -144,10 +124,7 @@ public sealed class FeatureLayerClientRelatedRecordsTests
                       "objectId": 10,
                       "relatedRecords": [
                         {
-                          "attributes": {
-                            "OBJECTID": 99,
-                            "PLANNAME": "Plan X"
-                          }
+                          "attributes": { "OBJECTID": 99, "PLANNAME": "Plan X" }
                         }
                       ]
                     }
@@ -171,7 +148,8 @@ public sealed class FeatureLayerClientRelatedRecordsTests
                 RelationshipId = 0,
                 OutFields = ["OBJECTID", "PLANNAME"],
                 ReturnGeometry = false
-            });
+            },
+            TestContext.Current.CancellationToken);
 
         Assert.Single(groups);
         Assert.Single(groups[0].Records);
@@ -182,6 +160,8 @@ public sealed class FeatureLayerClientRelatedRecordsTests
 
     [Fact]
     public async Task QueryRelatedRecordsAsync_Throws_WhenObjectIdsAreMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var layerClient = new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(_ =>
                 throw new InvalidOperationException("The HTTP request should not be executed."))),
@@ -194,7 +174,8 @@ public sealed class FeatureLayerClientRelatedRecordsTests
                 new RelatedRecordsQuery {
                     ObjectIds = [],
                     RelationshipId = 1
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("object ID", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

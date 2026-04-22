@@ -11,6 +11,7 @@ public sealed class FeatureLayerClientTopFeaturesTests
 {
     [Fact]
     public async Task QueryTopFeaturesAsync_SendsExpectedParameters_AndMapsFeatures() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -45,24 +46,12 @@ public sealed class FeatureLayerClientTopFeaturesTests
                   "objectIdFieldName": "OBJECTID",
                   "features": [
                     {
-                      "attributes": {
-                        "OBJECTID": 1,
-                        "PLANNAME": "Plan A"
-                      },
-                      "geometry": {
-                        "x": 10,
-                        "y": 20
-                      }
+                      "attributes": { "OBJECTID": 1, "PLANNAME": "Plan A" },
+                      "geometry": { "x": 10, "y": 20 }
                     },
                     {
-                      "attributes": {
-                        "OBJECTID": 2,
-                        "PLANNAME": "Plan B"
-                      },
-                      "geometry": {
-                        "x": 11,
-                        "y": 21
-                      }
+                      "attributes": { "OBJECTID": 2, "PLANNAME": "Plan B" },
+                      "geometry": { "x": 11, "y": 21 }
                     }
                   ]
                 }
@@ -95,14 +84,15 @@ public sealed class FeatureLayerClientTopFeaturesTests
                     OrderByFields = ["SCORE DESC"],
                     TopCount = 2
                 }
-            });
+            },
+            cancellationToken);
 
         Assert.Equal(2, result.Count);
         Assert.Equal(1, result[0].ObjectId);
         Assert.Equal("Plan A", result[0].GetRequiredString("PLANNAME"));
         Assert.NotNull(result[0].Geometry);
 
-        var requestUri = Assert.Single(requestUris.Where(x => x.Contains("/queryTopFeatures?")));
+        var requestUri = Assert.Single(requestUris, x => x.Contains("/queryTopFeatures?"));
         var decoded = Uri.UnescapeDataString(requestUri);
 
         Assert.Contains("outFields=OBJECTID,PLANNAME", decoded);
@@ -120,6 +110,8 @@ public sealed class FeatureLayerClientTopFeaturesTests
 
     [Fact]
     public async Task QueryTopFeatureObjectIdsAsync_ReturnsIds() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
@@ -150,13 +142,16 @@ public sealed class FeatureLayerClientTopFeaturesTests
                     OrderByFields = ["SCORE DESC"],
                     TopCount = 1
                 }
-            });
+            },
+            cancellationToken);
 
         Assert.Equal(new long[] { 5, 7, 9 }, ids.ToArray());
     }
 
     [Fact]
     public async Task QueryTopFeatureCountAsync_ReturnsCountAndExtent() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;
 
@@ -172,10 +167,7 @@ public sealed class FeatureLayerClientTopFeaturesTests
                     "ymin": 20,
                     "xmax": 30,
                     "ymax": 40,
-                    "spatialReference": {
-                      "wkid": 25832,
-                      "latestWkid": 25832
-                    }
+                    "spatialReference": { "wkid": 25832, "latestWkid": 25832 }
                   }
                 }
                 """);
@@ -198,7 +190,8 @@ public sealed class FeatureLayerClientTopFeaturesTests
                     OrderByFields = ["SCORE DESC"],
                     TopCount = 2
                 }
-            });
+            },
+            cancellationToken);
 
         Assert.Equal(4, result.Count);
         Assert.NotNull(result.Extent);
@@ -211,6 +204,8 @@ public sealed class FeatureLayerClientTopFeaturesTests
 
     [Fact]
     public async Task QueryTopFeatureObjectIdsAsync_Throws_WhenObjectIdsAreSpecified() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var layerClient = new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(_ =>
                 throw new InvalidOperationException("The HTTP request should not be executed."))),
@@ -227,7 +222,8 @@ public sealed class FeatureLayerClientTopFeaturesTests
                         OrderByFields = ["SCORE DESC"],
                         TopCount = 1
                     }
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("returnIdsOnly", exception.Message);
     }

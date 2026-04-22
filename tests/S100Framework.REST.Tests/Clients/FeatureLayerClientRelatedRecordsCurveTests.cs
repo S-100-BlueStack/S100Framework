@@ -10,6 +10,7 @@ public sealed class FeatureLayerClientRelatedRecordsCurveTests
 {
     [Fact]
     public async Task QueryRelatedRecordsAsync_SendsReturnTrueCurvesFlag() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = new StubHttpMessageHandler(request => {
@@ -20,10 +21,7 @@ public sealed class FeatureLayerClientRelatedRecordsCurveTests
                 return StubHttpMessageHandler.Json("""
                 {
                   "geometryType": "esriGeometryPoint",
-                  "spatialReference": {
-                    "wkid": 4326,
-                    "latestWkid": 4326
-                  },
+                  "spatialReference": { "wkid": 4326, "latestWkid": 4326 },
                   "fields": [
                     { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
                   ],
@@ -32,13 +30,8 @@ public sealed class FeatureLayerClientRelatedRecordsCurveTests
                       "objectId": 100,
                       "relatedRecords": [
                         {
-                          "attributes": {
-                            "OBJECTID": 1
-                          },
-                          "geometry": {
-                            "x": 10,
-                            "y": 20
-                          }
+                          "attributes": { "OBJECTID": 1 },
+                          "geometry": { "x": 10, "y": 20 }
                         }
                       ]
                     }
@@ -63,10 +56,10 @@ public sealed class FeatureLayerClientRelatedRecordsCurveTests
                 RelationshipId = 1,
                 OutFields = ["OBJECTID"],
                 ReturnGeometry = true
-            });
+            },
+            cancellationToken);
 
         Assert.Single(groups);
-
         var requestUri = Assert.Single(requestUris);
         Assert.Contains("returnTrueCurves=true", requestUri);
     }

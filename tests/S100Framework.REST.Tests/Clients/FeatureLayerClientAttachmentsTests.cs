@@ -14,6 +14,7 @@ public sealed class FeatureLayerClientAttachmentsTests
 {
     [Fact]
     public async Task QueryAttachmentsAsync_SendsExpectedParameters_AndMapsGroups() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
 
         var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, request => {
@@ -22,32 +23,32 @@ public sealed class FeatureLayerClientAttachmentsTests
 
             if (uri.Contains("/FeatureServer/0/queryAttachments?")) {
                 return StubHttpMessageHandler.Json("""
-            {
-              "attachmentGroups": [
                 {
-                  "parentObjectId": 100,
-                  "parentGlobalId": "{AAA}",
-                  "attachmentInfos": [
+                  "attachmentGroups": [
                     {
-                      "id": 1,
-                      "globalId": "{ATT-1}",
-                      "name": "photo-a.jpg",
-                      "contentType": "image/jpeg",
-                      "size": 1234,
-                      "keywords": "harbor,photo",
-                      "url": "https://example.test/a.jpg"
-                    },
-                    {
-                      "id": 2,
-                      "name": "report.pdf",
-                      "contentType": "application/pdf",
-                      "size": 9999
+                      "parentObjectId": 100,
+                      "parentGlobalId": "{AAA}",
+                      "attachmentInfos": [
+                        {
+                          "id": 1,
+                          "globalId": "{ATT-1}",
+                          "name": "photo-a.jpg",
+                          "contentType": "image/jpeg",
+                          "size": 1234,
+                          "keywords": "harbor,photo",
+                          "url": "https://example.test/a.jpg"
+                        },
+                        {
+                          "id": 2,
+                          "name": "report.pdf",
+                          "contentType": "application/pdf",
+                          "size": 9999
+                        }
+                      ]
                     }
                   ]
                 }
-              ]
-            }
-            """);
+                """);
             }
 
             throw new InvalidOperationException($"Unexpected request: {uri}");
@@ -71,7 +72,8 @@ public sealed class FeatureLayerClientAttachmentsTests
                 MaximumSizeBytes = 10000,
                 ReturnUrl = true,
                 ReturnMetadata = true
-            });
+            },
+            cancellationToken);
 
         Assert.Single(groups);
         Assert.Equal(100, groups[0].SourceObjectId);
@@ -97,6 +99,7 @@ public sealed class FeatureLayerClientAttachmentsTests
 
     [Fact]
     public async Task DownloadAttachmentAsync_ReturnsBytesContentTypeAndFileName() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var fileBytes = Encoding.UTF8.GetBytes("attachment-content");
 
         var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, request => {
@@ -124,7 +127,7 @@ public sealed class FeatureLayerClientAttachmentsTests
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             }).GetLayerClient(0);
 
-        var content = await layerClient.DownloadAttachmentAsync(100, 7);
+        var content = await layerClient.DownloadAttachmentAsync(100, 7, cancellationToken);
 
         Assert.Equal(fileBytes, content.Content);
         Assert.Equal("image/jpeg", content.ContentType);
@@ -133,6 +136,8 @@ public sealed class FeatureLayerClientAttachmentsTests
 
     [Fact]
     public async Task QueryAttachmentsAsync_Throws_WhenNoSelectorIsProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var layerClient = new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(_ =>
                 throw new InvalidOperationException("The HTTP request should not be executed."))),
@@ -141,7 +146,7 @@ public sealed class FeatureLayerClientAttachmentsTests
             }).GetLayerClient(0);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            layerClient.QueryAttachmentsAsync(new AttachmentQuery()));
+            layerClient.QueryAttachmentsAsync(new AttachmentQuery(), cancellationToken));
 
         Assert.Contains("ObjectIds or DefinitionExpression", exception.Message);
     }

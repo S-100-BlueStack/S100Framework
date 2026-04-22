@@ -12,6 +12,7 @@ public sealed class FeatureLayerClientUpdateAttachmentTests
 {
     [Fact]
     public async Task UpdateAttachmentAsync_PostsMultipartFormData_AndMapsSingleResult() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         HttpMethod? method = null;
         string? requestUri = null;
         string? contentType = null;
@@ -26,17 +27,17 @@ public sealed class FeatureLayerClientUpdateAttachmentTests
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
-        {
-          "updateAttachmentResults": [
             {
-              "objectId": 58,
-              "globalId": null,
-              "success": true
+              "updateAttachmentResults": [
+                {
+                  "objectId": 58,
+                  "globalId": null,
+                  "success": true
+                }
+              ],
+              "editMoment": 1735689600000
             }
-          ],
-          "editMoment": 1735689600000
-        }
-        """);
+            """);
         });
 
         var layerClient = new FeatureServiceClient(
@@ -56,7 +57,8 @@ public sealed class FeatureLayerClientUpdateAttachmentTests
                 ContentType = "image/jpeg",
                 Keywords = "harbor,photo,updated",
                 ReturnEditMoment = true
-            });
+            },
+            cancellationToken);
 
         Assert.Equal(HttpMethod.Post, method);
         Assert.Equal(
@@ -79,6 +81,7 @@ public sealed class FeatureLayerClientUpdateAttachmentTests
 
     [Fact]
     public async Task UpdateAttachmentAsync_IncludesGdbVersion_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         string? requestBody = null;
 
         var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, request => {
@@ -87,16 +90,16 @@ public sealed class FeatureLayerClientUpdateAttachmentTests
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
-        {
-          "updateAttachmentResults": [
             {
-              "objectId": 58,
-              "globalId": null,
-              "success": true
+              "updateAttachmentResults": [
+                {
+                  "objectId": 58,
+                  "globalId": null,
+                  "success": true
+                }
+              ]
             }
-          ]
-        }
-        """);
+            """);
         });
 
         var layerClient = new FeatureServiceClient(
@@ -114,7 +117,8 @@ public sealed class FeatureLayerClientUpdateAttachmentTests
                 Content = stream,
                 FileName = "doc.txt",
                 GdbVersion = "SDE.DEFAULT"
-            });
+            },
+            cancellationToken);
 
         Assert.True(result.Result.Success);
         Assert.NotNull(requestBody);
@@ -123,6 +127,8 @@ public sealed class FeatureLayerClientUpdateAttachmentTests
 
     [Fact]
     public async Task UpdateAttachmentAsync_MapsFailedResult() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, _ =>
             StubHttpMessageHandler.Json("""
             {
@@ -152,7 +158,8 @@ public sealed class FeatureLayerClientUpdateAttachmentTests
                 AttachmentId = 58,
                 Content = stream,
                 FileName = "doc.txt"
-            });
+            },
+            cancellationToken);
 
         Assert.False(result.Result.Success);
         Assert.Equal(1009, result.Result.ErrorCode);
@@ -161,6 +168,8 @@ public sealed class FeatureLayerClientUpdateAttachmentTests
 
     [Fact]
     public async Task UpdateAttachmentAsync_Throws_WhenAttachmentIdIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var layerClient = new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(_ =>
                 throw new InvalidOperationException("The HTTP request should not be executed."))),
@@ -177,7 +186,8 @@ public sealed class FeatureLayerClientUpdateAttachmentTests
                     AttachmentId = -1,
                     Content = stream,
                     FileName = "doc.txt"
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("AttachmentId", exception.Message);
     }

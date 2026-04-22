@@ -12,6 +12,7 @@ public sealed class FeatureLayerClientAddAttachmentTests
 {
     [Fact]
     public async Task AddAttachmentAsync_PostsMultipartFormData_AndMapsResult() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         HttpMethod? method = null;
         string? requestUri = null;
         string? contentType = null;
@@ -26,15 +27,15 @@ public sealed class FeatureLayerClientAddAttachmentTests
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
-        {
-          "addAttachmentResult": {
-            "objectId": 58,
-            "globalId": null,
-            "success": true
-          },
-          "editMoment": 1735689600000
-        }
-        """);
+            {
+              "addAttachmentResult": {
+                "objectId": 58,
+                "globalId": null,
+                "success": true
+              },
+              "editMoment": 1735689600000
+            }
+            """);
         });
 
         var layerClient = new FeatureServiceClient(
@@ -53,7 +54,8 @@ public sealed class FeatureLayerClientAddAttachmentTests
                 ContentType = "image/jpeg",
                 Keywords = "harbor,photo",
                 ReturnEditMoment = true
-            });
+            },
+            cancellationToken);
 
         Assert.Equal(HttpMethod.Post, method);
         Assert.Equal(
@@ -76,6 +78,7 @@ public sealed class FeatureLayerClientAddAttachmentTests
 
     [Fact]
     public async Task AddAttachmentAsync_IncludesGdbVersion_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
         string? requestBody = null;
 
         var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, request => {
@@ -84,14 +87,14 @@ public sealed class FeatureLayerClientAddAttachmentTests
                 : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             return StubHttpMessageHandler.Json("""
-        {
-          "addAttachmentResult": {
-            "objectId": 58,
-            "globalId": null,
-            "success": true
-          }
-        }
-        """);
+            {
+              "addAttachmentResult": {
+                "objectId": 58,
+                "globalId": null,
+                "success": true
+              }
+            }
+            """);
         });
 
         var layerClient = new FeatureServiceClient(
@@ -108,7 +111,8 @@ public sealed class FeatureLayerClientAddAttachmentTests
                 Content = stream,
                 FileName = "doc.txt",
                 GdbVersion = "SDE.DEFAULT"
-            });
+            },
+            cancellationToken);
 
         Assert.True(result.Result.Success);
         Assert.NotNull(requestBody);
@@ -117,6 +121,8 @@ public sealed class FeatureLayerClientAddAttachmentTests
 
     [Fact]
     public async Task AddAttachmentAsync_MapsFailedResult() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var handler = FeatureServiceTestHandlers.WithAttachmentCapabilities(0, _ =>
             StubHttpMessageHandler.Json("""
             {
@@ -143,7 +149,8 @@ public sealed class FeatureLayerClientAddAttachmentTests
                 ObjectId = 1,
                 Content = stream,
                 FileName = "doc.txt"
-            });
+            },
+            cancellationToken);
 
         Assert.False(result.Result.Success);
         Assert.Equal(1008, result.Result.ErrorCode);
@@ -152,6 +159,8 @@ public sealed class FeatureLayerClientAddAttachmentTests
 
     [Fact]
     public async Task AddAttachmentAsync_Throws_WhenFileNameIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         var layerClient = new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(_ =>
                 throw new InvalidOperationException("The HTTP request should not be executed."))),
@@ -167,7 +176,8 @@ public sealed class FeatureLayerClientAddAttachmentTests
                     ObjectId = 1,
                     Content = stream,
                     FileName = ""
-                }));
+                },
+                cancellationToken));
 
         Assert.Contains("FileName", exception.Message);
     }
