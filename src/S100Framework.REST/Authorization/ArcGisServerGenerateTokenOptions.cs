@@ -23,16 +23,17 @@ public sealed class ArcGisServerGenerateTokenOptions
     /// <summary>
     /// Gets or sets how the token should be bound to the caller.
     /// </summary>
-    public ArcGisServerTokenClientType ClientType { get; set; } =
-        ArcGisServerTokenClientType.Referer;
+    public ArcGisServerTokenClientType ClientType { get; set; } = ArcGisServerTokenClientType.Referer;
 
     /// <summary>
-    /// Gets or sets the referer URL used when <see cref="ClientType"/> is <see cref="ArcGisServerTokenClientType.Referer"/>.
+    /// Gets or sets the referer URL used when <see cref="ClientType" /> is
+    /// <see cref="ArcGisServerTokenClientType.Referer" />.
     /// </summary>
     public string? Referer { get; set; }
 
     /// <summary>
-    /// Gets or sets the IP address used when <see cref="ClientType"/> is <see cref="ArcGisServerTokenClientType.Ip"/>.
+    /// Gets or sets the IP address used when <see cref="ClientType" /> is
+    /// <see cref="ArcGisServerTokenClientType.Ip" />.
     /// </summary>
     public string? IpAddress { get; set; }
 
@@ -54,6 +55,9 @@ public sealed class ArcGisServerGenerateTokenOptions
     /// <summary>
     /// Validates the configured options.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when one or more required option values are missing or invalid.
+    /// </exception>
     public void Validate() {
         if (TokenUri is null) {
             throw new InvalidOperationException("TokenUri must be configured.");
@@ -68,8 +72,8 @@ public sealed class ArcGisServerGenerateTokenOptions
         }
 
         if (!TokenUri.AbsolutePath.EndsWith(
-                "/tokens/generateToken",
-                StringComparison.OrdinalIgnoreCase)) {
+            "/tokens/generateToken",
+            StringComparison.OrdinalIgnoreCase)) {
             throw new InvalidOperationException(
                 "TokenUri must point to the ArcGIS Server tokens/generateToken endpoint.");
         }

@@ -28,6 +28,9 @@ public sealed class PortalServerTokenExchangeOptions
     /// <summary>
     /// Validates the configured options.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when one or more required option values are missing or invalid.
+    /// </exception>
     public void Validate() {
         if (GenerateTokenUri is null) {
             throw new InvalidOperationException("GenerateTokenUri must be configured.");
@@ -42,8 +45,8 @@ public sealed class PortalServerTokenExchangeOptions
         }
 
         if (!GenerateTokenUri.AbsolutePath.EndsWith(
-                "/sharing/rest/generateToken",
-                StringComparison.OrdinalIgnoreCase)) {
+            "/sharing/rest/generateToken",
+            StringComparison.OrdinalIgnoreCase)) {
             throw new InvalidOperationException(
                 "GenerateTokenUri must point to the Portal sharing/rest/generateToken endpoint.");
         }
