@@ -6,11 +6,14 @@ using S100Framework.REST.Exceptions;
 namespace S100Framework.REST.Authorization;
 
 /// <summary>
-/// Acquires and refreshes ArcGIS Server access tokens from a <c>tokens/generateToken</c> endpoint.
+/// Acquires and refreshes ArcGIS Server access tokens from a
+/// <c>tokens/generateToken</c> endpoint.
 /// </summary>
-public sealed class ArcGisServerGenerateTokenProvider :
-    IFeatureServiceAccessTokenProvider,
-    IDisposable
+/// <remarks>
+/// This provider caches the last successful token and refreshes it when it enters the
+/// configured refresh window.
+/// </remarks>
+public sealed class ArcGisServerGenerateTokenProvider : IFeatureServiceAccessTokenProvider, IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNameCaseInsensitive = true
@@ -26,18 +29,42 @@ public sealed class ArcGisServerGenerateTokenProvider :
     /// <summary>
     /// Initializes the provider.
     /// </summary>
-    /// <param name="httpClient">The HTTP client used to call the token endpoint.</param>
-    /// <param name="options">The token acquisition options.</param>
+    /// <param name="httpClient">
+    /// The HTTP client used to call the ArcGIS Server token endpoint.
+    /// </param>
+    /// <param name="options">
+    /// The token acquisition options.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="httpClient" /> or <paramref name="options" /> is
+    /// <see langword="null" />.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="options" /> is invalid.
+    /// </exception>
     public ArcGisServerGenerateTokenProvider(
         HttpClient httpClient,
         ArcGisServerGenerateTokenOptions options) {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options ?? throw new ArgumentNullException(nameof(options));
-
         _options.Validate();
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets a valid ArcGIS Server access token.
+    /// </summary>
+    /// <param name="cancellationToken">
+    /// A token that can be used to cancel token acquisition.
+    /// </param>
+    /// <returns>
+    /// A reusable cached token, or a newly acquired token when refresh is required.
+    /// </returns>
+    /// <exception cref="ObjectDisposedException">
+    /// Thrown when the provider has already been disposed.
+    /// </exception>
+    /// <exception cref="FeatureServiceAuthenticationException">
+    /// Thrown when token acquisition fails.
+    /// </exception>
     public async ValueTask<FeatureServiceAccessToken> GetAccessTokenAsync(
         CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
@@ -62,7 +89,9 @@ public sealed class ArcGisServerGenerateTokenProvider :
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Releases resources held by the provider.
+    /// </summary>
     public void Dispose() {
         if (_disposed) {
             return;

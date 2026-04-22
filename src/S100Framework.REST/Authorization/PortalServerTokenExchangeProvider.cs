@@ -5,11 +5,14 @@ using S100Framework.REST.Exceptions;
 namespace S100Framework.REST.Authorization;
 
 /// <summary>
-/// Exchanges a portal access token for a federated ArcGIS Server token and refreshes it when needed.
+/// Exchanges a portal access token for a federated ArcGIS Server token and refreshes
+/// it when needed.
 /// </summary>
-public sealed class PortalServerTokenExchangeProvider :
-    IFeatureServiceAccessTokenProvider,
-    IDisposable
+/// <remarks>
+/// This provider caches the exchanged server token and reuses it until it enters the
+/// configured refresh window.
+/// </remarks>
+public sealed class PortalServerTokenExchangeProvider : IFeatureServiceAccessTokenProvider, IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNameCaseInsensitive = true
@@ -26,9 +29,21 @@ public sealed class PortalServerTokenExchangeProvider :
     /// <summary>
     /// Initializes the provider.
     /// </summary>
-    /// <param name="httpClient">The HTTP client used to call the portal endpoint.</param>
-    /// <param name="portalTokenProvider">The provider that supplies portal access tokens.</param>
-    /// <param name="options">The portal-to-server token exchange options.</param>
+    /// <param name="httpClient">
+    /// The HTTP client used to call the portal token exchange endpoint.
+    /// </param>
+    /// <param name="portalTokenProvider">
+    /// The provider that supplies portal access tokens.
+    /// </param>
+    /// <param name="options">
+    /// The portal-to-server token exchange options.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when any constructor argument is <see langword="null" />.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="options" /> is invalid.
+    /// </exception>
     public PortalServerTokenExchangeProvider(
         HttpClient httpClient,
         IFeatureServiceAccessTokenProvider portalTokenProvider,
@@ -36,11 +51,24 @@ public sealed class PortalServerTokenExchangeProvider :
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _portalTokenProvider = portalTokenProvider ?? throw new ArgumentNullException(nameof(portalTokenProvider));
         _options = options ?? throw new ArgumentNullException(nameof(options));
-
         _options.Validate();
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets a valid ArcGIS Server token obtained through portal token exchange.
+    /// </summary>
+    /// <param name="cancellationToken">
+    /// A token that can be used to cancel token acquisition.
+    /// </param>
+    /// <returns>
+    /// A reusable cached server token, or a newly exchanged token when refresh is required.
+    /// </returns>
+    /// <exception cref="ObjectDisposedException">
+    /// Thrown when the provider has already been disposed.
+    /// </exception>
+    /// <exception cref="FeatureServiceAuthenticationException">
+    /// Thrown when the portal token or exchanged server token cannot be obtained.
+    /// </exception>
     public async ValueTask<FeatureServiceAccessToken> GetAccessTokenAsync(
         CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
@@ -65,7 +93,9 @@ public sealed class PortalServerTokenExchangeProvider :
         }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Releases resources held by the provider.
+    /// </summary>
     public void Dispose() {
         if (_disposed) {
             return;
@@ -95,7 +125,6 @@ public sealed class PortalServerTokenExchangeProvider :
     private async Task<FeatureServiceAccessToken> ExchangeTokenAsync(
         CancellationToken cancellationToken) {
         var portalAccessToken = await _portalTokenProvider.GetAccessTokenAsync(cancellationToken);
-
         if (string.IsNullOrWhiteSpace(portalAccessToken.Token)) {
             throw new FeatureServiceAuthenticationException(
                 "The portal access token provider returned an empty token.",
