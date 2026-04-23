@@ -109,6 +109,14 @@ public sealed record FeatureQuery
     public bool ReturnEnvelope { get; init; }
 
     /// <summary>
+    /// Gets the full text search expressions to apply to the query.
+    /// </summary>
+    /// <remarks>
+    /// When specified, these expressions are serialized to the REST API's <c>fullText</c> query parameter.
+    /// </remarks>
+    public IReadOnlyList<FeatureQueryFullTextExpression>? FullText { get; init; }
+
+    /// <summary>
     /// Gets the optional spatial filter applied to the query.
     /// </summary>
     public FeatureSpatialFilter? SpatialFilter { get; init; }

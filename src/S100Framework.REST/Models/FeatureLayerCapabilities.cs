@@ -39,6 +39,9 @@
 /// <param name="SupportsReturningGeometryEnvelope">
 /// Indicates whether the layer supports returning geometry envelopes from query operations.
 /// </param>
+/// <param name="SupportsFullTextSearch">
+/// Indicates whether the layer supports full-text search.
+/// </param>
 public sealed record FeatureLayerCapabilities(
     bool HasAttachments,
     bool SupportsQueryAttachments,
@@ -51,4 +54,5 @@ public sealed record FeatureLayerCapabilities(
     bool SupportsOrderBy,
     bool SupportsDistinct,
     bool SupportsAsyncApplyEdits,
-    bool SupportsReturningGeometryEnvelope = false);
+    bool SupportsReturningGeometryEnvelope = false,
+    bool SupportsFullTextSearch = false);

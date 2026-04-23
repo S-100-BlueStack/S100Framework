@@ -191,7 +191,8 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
                 dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
                 dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsReturningGeometryEnvelope ?? false),
+                dto.AdvancedQueryCapabilities?.SupportsReturningGeometryEnvelope ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsFullTextSearch ?? false),
             dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>());
     }
 
@@ -720,6 +721,82 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 ? FormatEpochMilliseconds(value.Value)
                 : "null";
 
+        static string SerializeFullText(IReadOnlyList<FeatureQueryFullTextExpression> expressions) {
+            static string MapSearchType(FeatureQueryFullTextSearchType value) =>
+                value switch {
+                    FeatureQueryFullTextSearchType.Simple => "simple",
+                    FeatureQueryFullTextSearchType.Prefix => "prefix",
+                    _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+                };
+
+            static string MapOperator(FeatureQueryFullTextOperator value) =>
+                value switch {
+                    FeatureQueryFullTextOperator.And => "and",
+                    FeatureQueryFullTextOperator.Or => "or",
+                    FeatureQueryFullTextOperator.Not => "not",
+                    _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+                };
+
+            static string MapSearchOperator(FeatureQueryFullTextSearchOperator value) =>
+                value switch {
+                    FeatureQueryFullTextSearchOperator.And => "and",
+                    FeatureQueryFullTextSearchOperator.Or => "or",
+                    _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+                };
+
+            ArgumentNullException.ThrowIfNull(expressions);
+
+            if (expressions.Count == 0) {
+                throw new InvalidOperationException("FullText must contain at least one expression when provided.");
+            }
+
+            var payload = new List<Dictionary<string, object?>>(expressions.Count);
+
+            foreach (var expression in expressions) {
+                ArgumentNullException.ThrowIfNull(expression);
+
+                var hasSqlExpression = !string.IsNullOrWhiteSpace(expression.SqlExpression);
+                var hasStructuredExpression =
+                    expression.OnFields is { Count: > 0 } &&
+                    !string.IsNullOrWhiteSpace(expression.SearchTerm);
+
+                if (hasSqlExpression == hasStructuredExpression) {
+                    throw new InvalidOperationException(
+                        "Each FullText expression must specify either SqlExpression or both OnFields and SearchTerm.");
+                }
+
+                var entry = new Dictionary<string, object?>();
+
+                if (hasSqlExpression) {
+                    entry["sqlExpression"] = expression.SqlExpression;
+                }
+                else {
+                    if (expression.OnFields!.Any(string.IsNullOrWhiteSpace)) {
+                        throw new InvalidOperationException("FullText OnFields must not contain empty values.");
+                    }
+
+                    entry["onFields"] = expression.OnFields;
+                    entry["searchTerm"] = expression.SearchTerm;
+
+                    if (expression.SearchType.HasValue) {
+                        entry["searchType"] = MapSearchType(expression.SearchType.Value);
+                    }
+
+                    if (expression.Operator.HasValue) {
+                        entry["operator"] = MapOperator(expression.Operator.Value);
+                    }
+                }
+
+                if (expression.SearchOperator.HasValue) {
+                    entry["searchOperator"] = MapSearchOperator(expression.SearchOperator.Value);
+                }
+
+                payload.Add(entry);
+            }
+
+            return JsonSerializer.Serialize(payload);
+        }
+
         var parameters = new Dictionary<string, string?> {
             ["where"] = string.IsNullOrWhiteSpace(query.Where) ? "1=1" : query.Where,
             ["orderByFields"] = query.OrderBy
@@ -748,6 +825,10 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 FeatureQuerySqlFormat.Native => "native",
                 _ => throw new ArgumentOutOfRangeException(nameof(query.SqlFormat), query.SqlFormat, null)
             };
+        }
+
+        if (query.FullText is not null) {
+            parameters["fullText"] = SerializeFullText(query.FullText);
         }
 
         if (includeOutSrid && query.OutSrid.HasValue) {
