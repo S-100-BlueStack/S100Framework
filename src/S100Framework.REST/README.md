@@ -313,9 +313,9 @@ Use a secret store, secure local development configuration, or a runtime prompt 
 var metadata = await client.GetMetadataAsync();
 
 Console.WriteLine($"Layers: {metadata.Layers.Count}");
-Console.WriteLine($"Supports editing: {metadata.CapabilityInfo.SupportsEditing}");
-Console.WriteLine($"Supports uploads: {metadata.CapabilityInfo.SupportsUploads}");
-Console.WriteLine($"Supports change tracking: {metadata.CapabilityInfo.SupportsChangeTracking}");
+Console.WriteLine($"Supports editing: {metadata.Capabilities.SupportsEditing}");
+Console.WriteLine($"Supports uploads: {metadata.Capabilities.SupportsUploads}");
+Console.WriteLine($"Supports change tracking: {metadata.Capabilities.SupportsChangeTracking}");
 ```
 
 This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits or `extractChanges`.
@@ -422,16 +422,16 @@ var rows = await layerClient.QueryStatisticsAsync(new FeatureStatisticsQuery
     GroupByFields = ["STATUS"],
     Statistics =
     [
-        new FeatureStatisticDefinition(
-            StatisticType.Count,
+        new StatisticDefinition(
             OnStatisticField: "OBJECTID",
-            OutStatisticFieldName: "ROW_COUNT")
+            OutStatisticFieldName: "ROW_COUNT",
+            StatisticType: StatisticType.Count)
     ]
 });
 
 foreach (var row in rows)
 {
-    Console.WriteLine($"Status: {row.Values["STATUS"]}, Count: {row.Values["ROW_COUNT"]}");
+    Console.WriteLine($"Status: {row.Attributes["STATUS"]}, Count: {row.Attributes["ROW_COUNT"]}");
 }
 ```
 
@@ -471,8 +471,8 @@ var metadata = await client.GetMetadataAsync();
 
 var canReadAttachments = schema.Capabilities.HasAttachments;
 var canQueryAttachments = schema.Capabilities.HasAttachments && schema.Capabilities.SupportsQueryAttachments;
-var canEditAttachments = schema.Capabilities.HasAttachments && metadata.CapabilityInfo.SupportsEditing;
-var canUploadAttachments = canEditAttachments && metadata.CapabilityInfo.SupportsUploads;
+var canEditAttachments = schema.Capabilities.HasAttachments && metadata.Capabilities.SupportsEditing;
+var canUploadAttachments = canEditAttachments && metadata.Capabilities.SupportsUploads;
 ```
 
 The client also validates these capabilities at runtime and throws a clear exception if the operation is not supported.
@@ -489,11 +489,11 @@ var groups = await layerClient.QueryAttachmentsAsync(new AttachmentQuery
 
 foreach (var group in groups)
 {
-    Console.WriteLine($"Parent object: {group.ParentObjectId}");
+    Console.WriteLine($"Parent object: {group.SourceObjectId}");
 
     foreach (var attachment in group.Attachments)
     {
-        Console.WriteLine($"Attachment: {attachment.Id} - {attachment.Name}");
+        Console.WriteLine($"Attachment: {attachment.AttachmentId} - {attachment.Name}");
     }
 }
 ```
@@ -858,8 +858,6 @@ Examples:
 using NetTopologySuite.Geometries;
 using S100Framework.REST.Models;
 
-var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
-
 var result = await client.ExtractChangesAsync(new ExtractChangesRequest
 {
     Layers = [0],
@@ -875,7 +873,9 @@ var result = await client.ExtractChangesAsync(new ExtractChangesRequest
             Where = "STATUS = 'Active'"
         }
     },
-    SpatialFilter = geometryFactory.ToGeometry(new Envelope(10, 11, 55, 56)),
+    SpatialFilter = ExtractChangesSpatialFilter.FromEnvelope(
+        new Envelope(10, 11, 55, 56),
+        4326),
     ReturnInserts = true,
     ReturnUpdates = true,
     ReturnDeletes = true,
@@ -1108,11 +1108,11 @@ Console.WriteLine(schema.Capabilities.SupportsAsyncApplyEdits);
 ```csharp
 var metadata = await client.GetMetadataAsync();
 
-Console.WriteLine(metadata.CapabilityInfo.SupportsQuery);
-Console.WriteLine(metadata.CapabilityInfo.SupportsEditing);
-Console.WriteLine(metadata.CapabilityInfo.SupportsUploads);
-Console.WriteLine(metadata.CapabilityInfo.SupportsChangeTracking);
-Console.WriteLine(metadata.CapabilityInfo.SupportsAsyncApplyEdits);
+Console.WriteLine(metadata.Capabilities.SupportsQuery);
+Console.WriteLine(metadata.Capabilities.SupportsEditing);
+Console.WriteLine(metadata.Capabilities.SupportsUploads);
+Console.WriteLine(metadata.Capabilities.SupportsChangeTracking);
+Console.WriteLine(metadata.Capabilities.SupportsAsyncApplyEdits);
 ```
 
 ### `extractChanges` capabilities

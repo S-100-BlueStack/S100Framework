@@ -9,7 +9,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.0.0</Version>
+		<Version>1.0.1</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
@@ -34,8 +34,8 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			Initial  release with feature queries, statistics, related records,
-			attachments, top features, typed spatial filters, and schema capability metadata.
+			Polished release with updated documentation for all functions, parameters, and so on.
+			
 		</PackageReleaseNotes>
 	</PropertyGroup>
 
