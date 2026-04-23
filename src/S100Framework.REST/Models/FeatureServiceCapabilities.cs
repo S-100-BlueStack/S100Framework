@@ -33,6 +33,9 @@
 /// <param name="SupportsAsyncApplyEdits">
 /// Indicates whether asynchronous service-level <c>applyEdits</c> is supported.
 /// </param>
+/// <param name="SupportsAppend">
+/// Indicates whether the service advertises support for the <c>append</c> operation.
+/// </param>
 public sealed record FeatureServiceCapabilities(
     bool SupportsQuery,
     bool SupportsCreate,
@@ -43,4 +46,5 @@ public sealed record FeatureServiceCapabilities(
     bool SupportsSync,
     bool SupportsChangeTracking,
     bool SyncEnabled,
-    bool SupportsAsyncApplyEdits);
+    bool SupportsAsyncApplyEdits,
+    bool SupportsAppend = false);

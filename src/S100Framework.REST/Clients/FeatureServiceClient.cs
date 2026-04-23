@@ -69,9 +69,10 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         var dto = await GetAsync<EsriServiceMetadataDto>(uri, cancellationToken);
 
         var serviceCapabilities = ParseServiceCapabilities(
-    dto.Capabilities,
-    dto.SyncEnabled,
-    dto.AdvancedEditingCapabilities);
+            dto.Capabilities,
+            dto.SyncEnabled,
+            dto.SupportsAppend,
+            dto.AdvancedEditingCapabilities);
 
         var extractChangesCapabilities = dto.ExtractChangesCapabilities is null
             ? null
@@ -86,6 +87,10 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 dto.ExtractChangesCapabilities.SupportsServerGens ?? false,
                 dto.ExtractChangesCapabilities.SupportsReturnHasGeometryUpdates ?? false);
 
+        var supportedAppendFormats = dto.SupportedAppendFormats?
+            .Where(static format => !string.IsNullOrWhiteSpace(format))
+            .ToArray();
+
         return new FeatureServiceMetadata(
             _serviceUri,
             dto.Layers?.Select(MapDataset).ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
@@ -93,12 +98,14 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             dto.Capabilities,
             dto.MaxRecordCount,
             serviceCapabilities,
-            extractChangesCapabilities);
+            extractChangesCapabilities,
+            supportedAppendFormats);
     }
 
     private static FeatureServiceCapabilities ParseServiceCapabilities(
     string? capabilities,
     bool? syncEnabled,
+    bool? supportsAppend,
     EsriAdvancedEditingCapabilitiesDto? advancedEditingCapabilities) {
         var values = (capabilities ?? string.Empty)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -114,7 +121,8 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             SupportsSync: values.Contains("Sync"),
             SupportsChangeTracking: values.Contains("ChangeTracking"),
             SyncEnabled: syncEnabled ?? false,
-            SupportsAsyncApplyEdits: advancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false);
+            SupportsAsyncApplyEdits: advancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false,
+            SupportsAppend: supportsAppend ?? false);
     }
 
     /// <inheritdoc />

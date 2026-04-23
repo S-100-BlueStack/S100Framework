@@ -19,6 +19,12 @@ internal sealed class EsriServiceMetadataDto
     [JsonPropertyName("syncEnabled")]
     public bool? SyncEnabled { get; init; }
 
+    [JsonPropertyName("supportsAppend")]
+    public bool? SupportsAppend { get; init; }
+
+    [JsonPropertyName("supportedAppendFormats")]
+    public List<string>? SupportedAppendFormats { get; init; }
+
     [JsonPropertyName("advancedEditingCapabilities")]
     public EsriAdvancedEditingCapabilitiesDto? AdvancedEditingCapabilities { get; init; }
 

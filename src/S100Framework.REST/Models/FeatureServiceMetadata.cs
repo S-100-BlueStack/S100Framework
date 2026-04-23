@@ -27,10 +27,13 @@ public sealed record FeatureServiceMetadata
     /// The parsed service capabilities.
     /// </param>
     /// <param name="extractChangesCapabilities">
-    /// The parsed <c>extractChanges</c> capabilities, when the service exposes them.
+    /// The parsed extractChanges capabilities, when the service exposes them.
+    /// </param>
+    /// <param name="supportedAppendFormats">
+    /// The append upload formats advertised by the service, when available.
     /// </param>
     /// <exception cref="ArgumentNullException">
-    /// Thrown when required constructor arguments are <see langword="null" />.
+    /// Thrown when required constructor arguments are <see langword="null"/>.
     /// </exception>
     public FeatureServiceMetadata(
         Uri serviceUri,
@@ -39,7 +42,8 @@ public sealed record FeatureServiceMetadata
         string? capabilityText,
         int? maxRecordCount,
         FeatureServiceCapabilities capabilities,
-        ExtractChangesCapabilities? extractChangesCapabilities) {
+        ExtractChangesCapabilities? extractChangesCapabilities,
+        IReadOnlyList<string>? supportedAppendFormats = null) {
         ArgumentNullException.ThrowIfNull(serviceUri);
         ArgumentNullException.ThrowIfNull(layers);
         ArgumentNullException.ThrowIfNull(tables);
@@ -52,6 +56,7 @@ public sealed record FeatureServiceMetadata
         MaxRecordCount = maxRecordCount;
         Capabilities = capabilities;
         ExtractChangesCapabilities = extractChangesCapabilities;
+        SupportedAppendFormats = supportedAppendFormats ?? Array.Empty<string>();
     }
 
     /// <summary>
@@ -85,9 +90,17 @@ public sealed record FeatureServiceMetadata
     public FeatureServiceCapabilities Capabilities { get; init; }
 
     /// <summary>
-    /// Gets the parsed <c>extractChanges</c> capabilities, when the service exposes them.
+    /// Gets the parsed extractChanges capabilities, when the service exposes them.
     /// </summary>
     public ExtractChangesCapabilities? ExtractChangesCapabilities { get; init; }
+
+    /// <summary>
+    /// Gets the append upload formats advertised by the service.
+    /// </summary>
+    /// <remarks>
+    /// This list is empty when the service does not advertise append formats.
+    /// </remarks>
+    public IReadOnlyList<string> SupportedAppendFormats { get; init; }
 }
 
 /// <summary>
@@ -105,7 +118,7 @@ public sealed record FeatureServiceDatasetInfo
     /// The layer or table name.
     /// </param>
     /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="name" /> is <see langword="null" />.
+    /// Thrown when <paramref name="name"/> is <see langword="null"/>.
     /// </exception>
     public FeatureServiceDatasetInfo(int id, string name) {
         ArgumentNullException.ThrowIfNull(name);
