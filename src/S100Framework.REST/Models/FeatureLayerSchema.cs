@@ -10,42 +10,18 @@ public sealed record FeatureLayerSchema
     /// <summary>
     /// Initializes the schema model.
     /// </summary>
-    /// <param name="layerId">
-    /// The layer or table identifier.
-    /// </param>
-    /// <param name="name">
-    /// The layer or table name.
-    /// </param>
-    /// <param name="geometryType">
-    /// The ArcGIS geometry type identifier, when available.
-    /// </param>
-    /// <param name="srid">
-    /// The spatial reference ID, when available.
-    /// </param>
-    /// <param name="hasZ">
-    /// Indicates whether the layer geometry includes Z values.
-    /// </param>
-    /// <param name="hasM">
-    /// Indicates whether the layer geometry includes M values.
-    /// </param>
-    /// <param name="maxRecordCount">
-    /// The maximum record count configured for the layer, when available.
-    /// </param>
-    /// <param name="objectIdFieldName">
-    /// The object ID field name, when available.
-    /// </param>
-    /// <param name="fields">
-    /// The fields exposed by the layer or table.
-    /// </param>
-    /// <param name="capabilities">
-    /// The parsed layer capabilities.
-    /// </param>
-    /// <param name="relationships">
-    /// The relationships exposed by the layer, when available.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when required constructor arguments are <see langword="null" />.
-    /// </exception>
+    /// <param name="layerId">The layer or table identifier.</param>
+    /// <param name="name">The layer or table name.</param>
+    /// <param name="geometryType">The ArcGIS geometry type identifier, when available.</param>
+    /// <param name="srid">The spatial reference ID, when available.</param>
+    /// <param name="hasZ">Indicates whether the layer geometry includes Z values.</param>
+    /// <param name="hasM">Indicates whether the layer geometry includes M values.</param>
+    /// <param name="maxRecordCount">The maximum record count configured for the layer, when available.</param>
+    /// <param name="objectIdFieldName">The object ID field name, when available.</param>
+    /// <param name="fields">The fields exposed by the layer or table.</param>
+    /// <param name="capabilities">The parsed layer capabilities.</param>
+    /// <param name="relationships">The relationships exposed by the layer, when available.</param>
+    /// <exception cref="ArgumentNullException">Thrown when required constructor arguments are <see langword="null"/>.</exception>
     public FeatureLayerSchema(
         int layerId,
         string name,
@@ -79,49 +55,26 @@ public sealed record FeatureLayerSchema
     /// <summary>
     /// Initializes the schema model using the legacy pagination constructor shape.
     /// </summary>
-    /// <param name="layerId">
-    /// The layer or table identifier.
-    /// </param>
-    /// <param name="name">
-    /// The layer or table name.
-    /// </param>
-    /// <param name="geometryType">
-    /// The ArcGIS geometry type identifier, when available.
-    /// </param>
-    /// <param name="srid">
-    /// The spatial reference ID, when available.
-    /// </param>
-    /// <param name="hasZ">
-    /// Indicates whether the layer geometry includes Z values.
-    /// </param>
-    /// <param name="hasM">
-    /// Indicates whether the layer geometry includes M values.
-    /// </param>
+    /// <param name="layerId">The layer or table identifier.</param>
+    /// <param name="name">The layer or table name.</param>
+    /// <param name="geometryType">The ArcGIS geometry type identifier, when available.</param>
+    /// <param name="srid">The spatial reference ID, when available.</param>
+    /// <param name="hasZ">Indicates whether the layer geometry includes Z values.</param>
+    /// <param name="hasM">Indicates whether the layer geometry includes M values.</param>
     /// <param name="supportsPagination">
-    /// The legacy pagination flag. This must match
-    /// <see cref="FeatureLayerCapabilities.SupportsPagination" />.
+    /// The legacy pagination flag. This must match <see cref="FeatureLayerCapabilities.SupportsPagination"/>.
     /// </param>
-    /// <param name="maxRecordCount">
-    /// The maximum record count configured for the layer, when available.
-    /// </param>
-    /// <param name="objectIdFieldName">
-    /// The object ID field name, when available.
-    /// </param>
-    /// <param name="fields">
-    /// The fields exposed by the layer or table.
-    /// </param>
-    /// <param name="capabilities">
-    /// The parsed layer capabilities.
-    /// </param>
-    /// <param name="relationships">
-    /// The relationships exposed by the layer, when available.
-    /// </param>
+    /// <param name="maxRecordCount">The maximum record count configured for the layer, when available.</param>
+    /// <param name="objectIdFieldName">The object ID field name, when available.</param>
+    /// <param name="fields">The fields exposed by the layer or table.</param>
+    /// <param name="capabilities">The parsed layer capabilities.</param>
+    /// <param name="relationships">The relationships exposed by the layer, when available.</param>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the legacy pagination value does not match
-    /// <see cref="FeatureLayerCapabilities.SupportsPagination" />.
+    /// Thrown when the legacy pagination value does not match <see cref="FeatureLayerCapabilities.SupportsPagination"/>.
     /// </exception>
     [Obsolete(
-        "Use the constructor overload without supportsPagination. Pagination support is exposed through Capabilities.SupportsPagination.")]
+        "Use the constructor overload without supportsPagination. " +
+        "Pagination support is exposed through Capabilities.SupportsPagination.")]
     public FeatureLayerSchema(
         int layerId,
         string name,
@@ -187,8 +140,7 @@ public sealed record FeatureLayerSchema
     /// Gets a legacy pagination flag.
     /// </summary>
     /// <remarks>
-    /// Use <see cref="Capabilities" /> and
-    /// <see cref="FeatureLayerCapabilities.SupportsPagination" /> instead.
+    /// Use <see cref="Capabilities"/> and <see cref="FeatureLayerCapabilities.SupportsPagination"/> instead.
     /// </remarks>
     [Obsolete("Use Capabilities.SupportsPagination instead.")]
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -218,4 +170,14 @@ public sealed record FeatureLayerSchema
     /// Gets the relationships exposed by the layer, when available.
     /// </summary>
     public IReadOnlyList<FeatureRelationshipInfo> Relationships { get; init; }
+
+    /// <summary>
+    /// Gets metadata describing alternate unique IDs when the layer exposes them.
+    /// </summary>
+    public FeatureLayerUniqueIdInfo? UniqueIdInfo { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the layer exposes unique ID metadata.
+    /// </summary>
+    public bool SupportsUniqueIds => UniqueIdInfo is not null;
 }

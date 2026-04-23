@@ -85,6 +85,20 @@ internal sealed class EsriLayerMetadataDto
 
     [JsonPropertyName("extent")]
     public EsriExtentDto? Extent { get; init; }
+    [JsonPropertyName("uniqueIdInfo")]
+    public EsriUniqueIdInfoDto? UniqueIdInfo { get; init; }
+}
+
+internal sealed class EsriUniqueIdInfoDto
+{
+    [JsonPropertyName("type")]
+    public string? Type { get; init; }
+
+    [JsonPropertyName("fields")]
+    public IReadOnlyList<string>? Fields { get; init; }
+
+    [JsonPropertyName("OIDFieldContainsHashValue")]
+    public bool? OidFieldContainsHashValue { get; init; }
 }
 
 internal sealed class EsriAdvancedEditingCapabilitiesDto

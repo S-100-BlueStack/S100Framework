@@ -151,8 +151,8 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     }
 
     internal async Task<FeatureLayerSchema> GetLayerSchemaAsync(
-    int layerId,
-    CancellationToken cancellationToken = default) {
+     int layerId,
+     CancellationToken cancellationToken = default) {
         var uri = UriUtility.WithQuery(
             UriUtility.AppendPath(_serviceUri, layerId.ToString(CultureInfo.InvariantCulture)),
             new Dictionary<string, string?> {
@@ -168,6 +168,15 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 : dto.Extent.SpatialReference.Wkid ?? dto.Extent.SpatialReference.LatestWkid;
 
         var supportsPagination = dto.AdvancedQueryCapabilities?.SupportsPagination ?? false;
+
+        var uniqueIdInfo = dto.UniqueIdInfo is null
+            ? null
+            : new FeatureLayerUniqueIdInfo(
+                dto.UniqueIdInfo.Type ?? "unknown",
+                dto.UniqueIdInfo.Fields?
+                    .Where(static field => !string.IsNullOrWhiteSpace(field))
+                    .ToArray() ?? Array.Empty<string>(),
+                dto.UniqueIdInfo.OidFieldContainsHashValue ?? false);
 
         return new FeatureLayerSchema(
             dto.Id,
@@ -193,7 +202,9 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false,
                 dto.AdvancedQueryCapabilities?.SupportsReturningGeometryEnvelope ?? false,
                 dto.AdvancedQueryCapabilities?.SupportsFullTextSearch ?? false),
-            dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>());
+            dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
+            UniqueIdInfo = uniqueIdInfo
+        };
     }
 
     internal Task<EsriQueryResponseDto> QueryFeaturesAsync(
