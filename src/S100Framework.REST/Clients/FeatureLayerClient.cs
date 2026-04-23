@@ -48,8 +48,8 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
 
     /// <inheritdoc />
     public async IAsyncEnumerable<FeatureRecord> QueryAsync(
-    FeatureQuery query,
-    [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+     FeatureQuery query,
+     [EnumeratorCancellation] CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
         ValidateFeatureQueryPaging(query);
@@ -82,6 +82,14 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
 
         if (schema.Capabilities.SupportsPagination) {
             await foreach (var record in QueryWithOffsetPaginationAsync(schema, query, pageSize, cancellationToken)) {
+                yield return record;
+            }
+
+            yield break;
+        }
+
+        if (query.UniqueIds is { Count: > 0 }) {
+            await foreach (var record in QueryWithUniqueIdFallbackAsync(schema, query, pageSize, cancellationToken)) {
                 yield return record;
             }
 
@@ -205,10 +213,10 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     }
 
     private async IAsyncEnumerable<FeatureRecord> QueryWithOffsetPaginationAsync(
-    FeatureLayerSchema schema,
-    FeatureQuery query,
-    int pageSize,
-    [EnumeratorCancellation] CancellationToken cancellationToken) {
+     FeatureLayerSchema schema,
+     FeatureQuery query,
+     int pageSize,
+     [EnumeratorCancellation] CancellationToken cancellationToken) {
         var yielded = 0;
         var offset = query.ResultOffset ?? 0;
         var effectiveLimit = query.Limit.HasValue && query.ResultRecordCount.HasValue
@@ -231,7 +239,8 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
                 resultOffset: offset,
                 resultRecordCount: requestSize,
                 objectIds: null,
-                cancellationToken);
+                uniqueIds: null,
+                cancellationToken: cancellationToken);
 
             var features = response.Features ?? new List<EsriFeatureDto>();
 
@@ -258,55 +267,113 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     }
 
     private async IAsyncEnumerable<FeatureRecord> QueryWithObjectIdFallbackAsync(
-        FeatureLayerSchema schema,
-        FeatureQuery query,
-        int pageSize,
-        [EnumeratorCancellation] CancellationToken cancellationToken) {
-        var idsResponse = await _serviceClient.QueryIdsAsync(_layerId, query, cancellationToken);
-        var objectIds = idsResponse.ObjectIds ?? new List<long>();
+    FeatureLayerSchema schema,
+    FeatureQuery query,
+    int pageSize,
+    [EnumeratorCancellation] CancellationToken cancellationToken) {
+        var objectIds = await QueryObjectIdsAsync(query, cancellationToken);
 
         if (objectIds.Count == 0) {
             yield break;
         }
 
-        var effectiveIds = query.Limit.HasValue
-            ? objectIds.Take(query.Limit.Value).ToArray()
-            : objectIds.ToArray();
+        var yielded = 0;
+        var effectiveLimit = query.Limit;
 
-        foreach (var batch in Chunk(effectiveIds, pageSize)) {
+        for (var offset = 0; offset < objectIds.Count; offset += pageSize) {
+            var remaining = effectiveLimit.HasValue
+                ? effectiveLimit.Value - yielded
+                : int.MaxValue;
+
+            if (remaining <= 0) {
+                yield break;
+            }
+
+            var requestSize = Math.Min(pageSize, remaining);
+            var batch = objectIds
+                .Skip(offset)
+                .Take(requestSize)
+                .ToArray();
+
+            if (batch.Length == 0) {
+                yield break;
+            }
+
             var response = await _serviceClient.QueryFeaturesAsync(
                 _layerId,
                 query,
                 resultOffset: null,
                 resultRecordCount: null,
                 objectIds: batch,
-                cancellationToken);
+                uniqueIds: null,
+                cancellationToken: cancellationToken);
 
-            var records = (response.Features ?? new List<EsriFeatureDto>())
-                .Select(feature => MapFeature(schema, feature))
-                .ToList();
+            var features = response.Features ?? new List<EsriFeatureDto>();
 
-            if (string.IsNullOrWhiteSpace(query.OrderBy)) {
-                var positionById = batch
-                    .Select((id, index) => new { id, index })
-                    .ToDictionary(x => x.id, x => x.index);
+            foreach (var feature in features) {
+                yield return MapFeature(schema, feature);
 
-                foreach (var record in records.OrderBy(record =>
-                             record.ObjectId is long id && positionById.TryGetValue(id, out var index)
-                                 ? index
-                                 : int.MaxValue)) {
-                    yield return record;
+                yielded++;
+
+                if (effectiveLimit.HasValue && yielded >= effectiveLimit.Value) {
+                    yield break;
                 }
-
-                continue;
-            }
-
-            foreach (var record in records) {
-                yield return record;
             }
         }
     }
 
+    private async IAsyncEnumerable<FeatureRecord> QueryWithUniqueIdFallbackAsync(
+    FeatureLayerSchema schema,
+    FeatureQuery query,
+    int pageSize,
+    [EnumeratorCancellation] CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(query.UniqueIds);
+
+        var yielded = 0;
+        var effectiveLimit = query.Limit;
+        var uniqueIds = query.UniqueIds;
+
+        for (var offset = 0; offset < uniqueIds.Count; offset += pageSize) {
+            var remaining = effectiveLimit.HasValue
+                ? effectiveLimit.Value - yielded
+                : int.MaxValue;
+
+            if (remaining <= 0) {
+                yield break;
+            }
+
+            var requestSize = Math.Min(pageSize, remaining);
+            var batch = uniqueIds
+                .Skip(offset)
+                .Take(requestSize)
+                .ToArray();
+
+            if (batch.Length == 0) {
+                yield break;
+            }
+
+            var response = await _serviceClient.QueryFeaturesAsync(
+                _layerId,
+                query,
+                resultOffset: null,
+                resultRecordCount: null,
+                objectIds: null,
+                uniqueIds: batch,
+                cancellationToken);
+
+            var features = response.Features ?? new List<EsriFeatureDto>();
+
+            foreach (var feature in features) {
+                yield return MapFeature(schema, feature);
+
+                yielded++;
+
+                if (effectiveLimit.HasValue && yielded >= effectiveLimit.Value) {
+                    yield break;
+                }
+            }
+        }
+    }
     private FeatureRecord MapFeature(FeatureLayerSchema schema, EsriFeatureDto feature) {
         var attributes = ReadAttributes(feature.Attributes);
 

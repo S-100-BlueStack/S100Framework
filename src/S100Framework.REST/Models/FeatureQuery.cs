@@ -117,6 +117,14 @@ public sealed record FeatureQuery
     public IReadOnlyList<FeatureQueryFullTextExpression>? FullText { get; init; }
 
     /// <summary>
+    /// Gets the unique IDs to query.
+    /// </summary>
+    /// <remarks>
+    /// Simple unique IDs contain a single component. Composite unique IDs contain multiple ordered components.
+    /// </remarks>
+    public IReadOnlyList<FeatureUniqueId>? UniqueIds { get; init; }
+
+    /// <summary>
     /// Gets the optional spatial filter applied to the query.
     /// </summary>
     public FeatureSpatialFilter? SpatialFilter { get; init; }
