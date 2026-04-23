@@ -36,6 +36,9 @@
 /// <param name="SupportsAsyncApplyEdits">
 /// Indicates whether asynchronous layer-level <c>applyEdits</c> is supported.
 /// </param>
+/// <param name="SupportsReturningGeometryEnvelope">
+/// Indicates whether the layer supports returning geometry envelopes from query operations.
+/// </param>
 public sealed record FeatureLayerCapabilities(
     bool HasAttachments,
     bool SupportsQueryAttachments,
@@ -47,4 +50,5 @@ public sealed record FeatureLayerCapabilities(
     bool SupportsAdvancedQueryRelated,
     bool SupportsOrderBy,
     bool SupportsDistinct,
-    bool SupportsAsyncApplyEdits);
+    bool SupportsAsyncApplyEdits,
+    bool SupportsReturningGeometryEnvelope = false);

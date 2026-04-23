@@ -24,6 +24,7 @@ internal sealed class EsriServiceMetadataDto
 
     [JsonPropertyName("extractChangesCapabilities")]
     public EsriExtractChangesCapabilitiesDto? ExtractChangesCapabilities { get; init; }
+
 }
 
 internal sealed class EsriDatasetDto
@@ -112,6 +113,8 @@ internal sealed class EsriAdvancedQueryCapabilitiesDto
 
     [JsonPropertyName("supportsDistinct")]
     public bool? SupportsDistinct { get; init; }
+    [JsonPropertyName("supportsReturningGeometryEnvelope")]
+    public bool? SupportsReturningGeometryEnvelope { get; init; }
 }
 
 internal sealed class EsriFieldDto

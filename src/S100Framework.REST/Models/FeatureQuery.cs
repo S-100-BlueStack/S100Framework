@@ -101,6 +101,14 @@ public sealed record FeatureQuery
     public FeatureQuerySqlFormat? SqlFormat { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the service should return feature geometries as envelopes instead of full geometries.
+    /// </summary>
+    /// <remarks>
+    /// This only applies to feature queries that return geometry and requires layer capability support.
+    /// </remarks>
+    public bool ReturnEnvelope { get; init; }
+
+    /// <summary>
     /// Gets the optional spatial filter applied to the query.
     /// </summary>
     public FeatureSpatialFilter? SpatialFilter { get; init; }

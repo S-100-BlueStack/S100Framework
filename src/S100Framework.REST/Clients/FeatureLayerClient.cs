@@ -54,6 +54,10 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
 
         ValidateFeatureQueryPaging(query);
 
+        if (query.ReturnEnvelope && !query.ReturnGeometry) {
+            throw new InvalidOperationException("ReturnEnvelope requires ReturnGeometry to be true.");
+        }
+
         if (query.ResultOffset is < 0) {
             throw new InvalidOperationException("ResultOffset must be greater than or equal to zero when provided.");
         }
@@ -64,6 +68,11 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
 
         var schema = await GetSchemaAsync(cancellationToken);
         var pageSize = ResolvePageSize(query, schema);
+
+        if (query.ReturnEnvelope && !schema.Capabilities.SupportsReturningGeometryEnvelope) {
+            throw new InvalidOperationException(
+                "ReturnEnvelope requires a layer that supports returning geometry envelopes.");
+        }
 
         if (!schema.Capabilities.SupportsPagination &&
             (query.ResultOffset.HasValue || query.ResultRecordCount.HasValue)) {

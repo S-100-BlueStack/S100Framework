@@ -151,8 +151,8 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     }
 
     internal async Task<FeatureLayerSchema> GetLayerSchemaAsync(
-        int layerId,
-        CancellationToken cancellationToken = default) {
+    int layerId,
+    CancellationToken cancellationToken = default) {
         var uri = UriUtility.WithQuery(
             UriUtility.AppendPath(_serviceUri, layerId.ToString(CultureInfo.InvariantCulture)),
             new Dictionary<string, string?> {
@@ -190,7 +190,8 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
                 dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
                 dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
                 dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
-                dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false),
+                dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsReturningGeometryEnvelope ?? false),
             dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>());
     }
 
@@ -208,6 +209,10 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         ValidateFeatureQueryGeometryOptions(query);
         ValidateFeatureQueryOutFields(query);
 
+        if (query.ReturnEnvelope && !query.ReturnGeometry) {
+            throw new InvalidOperationException("ReturnEnvelope requires ReturnGeometry to be true.");
+        }
+
         var parameters = CreateCommonQueryParameters(query, includeOutSrid: true, includeGeometryOptions: true);
 
         parameters["f"] = "json";
@@ -216,6 +221,10 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         parameters["outFields"] = query.OutFields is { Count: > 0 }
             ? string.Join(",", query.OutFields)
             : "*";
+
+        if (query.ReturnEnvelope) {
+            parameters["returnEnvelope"] = "true";
+        }
 
         if (objectIds is { Count: > 0 }) {
             parameters.Remove("where");

@@ -10,13 +10,13 @@ namespace S100Framework.REST.Internal.EsriGeometry;
 internal static class EsriGeometryReader
 {
     public static Geometry? Read(
-    JsonElement geometryElement,
-    string? geometryType,
-    int? defaultSrid,
-    bool preferLatestWkid,
-    bool fixInvalidGeometries,
-    TrueCurveHandling trueCurveHandling,
-    int circularArcSegmentCount) {
+     JsonElement geometryElement,
+     string? geometryType,
+     int? defaultSrid,
+     bool preferLatestWkid,
+     bool fixInvalidGeometries,
+     TrueCurveHandling trueCurveHandling,
+     int circularArcSegmentCount) {
         if (geometryElement.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
             return null;
         }
@@ -24,15 +24,28 @@ internal static class EsriGeometryReader
         var srid = ReadSrid(geometryElement, defaultSrid, preferLatestWkid);
         var factory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: srid ?? 0);
 
-        Geometry geometry = geometryType switch {
-            "esriGeometryPoint" => ReadPoint(geometryElement, factory),
-            "esriGeometryMultipoint" => ReadMultipoint(geometryElement, factory),
-            "esriGeometryPolyline" => ReadPolyline(geometryElement, factory, trueCurveHandling, circularArcSegmentCount),
-            "esriGeometryPolygon" => ReadPolygon(geometryElement, factory, trueCurveHandling, circularArcSegmentCount),
-            "esriGeometryEnvelope" => ReadEnvelope(geometryElement, factory),
-            null => InferGeometry(geometryElement, factory, trueCurveHandling, circularArcSegmentCount),
-            _ => throw new NotSupportedException($"Unsupported geometry type '{geometryType}'.")
-        };
+        Geometry geometry;
+
+        if (geometryElement.TryGetProperty("xmin", out _) &&
+            geometryElement.TryGetProperty("ymin", out _) &&
+            geometryElement.TryGetProperty("xmax", out _) &&
+            geometryElement.TryGetProperty("ymax", out _)) {
+            // returnEnvelope=true changes the response payload shape to an envelope even when
+            // the layer itself is declared as polygon/polyline/point in metadata.
+            // We therefore prioritize the actual JSON shape over the layer geometry type here.
+            geometry = ReadEnvelope(geometryElement, factory);
+        }
+        else {
+            geometry = geometryType switch {
+                "esriGeometryPoint" => ReadPoint(geometryElement, factory),
+                "esriGeometryMultipoint" => ReadMultipoint(geometryElement, factory),
+                "esriGeometryPolyline" => ReadPolyline(geometryElement, factory, trueCurveHandling, circularArcSegmentCount),
+                "esriGeometryPolygon" => ReadPolygon(geometryElement, factory, trueCurveHandling, circularArcSegmentCount),
+                "esriGeometryEnvelope" => ReadEnvelope(geometryElement, factory),
+                null => InferGeometry(geometryElement, factory, trueCurveHandling, circularArcSegmentCount),
+                _ => throw new NotSupportedException($"Unsupported geometry type '{geometryType}'.")
+            };
+        }
 
         if (fixInvalidGeometries && !geometry.IsValid) {
             geometry = GeometryFixer.Fix(geometry);
