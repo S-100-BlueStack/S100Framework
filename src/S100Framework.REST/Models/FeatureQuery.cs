@@ -54,6 +54,9 @@ public sealed record FeatureQuery
     /// <summary>
     /// Gets the requested page size.
     /// </summary>
+    /// <remarks>
+    /// This controls the per-request batch size used by the client when it pages through results.
+    /// </remarks>
     public int? PageSize { get; init; }
 
     /// <summary>
@@ -67,9 +70,35 @@ public sealed record FeatureQuery
     public int? Limit { get; init; }
 
     /// <summary>
+    /// Gets the number of records to skip before returning results from paged feature queries.
+    /// </summary>
+    /// <remarks>
+    /// This is applied as the starting offset for <c>QueryAsync</c> when the layer supports pagination.
+    /// </remarks>
+    public int? ResultOffset { get; init; }
+
+    /// <summary>
+    /// Gets the maximum number of records to return after applying <see cref="ResultOffset"/> for paged feature queries.
+    /// </summary>
+    /// <remarks>
+    /// This defines the overall requested result window. It does not replace <see cref="PageSize"/>, which still controls batch size.
+    /// </remarks>
+    public int? ResultRecordCount { get; init; }
+
+    /// <summary>
+    /// Gets the default spatial reference ID applied to spatial query parameters when supported by the service.
+    /// </summary>
+    public int? DefaultSrid { get; init; }
+
+    /// <summary>
     /// Gets the output spatial reference ID for returned geometries.
     /// </summary>
     public int? OutSrid { get; init; }
+
+    /// <summary>
+    /// Gets the SQL format requested from the service.
+    /// </summary>
+    public FeatureQuerySqlFormat? SqlFormat { get; init; }
 
     /// <summary>
     /// Gets the optional spatial filter applied to the query.

@@ -657,6 +657,10 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             throw new InvalidOperationException("OrderBy must not be empty when provided.");
         }
 
+        if (query.DefaultSrid is <= 0) {
+            throw new InvalidOperationException("DefaultSrid must be greater than zero when provided.");
+        }
+
         if (query.TimeInstant.HasValue && query.TimeExtent is not null) {
             throw new InvalidOperationException("TimeInstant and TimeExtent cannot both be specified.");
         }
@@ -722,6 +726,19 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
 
         if (query.HistoricMoment.HasValue) {
             parameters["historicMoment"] = FormatEpochMilliseconds(query.HistoricMoment.Value);
+        }
+
+        if (query.DefaultSrid.HasValue) {
+            parameters["defaultSR"] = query.DefaultSrid.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (query.SqlFormat.HasValue) {
+            parameters["sqlFormat"] = query.SqlFormat.Value switch {
+                FeatureQuerySqlFormat.None => "none",
+                FeatureQuerySqlFormat.Standard => "standard",
+                FeatureQuerySqlFormat.Native => "native",
+                _ => throw new ArgumentOutOfRangeException(nameof(query.SqlFormat), query.SqlFormat, null)
+            };
         }
 
         if (includeOutSrid && query.OutSrid.HasValue) {

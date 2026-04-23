@@ -51,10 +51,25 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     FeatureQuery query,
     [EnumeratorCancellation] CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+
         ValidateFeatureQueryPaging(query);
+
+        if (query.ResultOffset is < 0) {
+            throw new InvalidOperationException("ResultOffset must be greater than or equal to zero when provided.");
+        }
+
+        if (query.ResultRecordCount is <= 0) {
+            throw new InvalidOperationException("ResultRecordCount must be greater than zero when provided.");
+        }
 
         var schema = await GetSchemaAsync(cancellationToken);
         var pageSize = ResolvePageSize(query, schema);
+
+        if (!schema.Capabilities.SupportsPagination &&
+            (query.ResultOffset.HasValue || query.ResultRecordCount.HasValue)) {
+            throw new InvalidOperationException(
+                "ResultOffset and ResultRecordCount require a layer that supports pagination.");
+        }
 
         if (schema.Capabilities.SupportsPagination) {
             await foreach (var record in QueryWithOffsetPaginationAsync(schema, query, pageSize, cancellationToken)) {
@@ -96,16 +111,19 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     }
 
     private async IAsyncEnumerable<FeatureRecord> QueryWithOffsetPaginationAsync(
-        FeatureLayerSchema schema,
-        FeatureQuery query,
-        int pageSize,
-        [EnumeratorCancellation] CancellationToken cancellationToken) {
+    FeatureLayerSchema schema,
+    FeatureQuery query,
+    int pageSize,
+    [EnumeratorCancellation] CancellationToken cancellationToken) {
         var yielded = 0;
-        var offset = 0;
+        var offset = query.ResultOffset ?? 0;
+        var effectiveLimit = query.Limit.HasValue && query.ResultRecordCount.HasValue
+            ? Math.Min(query.Limit.Value, query.ResultRecordCount.Value)
+            : query.Limit ?? query.ResultRecordCount;
 
         while (true) {
-            var remaining = query.Limit.HasValue
-                ? query.Limit.Value - yielded
+            var remaining = effectiveLimit.HasValue
+                ? effectiveLimit.Value - yielded
                 : int.MaxValue;
 
             if (remaining <= 0) {
@@ -113,7 +131,6 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             }
 
             var requestSize = Math.Min(pageSize, remaining);
-
             var response = await _serviceClient.QueryFeaturesAsync(
                 _layerId,
                 query,
@@ -130,9 +147,10 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
 
             foreach (var feature in features) {
                 yield return MapFeature(schema, feature);
+
                 yielded++;
 
-                if (query.Limit.HasValue && yielded >= query.Limit.Value) {
+                if (effectiveLimit.HasValue && yielded >= effectiveLimit.Value) {
                     yield break;
                 }
             }
