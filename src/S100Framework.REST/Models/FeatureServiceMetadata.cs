@@ -8,15 +8,30 @@ public sealed record FeatureServiceMetadata
     /// <summary>
     /// Initializes the metadata model.
     /// </summary>
-    /// <param name="serviceUri">The base URI of the feature service.</param>
-    /// <param name="layers">The layers exposed by the service.</param>
-    /// <param name="tables">The tables exposed by the service.</param>
-    /// <param name="capabilityText">The raw ArcGIS capabilities string returned by the service.</param>
-    /// <param name="maxRecordCount">The maximum record count configured by the service, when available.</param>
-    /// <param name="capabilities">The parsed service capabilities.</param>
-    /// <param name="extractChangesCapabilities">
-    /// The parsed extractChanges capabilities, when the service exposes them.
+    /// <param name="serviceUri">
+    /// The base URI of the feature service.
     /// </param>
+    /// <param name="layers">
+    /// The layers exposed by the service.
+    /// </param>
+    /// <param name="tables">
+    /// The tables exposed by the service.
+    /// </param>
+    /// <param name="capabilityText">
+    /// The raw ArcGIS capabilities string returned by the service.
+    /// </param>
+    /// <param name="maxRecordCount">
+    /// The maximum record count configured by the service, when available.
+    /// </param>
+    /// <param name="capabilities">
+    /// The parsed service capabilities.
+    /// </param>
+    /// <param name="extractChangesCapabilities">
+    /// The parsed <c>extractChanges</c> capabilities, when the service exposes them.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when required constructor arguments are <see langword="null" />.
+    /// </exception>
     public FeatureServiceMetadata(
         Uri serviceUri,
         IReadOnlyList<FeatureServiceDatasetInfo> layers,
@@ -70,7 +85,7 @@ public sealed record FeatureServiceMetadata
     public FeatureServiceCapabilities Capabilities { get; init; }
 
     /// <summary>
-    /// Gets the parsed extractChanges capabilities, when the service exposes them.
+    /// Gets the parsed <c>extractChanges</c> capabilities, when the service exposes them.
     /// </summary>
     public ExtractChangesCapabilities? ExtractChangesCapabilities { get; init; }
 }
@@ -83,11 +98,16 @@ public sealed record FeatureServiceDatasetInfo
     /// <summary>
     /// Initializes the dataset metadata model.
     /// </summary>
-    /// <param name="id">The layer or table identifier.</param>
-    /// <param name="name">The layer or table name.</param>
-    public FeatureServiceDatasetInfo(
-        int id,
-        string name) {
+    /// <param name="id">
+    /// The layer or table identifier.
+    /// </param>
+    /// <param name="name">
+    /// The layer or table name.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="name" /> is <see langword="null" />.
+    /// </exception>
+    public FeatureServiceDatasetInfo(int id, string name) {
         ArgumentNullException.ThrowIfNull(name);
 
         Id = id;

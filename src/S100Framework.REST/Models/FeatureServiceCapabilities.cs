@@ -3,16 +3,36 @@
 /// <summary>
 /// Describes the core capabilities exposed by a feature service.
 /// </summary>
-/// <param name="SupportsQuery">Indicates whether query operations are supported.</param>
-/// <param name="SupportsCreate">Indicates whether create operations are supported.</param>
-/// <param name="SupportsUpdate">Indicates whether update operations are supported.</param>
-/// <param name="SupportsDelete">Indicates whether delete operations are supported.</param>
-/// <param name="SupportsEditing">Indicates whether general editing is supported.</param>
-/// <param name="SupportsUploads">Indicates whether upload operations are supported.</param>
-/// <param name="SupportsSync">Indicates whether sync operations are supported.</param>
-/// <param name="SupportsChangeTracking">Indicates whether change tracking is supported.</param>
-/// <param name="SyncEnabled">Indicates whether sync is currently enabled for the service.</param>
-/// <param name="SupportsAsyncApplyEdits">Indicates whether asynchronous <c>applyEdits</c> is supported.</param>
+/// <param name="SupportsQuery">
+/// Indicates whether query operations are supported.
+/// </param>
+/// <param name="SupportsCreate">
+/// Indicates whether create operations are supported.
+/// </param>
+/// <param name="SupportsUpdate">
+/// Indicates whether update operations are supported.
+/// </param>
+/// <param name="SupportsDelete">
+/// Indicates whether delete operations are supported.
+/// </param>
+/// <param name="SupportsEditing">
+/// Indicates whether general editing is supported.
+/// </param>
+/// <param name="SupportsUploads">
+/// Indicates whether upload operations are supported.
+/// </param>
+/// <param name="SupportsSync">
+/// Indicates whether sync operations are supported.
+/// </param>
+/// <param name="SupportsChangeTracking">
+/// Indicates whether change tracking is supported.
+/// </param>
+/// <param name="SyncEnabled">
+/// Indicates whether sync is currently enabled for the service.
+/// </param>
+/// <param name="SupportsAsyncApplyEdits">
+/// Indicates whether asynchronous service-level <c>applyEdits</c> is supported.
+/// </param>
 public sealed record FeatureServiceCapabilities(
     bool SupportsQuery,
     bool SupportsCreate,
