@@ -14,6 +14,9 @@ using S100Framework.REST.Models;
 
 namespace S100Framework.REST.Clients;
 
+/// <summary>
+/// Provides operations for reading metadata, resolving layers, executing service-level edit workflows, and calling ArcGIS Feature Service REST endpoints.
+/// </summary>
 public sealed class FeatureServiceClient : IFeatureServiceClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new() {
@@ -25,6 +28,11 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
     private readonly IFeatureServiceRequestAuthorizer? _authorizer;
     private readonly Uri _serviceUri;
 
+    /// <summary>
+    /// Initializes the client with an HTTP client and validated options.
+    /// </summary>
+    /// <param name="httpClient">The HTTP client used to call the feature service.</param>
+    /// <param name="options">The configured client options.</param>
     [ActivatorUtilitiesConstructor]
     public FeatureServiceClient(
         HttpClient httpClient,
@@ -32,6 +40,12 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         : this(httpClient, options, authorizer: null) {
     }
 
+    /// <summary>
+    /// Initializes the client with an HTTP client, validated options, and an optional request authorizer.
+    /// </summary>
+    /// <param name="httpClient">The HTTP client used to call the feature service.</param>
+    /// <param name="options">The configured client options.</param>
+    /// <param name="authorizer">An optional request authorizer that can add authentication to outgoing requests.</param>
     public FeatureServiceClient(
         HttpClient httpClient,
         FeatureServiceClientOptions options,

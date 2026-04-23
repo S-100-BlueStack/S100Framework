@@ -9,6 +9,9 @@ using System.Text.Json;
 
 namespace S100Framework.REST.Clients;
 
+/// <summary>
+/// Provides operations for querying, editing, and downloading attachments from a single feature layer or table.
+/// </summary>
 public sealed class FeatureLayerClient : IFeatureLayerClient
 {
     private readonly FeatureServiceClient _serviceClient;
@@ -22,6 +25,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         _layerId = layerId;
     }
 
+    /// <inheritdoc />
     public async Task<FeatureLayerSchema> GetSchemaAsync(CancellationToken cancellationToken = default) {
         if (_schema is not null) {
             return _schema;
@@ -42,6 +46,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         }
     }
 
+    /// <inheritdoc />
     public async IAsyncEnumerable<FeatureRecord> QueryAsync(
     FeatureQuery query,
     [EnumeratorCancellation] CancellationToken cancellationToken = default) {
@@ -64,6 +69,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         }
     }
 
+    /// <inheritdoc />
     public Task<long> QueryCountAsync(
         FeatureQuery query,
         CancellationToken cancellationToken = default) {
@@ -71,6 +77,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         return _serviceClient.QueryCountAsync(_layerId, query, cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<long>> QueryObjectIdsAsync(
         FeatureQuery query,
         CancellationToken cancellationToken = default) {
@@ -80,6 +87,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         return response.ObjectIds?.ToArray() ?? Array.Empty<long>();
     }
 
+    /// <inheritdoc />
     public Task<FeatureExtent?> QueryExtentAsync(
         FeatureQuery query,
         CancellationToken cancellationToken = default) {
@@ -420,6 +428,8 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             yield return batch;
         }
     }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<StatisticRow>> QueryStatisticsAsync(
     FeatureStatisticsQuery query,
     CancellationToken cancellationToken = default) {
@@ -431,6 +441,8 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             .Select(feature => new StatisticRow(ReadAttributes(feature.Attributes)))
             .ToArray();
     }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<RelatedRecordGroup>> QueryRelatedRecordsAsync(
     RelatedRecordsQuery query,
     CancellationToken cancellationToken = default) {
@@ -459,6 +471,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         return groups;
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<AttachmentGroup>> QueryAttachmentsAsync(
     AttachmentQuery query,
     CancellationToken cancellationToken = default) {
@@ -518,6 +531,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         }
     }
 
+    /// <inheritdoc />
     public async Task<AttachmentContent> DownloadAttachmentAsync(
     long objectId,
     long attachmentId,
@@ -532,6 +546,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<FeatureRecord>> QueryTopFeaturesAsync(
     TopFeaturesQuery query,
     CancellationToken cancellationToken = default) {
@@ -545,6 +560,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             .ToArray();
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<long>> QueryTopFeatureObjectIdsAsync(
         TopFeaturesQuery query,
         CancellationToken cancellationToken = default) {
@@ -554,6 +570,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
         return response.ObjectIds?.ToArray() ?? Array.Empty<long>();
     }
 
+    /// <inheritdoc />
     public Task<TopFeaturesCountResult> QueryTopFeatureCountAsync(
         TopFeaturesQuery query,
         CancellationToken cancellationToken = default) {
@@ -638,6 +655,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(
     DeleteAttachmentsRequest request,
     CancellationToken cancellationToken = default) {
@@ -654,6 +672,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task<AddAttachmentResult> AddAttachmentAsync(
     AddAttachmentRequest request,
     CancellationToken cancellationToken = default) {
@@ -670,6 +689,7 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
             cancellationToken);
     }
 
+    /// <inheritdoc />
     public async Task<UpdateAttachmentResult> UpdateAttachmentAsync(
       UpdateAttachmentRequest request,
       CancellationToken cancellationToken = default) {
