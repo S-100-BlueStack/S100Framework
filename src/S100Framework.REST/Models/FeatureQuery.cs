@@ -17,7 +17,7 @@ public sealed record FeatureQuery
     /// Gets the fields to return.
     /// </summary>
     /// <remarks>
-    /// When <see langword="null" />, the service default behavior is used.
+    /// When <see langword="null"/>, the service default behavior is used.
     /// </remarks>
     public IReadOnlyList<string>? OutFields { get; init; }
 
@@ -75,4 +75,22 @@ public sealed record FeatureQuery
     /// Gets the optional spatial filter applied to the query.
     /// </summary>
     public FeatureSpatialFilter? SpatialFilter { get; init; }
+
+    /// <summary>
+    /// Gets the time instant to query.
+    /// </summary>
+    /// <remarks>
+    /// Use <see cref="TimeExtent"/> for ranged or open-ended temporal queries.
+    /// </remarks>
+    public DateTimeOffset? TimeInstant { get; init; }
+
+    /// <summary>
+    /// Gets the time extent to query.
+    /// </summary>
+    public FeatureTimeExtent? TimeExtent { get; init; }
+
+    /// <summary>
+    /// Gets the historic moment to query when the layer supports historic moment queries.
+    /// </summary>
+    public DateTimeOffset? HistoricMoment { get; init; }
 }

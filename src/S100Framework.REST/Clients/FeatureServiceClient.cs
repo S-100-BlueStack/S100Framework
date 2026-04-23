@@ -656,6 +656,22 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         if (query.OrderBy is not null && string.IsNullOrWhiteSpace(query.OrderBy)) {
             throw new InvalidOperationException("OrderBy must not be empty when provided.");
         }
+
+        if (query.TimeInstant.HasValue && query.TimeExtent is not null) {
+            throw new InvalidOperationException("TimeInstant and TimeExtent cannot both be specified.");
+        }
+
+        if (query.TimeExtent is not null) {
+            if (!query.TimeExtent.Start.HasValue && !query.TimeExtent.End.HasValue) {
+                throw new InvalidOperationException("TimeExtent must specify at least one bound.");
+            }
+
+            if (query.TimeExtent.Start.HasValue &&
+                query.TimeExtent.End.HasValue &&
+                query.TimeExtent.Start.Value > query.TimeExtent.End.Value) {
+                throw new InvalidOperationException("TimeExtent.Start must be less than or equal to TimeExtent.End when both are provided.");
+            }
+        }
     }
 
     private static void ValidateFeatureQueryProjection(FeatureQuery query) {
@@ -680,13 +696,33 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
         }
     }
     private static Dictionary<string, string?> CreateCommonQueryParameters(
-        FeatureQuery query,
-        bool includeOutSrid,
-        bool includeGeometryOptions) {
+    FeatureQuery query,
+    bool includeOutSrid,
+    bool includeGeometryOptions) {
+        static string FormatEpochMilliseconds(DateTimeOffset value) =>
+            value.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture);
+
+        static string FormatTimeExtentBound(DateTimeOffset? value) =>
+            value.HasValue
+                ? FormatEpochMilliseconds(value.Value)
+                : "null";
+
         var parameters = new Dictionary<string, string?> {
             ["where"] = string.IsNullOrWhiteSpace(query.Where) ? "1=1" : query.Where,
             ["orderByFields"] = query.OrderBy
         };
+
+        if (query.TimeInstant.HasValue) {
+            parameters["time"] = FormatEpochMilliseconds(query.TimeInstant.Value);
+        }
+        else if (query.TimeExtent is not null) {
+            parameters["time"] =
+                $"{FormatTimeExtentBound(query.TimeExtent.Start)},{FormatTimeExtentBound(query.TimeExtent.End)}";
+        }
+
+        if (query.HistoricMoment.HasValue) {
+            parameters["historicMoment"] = FormatEpochMilliseconds(query.HistoricMoment.Value);
+        }
 
         if (includeOutSrid && query.OutSrid.HasValue) {
             parameters["outSR"] = query.OutSrid.Value.ToString(CultureInfo.InvariantCulture);
