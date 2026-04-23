@@ -134,5 +134,31 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTimeoutTests
             DownloadWasCalled = true;
             throw new NotSupportedException("Download should not be reached in timeout tests.");
         }
+
+        Task<FeatureServiceAppendSubmissionResult> IFeatureServiceClient.SubmitAppendAsync(
+    FeatureServiceAppendEditsRequest request,
+    CancellationToken cancellationToken) {
+            throw new NotSupportedException("Append operations are not used by this test double.");
+        }
+
+        Task<FeatureServiceAppendJobStatus> IFeatureServiceClient.GetAppendStatusAsync(
+            Uri statusUrl,
+            CancellationToken cancellationToken) {
+            throw new NotSupportedException("Append operations are not used by this test double.");
+        }
+
+        Task<FeatureServiceAppendJobStatus> IFeatureServiceClient.WaitForAppendCompletionAsync(
+            FeatureServiceAppendEditsRequest request,
+            AppendWaitOptions? options,
+            CancellationToken cancellationToken) {
+            throw new NotSupportedException("Append operations are not used by this test double.");
+        }
+
+        Task<FeatureServiceAppendJobStatus> IFeatureServiceClient.WaitForAppendCompletionAsync(
+            Uri statusUrl,
+            AppendWaitOptions? options,
+            CancellationToken cancellationToken) {
+            throw new NotSupportedException("Append operations are not used by this test double.");
+        }
     }
 }

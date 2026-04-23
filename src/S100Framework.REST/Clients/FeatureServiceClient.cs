@@ -17,7 +17,7 @@ namespace S100Framework.REST.Clients;
 /// <summary>
 /// Provides operations for reading metadata, resolving layers, executing service-level edit workflows, and calling ArcGIS Feature Service REST endpoints.
 /// </summary>
-public sealed class FeatureServiceClient : IFeatureServiceClient
+public sealed partial class FeatureServiceClient : IFeatureServiceClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNameCaseInsensitive = true

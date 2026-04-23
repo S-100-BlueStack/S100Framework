@@ -9,7 +9,7 @@ namespace S100Framework.REST.Abstractions;
 /// Implementations provide service metadata access, layer resolution, service-level
 /// edit operations, and <c>extractChanges</c> workflows.
 /// </remarks>
-public interface IFeatureServiceClient
+public partial interface IFeatureServiceClient
 {
     /// <summary>
     /// Gets metadata for the current feature service.
