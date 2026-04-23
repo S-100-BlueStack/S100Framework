@@ -2,8 +2,29 @@
 
 namespace S100Framework.REST.Models;
 
+/// <summary>
+/// Provides typed helpers for reading attribute values from <see cref="IAttributeRecord"/>.
+/// </summary>
 public static class AttributeRecordExtensions
 {
+    /// <summary>
+    /// Determines whether the record contains the specified attribute key.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> when the attribute exists; otherwise <see langword="false"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="record"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="attributeName"/> is empty or whitespace.
+    /// </exception>
     public static bool HasAttribute(this IAttributeRecord record, string attributeName) {
         ArgumentNullException.ThrowIfNull(record);
         ArgumentException.ThrowIfNullOrWhiteSpace(attributeName);
@@ -11,6 +32,24 @@ public static class AttributeRecordExtensions
         return record.Attributes.ContainsKey(attributeName);
     }
 
+    /// <summary>
+    /// Gets the raw attribute value for the specified key.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The raw attribute value, or <see langword="null"/> when the attribute is missing.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="record"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="attributeName"/> is empty or whitespace.
+    /// </exception>
     public static object? GetRawValue(this IAttributeRecord record, string attributeName) {
         ArgumentNullException.ThrowIfNull(record);
         ArgumentException.ThrowIfNullOrWhiteSpace(attributeName);
@@ -20,10 +59,39 @@ public static class AttributeRecordExtensions
             : null;
     }
 
+    /// <summary>
+    /// Gets the attribute value converted to <see cref="string"/>.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The converted string value, or <see langword="null"/> when the attribute is missing
+    /// or cannot be converted.
+    /// </returns>
     public static string? GetString(this IAttributeRecord record, string attributeName) {
         return ConvertToString(record.GetRawValue(attributeName));
     }
 
+    /// <summary>
+    /// Gets the attribute value converted to <see cref="string"/>, throwing when the value
+    /// is missing or invalid.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The converted string value.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the attribute is missing, null, or cannot be converted to a string.
+    /// </exception>
     public static string GetRequiredString(this IAttributeRecord record, string attributeName) {
         var value = record.GetString(attributeName);
 
@@ -34,10 +102,39 @@ public static class AttributeRecordExtensions
         return value;
     }
 
+    /// <summary>
+    /// Gets the attribute value converted to <see cref="int"/>.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The converted integer value, or <see langword="null"/> when the attribute is missing
+    /// or cannot be converted.
+    /// </returns>
     public static int? GetInt32(this IAttributeRecord record, string attributeName) {
         return ConvertToInt32(record.GetRawValue(attributeName));
     }
 
+    /// <summary>
+    /// Gets the attribute value converted to <see cref="int"/>, throwing when the value
+    /// is missing or invalid.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The converted integer value.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the attribute is missing, null, or cannot be converted to <see cref="int"/>.
+    /// </exception>
     public static int GetRequiredInt32(this IAttributeRecord record, string attributeName) {
         var value = record.GetInt32(attributeName);
 
@@ -48,10 +145,39 @@ public static class AttributeRecordExtensions
         return value.Value;
     }
 
+    /// <summary>
+    /// Gets the attribute value converted to <see cref="long"/>.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The converted 64-bit integer value, or <see langword="null"/> when the attribute
+    /// is missing or cannot be converted.
+    /// </returns>
     public static long? GetInt64(this IAttributeRecord record, string attributeName) {
         return ConvertToInt64(record.GetRawValue(attributeName));
     }
 
+    /// <summary>
+    /// Gets the attribute value converted to <see cref="long"/>, throwing when the value
+    /// is missing or invalid.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The converted 64-bit integer value.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the attribute is missing, null, or cannot be converted to <see cref="long"/>.
+    /// </exception>
     public static long GetRequiredInt64(this IAttributeRecord record, string attributeName) {
         var value = record.GetInt64(attributeName);
 
@@ -62,10 +188,39 @@ public static class AttributeRecordExtensions
         return value.Value;
     }
 
+    /// <summary>
+    /// Gets the attribute value converted to <see cref="decimal"/>.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The converted decimal value, or <see langword="null"/> when the attribute is missing
+    /// or cannot be converted.
+    /// </returns>
     public static decimal? GetDecimal(this IAttributeRecord record, string attributeName) {
         return ConvertToDecimal(record.GetRawValue(attributeName));
     }
 
+    /// <summary>
+    /// Gets the attribute value converted to <see cref="decimal"/>, throwing when the value
+    /// is missing or invalid.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The converted decimal value.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the attribute is missing, null, or cannot be converted to <see cref="decimal"/>.
+    /// </exception>
     public static decimal GetRequiredDecimal(this IAttributeRecord record, string attributeName) {
         var value = record.GetDecimal(attributeName);
 
@@ -76,10 +231,39 @@ public static class AttributeRecordExtensions
         return value.Value;
     }
 
+    /// <summary>
+    /// Gets the attribute value converted to <see cref="double"/>.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The converted double value, or <see langword="null"/> when the attribute is missing
+    /// or cannot be converted.
+    /// </returns>
     public static double? GetDouble(this IAttributeRecord record, string attributeName) {
         return ConvertToDouble(record.GetRawValue(attributeName));
     }
 
+    /// <summary>
+    /// Gets the attribute value converted to <see cref="double"/>, throwing when the value
+    /// is missing or invalid.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The converted double value.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the attribute is missing, null, or cannot be converted to <see cref="double"/>.
+    /// </exception>
     public static double GetRequiredDouble(this IAttributeRecord record, string attributeName) {
         var value = record.GetDouble(attributeName);
 
@@ -90,10 +274,39 @@ public static class AttributeRecordExtensions
         return value.Value;
     }
 
+    /// <summary>
+    /// Gets the attribute value converted to <see cref="bool"/>.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The converted boolean value, or <see langword="null"/> when the attribute is missing
+    /// or cannot be converted.
+    /// </returns>
     public static bool? GetBoolean(this IAttributeRecord record, string attributeName) {
         return ConvertToBoolean(record.GetRawValue(attributeName));
     }
 
+    /// <summary>
+    /// Gets the attribute value converted to <see cref="bool"/>, throwing when the value
+    /// is missing or invalid.
+    /// </summary>
+    /// <param name="record">
+    /// The attribute record.
+    /// </param>
+    /// <param name="attributeName">
+    /// The attribute name to look up.
+    /// </param>
+    /// <returns>
+    /// The converted boolean value.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the attribute is missing, null, or cannot be converted to <see cref="bool"/>.
+    /// </exception>
     public static bool GetRequiredBoolean(this IAttributeRecord record, string attributeName) {
         var value = record.GetBoolean(attributeName);
 
@@ -128,8 +341,7 @@ public static class AttributeRecordExtensions
                 NumberStyles.Integer,
                 CultureInfo.InvariantCulture,
                 out var parsed) => parsed,
-            IConvertible convertible => TryConvert(
-                () => Convert.ToInt32(convertible, CultureInfo.InvariantCulture)),
+            IConvertible convertible => TryConvert(() => Convert.ToInt32(convertible, CultureInfo.InvariantCulture)),
             _ => null
         };
     }
@@ -150,8 +362,7 @@ public static class AttributeRecordExtensions
                 NumberStyles.Integer,
                 CultureInfo.InvariantCulture,
                 out var parsed) => parsed,
-            IConvertible convertible => TryConvert(
-                () => Convert.ToInt64(convertible, CultureInfo.InvariantCulture)),
+            IConvertible convertible => TryConvert(() => Convert.ToInt64(convertible, CultureInfo.InvariantCulture)),
             _ => null
         };
     }
@@ -168,8 +379,7 @@ public static class AttributeRecordExtensions
                 NumberStyles.Number,
                 CultureInfo.InvariantCulture,
                 out var parsed) => parsed,
-            IConvertible convertible => TryConvert(
-                () => Convert.ToDecimal(convertible, CultureInfo.InvariantCulture)),
+            IConvertible convertible => TryConvert(() => Convert.ToDecimal(convertible, CultureInfo.InvariantCulture)),
             _ => null
         };
     }
@@ -186,8 +396,7 @@ public static class AttributeRecordExtensions
                 NumberStyles.Float | NumberStyles.AllowThousands,
                 CultureInfo.InvariantCulture,
                 out var parsed) => parsed,
-            IConvertible convertible => TryConvert(
-                () => Convert.ToDouble(convertible, CultureInfo.InvariantCulture)),
+            IConvertible convertible => TryConvert(() => Convert.ToDouble(convertible, CultureInfo.InvariantCulture)),
             _ => null
         };
     }
@@ -201,8 +410,7 @@ public static class AttributeRecordExtensions
             string stringValue when bool.TryParse(stringValue.Trim(), out var parsed) => parsed,
             string stringValue when stringValue.Trim() == "0" => false,
             string stringValue when stringValue.Trim() == "1" => true,
-            IConvertible convertible => TryConvert(
-                () => Convert.ToBoolean(convertible, CultureInfo.InvariantCulture)),
+            IConvertible convertible => TryConvert(() => Convert.ToBoolean(convertible, CultureInfo.InvariantCulture)),
             _ => null
         };
     }

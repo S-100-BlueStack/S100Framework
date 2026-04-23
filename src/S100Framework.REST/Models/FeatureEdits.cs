@@ -40,7 +40,7 @@ public sealed record FeatureEdits
     /// if one edit operation fails.
     /// </summary>
     /// <remarks>
-    /// The default is <see langword="true" />.
+    /// The default is <see langword="true"/>.
     /// </remarks>
     public bool RollbackOnFailure { get; init; } = true;
 
