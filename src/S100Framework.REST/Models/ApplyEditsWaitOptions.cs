@@ -12,7 +12,9 @@ public sealed record ApplyEditsWaitOptions
 
     /// <summary>
     /// Gets the maximum time to wait for the job to reach a terminal state.
-    /// Set this value to <see langword="null"/> to wait indefinitely.
     /// </summary>
+    /// <remarks>
+    /// Set this value to <see langword="null" /> to wait indefinitely.
+    /// </remarks>
     public TimeSpan? Timeout { get; init; } = TimeSpan.FromMinutes(2);
 }

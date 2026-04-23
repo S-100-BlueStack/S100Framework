@@ -3,10 +3,18 @@
 /// <summary>
 /// Represents the current state of an asynchronous <c>applyEdits</c> job.
 /// </summary>
-/// <param name="Status">The raw job status returned by the feature service.</param>
-/// <param name="ResultUrl">The result endpoint when the job has produced output.</param>
-/// <param name="SubmissionTime">The server submission timestamp, when available.</param>
-/// <param name="LastUpdatedTime">The server last-updated timestamp, when available.</param>
+/// <param name="Status">
+/// The raw job status returned by the feature service.
+/// </param>
+/// <param name="ResultUrl">
+/// The result endpoint when the job has produced output.
+/// </param>
+/// <param name="SubmissionTime">
+/// The server submission timestamp, when available.
+/// </param>
+/// <param name="LastUpdatedTime">
+/// The server last-updated timestamp, when available.
+/// </param>
 public sealed record ApplyEditsJobStatus(
     string Status,
     Uri? ResultUrl,
