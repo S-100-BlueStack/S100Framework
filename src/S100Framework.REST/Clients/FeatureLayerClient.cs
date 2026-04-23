@@ -112,6 +112,91 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
     }
 
     /// <inheritdoc />
+    public async Task<FeatureUniqueIdQueryResult> QueryUniqueIdsAsync(
+        FeatureQuery query,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+
+        static IReadOnlyList<string> ReadUniqueIdFieldNames(JsonElement element) {
+            return element.ValueKind switch {
+                JsonValueKind.Undefined or JsonValueKind.Null => Array.Empty<string>(),
+                JsonValueKind.String => element.GetString() is { Length: > 0 } value
+                    ? [value]
+                    : Array.Empty<string>(),
+                JsonValueKind.Array => element.EnumerateArray()
+                    .Select(static item => item.ValueKind == JsonValueKind.String ? item.GetString() : null)
+                    .Where(static value => !string.IsNullOrWhiteSpace(value))
+                    .Cast<string>()
+                    .ToArray(),
+                _ => throw new InvalidOperationException(
+                    "The server returned an unsupported payload for uniqueIdFieldNames.")
+            };
+        }
+
+        static string ReadUniqueIdComponent(JsonElement element) {
+            return element.ValueKind switch {
+                JsonValueKind.String => element.GetString()
+                    ?? throw new InvalidOperationException(
+                        "The server returned a null unique ID component."),
+                JsonValueKind.Number => element.GetRawText(),
+                JsonValueKind.True => bool.TrueString,
+                JsonValueKind.False => bool.FalseString,
+                _ => throw new InvalidOperationException(
+                    "The server returned an unsupported unique ID component value.")
+            };
+        }
+
+        static IReadOnlyList<FeatureUniqueId> ReadUniqueIds(JsonElement element) {
+            if (element.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
+                return Array.Empty<FeatureUniqueId>();
+            }
+
+            if (element.ValueKind != JsonValueKind.Array) {
+                throw new InvalidOperationException("The server returned an unsupported payload for uniqueIds.");
+            }
+
+            var result = new List<FeatureUniqueId>();
+
+            foreach (var item in element.EnumerateArray()) {
+                if (item.ValueKind == JsonValueKind.Array) {
+                    result.Add(new FeatureUniqueId(
+                        item.EnumerateArray()
+                            .Select(ReadUniqueIdComponent)
+                            .ToArray()));
+
+                    continue;
+                }
+
+                result.Add(new FeatureUniqueId([ReadUniqueIdComponent(item)]));
+            }
+
+            return result;
+        }
+
+        var schema = await GetSchemaAsync(cancellationToken);
+
+        if (!schema.SupportsUniqueIds) {
+            throw new FeatureServiceCapabilityException(
+                $"Layer '{schema.Name}' ({schema.LayerId}) does not expose unique ID metadata.");
+        }
+
+        var response = await _serviceClient.QueryUniqueIdsAsync(_layerId, query, cancellationToken);
+
+        var uniqueIdFieldNames = ReadUniqueIdFieldNames(response.UniqueIdFieldNames);
+
+        if (uniqueIdFieldNames.Count == 0 && schema.UniqueIdInfo is { Fields.Count: > 0 }) {
+            uniqueIdFieldNames = schema.UniqueIdInfo.Fields;
+        }
+
+        var uniqueIds = ReadUniqueIds(response.UniqueIds);
+
+        return new FeatureUniqueIdQueryResult(
+            uniqueIdFieldNames,
+            uniqueIds,
+            response.ExceededTransferLimit ?? false);
+    }
+
+    /// <inheritdoc />
     public Task<FeatureExtent?> QueryExtentAsync(
         FeatureQuery query,
         CancellationToken cancellationToken = default) {

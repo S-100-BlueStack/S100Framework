@@ -33,6 +33,18 @@ internal sealed class EsriIdsResponseDto
     public List<long>? ObjectIds { get; init; }
 }
 
+internal sealed class EsriUniqueIdsResponseDto
+{
+    [JsonPropertyName("uniqueIdFieldNames")]
+    public JsonElement UniqueIdFieldNames { get; init; }
+
+    [JsonPropertyName("uniqueIds")]
+    public JsonElement UniqueIds { get; init; }
+
+    [JsonPropertyName("exceededTransferLimit")]
+    public bool? ExceededTransferLimit { get; init; }
+}
+
 internal sealed class EsriCountResponseDto
 {
     [JsonPropertyName("count")]

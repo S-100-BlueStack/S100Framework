@@ -71,6 +71,22 @@ public interface IFeatureLayerClient
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Executes a feature query and returns only the matching unique IDs.
+    /// </summary>
+    /// <param name="query">
+    /// The feature query to execute.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token.
+    /// </param>
+    /// <returns>
+    /// The matching unique ID result.
+    /// </returns>
+    Task<FeatureUniqueIdQueryResult> QueryUniqueIdsAsync(
+        FeatureQuery query,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Executes a feature query and returns the aggregate extent of the matching records.
     /// </summary>
     /// <param name="query">

@@ -276,6 +276,25 @@ public sealed class FeatureServiceClient : IFeatureServiceClient
             cancellationToken);
     }
 
+    internal Task<EsriUniqueIdsResponseDto> QueryUniqueIdsAsync(
+    int layerId,
+    FeatureQuery query,
+    CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+
+        ValidateFeatureQueryCommon(query);
+
+        var parameters = CreateCommonQueryParameters(query, includeOutSrid: false, includeGeometryOptions: false);
+
+        parameters["f"] = "json";
+        parameters["returnUniqueIdsOnly"] = "true";
+
+        return SendLayerQueryAsync<EsriUniqueIdsResponseDto>(
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/query",
+            parameters,
+            cancellationToken);
+    }
+
     internal async Task<long> QueryCountAsync(
     int layerId,
     FeatureQuery query,

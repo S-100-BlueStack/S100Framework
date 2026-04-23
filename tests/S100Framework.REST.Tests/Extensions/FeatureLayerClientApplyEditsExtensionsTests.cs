@@ -185,6 +185,12 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
             CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
+        public Task<FeatureUniqueIdQueryResult> QueryUniqueIdsAsync(
+    FeatureQuery query,
+    CancellationToken cancellationToken = default) {
+            throw new NotSupportedException("Unique ID queries are not used by this test double.");
+        }
+
         public Task<FeatureExtent?> QueryExtentAsync(
             FeatureQuery query,
             CancellationToken cancellationToken = default) =>
