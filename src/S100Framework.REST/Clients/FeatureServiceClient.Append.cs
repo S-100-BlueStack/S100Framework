@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.RegularExpressions;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
@@ -25,24 +24,44 @@ public sealed partial class FeatureServiceClient
 
         request.Validate();
 
-        var metadata = await GetMetadataAsync(cancellationToken);
-
-        if (!metadata.Capabilities.SupportsAppend) {
-            throw new FeatureServiceCapabilityException(
-                "The feature service does not advertise append support.");
-        }
-
-        if (request.Upsert &&
-            (metadata.Capabilities.SyncEnabled || metadata.Capabilities.SupportsChangeTracking)) {
-            throw new FeatureServiceCapabilityException(
-                "Append upsert is not supported when sync or change tracking is enabled on the feature service.");
-        }
+        await EnsureAppendSupportedAsync(request.Upsert, cancellationToken);
 
         var endpointUri = UriUtility.AppendPath(_serviceUri, "append");
 
         var dto = await PostFormAsync<EsriAppendSubmissionDto>(
             endpointUri,
             BuildAppendEditsParameters(request),
+            cancellationToken);
+
+        return MapAppendSubmissionResult(dto, endpointUri);
+    }
+
+    /// <summary>
+    /// Submits a service-level <c>append</c> request using a portal item as the source.
+    /// </summary>
+    /// <param name="request">
+    /// The append request to submit.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token.
+    /// </param>
+    /// <returns>
+    /// The append submission response.
+    /// </returns>
+    public async Task<FeatureServiceAppendSubmissionResult> SubmitAppendAsync(
+        FeatureServiceAppendItemRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+
+        request.Validate();
+
+        await EnsureAppendSupportedAsync(request.Upsert, cancellationToken);
+
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "append");
+
+        var dto = await PostFormAsync<EsriAppendSubmissionDto>(
+            endpointUri,
+            BuildAppendItemParameters(request),
             cancellationToken);
 
         return MapAppendSubmissionResult(dto, endpointUri);
@@ -62,6 +81,51 @@ public sealed partial class FeatureServiceClient
     /// <inheritdoc />
     public async Task<FeatureServiceAppendJobStatus> WaitForAppendCompletionAsync(
         FeatureServiceAppendEditsRequest request,
+        AppendWaitOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var submission = await SubmitAppendAsync(request, cancellationToken);
+
+        if (submission.IsTerminal) {
+            return new FeatureServiceAppendJobStatus(
+                submission.Status,
+                LayerName: null,
+                RecordCount: null,
+                SubmissionTime: null,
+                LastUpdatedTime: null,
+                EditMoment: submission.EditMoment);
+        }
+
+        if (submission.StatusUrl is null) {
+            throw new FeatureServiceException(
+                "The append submission did not return a status URL for a non-terminal job.",
+                UriUtility.AppendPath(_serviceUri, "append"));
+        }
+
+        return await WaitForAppendCompletionAsync(
+            submission.StatusUrl,
+            options,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Submits a service-level <c>append</c> item request and waits until the job reaches a terminal state.
+    /// </summary>
+    /// <param name="request">
+    /// The append request to submit.
+    /// </param>
+    /// <param name="options">
+    /// Polling options. When <see langword="null"/>, default polling behavior is used.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token.
+    /// </param>
+    /// <returns>
+    /// The terminal append job status.
+    /// </returns>
+    public async Task<FeatureServiceAppendJobStatus> WaitForAppendCompletionAsync(
+        FeatureServiceAppendItemRequest request,
         AppendWaitOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
@@ -128,34 +192,151 @@ public sealed partial class FeatureServiceClient
         }
     }
 
-    private static Dictionary<string, string?> BuildAppendEditsParameters(
-        FeatureServiceAppendEditsRequest request) {
-        var parameters = new Dictionary<string, string?> {
-            ["f"] = "json",
-            ["layers"] = JsonSerializer.Serialize(request.Layers),
-            ["edits"] = request.EditsJson,
-            ["upsert"] = request.Upsert ? "true" : "false",
-            ["useGlobalIds"] = request.UseGlobalIds ? "true" : "false",
-            ["rollbackOnFailure"] = request.RollbackOnFailure ? "true" : "false"
-        };
+    private async Task EnsureAppendSupportedAsync(
+        bool upsert,
+        CancellationToken cancellationToken) {
+        var metadata = await GetMetadataAsync(cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(request.GdbVersion)) {
-            parameters["gdbVersion"] = request.GdbVersion;
+        if (!metadata.Capabilities.SupportsAppend) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not advertise append support.");
         }
 
-        if (request.ReturnEditMoment) {
+        if (upsert &&
+            (metadata.Capabilities.SyncEnabled || metadata.Capabilities.SupportsChangeTracking)) {
+            throw new FeatureServiceCapabilityException(
+                "Append upsert is not supported when sync or change tracking is enabled on the feature service.");
+        }
+    }
+
+    private static Dictionary<string, string?> BuildAppendEditsParameters(
+        FeatureServiceAppendEditsRequest request) {
+        var parameters = BuildAppendCommonParameters(
+            request.Layers,
+            request.Upsert,
+            request.UseGlobalIds,
+            request.RollbackOnFailure,
+            request.GdbVersion,
+            request.ReturnEditMoment,
+            request.TrueCurveClient,
+            request.TimeReferenceUnknownClient);
+
+        parameters["edits"] = request.EditsJson;
+
+        return parameters;
+    }
+
+    private static Dictionary<string, string?> BuildAppendItemParameters(
+        FeatureServiceAppendItemRequest request) {
+        var parameters = BuildAppendCommonParameters(
+            request.Layers,
+            request.Upsert,
+            request.UseGlobalIds,
+            request.RollbackOnFailure,
+            request.GdbVersion,
+            request.ReturnEditMoment,
+            request.TrueCurveClient,
+            request.TimeReferenceUnknownClient);
+
+        parameters["appendItemId"] = request.AppendItemId;
+
+        if (request.AppendUploadFormat.HasValue) {
+            parameters["appendUploadFormat"] = MapAppendSourceFormat(request.AppendUploadFormat.Value);
+        }
+
+        if (request.LayerMappings is { Count: > 0 }) {
+            parameters["layerMappings"] = SerializeLayerMappings(request.LayerMappings);
+        }
+
+        return parameters;
+    }
+
+    private static Dictionary<string, string?> BuildAppendCommonParameters(
+        IReadOnlyList<int> layers,
+        bool upsert,
+        bool useGlobalIds,
+        bool rollbackOnFailure,
+        string? gdbVersion,
+        bool returnEditMoment,
+        bool trueCurveClient,
+        bool timeReferenceUnknownClient) {
+        var parameters = new Dictionary<string, string?> {
+            ["f"] = "json",
+            ["layers"] = JsonSerializer.Serialize(layers),
+            ["upsert"] = upsert ? "true" : "false",
+            ["useGlobalIds"] = useGlobalIds ? "true" : "false",
+            ["rollbackOnFailure"] = rollbackOnFailure ? "true" : "false"
+        };
+
+        if (!string.IsNullOrWhiteSpace(gdbVersion)) {
+            parameters["gdbVersion"] = gdbVersion;
+        }
+
+        if (returnEditMoment) {
             parameters["returnEditMoment"] = "true";
         }
 
-        if (request.TrueCurveClient) {
+        if (trueCurveClient) {
             parameters["trueCurveClient"] = "true";
         }
 
-        if (request.TimeReferenceUnknownClient) {
+        if (timeReferenceUnknownClient) {
             parameters["timeReferenceUnknownClient"] = "true";
         }
 
         return parameters;
+    }
+
+    private static string SerializeLayerMappings(
+        IReadOnlyList<FeatureServiceAppendLayerMapping> layerMappings) {
+        ArgumentNullException.ThrowIfNull(layerMappings);
+
+        var payload = new List<Dictionary<string, object?>>(layerMappings.Count);
+
+        foreach (var mapping in layerMappings) {
+            ArgumentNullException.ThrowIfNull(mapping);
+
+            var entry = new Dictionary<string, object?> {
+                ["id"] = mapping.Id
+            };
+
+            if (mapping.SourceId.HasValue) {
+                entry["sourceId"] = mapping.SourceId.Value;
+            }
+
+            if (!string.IsNullOrWhiteSpace(mapping.SourceTableName)) {
+                entry["sourceTableName"] = mapping.SourceTableName;
+            }
+
+            if (mapping.FieldMappings is { Count: > 0 }) {
+                entry["fieldMappings"] = mapping.FieldMappings
+                    .Select(static fieldMapping => new Dictionary<string, string> {
+                        ["name"] = fieldMapping.Name,
+                        ["source"] = fieldMapping.Source
+                    })
+                    .ToArray();
+            }
+
+            payload.Add(entry);
+        }
+
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private static string MapAppendSourceFormat(FeatureServiceAppendSourceFormat value) {
+        return value switch {
+            FeatureServiceAppendSourceFormat.Sqlite => "sqlite",
+            FeatureServiceAppendSourceFormat.GeoPackage => "gpkg",
+            FeatureServiceAppendSourceFormat.ShapeFile => "shapefile",
+            FeatureServiceAppendSourceFormat.FileGeodatabase => "filegdb",
+            FeatureServiceAppendSourceFormat.FeatureCollection => "feature Collection",
+            FeatureServiceAppendSourceFormat.GeoJson => "geojson",
+            FeatureServiceAppendSourceFormat.Csv => "csv",
+            FeatureServiceAppendSourceFormat.Excel => "excel",
+            FeatureServiceAppendSourceFormat.FeatureService => "feature Service",
+            FeatureServiceAppendSourceFormat.Pbf => "pbf",
+            _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+        };
     }
 
     private FeatureServiceAppendSubmissionResult MapAppendSubmissionResult(
