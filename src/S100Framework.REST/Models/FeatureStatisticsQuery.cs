@@ -37,6 +37,22 @@ public sealed record FeatureStatisticsQuery
     public string? OrderBy { get; init; }
 
     /// <summary>
+    /// Gets the number of aggregated rows to skip before returning results.
+    /// </summary>
+    /// <remarks>
+    /// This only applies to grouped statistics queries.
+    /// </remarks>
+    public int? ResultOffset { get; init; }
+
+    /// <summary>
+    /// Gets the maximum number of aggregated rows to return.
+    /// </summary>
+    /// <remarks>
+    /// This only applies to grouped statistics queries.
+    /// </remarks>
+    public int? ResultRecordCount { get; init; }
+
+    /// <summary>
     /// Gets the optional spatial filter applied before aggregation.
     /// </summary>
     public FeatureSpatialFilter? SpatialFilter { get; init; }
@@ -60,6 +76,20 @@ public sealed record FeatureStatisticsQuery
             if (string.IsNullOrWhiteSpace(statistic.OutStatisticFieldName)) {
                 throw new InvalidOperationException("StatisticDefinition.OutStatisticFieldName must be provided.");
             }
+        }
+
+        if (ResultOffset is < 0) {
+            throw new InvalidOperationException("ResultOffset must be greater than or equal to zero when provided.");
+        }
+
+        if (ResultRecordCount is <= 0) {
+            throw new InvalidOperationException("ResultRecordCount must be greater than zero when provided.");
+        }
+
+        if ((ResultOffset.HasValue || ResultRecordCount.HasValue) &&
+            GroupByFields is not { Count: > 0 }) {
+            throw new InvalidOperationException(
+                "ResultOffset and ResultRecordCount require at least one GroupByFields entry.");
         }
     }
 }

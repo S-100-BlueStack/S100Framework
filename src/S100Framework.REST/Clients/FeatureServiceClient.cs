@@ -404,9 +404,9 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
     }
 
     internal Task<EsriQueryResponseDto> QueryStatisticsAsync(
-        int layerId,
-        FeatureStatisticsQuery query,
-        CancellationToken cancellationToken = default) {
+    int layerId,
+    FeatureStatisticsQuery query,
+    CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
         query.Validate();
 
@@ -426,6 +426,14 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
             ["havingClause"] = query.HavingClause,
             ["orderByFields"] = query.OrderBy
         };
+
+        if (query.ResultOffset.HasValue) {
+            parameters["resultOffset"] = query.ResultOffset.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (query.ResultRecordCount.HasValue) {
+            parameters["resultRecordCount"] = query.ResultRecordCount.Value.ToString(CultureInfo.InvariantCulture);
+        }
 
         ApplySpatialFilter(parameters, query.SpatialFilter);
 

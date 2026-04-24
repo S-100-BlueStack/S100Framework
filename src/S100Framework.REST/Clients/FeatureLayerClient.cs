@@ -610,9 +610,19 @@ public sealed class FeatureLayerClient : IFeatureLayerClient
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<StatisticRow>> QueryStatisticsAsync(
-    FeatureStatisticsQuery query,
-    CancellationToken cancellationToken = default) {
+FeatureStatisticsQuery query,
+CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
+        query.Validate();
+
+        if (query.ResultOffset.HasValue || query.ResultRecordCount.HasValue) {
+            var schema = await GetSchemaAsync(cancellationToken);
+
+            if (!schema.Capabilities.SupportsPaginationOnAggregatedQueries) {
+                throw new FeatureServiceCapabilityException(
+                    $"Layer '{schema.Name}' ({schema.LayerId}) does not support pagination on aggregated queries.");
+            }
+        }
 
         var response = await _serviceClient.QueryStatisticsAsync(_layerId, query, cancellationToken);
 
