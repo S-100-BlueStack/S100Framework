@@ -84,6 +84,34 @@ public sealed record FeatureStatisticsQuery
                 throw new InvalidOperationException(
                     $"Duplicate statistic alias '{statistic.OutStatisticFieldName}' is not allowed.");
             }
+
+            var isPercentile = statistic.StatisticType is
+                StatisticType.PercentileContinuous or
+                StatisticType.PercentileDiscrete;
+
+            if (isPercentile) {
+                if (statistic.PercentileParameters is null) {
+                    throw new InvalidOperationException(
+                        "Percentile statistics require PercentileParameters to be provided.");
+                }
+
+                if (double.IsNaN(statistic.PercentileParameters.Value) ||
+                    double.IsInfinity(statistic.PercentileParameters.Value) ||
+                    statistic.PercentileParameters.Value < 0d ||
+                    statistic.PercentileParameters.Value > 1d) {
+                    throw new InvalidOperationException(
+                        "PercentileParameters.Value must be between 0 and 1.");
+                }
+
+                if (!string.IsNullOrWhiteSpace(HavingClause)) {
+                    throw new InvalidOperationException(
+                        "Percentile statistics cannot be combined with HavingClause.");
+                }
+            }
+            else if (statistic.PercentileParameters is not null) {
+                throw new InvalidOperationException(
+                    "PercentileParameters can only be used with percentile statistic types.");
+            }
         }
 
         if (GroupByFields is { Count: 0 }) {

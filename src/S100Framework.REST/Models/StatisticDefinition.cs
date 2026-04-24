@@ -12,7 +12,12 @@
 /// <param name="StatisticType">
 /// The aggregate function to apply.
 /// </param>
+/// <param name="PercentileParameters">
+/// Optional percentile-specific parameters. These are required when <paramref name="StatisticType"/>
+/// is <see cref="StatisticType.PercentileContinuous"/> or <see cref="StatisticType.PercentileDiscrete"/>.
+/// </param>
 public sealed record StatisticDefinition(
     string OnStatisticField,
     string OutStatisticFieldName,
-    StatisticType StatisticType);
+    StatisticType StatisticType,
+    StatisticPercentileParameters? PercentileParameters = null);

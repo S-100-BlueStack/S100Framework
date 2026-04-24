@@ -42,6 +42,9 @@
 /// <param name="SupportsFullTextSearch">
 /// Indicates whether the layer supports full-text search.
 /// </param>
+/// <param name="SupportsPercentileStatistics">
+/// Indicates whether the layer supports percentile statistics.
+/// </param>
 public sealed record FeatureLayerCapabilities(
     bool HasAttachments,
     bool SupportsQueryAttachments,
@@ -55,4 +58,5 @@ public sealed record FeatureLayerCapabilities(
     bool SupportsDistinct,
     bool SupportsAsyncApplyEdits,
     bool SupportsReturningGeometryEnvelope = false,
-    bool SupportsFullTextSearch = false);
+    bool SupportsFullTextSearch = false,
+    bool SupportsPercentileStatistics = false);

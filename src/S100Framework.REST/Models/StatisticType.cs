@@ -38,5 +38,15 @@ public enum StatisticType
     /// <summary>
     /// Returns the variance of the matching values.
     /// </summary>
-    Variance
+    Variance,
+
+    /// <summary>
+    /// Returns the continuous percentile of the matching values.
+    /// </summary>
+    PercentileContinuous,
+
+    /// <summary>
+    /// Returns the discrete percentile of the matching values.
+    /// </summary>
+    PercentileDiscrete
 }

@@ -159,8 +159,8 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
     }
 
     internal async Task<FeatureLayerSchema> GetLayerSchemaAsync(
-     int layerId,
-     CancellationToken cancellationToken = default) {
+    int layerId,
+    CancellationToken cancellationToken = default) {
         var uri = UriUtility.WithQuery(
             UriUtility.AppendPath(_serviceUri, layerId.ToString(CultureInfo.InvariantCulture)),
             new Dictionary<string, string?> {
@@ -209,7 +209,8 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
                 dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
                 dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false,
                 dto.AdvancedQueryCapabilities?.SupportsReturningGeometryEnvelope ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsFullTextSearch ?? false),
+                dto.AdvancedQueryCapabilities?.SupportsFullTextSearch ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsPercentileStatistics ?? false),
             dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
             UniqueIdInfo = uniqueIdInfo
         };
@@ -410,15 +411,49 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
         ArgumentNullException.ThrowIfNull(query);
         query.Validate();
 
+        static string MapStatisticType(StatisticType value) {
+            return value switch {
+                StatisticType.Count => "count",
+                StatisticType.Sum => "sum",
+                StatisticType.Min => "min",
+                StatisticType.Max => "max",
+                StatisticType.Average => "avg",
+                StatisticType.StandardDeviation => "stddev",
+                StatisticType.Variance => "var",
+                StatisticType.PercentileContinuous => "PERCENTILE_CONT",
+                StatisticType.PercentileDiscrete => "PERCENTILE_DISC",
+                _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+            };
+        }
+
+        static string MapPercentileOrder(StatisticPercentileOrder value) {
+            return value switch {
+                StatisticPercentileOrder.Asc => "ASC",
+                StatisticPercentileOrder.Desc => "DESC",
+                _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+            };
+        }
+
         var parameters = new Dictionary<string, string?> {
             ["f"] = "json",
             ["where"] = string.IsNullOrWhiteSpace(query.Where) ? "1=1" : query.Where,
             ["returnGeometry"] = "false",
             ["outStatistics"] = JsonSerializer.Serialize(
-                query.Statistics.Select(statistic => new Dictionary<string, object?> {
-                    ["statisticType"] = StatisticTypeMapper.ToEsriValue(statistic.StatisticType),
-                    ["onStatisticField"] = statistic.OnStatisticField,
-                    ["outStatisticFieldName"] = statistic.OutStatisticFieldName
+                query.Statistics.Select(statistic => {
+                    var payload = new Dictionary<string, object?> {
+                        ["statisticType"] = MapStatisticType(statistic.StatisticType),
+                        ["onStatisticField"] = statistic.OnStatisticField,
+                        ["outStatisticFieldName"] = statistic.OutStatisticFieldName
+                    };
+
+                    if (statistic.PercentileParameters is not null) {
+                        payload["statisticParameters"] = new Dictionary<string, object?> {
+                            ["value"] = statistic.PercentileParameters.Value,
+                            ["orderBy"] = MapPercentileOrder(statistic.PercentileParameters.OrderBy)
+                        };
+                    }
+
+                    return payload;
                 }).ToArray()),
             ["groupByFieldsForStatistics"] = query.GroupByFields is { Count: > 0 }
                 ? string.Join(",", query.GroupByFields)

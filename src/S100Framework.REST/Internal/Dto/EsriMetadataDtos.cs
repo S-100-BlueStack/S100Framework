@@ -137,6 +137,8 @@ internal sealed class EsriAdvancedQueryCapabilitiesDto
     public bool? SupportsReturningGeometryEnvelope { get; init; }
     [JsonPropertyName("supportsFullTextSearch")]
     public bool? SupportsFullTextSearch { get; init; }
+    [JsonPropertyName("supportsPercentileStatistics")]
+    public bool? SupportsPercentileStatistics { get; init; }
 }
 
 internal sealed class EsriFieldDto
