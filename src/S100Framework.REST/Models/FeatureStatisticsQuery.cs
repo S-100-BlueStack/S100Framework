@@ -68,6 +68,8 @@ public sealed record FeatureStatisticsQuery
             throw new InvalidOperationException("At least one statistic definition must be provided.");
         }
 
+        var statisticAliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var statistic in Statistics) {
             if (string.IsNullOrWhiteSpace(statistic.OnStatisticField)) {
                 throw new InvalidOperationException("StatisticDefinition.OnStatisticField must be provided.");
@@ -76,6 +78,39 @@ public sealed record FeatureStatisticsQuery
             if (string.IsNullOrWhiteSpace(statistic.OutStatisticFieldName)) {
                 throw new InvalidOperationException("StatisticDefinition.OutStatisticFieldName must be provided.");
             }
+
+            // Statistics are returned as keyed attributes. Duplicate aliases would silently overwrite values.
+            if (!statisticAliases.Add(statistic.OutStatisticFieldName)) {
+                throw new InvalidOperationException(
+                    $"Duplicate statistic alias '{statistic.OutStatisticFieldName}' is not allowed.");
+            }
+        }
+
+        if (GroupByFields is { Count: 0 }) {
+            throw new InvalidOperationException("GroupByFields must not be empty when provided.");
+        }
+
+        if (GroupByFields is { Count: > 0 }) {
+            foreach (var groupByField in GroupByFields) {
+                if (string.IsNullOrWhiteSpace(groupByField)) {
+                    throw new InvalidOperationException("GroupByFields must not contain empty values.");
+                }
+            }
+        }
+
+        if (HavingClause is not null) {
+            if (string.IsNullOrWhiteSpace(HavingClause)) {
+                throw new InvalidOperationException("HavingClause must not be empty when provided.");
+            }
+
+            if (GroupByFields is not { Count: > 0 }) {
+                throw new InvalidOperationException(
+                    "HavingClause requires at least one GroupByFields entry.");
+            }
+        }
+
+        if (OrderBy is not null && string.IsNullOrWhiteSpace(OrderBy)) {
+            throw new InvalidOperationException("OrderBy must not be empty when provided.");
         }
 
         if (ResultOffset is < 0) {

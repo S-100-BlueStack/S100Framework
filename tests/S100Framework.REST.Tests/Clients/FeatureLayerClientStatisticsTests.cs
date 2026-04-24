@@ -199,6 +199,99 @@ public sealed class FeatureLayerClientStatisticsTests
     }
 
     [Fact]
+    public async Task QueryStatisticsAsync_Throws_WhenHavingClauseIsProvidedWithoutGrouping() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = new FeatureServiceClient(
+            new HttpClient(new StubHttpMessageHandler(_ => throw new InvalidOperationException("The HTTP request should not be executed."))),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            }).GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryStatisticsAsync(
+                new FeatureStatisticsQuery {
+                    HavingClause = "COUNT(OBJECTID) > 1",
+                    Statistics = [
+                        new StatisticDefinition("OBJECTID", "PLAN_COUNT", StatisticType.Count)
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("HavingClause", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("GroupByFields", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryStatisticsAsync_Throws_WhenGroupByFieldsContainEmptyValue() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = new FeatureServiceClient(
+            new HttpClient(new StubHttpMessageHandler(_ => throw new InvalidOperationException("The HTTP request should not be executed."))),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            }).GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryStatisticsAsync(
+                new FeatureStatisticsQuery {
+                    GroupByFields = ["PLANNAME", ""],
+                    Statistics = [
+                        new StatisticDefinition("OBJECTID", "PLAN_COUNT", StatisticType.Count)
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("GroupByFields", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryStatisticsAsync_Throws_WhenOrderByIsWhitespace() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = new FeatureServiceClient(
+            new HttpClient(new StubHttpMessageHandler(_ => throw new InvalidOperationException("The HTTP request should not be executed."))),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            }).GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryStatisticsAsync(
+                new FeatureStatisticsQuery {
+                    OrderBy = "   ",
+                    Statistics = [
+                        new StatisticDefinition("OBJECTID", "PLAN_COUNT", StatisticType.Count)
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("OrderBy", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryStatisticsAsync_Throws_WhenStatisticAliasesAreDuplicated() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = new FeatureServiceClient(
+            new HttpClient(new StubHttpMessageHandler(_ => throw new InvalidOperationException("The HTTP request should not be executed."))),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            }).GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryStatisticsAsync(
+                new FeatureStatisticsQuery {
+                    Statistics = [
+                        new StatisticDefinition("OBJECTID", "STAT_VALUE", StatisticType.Count),
+                        new StatisticDefinition("AOIID", "STAT_VALUE", StatisticType.Max)
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("Duplicate statistic alias", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task QueryStatisticsAsync_Throws_WhenNoStatisticsAreProvided() {
         var cancellationToken = TestContext.Current.CancellationToken;
 
