@@ -9,7 +9,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.0.1</Version>
+		<Version>1.1.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
@@ -34,8 +34,14 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			Polished release with updated documentation for all functions, parameters, and so on.
-			
+			- Added advanced query support for time and historicMoment.
+			- Added request-shaping query support for resultOffset, resultRecordCount, defaultSR, sqlFormat, and returnEnvelope.
+			- Added fullText query support.
+			- Added layer unique ID metadata mapping and query support for unique IDs.
+			- Added append capability metadata including supported append formats.
+			- Added async append support for edits, appendItemId, and appendUploadId sources.
+			- Added append job status polling and submit-and-wait convenience helpers.
+			- Improved query and append test coverage.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 
