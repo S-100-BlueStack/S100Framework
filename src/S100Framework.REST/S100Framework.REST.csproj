@@ -9,16 +9,13 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.1.0</Version>
+		<Version>1.2.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
 		<Product>S100Framework</Product>
 
-		<Description>
-			A .NET library for reading Esri Feature Services through the ArcGIS REST API
-			and exposing results as NetTopologySuite geometries and typed attribute records.
-		</Description>
+		<Description>.NET library for reading and editing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite, without ArcGIS SDK dependencies.</Description>
 
 		<PackageTags>ArcGIS;Esri;FeatureService;REST;NetTopologySuite;Geometry;S-100</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -34,6 +31,9 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
+			- Added statistics query support with grouping, HAVING, ordering, and aggregated pagination.
+			- Added percentile statistics support with capability checks.
+			- Added queryDomains support with typed domain models and service capability mapping.
 			- Added advanced query support for time and historicMoment.
 			- Added request-shaping query support for resultOffset, resultRecordCount, defaultSR, sqlFormat, and returnEnvelope.
 			- Added fullText query support.
@@ -41,7 +41,8 @@
 			- Added append capability metadata including supported append formats.
 			- Added async append support for edits, appendItemId, and appendUploadId sources.
 			- Added append job status polling and submit-and-wait convenience helpers.
-			- Improved query and append test coverage.
+			- Expanded README and XML documentation for advanced query, statistics, domains, and append workflows.
+			- Improved query, statistics, domains, and append test coverage.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 
