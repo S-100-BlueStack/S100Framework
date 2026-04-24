@@ -72,6 +72,7 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
             dto.Capabilities,
             dto.SyncEnabled,
             dto.SupportsAppend,
+            dto.SupportsQueryDomains,
             dto.AdvancedEditingCapabilities);
 
         var extractChangesCapabilities = dto.ExtractChangesCapabilities is null
@@ -101,11 +102,11 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
             extractChangesCapabilities,
             supportedAppendFormats);
     }
-
     private static FeatureServiceCapabilities ParseServiceCapabilities(
     string? capabilities,
     bool? syncEnabled,
     bool? supportsAppend,
+    bool? supportsQueryDomains,
     EsriAdvancedEditingCapabilitiesDto? advancedEditingCapabilities) {
         var values = (capabilities ?? string.Empty)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -122,7 +123,8 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
             SupportsChangeTracking: values.Contains("ChangeTracking"),
             SyncEnabled: syncEnabled ?? false,
             SupportsAsyncApplyEdits: advancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false,
-            SupportsAppend: supportsAppend ?? false);
+            SupportsAppend: supportsAppend ?? false,
+            SupportsQueryDomains: supportsQueryDomains ?? false);
     }
 
     /// <inheritdoc />

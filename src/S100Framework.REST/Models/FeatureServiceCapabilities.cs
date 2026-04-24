@@ -36,6 +36,9 @@
 /// <param name="SupportsAppend">
 /// Indicates whether the service advertises support for the <c>append</c> operation.
 /// </param>
+/// <param name="SupportsQueryDomains">
+/// Indicates whether the service advertises support for the <c>queryDomains</c> operation.
+/// </param>
 public sealed record FeatureServiceCapabilities(
     bool SupportsQuery,
     bool SupportsCreate,
@@ -47,4 +50,5 @@ public sealed record FeatureServiceCapabilities(
     bool SupportsChangeTracking,
     bool SyncEnabled,
     bool SupportsAsyncApplyEdits,
-    bool SupportsAppend = false);
+    bool SupportsAppend = false,
+    bool SupportsQueryDomains = false);

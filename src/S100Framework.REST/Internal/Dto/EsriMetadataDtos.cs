@@ -31,6 +31,8 @@ internal sealed class EsriServiceMetadataDto
     [JsonPropertyName("extractChangesCapabilities")]
     public EsriExtractChangesCapabilitiesDto? ExtractChangesCapabilities { get; init; }
 
+    [JsonPropertyName("supportsQueryDomains")]
+    public bool? SupportsQueryDomains { get; init; }
 }
 
 internal sealed class EsriDatasetDto
