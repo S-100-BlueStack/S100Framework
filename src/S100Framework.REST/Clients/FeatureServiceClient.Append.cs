@@ -67,6 +67,37 @@ public sealed partial class FeatureServiceClient
         return MapAppendSubmissionResult(dto, endpointUri);
     }
 
+    /// <summary>
+    /// Submits a service-level <c>append</c> request using a server upload item as the source.
+    /// </summary>
+    /// <param name="request">
+    /// The append request to submit.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token.
+    /// </param>
+    /// <returns>
+    /// The append submission response.
+    /// </returns>
+    public async Task<FeatureServiceAppendSubmissionResult> SubmitAppendAsync(
+        FeatureServiceAppendUploadRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+
+        request.Validate();
+
+        await EnsureAppendSupportedAsync(request.Upsert, cancellationToken);
+
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "append");
+
+        var dto = await PostFormAsync<EsriAppendSubmissionDto>(
+            endpointUri,
+            BuildAppendUploadParameters(request),
+            cancellationToken);
+
+        return MapAppendSubmissionResult(dto, endpointUri);
+    }
+
     /// <inheritdoc />
     public async Task<FeatureServiceAppendJobStatus> GetAppendStatusAsync(
         Uri statusUrl,
@@ -126,6 +157,51 @@ public sealed partial class FeatureServiceClient
     /// </returns>
     public async Task<FeatureServiceAppendJobStatus> WaitForAppendCompletionAsync(
         FeatureServiceAppendItemRequest request,
+        AppendWaitOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var submission = await SubmitAppendAsync(request, cancellationToken);
+
+        if (submission.IsTerminal) {
+            return new FeatureServiceAppendJobStatus(
+                submission.Status,
+                LayerName: null,
+                RecordCount: null,
+                SubmissionTime: null,
+                LastUpdatedTime: null,
+                EditMoment: submission.EditMoment);
+        }
+
+        if (submission.StatusUrl is null) {
+            throw new FeatureServiceException(
+                "The append submission did not return a status URL for a non-terminal job.",
+                UriUtility.AppendPath(_serviceUri, "append"));
+        }
+
+        return await WaitForAppendCompletionAsync(
+            submission.StatusUrl,
+            options,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Submits a service-level <c>append</c> upload request and waits until the job reaches a terminal state.
+    /// </summary>
+    /// <param name="request">
+    /// The append request to submit.
+    /// </param>
+    /// <param name="options">
+    /// Polling options. When <see langword="null"/>, default polling behavior is used.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token.
+    /// </param>
+    /// <returns>
+    /// The terminal append job status.
+    /// </returns>
+    public async Task<FeatureServiceAppendJobStatus> WaitForAppendCompletionAsync(
+        FeatureServiceAppendUploadRequest request,
         AppendWaitOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
@@ -243,6 +319,28 @@ public sealed partial class FeatureServiceClient
         if (request.AppendUploadFormat.HasValue) {
             parameters["appendUploadFormat"] = MapAppendSourceFormat(request.AppendUploadFormat.Value);
         }
+
+        if (request.LayerMappings is { Count: > 0 }) {
+            parameters["layerMappings"] = SerializeLayerMappings(request.LayerMappings);
+        }
+
+        return parameters;
+    }
+
+    private static Dictionary<string, string?> BuildAppendUploadParameters(
+        FeatureServiceAppendUploadRequest request) {
+        var parameters = BuildAppendCommonParameters(
+            request.Layers,
+            request.Upsert,
+            request.UseGlobalIds,
+            request.RollbackOnFailure,
+            request.GdbVersion,
+            request.ReturnEditMoment,
+            request.TrueCurveClient,
+            request.TimeReferenceUnknownClient);
+
+        parameters["appendUploadId"] = request.AppendUploadId;
+        parameters["appendUploadFormat"] = MapAppendSourceFormat(request.AppendUploadFormat!.Value);
 
         if (request.LayerMappings is { Count: > 0 }) {
             parameters["layerMappings"] = SerializeLayerMappings(request.LayerMappings);
