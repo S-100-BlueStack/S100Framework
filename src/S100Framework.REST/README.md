@@ -11,7 +11,8 @@ Use this library when you want to:
 - read service metadata, layer metadata, and schema
 - query features from an Esri Feature Service
 - work with geometries as NetTopologySuite types
-- use advanced query options such as temporal filters, request-shaping, full text search, and unique IDs
+- use advanced query options such as temporal filters, request-shaping, full text search, unique IDs, and statistics
+- query service domains for one or more layers
 - edit features with layer-level or service-level `applyEdits`
 - work with attachments
 - get change sets from `extractChanges`
@@ -66,6 +67,7 @@ Use the service client for service-level operations:
 - read service metadata
 - get a layer client by ID
 - get a layer client by layer name
+- query service domains for a set of layer IDs
 - run multi-layer `applyEdits`
 - run `extractChanges`
 - poll async `extractChanges` jobs
@@ -306,10 +308,11 @@ Console.WriteLine($"Supports editing: {metadata.Capabilities.SupportsEditing}");
 Console.WriteLine($"Supports uploads: {metadata.Capabilities.SupportsUploads}");
 Console.WriteLine($"Supports change tracking: {metadata.Capabilities.SupportsChangeTracking}");
 Console.WriteLine($"Supports append: {metadata.Capabilities.SupportsAppend}");
+Console.WriteLine($"Supports query domains: {metadata.Capabilities.SupportsQueryDomains}");
 Console.WriteLine($"Append formats: {string.Join(", ", metadata.SupportedAppendFormats)}");
 ```
 
-This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits, `extractChanges`, or `append`.
+This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits, `extractChanges`, `append`, or `queryDomains`. Esri exposes `supportsAppend`, `supportedAppendFormats`, and `supportsQueryDomains` on the service resource when those operations are available. citeturn479030search0turn479030search2
 
 ---
 
@@ -342,6 +345,7 @@ Console.WriteLine($"Object ID field: {schema.ObjectIdFieldName}");
 Console.WriteLine($"Has attachments: {schema.Capabilities.HasAttachments}");
 Console.WriteLine($"Supports full text search: {schema.Capabilities.SupportsFullTextSearch}");
 Console.WriteLine($"Supports geometry envelope: {schema.Capabilities.SupportsReturningGeometryEnvelope}");
+Console.WriteLine($"Supports percentile statistics: {schema.Capabilities.SupportsPercentileStatistics}");
 Console.WriteLine($"Supports unique IDs: {schema.SupportsUniqueIds}");
 
 if (schema.UniqueIdInfo is not null) {
@@ -539,6 +543,82 @@ foreach (var row in rows) {
 
 Use this when you need grouped results or aggregates instead of feature rows.
 
+### Statistics pagination for grouped results
+
+```csharp
+using S100Framework.REST.Models;
+
+var rows = await layerClient.QueryStatisticsAsync(new FeatureStatisticsQuery {
+    GroupByFields = ["STATUS"],
+    ResultOffset = 0,
+    ResultRecordCount = 25,
+    Statistics = [
+        new StatisticDefinition(
+            OnStatisticField: "OBJECTID",
+            OutStatisticFieldName: "ROW_COUNT",
+            StatisticType: StatisticType.Count)
+    ]
+});
+```
+
+`ResultOffset` and `ResultRecordCount` are only valid for grouped statistics queries, and the target layer must support pagination on aggregated queries.
+
+### Percentile statistics
+
+```csharp
+using S100Framework.REST.Models;
+
+var rows = await layerClient.QueryStatisticsAsync(new FeatureStatisticsQuery {
+    Statistics = [
+        new StatisticDefinition(
+            OnStatisticField: "DEPTH",
+            OutStatisticFieldName: "P90_DEPTH",
+            StatisticType: StatisticType.PercentileDiscrete,
+            PercentileParameters: new StatisticPercentileParameters(
+                Value: 0.9,
+                OrderBy: StatisticPercentileOrder.Desc))
+    ]
+});
+
+Console.WriteLine(rows[0].Attributes["P90_DEPTH"]);
+```
+
+Esri supports percentile statistics through `PERCENTILE_DISC` and `PERCENTILE_CONT`, and layers that support them advertise `supportsPercentileStatistics=true` in advanced query capabilities. Percentile statistics require percentile parameters and cannot be combined with `havingClause`. citeturn479030search3turn479030search6
+
+---
+
+## Query domains
+
+Use `queryDomains` when you want the service to return full domain information for the domains referenced by one or more layers.
+
+```csharp
+var domains = await client.QueryDomainsAsync([0, 1]);
+
+foreach (var domain in domains) {
+    Console.WriteLine($"Type: {domain.Type}");
+    Console.WriteLine($"Name: {domain.Name}");
+
+    if (domain.IsRange && domain.Range is not null) {
+        Console.WriteLine($"Range: {domain.Range.MinimumValue} - {domain.Range.MaximumValue}");
+    }
+
+    if (domain.IsCodedValue) {
+        foreach (var codedValue in domain.CodedValues) {
+            Console.WriteLine($"{codedValue.Code} = {codedValue.Name}");
+        }
+    }
+}
+```
+
+This is useful when you need to:
+
+- build dropdowns from coded value domains
+- validate values against domain ranges
+- resolve code values to user-facing labels without hardcoding them
+- inspect domain metadata for multiple layers in one call
+
+Esri’s `queryDomains` operation processes an array of layer IDs and returns the referenced domain definitions as range, coded-value, or inherited domains. Services that support it advertise `supportsQueryDomains=true`. citeturn479030search0turn479030search2
+
 ---
 
 ## Query related records
@@ -670,7 +750,7 @@ var result = await layerClient.ApplyEditsAsync(new FeatureEdits {
 });
 ```
 
-### Layer-level async `applyEdits` with manual submit/status/result
+### Layer-level async `applyEdits` with manual submit/status/result`
 
 Use this when you want explicit control over polling, logging, retry behavior, or timeout handling.
 
@@ -1335,9 +1415,11 @@ Console.WriteLine(schema.Capabilities.HasAttachments);
 Console.WriteLine(schema.Capabilities.SupportsQueryAttachments);
 Console.WriteLine(schema.Capabilities.SupportsTopFeaturesQuery);
 Console.WriteLine(schema.Capabilities.SupportsPagination);
+Console.WriteLine(schema.Capabilities.SupportsPaginationOnAggregatedQueries);
 Console.WriteLine(schema.Capabilities.SupportsAsyncApplyEdits);
 Console.WriteLine(schema.Capabilities.SupportsReturningGeometryEnvelope);
 Console.WriteLine(schema.Capabilities.SupportsFullTextSearch);
+Console.WriteLine(schema.Capabilities.SupportsPercentileStatistics);
 Console.WriteLine(schema.SupportsUniqueIds);
 ```
 
@@ -1352,6 +1434,7 @@ Console.WriteLine(metadata.Capabilities.SupportsUploads);
 Console.WriteLine(metadata.Capabilities.SupportsChangeTracking);
 Console.WriteLine(metadata.Capabilities.SupportsAsyncApplyEdits);
 Console.WriteLine(metadata.Capabilities.SupportsAppend);
+Console.WriteLine(metadata.Capabilities.SupportsQueryDomains);
 Console.WriteLine(string.Join(", ", metadata.SupportedAppendFormats));
 ```
 
@@ -1375,7 +1458,7 @@ if (metadata.ExtractChangesCapabilities is not null) {
 ### Rule of thumb
 
 - For ordinary queries, you usually do not need to think much about capabilities.
-- For attachments, top features, advanced related queries, `extractChanges`, and `append`, check capabilities first.
+- For attachments, top features, advanced related queries, statistics pagination, percentile statistics, `queryDomains`, `extractChanges`, and `append`, check capabilities first.
 - Even if you skip the manual check, the client will still fail fast for important unsupported operations.
 
 ---
@@ -1426,6 +1509,8 @@ Other true-curve segment types are not yet supported.
 - The ArcGIS REST API uses the literal `sqllite` for the SQLite data format parameter. The library hides that detail behind `ExtractChangesDataFormat.Sqlite`.
 - `append` support currently covers `edits`, `appendItemId`, and `appendUploadId` on the service root endpoint.
 - `append` upload creation itself is not handled by the library. `appendUploadId` assumes that the caller already has a valid upload item ID.
+- `queryDomains` depends on service-level support and only returns domains referenced by the requested layer IDs. citeturn479030search0turn479030search2
+- Percentile statistics depend on layer-level support and cannot be combined with `havingClause`. citeturn479030search3turn479030search6
 - Token acquisition for Portal for ArcGIS login is intentionally outside this package.
 
 ---
