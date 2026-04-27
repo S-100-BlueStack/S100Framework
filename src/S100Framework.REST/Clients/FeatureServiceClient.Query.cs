@@ -19,34 +19,6 @@ public sealed partial class FeatureServiceClient
         IReadOnlyList<long>? objectIds,
         IReadOnlyList<FeatureUniqueId>? uniqueIds = null,
         CancellationToken cancellationToken = default) {
-        static string SerializeUniqueIds(IReadOnlyList<FeatureUniqueId> values) {
-            ArgumentNullException.ThrowIfNull(values);
-
-            if (values.Count == 0) {
-                throw new InvalidOperationException("UniqueIds must contain at least one identifier when provided.");
-            }
-
-            var payload = new List<object>(values.Count);
-
-            foreach (var value in values) {
-                ArgumentNullException.ThrowIfNull(value);
-
-                if (value.Components is not { Count: > 0 }) {
-                    throw new InvalidOperationException("Each UniqueIds entry must contain at least one component.");
-                }
-
-                if (value.Components.Any(string.IsNullOrWhiteSpace)) {
-                    throw new InvalidOperationException("UniqueIds components must not be empty.");
-                }
-
-                payload.Add(value.Components.Count == 1
-                    ? value.Components[0]
-                    : value.Components.ToArray());
-            }
-
-            return JsonSerializer.Serialize(payload);
-        }
-
         ArgumentNullException.ThrowIfNull(query);
 
         ValidateFeatureQueryCommon(query);
@@ -81,7 +53,7 @@ public sealed partial class FeatureServiceClient
             parameters["objectIds"] = string.Join(",", objectIds);
         }
         else if (uniqueIds is { Count: > 0 }) {
-            parameters["uniqueIds"] = SerializeUniqueIds(uniqueIds);
+            parameters["uniqueIds"] = SerializeFeatureUniqueIds(uniqueIds);
         }
 
         if (resultOffset.HasValue) {
@@ -413,33 +385,6 @@ public sealed partial class FeatureServiceClient
             return JsonSerializer.Serialize(payload);
         }
 
-        static string SerializeUniqueIds(IReadOnlyList<FeatureUniqueId> uniqueIds) {
-            ArgumentNullException.ThrowIfNull(uniqueIds);
-
-            if (uniqueIds.Count == 0) {
-                throw new InvalidOperationException("UniqueIds must contain at least one identifier when provided.");
-            }
-
-            var payload = new List<object>(uniqueIds.Count);
-
-            foreach (var uniqueId in uniqueIds) {
-                ArgumentNullException.ThrowIfNull(uniqueId);
-
-                if (uniqueId.Components is not { Count: > 0 }) {
-                    throw new InvalidOperationException("Each UniqueIds entry must contain at least one component.");
-                }
-
-                if (uniqueId.Components.Any(string.IsNullOrWhiteSpace)) {
-                    throw new InvalidOperationException("UniqueIds components must not be empty.");
-                }
-
-                payload.Add(uniqueId.Components.Count == 1
-                    ? uniqueId.Components[0]
-                    : uniqueId.Components.ToArray());
-            }
-
-            return JsonSerializer.Serialize(payload);
-        }
 
         var parameters = new Dictionary<string, string?> {
             ["where"] = string.IsNullOrWhiteSpace(query.Where) ? "1=1" : query.Where,
@@ -493,7 +438,7 @@ public sealed partial class FeatureServiceClient
         }
 
         if (query.UniqueIds is not null) {
-            parameters["uniqueIds"] = SerializeUniqueIds(query.UniqueIds);
+            parameters["uniqueIds"] = SerializeFeatureUniqueIds(query.UniqueIds);
         }
 
         if (includeOutSrid && query.OutSrid.HasValue) {
@@ -533,5 +478,33 @@ public sealed partial class FeatureServiceClient
         ApplySpatialFilter(parameters, query.SpatialFilter);
 
         return parameters;
+    }
+
+    private static string SerializeFeatureUniqueIds(IReadOnlyList<FeatureUniqueId> uniqueIds) {
+        ArgumentNullException.ThrowIfNull(uniqueIds);
+
+        if (uniqueIds.Count == 0) {
+            throw new InvalidOperationException("UniqueIds must contain at least one identifier when provided.");
+        }
+
+        var payload = new List<object>(uniqueIds.Count);
+
+        foreach (var uniqueId in uniqueIds) {
+            ArgumentNullException.ThrowIfNull(uniqueId);
+
+            if (uniqueId.Components is not { Count: > 0 }) {
+                throw new InvalidOperationException("Each UniqueIds entry must contain at least one component.");
+            }
+
+            if (uniqueId.Components.Any(string.IsNullOrWhiteSpace)) {
+                throw new InvalidOperationException("UniqueIds components must not be empty.");
+            }
+
+            payload.Add(uniqueId.Components.Count == 1
+                ? uniqueId.Components[0]
+                : uniqueId.Components.ToArray());
+        }
+
+        return JsonSerializer.Serialize(payload, JsonOptions);
     }
 }
