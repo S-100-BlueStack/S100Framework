@@ -312,7 +312,7 @@ Console.WriteLine($"Supports query domains: {metadata.Capabilities.SupportsQuery
 Console.WriteLine($"Append formats: {string.Join(", ", metadata.SupportedAppendFormats)}");
 ```
 
-This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits, `extractChanges`, `append`, or `queryDomains`. Esri exposes `supportsAppend`, `supportedAppendFormats`, and `supportsQueryDomains` on the service resource when those operations are available. citeturn479030search0turn479030search2
+This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits, `extractChanges`, `append`, or `queryDomains`. Esri exposes `supportsAppend`, `supportedAppendFormats`, and `supportsQueryDomains` on the service resource when those operations are available.
 
 ---
 
@@ -583,7 +583,7 @@ var rows = await layerClient.QueryStatisticsAsync(new FeatureStatisticsQuery {
 Console.WriteLine(rows[0].Attributes["P90_DEPTH"]);
 ```
 
-Esri supports percentile statistics through `PERCENTILE_DISC` and `PERCENTILE_CONT`, and layers that support them advertise `supportsPercentileStatistics=true` in advanced query capabilities. Percentile statistics require percentile parameters and cannot be combined with `havingClause`. citeturn479030search3turn479030search6
+Esri supports percentile statistics through `PERCENTILE_DISC` and `PERCENTILE_CONT`, and layers that support them advertise `supportsPercentileStatistics=true` in advanced query capabilities. Percentile statistics require percentile parameters and cannot be combined with `havingClause`.
 
 ---
 
@@ -617,7 +617,7 @@ This is useful when you need to:
 - resolve code values to user-facing labels without hardcoding them
 - inspect domain metadata for multiple layers in one call
 
-Esri’s `queryDomains` operation processes an array of layer IDs and returns the referenced domain definitions as range, coded-value, or inherited domains. Services that support it advertise `supportsQueryDomains=true`. citeturn479030search0turn479030search2
+Esri’s `queryDomains` operation processes an array of layer IDs and returns the referenced domain definitions as range, coded-value, or inherited domains. Services that support it advertise `supportsQueryDomains=true`.
 
 ---
 
@@ -1509,8 +1509,8 @@ Other true-curve segment types are not yet supported.
 - The ArcGIS REST API uses the literal `sqllite` for the SQLite data format parameter. The library hides that detail behind `ExtractChangesDataFormat.Sqlite`.
 - `append` support currently covers `edits`, `appendItemId`, and `appendUploadId` on the service root endpoint.
 - `append` upload creation itself is not handled by the library. `appendUploadId` assumes that the caller already has a valid upload item ID.
-- `queryDomains` depends on service-level support and only returns domains referenced by the requested layer IDs. citeturn479030search0turn479030search2
-- Percentile statistics depend on layer-level support and cannot be combined with `havingClause`. citeturn479030search3turn479030search6
+- `queryDomains` depends on service-level support and only returns domains referenced by the requested layer IDs.
+- Percentile statistics depend on layer-level support and cannot be combined with `havingClause`.
 - Token acquisition for Portal for ArcGIS login is intentionally outside this package.
 
 ---

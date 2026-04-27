@@ -9,7 +9,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.2.0</Version>
+		<Version>1.2.1</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
@@ -31,6 +31,7 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
+			- 1.2.1 fixed citation issues with readme
 			- Added statistics query support with grouping, HAVING, ordering, and aggregated pagination.
 			- Added percentile statistics support with capability checks.
 			- Added queryDomains support with typed domain models and service capability mapping.
