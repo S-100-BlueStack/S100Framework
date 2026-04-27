@@ -1,22 +1,17 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.Net.Http.Headers;
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using NetTopologySuite.Geometries;
 using S100Framework.REST.Abstractions;
 using S100Framework.REST.Configuration;
-using S100Framework.REST.Exceptions;
-using S100Framework.REST.Internal.Dto;
-using S100Framework.REST.Internal.EsriGeometry;
-using S100Framework.REST.Internal.Http;
-using S100Framework.REST.Models;
 
 namespace S100Framework.REST.Clients;
 
 /// <summary>
-/// Provides operations for reading metadata, resolving layers, executing service-level edit workflows, and calling ArcGIS Feature Service REST endpoints.
+/// Provides the core state and construction logic for ArcGIS Feature Service REST clients.
 /// </summary>
+/// <remarks>
+/// Operation-specific members are implemented in partial class files to keep each Feature Service operation group
+/// isolated and easier to maintain.
+/// </remarks>
 public sealed partial class FeatureServiceClient : IFeatureServiceClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new() {
@@ -29,10 +24,14 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
     private readonly Uri _serviceUri;
 
     /// <summary>
-    /// Initializes the client with an HTTP client and validated options.
+    /// Initializes a new instance of the <see cref="FeatureServiceClient"/> class with an HTTP client and validated options.
     /// </summary>
-    /// <param name="httpClient">The HTTP client used to call the feature service.</param>
-    /// <param name="options">The configured client options.</param>
+    /// <param name="httpClient">
+    /// The HTTP client used to call the feature service.
+    /// </param>
+    /// <param name="options">
+    /// The configured client options.
+    /// </param>
     [ActivatorUtilitiesConstructor]
     public FeatureServiceClient(
         HttpClient httpClient,
@@ -41,11 +40,18 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
     }
 
     /// <summary>
-    /// Initializes the client with an HTTP client, validated options, and an optional request authorizer.
+    /// Initializes a new instance of the <see cref="FeatureServiceClient"/> class with an HTTP client, validated options,
+    /// and an optional request authorizer.
     /// </summary>
-    /// <param name="httpClient">The HTTP client used to call the feature service.</param>
-    /// <param name="options">The configured client options.</param>
-    /// <param name="authorizer">An optional request authorizer that can add authentication to outgoing requests.</param>
+    /// <param name="httpClient">
+    /// The HTTP client used to call the feature service.
+    /// </param>
+    /// <param name="options">
+    /// The configured client options.
+    /// </param>
+    /// <param name="authorizer">
+    /// An optional request authorizer that can add authentication to outgoing requests.
+    /// </param>
     public FeatureServiceClient(
         HttpClient httpClient,
         FeatureServiceClientOptions options,
@@ -59,5 +65,4 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
     }
 
     internal FeatureServiceClientOptions Options => _options;
-
 }
