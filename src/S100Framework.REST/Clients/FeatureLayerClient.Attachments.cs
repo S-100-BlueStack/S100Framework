@@ -1,0 +1,138 @@
+﻿using System.Text.Json;
+using S100Framework.REST.Exceptions;
+using S100Framework.REST.Internal.Dto;
+using S100Framework.REST.Models;
+
+namespace S100Framework.REST.Clients;
+
+/// <summary>
+/// Provides attachment operations for <see cref="FeatureLayerClient" />.
+/// </summary>
+public sealed partial class FeatureLayerClient
+{
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<AttachmentGroup>> QueryAttachmentsAsync(
+        AttachmentQuery query,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+        query.Validate();
+
+        var schema = await GetSchemaAsync(cancellationToken);
+        EnsureAttachmentQuerySupported(schema);
+
+        var response = await _serviceClient.QueryAttachmentsAsync(_layerId, query, cancellationToken);
+
+        return (response.AttachmentGroups ?? new List<EsriAttachmentGroupDto>())
+            .Select(group => new AttachmentGroup(
+                group.ParentObjectId,
+                group.ParentGlobalId,
+                (group.AttachmentInfos ?? new List<JsonElement>())
+                    .Select(info => MapAttachmentInfo(
+                        info,
+                        group.ParentObjectId,
+                        group.ParentGlobalId))
+                    .ToArray()))
+            .ToArray();
+    }
+
+    /// <inheritdoc />
+    public async Task<AttachmentContent> DownloadAttachmentAsync(
+        long objectId,
+        long attachmentId,
+        CancellationToken cancellationToken = default) {
+        var schema = await GetSchemaAsync(cancellationToken);
+        EnsureAttachmentReadSupported(schema);
+
+        return await _serviceClient.DownloadAttachmentAsync(
+            _layerId,
+            objectId,
+            attachmentId,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(
+        DeleteAttachmentsRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        request.Validate();
+
+        await EnsureAttachmentEditingSupportedAsync(
+            requireUploadSupport: false,
+            cancellationToken);
+
+        return await _serviceClient.DeleteAttachmentsAsync(
+            _layerId,
+            request,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<AddAttachmentResult> AddAttachmentAsync(
+        AddAttachmentRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        request.Validate();
+
+        await EnsureAttachmentEditingSupportedAsync(
+            requireUploadSupport: true,
+            cancellationToken);
+
+        return await _serviceClient.AddAttachmentAsync(
+            _layerId,
+            request,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<UpdateAttachmentResult> UpdateAttachmentAsync(
+        UpdateAttachmentRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+        request.Validate();
+
+        await EnsureAttachmentEditingSupportedAsync(
+            requireUploadSupport: true,
+            cancellationToken);
+
+        return await _serviceClient.UpdateAttachmentAsync(
+            _layerId,
+            request,
+            cancellationToken);
+    }
+
+    private static void EnsureAttachmentReadSupported(FeatureLayerSchema schema) {
+        if (!schema.Capabilities.HasAttachments) {
+            throw new FeatureServiceCapabilityException(
+                $"Layer '{schema.Name}' ({schema.LayerId}) does not support attachments.");
+        }
+    }
+
+    private static void EnsureAttachmentQuerySupported(FeatureLayerSchema schema) {
+        EnsureAttachmentReadSupported(schema);
+
+        if (!schema.Capabilities.SupportsQueryAttachments) {
+            throw new FeatureServiceCapabilityException(
+                $"Layer '{schema.Name}' ({schema.LayerId}) does not support attachment queries.");
+        }
+    }
+
+    private async Task EnsureAttachmentEditingSupportedAsync(
+        bool requireUploadSupport,
+        CancellationToken cancellationToken) {
+        var schema = await GetSchemaAsync(cancellationToken);
+        EnsureAttachmentReadSupported(schema);
+
+        var metadata = await _serviceClient.GetMetadataAsync(cancellationToken);
+
+        if (!metadata.Capabilities.SupportsEditing) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support editing, so attachment edits are not available.");
+        }
+
+        if (requireUploadSupport && !metadata.Capabilities.SupportsUploads) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support uploads, so attachment add/update operations are not available.");
+        }
+    }
+}
