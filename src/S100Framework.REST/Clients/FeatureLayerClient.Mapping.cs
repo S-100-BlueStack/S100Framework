@@ -2,6 +2,7 @@
 using System.Text.Json;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.EsriGeometry;
+using S100Framework.REST.Internal.Json;
 using S100Framework.REST.Models;
 
 namespace S100Framework.REST.Clients;
@@ -67,7 +68,7 @@ public sealed partial class FeatureLayerClient
         JsonElement attachmentInfoElement,
         long? parentObjectId,
         string? parentGlobalId) {
-        var attributes = ReadObjectAttributes(attachmentInfoElement);
+        var attributes = ReadAttributes(attachmentInfoElement);
 
         long attachmentId = 0;
 
@@ -106,46 +107,10 @@ public sealed partial class FeatureLayerClient
             : spatialReference.Wkid ?? spatialReference.LatestWkid;
     }
 
-    private static IReadOnlyDictionary<string, object?> ReadObjectAttributes(JsonElement objectElement) {
-        if (objectElement.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
-            return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        }
-
-        var attributes = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var property in objectElement.EnumerateObject()) {
-            attributes[property.Name] = ConvertJsonValue(property.Value);
-        }
-
-        return attributes;
-    }
-
     private static IReadOnlyDictionary<string, object?> ReadAttributes(JsonElement attributesElement) {
-        if (attributesElement.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
-            return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        }
-
-        var attributes = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var property in attributesElement.EnumerateObject()) {
-            attributes[property.Name] = ConvertJsonValue(property.Value);
-        }
-
-        return attributes;
-    }
-
-    private static object? ConvertJsonValue(JsonElement value) {
-        return value.ValueKind switch {
-            JsonValueKind.Undefined => null,
-            JsonValueKind.Null => null,
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.String => value.GetString(),
-            JsonValueKind.Number when value.TryGetInt64(out var intValue) => intValue,
-            JsonValueKind.Number when value.TryGetDecimal(out var decimalValue) => decimalValue,
-            JsonValueKind.Number => value.GetDouble(),
-            _ => value.Clone()
-        };
+        return JsonAttributeValueReader.ReadAttributes(
+            attributesElement,
+            JsonAttributeNumberHandling.DecimalFallback);
     }
 
     private static bool TryGetInt64(

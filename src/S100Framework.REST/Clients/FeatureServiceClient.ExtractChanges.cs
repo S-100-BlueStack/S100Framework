@@ -5,6 +5,7 @@ using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.EsriGeometry;
 using S100Framework.REST.Internal.Http;
+using S100Framework.REST.Internal.Json;
 using S100Framework.REST.Models;
 
 namespace S100Framework.REST.Clients;
@@ -367,17 +368,9 @@ public sealed partial class FeatureServiceClient
     }
 
     private static IReadOnlyDictionary<string, object?> ReadExtractChangesAttributes(JsonElement attributesElement) {
-        if (attributesElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
-            return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        }
-
-        var attributes = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var property in attributesElement.EnumerateObject()) {
-            attributes[property.Name] = ConvertJsonValue(property.Value);
-        }
-
-        return attributes;
+        return JsonAttributeValueReader.ReadAttributes(
+            attributesElement,
+            JsonAttributeNumberHandling.DoubleFallback);
     }
 
     private static IReadOnlyList<object?> ReadJsonValueList(List<JsonElement>? elements) {
@@ -385,25 +378,11 @@ public sealed partial class FeatureServiceClient
             return Array.Empty<object?>();
         }
 
-        return elements.Select(ConvertJsonValue).ToArray();
-    }
-
-    private static object? ConvertJsonValue(JsonElement element) {
-        return element.ValueKind switch {
-            JsonValueKind.String => element.GetString(),
-            JsonValueKind.Number when element.TryGetInt64(out var int64Value) => int64Value,
-            JsonValueKind.Number => element.GetDouble(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.Null => null,
-            JsonValueKind.Array => element.EnumerateArray().Select(ConvertJsonValue).ToArray(),
-            JsonValueKind.Object => element.EnumerateObject()
-                .ToDictionary(
-                    property => property.Name,
-                    property => ConvertJsonValue(property.Value),
-                    StringComparer.OrdinalIgnoreCase),
-            _ => element.ToString()
-        };
+        return elements
+            .Select(static element => JsonAttributeValueReader.ConvertValue(
+                element,
+                JsonAttributeNumberHandling.DoubleFallback))
+            .ToArray();
     }
 
     private static long? ConvertToNullableInt64(object? value) {
