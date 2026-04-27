@@ -12,7 +12,7 @@ namespace S100Framework.REST.Clients;
 /// <summary>
 /// Provides operations for querying, editing, and downloading attachments from a single feature layer or table.
 /// </summary>
-public sealed class FeatureLayerClient : IFeatureLayerClient
+public sealed partial class FeatureLayerClient : IFeatureLayerClient
 {
     private readonly FeatureServiceClient _serviceClient;
     private readonly int _layerId;

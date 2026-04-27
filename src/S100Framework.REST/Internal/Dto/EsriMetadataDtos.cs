@@ -95,6 +95,18 @@ internal sealed class EsriLayerMetadataDto
     public EsriExtentDto? Extent { get; init; }
     [JsonPropertyName("uniqueIdInfo")]
     public EsriUniqueIdInfoDto? UniqueIdInfo { get; init; }
+
+    [JsonPropertyName("supportsAppend")]
+    public bool? SupportsAppend { get; init; }
+
+    [JsonPropertyName("supportedAppendFormats")]
+    public List<string>? SupportedAppendFormats { get; init; }
+
+    [JsonPropertyName("supportedAppendSourceFilterFormats")]
+    public List<string>? SupportedAppendSourceFilterFormats { get; init; }
+
+    [JsonPropertyName("supportedAppendCapabilities")]
+    public string? SupportedAppendCapabilities { get; init; }
 }
 
 internal sealed class EsriUniqueIdInfoDto

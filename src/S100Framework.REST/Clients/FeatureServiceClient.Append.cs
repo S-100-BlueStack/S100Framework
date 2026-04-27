@@ -421,21 +421,22 @@ public sealed partial class FeatureServiceClient
         return JsonSerializer.Serialize(payload);
     }
 
-    private static string MapAppendSourceFormat(FeatureServiceAppendSourceFormat value) {
-        return value switch {
-            FeatureServiceAppendSourceFormat.Sqlite => "sqlite",
-            FeatureServiceAppendSourceFormat.GeoPackage => "gpkg",
-            FeatureServiceAppendSourceFormat.ShapeFile => "shapefile",
-            FeatureServiceAppendSourceFormat.FileGeodatabase => "filegdb",
-            FeatureServiceAppendSourceFormat.FeatureCollection => "feature Collection",
-            FeatureServiceAppendSourceFormat.GeoJson => "geojson",
-            FeatureServiceAppendSourceFormat.Csv => "csv",
-            FeatureServiceAppendSourceFormat.Excel => "excel",
-            FeatureServiceAppendSourceFormat.FeatureService => "feature Service",
-            FeatureServiceAppendSourceFormat.Pbf => "pbf",
-            _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
-        };
-    }
+    private static string MapAppendSourceFormat(FeatureServiceAppendSourceFormat format) {
+    return format switch {
+        FeatureServiceAppendSourceFormat.Sqlite => "sqlite",
+        FeatureServiceAppendSourceFormat.GeoPackage => "geoPackage",
+        FeatureServiceAppendSourceFormat.ShapeFile => "shapefile",
+        FeatureServiceAppendSourceFormat.FileGeodatabase => "filegdb",
+        FeatureServiceAppendSourceFormat.FeatureCollection => "featureCollection",
+        FeatureServiceAppendSourceFormat.GeoJson => "geojson",
+        FeatureServiceAppendSourceFormat.Csv => "csv",
+        FeatureServiceAppendSourceFormat.Excel => "excel",
+        FeatureServiceAppendSourceFormat.FeatureService => "feature Service",
+        FeatureServiceAppendSourceFormat.Pbf => "pbf",
+        FeatureServiceAppendSourceFormat.ImageCollection => "image Collection",
+        _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported append source format.")
+    };
+}
 
     private FeatureServiceAppendSubmissionResult MapAppendSubmissionResult(
         EsriAppendSubmissionDto dto,

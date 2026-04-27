@@ -199,22 +199,30 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
             dto.ObjectIdField,
             dto.Fields?.Select(MapField).ToArray() ?? Array.Empty<FeatureField>(),
             new FeatureLayerCapabilities(
-                dto.HasAttachments ?? false,
-                dto.SupportsQueryAttachments ?? false,
-                dto.SupportsAttachmentsResizing ?? false,
-                dto.SupportsTopFeaturesQuery ?? false,
-                supportsPagination,
-                dto.AdvancedQueryCapabilities?.SupportsPaginationOnAggregatedQueries ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryRelatedPagination ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
-                dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsReturningGeometryEnvelope ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsFullTextSearch ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsPercentileStatistics ?? false),
-            dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
-            UniqueIdInfo = uniqueIdInfo
+    dto.HasAttachments ?? false,
+    dto.SupportsQueryAttachments ?? false,
+    dto.SupportsAttachmentsResizing ?? false,
+    dto.SupportsTopFeaturesQuery ?? false,
+    supportsPagination,
+    dto.AdvancedQueryCapabilities?.SupportsPaginationOnAggregatedQueries ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsQueryRelatedPagination ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
+    dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsReturningGeometryEnvelope ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsFullTextSearch ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsPercentileStatistics ?? false,
+    dto.SupportsAppend ?? false),
+dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
+            UniqueIdInfo = uniqueIdInfo,
+            SupportedAppendFormats = dto.SupportedAppendFormats?
+        .Where(static value => !string.IsNullOrWhiteSpace(value))
+        .ToArray() ?? Array.Empty<string>(),
+            SupportedAppendSourceFilterFormats = dto.SupportedAppendSourceFilterFormats?
+        .Where(static value => !string.IsNullOrWhiteSpace(value))
+        .ToArray() ?? Array.Empty<string>(),
+            SupportedAppendCapabilities = dto.SupportedAppendCapabilities
         };
     }
 

@@ -180,4 +180,19 @@ public sealed record FeatureLayerSchema
     /// Gets a value indicating whether the layer exposes unique ID metadata.
     /// </summary>
     public bool SupportsUniqueIds => UniqueIdInfo is not null;
+
+    /// <summary>
+    /// Gets the append source formats advertised by the layer, when available.
+    /// </summary>
+    public IReadOnlyList<string> SupportedAppendFormats { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Gets the append source filter formats advertised by the layer, when available.
+    /// </summary>
+    public IReadOnlyList<string> SupportedAppendSourceFilterFormats { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Gets the raw layer append capability string advertised by newer ArcGIS servers, when available.
+    /// </summary>
+    public string? SupportedAppendCapabilities { get; init; }
 }

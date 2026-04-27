@@ -9,7 +9,7 @@ namespace S100Framework.REST.Abstractions;
 /// Implementations provide query, attachment, and edit operations scoped to one
 /// resolved layer or table in a feature service.
 /// </remarks>
-public interface IFeatureLayerClient
+public partial interface IFeatureLayerClient
 {
     /// <summary>
     /// Gets the schema metadata for the current layer or table.

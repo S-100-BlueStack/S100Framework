@@ -53,5 +53,10 @@ public enum FeatureServiceAppendSourceFormat
     /// <summary>
     /// A protocol buffer binary source.
     /// </summary>
-    Pbf = 9
+    Pbf = 9,
+
+    /// <summary>
+    /// An image collection source.
+    /// </summary>
+    ImageCollection = 10
 }
