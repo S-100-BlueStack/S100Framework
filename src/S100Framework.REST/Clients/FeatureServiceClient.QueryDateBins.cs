@@ -45,7 +45,9 @@ public sealed partial class FeatureServiceClient
             ["f"] = "json",
             ["binField"] = request.BinField,
             ["bin"] = request.BinJson,
-            ["outStatistics"] = SerializeQueryBinsStatistics(request.Statistics),
+            ["outStatistics"] = SerializeOutStatistics(
+    request.Statistics,
+    PercentileStatisticNameFormat.LowerRest),
             ["where"] = string.IsNullOrWhiteSpace(request.Where) ? "1=1" : request.Where
         };
 

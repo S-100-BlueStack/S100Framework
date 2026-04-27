@@ -40,7 +40,9 @@ public sealed partial class FeatureServiceClient
         };
 
         if (request.Statistics is { Count: > 0 }) {
-            parameters["outStatistics"] = SerializeQueryBinsStatistics(request.Statistics);
+            parameters["outStatistics"] = SerializeOutStatistics(
+                request.Statistics,
+                PercentileStatisticNameFormat.LowerRest);
         }
 
         if (request.BinOrder.HasValue) {
@@ -89,49 +91,5 @@ public sealed partial class FeatureServiceClient
         ApplySpatialFilter(parameters, request.SpatialFilter);
 
         return parameters;
-    }
-
-    private static string SerializeQueryBinsStatistics(IReadOnlyList<StatisticDefinition> statistics) {
-        static string MapStatisticType(StatisticType value) {
-            return value switch {
-                StatisticType.Count => "count",
-                StatisticType.Sum => "sum",
-                StatisticType.Min => "min",
-                StatisticType.Max => "max",
-                StatisticType.Average => "avg",
-                StatisticType.StandardDeviation => "stddev",
-                StatisticType.Variance => "var",
-                StatisticType.PercentileContinuous => "percentile_cont",
-                StatisticType.PercentileDiscrete => "percentile_disc",
-                _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unsupported statistic type.")
-            };
-        }
-
-        static string MapPercentileOrder(StatisticPercentileOrder value) {
-            return value switch {
-                StatisticPercentileOrder.Asc => "ASC",
-                StatisticPercentileOrder.Desc => "DESC",
-                _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unsupported percentile order.")
-            };
-        }
-
-        var payload = statistics.Select(statistic => {
-            var entry = new Dictionary<string, object?> {
-                ["statisticType"] = MapStatisticType(statistic.StatisticType),
-                ["onStatisticField"] = statistic.OnStatisticField,
-                ["outStatisticFieldName"] = statistic.OutStatisticFieldName
-            };
-
-            if (statistic.PercentileParameters is not null) {
-                entry["statisticParameters"] = new Dictionary<string, object?> {
-                    ["value"] = statistic.PercentileParameters.Value,
-                    ["orderBy"] = MapPercentileOrder(statistic.PercentileParameters.OrderBy)
-                };
-            }
-
-            return entry;
-        }).ToArray();
-
-        return JsonSerializer.Serialize(payload, JsonOptions);
     }
 }
