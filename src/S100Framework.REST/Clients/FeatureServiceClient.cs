@@ -791,12 +791,49 @@ dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelat
     }
 
     private static void ValidateFeatureQueryCommon(FeatureQuery query) {
+        static void ValidateJsonObject(string? json, string propertyName) {
+            if (json is null) {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(json)) {
+                throw new InvalidOperationException($"{propertyName} must not be empty when provided.");
+            }
+
+            try {
+                using var document = JsonDocument.Parse(json);
+
+                if (document.RootElement.ValueKind != JsonValueKind.Object) {
+                    throw new InvalidOperationException($"{propertyName} must be a JSON object.");
+                }
+            }
+            catch (JsonException exception) {
+                throw new InvalidOperationException($"{propertyName} must contain valid JSON.", exception);
+            }
+        }
+
         if (query.OrderBy is not null && string.IsNullOrWhiteSpace(query.OrderBy)) {
             throw new InvalidOperationException("OrderBy must not be empty when provided.");
         }
 
         if (query.DefaultSrid is <= 0) {
             throw new InvalidOperationException("DefaultSrid must be greater than zero when provided.");
+        }
+
+        if (query.DatumTransformationWkid is <= 0) {
+            throw new InvalidOperationException("DatumTransformationWkid must be greater than zero when provided.");
+        }
+
+        if (query.DatumTransformationWkid.HasValue && query.DatumTransformationJson is not null) {
+            throw new InvalidOperationException(
+                "DatumTransformationWkid and DatumTransformationJson cannot both be specified.");
+        }
+
+        ValidateJsonObject(query.DatumTransformationJson, nameof(query.DatumTransformationJson));
+        ValidateJsonObject(query.QuantizationParametersJson, nameof(query.QuantizationParametersJson));
+
+        if (query.MultipatchOption.HasValue && !query.ReturnGeometry) {
+            throw new InvalidOperationException("MultipatchOption requires ReturnGeometry to be true.");
         }
 
         if (query.UniqueIds is { Count: 0 }) {
@@ -831,7 +868,8 @@ dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelat
             if (query.TimeExtent.Start.HasValue &&
                 query.TimeExtent.End.HasValue &&
                 query.TimeExtent.Start.Value > query.TimeExtent.End.Value) {
-                throw new InvalidOperationException("TimeExtent.Start must be less than or equal to TimeExtent.End when both are provided.");
+                throw new InvalidOperationException(
+                    "TimeExtent.Start must be less than or equal to TimeExtent.End when both are provided.");
             }
         }
     }
@@ -858,9 +896,9 @@ dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelat
         }
     }
     private static Dictionary<string, string?> CreateCommonQueryParameters(
-    FeatureQuery query,
-    bool includeOutSrid,
-    bool includeGeometryOptions) {
+     FeatureQuery query,
+     bool includeOutSrid,
+     bool includeGeometryOptions) {
         static string FormatEpochMilliseconds(DateTimeOffset value) =>
             value.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture);
 
@@ -868,6 +906,26 @@ dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelat
             value.HasValue
                 ? FormatEpochMilliseconds(value.Value)
                 : "null";
+
+        static string MapResultType(FeatureQueryResultType value) {
+            return value switch {
+                FeatureQueryResultType.None => "none",
+                FeatureQueryResultType.Standard => "standard",
+                FeatureQueryResultType.Tile => "tile",
+                _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+            };
+        }
+
+        static string MapMultipatchOption(FeatureQueryMultipatchOption value) {
+            return value switch {
+                FeatureQueryMultipatchOption.XyFootprint => "xyFootprint",
+                FeatureQueryMultipatchOption.StripMaterials => "stripMaterials",
+                FeatureQueryMultipatchOption.EmbedMaterials => "embedMaterials",
+                FeatureQueryMultipatchOption.ExternalizeTextures => "externalizeTextures",
+                FeatureQueryMultipatchOption.Extent => "extent",
+                _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+            };
+        }
 
         static string SerializeFullText(IReadOnlyList<FeatureQueryFullTextExpression> expressions) {
             static string MapSearchType(FeatureQueryFullTextSearchType value) =>
@@ -910,7 +968,7 @@ dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelat
 
                 if (hasSqlExpression == hasStructuredExpression) {
                     throw new InvalidOperationException(
-                        "Each FullText expression must specify either SqlExpression or both OnFields and SearchTerm.");
+                        "Each FullText expression must specify either SqlExpression or OnFields/SearchTerm, but not both.");
                 }
 
                 var entry = new Dictionary<string, object?>();
@@ -920,7 +978,7 @@ dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelat
                 }
                 else {
                     if (expression.OnFields!.Any(string.IsNullOrWhiteSpace)) {
-                        throw new InvalidOperationException("FullText OnFields must not contain empty values.");
+                        throw new InvalidOperationException("FullText OnFields must not contain empty field names.");
                     }
 
                     entry["onFields"] = expression.OnFields;
@@ -994,6 +1052,23 @@ dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelat
             parameters["defaultSR"] = query.DefaultSrid.Value.ToString(CultureInfo.InvariantCulture);
         }
 
+        if (query.ResultType.HasValue) {
+            parameters["resultType"] = MapResultType(query.ResultType.Value);
+        }
+
+        if (query.ReturnExceededLimitFeatures.HasValue) {
+            parameters["returnExceededLimitFeatures"] =
+                query.ReturnExceededLimitFeatures.Value ? "true" : "false";
+        }
+
+        if (query.DatumTransformationWkid.HasValue) {
+            parameters["datumTransformation"] =
+                query.DatumTransformationWkid.Value.ToString(CultureInfo.InvariantCulture);
+        }
+        else if (!string.IsNullOrWhiteSpace(query.DatumTransformationJson)) {
+            parameters["datumTransformation"] = query.DatumTransformationJson;
+        }
+
         if (query.SqlFormat.HasValue) {
             parameters["sqlFormat"] = query.SqlFormat.Value switch {
                 FeatureQuerySqlFormat.None => "none",
@@ -1034,6 +1109,14 @@ dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelat
 
             if (query.MaxAllowableOffset.HasValue) {
                 parameters["maxAllowableOffset"] = query.MaxAllowableOffset.Value.ToString(CultureInfo.InvariantCulture);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.QuantizationParametersJson)) {
+                parameters["quantizationParameters"] = query.QuantizationParametersJson;
+            }
+
+            if (query.MultipatchOption.HasValue) {
+                parameters["multipatchOption"] = MapMultipatchOption(query.MultipatchOption.Value);
             }
         }
 

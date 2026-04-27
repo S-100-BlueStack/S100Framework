@@ -1,0 +1,202 @@
+﻿using S100Framework.REST.Clients;
+using S100Framework.REST.Configuration;
+using S100Framework.REST.Models;
+using S100Framework.REST.Tests.TestDoubles;
+using Xunit;
+
+namespace S100Framework.REST.Tests.Clients;
+
+public sealed class FeatureLayerClientAdvancedQueryParameterTests
+{
+    [Fact]
+    public async Task QueryAsync_IncludesAdvancedQueryParameters_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "features": [
+                    {
+                      "attributes": { "OBJECTID": 1 },
+                      "geometry": { "x": 10, "y": 20 }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+        var results = new List<FeatureRecord>();
+
+        await foreach (var feature in layerClient.QueryAsync(
+            new FeatureQuery {
+                ResultType = FeatureQueryResultType.Tile,
+                ReturnExceededLimitFeatures = false,
+                DatumTransformationWkid = 1623,
+                QuantizationParametersJson = """
+                {
+                  "mode": "view",
+                  "originPosition": "upperLeft",
+                  "tolerance": 1,
+                  "extent": {
+                    "xmin": 0,
+                    "ymin": 0,
+                    "xmax": 10,
+                    "ymax": 10,
+                    "spatialReference": { "wkid": 4326 }
+                  }
+                }
+                """,
+                MultipatchOption = FeatureQueryMultipatchOption.Extent
+            },
+            cancellationToken)) {
+            results.Add(feature);
+        }
+
+        Assert.Single(results);
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase));
+
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.Contains("resultType=tile", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("returnExceededLimitFeatures=false", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("datumTransformation=1623", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("quantizationParameters=", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("\"mode\": \"view\"", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("multipatchOption=extent", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_IncludesDatumTransformationJson_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "count": 7
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        var count = await layerClient.QueryCountAsync(
+            new FeatureQuery {
+                DatumTransformationJson = """
+                {
+                  "geoTransforms": [
+                    {
+                      "wkid": 108190,
+                      "forward": true
+                    }
+                  ]
+                }
+                """
+            },
+            cancellationToken);
+
+        Assert.Equal(7, count);
+
+        var queryRequest = Assert.Single(requestUris);
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.Contains("returnCountOnly=true", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("datumTransformation=", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("\"geoTransforms\"", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("\"wkid\": 108190", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_Throws_WhenDatumTransformationFormsAreCombined() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var client = CreateClient(_ => throw new InvalidOperationException("HTTP should not be called."));
+        var layerClient = client.GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryCountAsync(
+                new FeatureQuery {
+                    DatumTransformationWkid = 1623,
+                    DatumTransformationJson = """{ "wkid": 1623 }"""
+                },
+                cancellationToken));
+
+        Assert.Contains("DatumTransformation", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_Throws_WhenQuantizationParametersJsonIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var client = CreateClient(_ => throw new InvalidOperationException("HTTP should not be called."));
+        var layerClient = client.GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryCountAsync(
+                new FeatureQuery {
+                    QuantizationParametersJson = "not-json"
+                },
+                cancellationToken));
+
+        Assert.Contains("QuantizationParametersJson", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
+        return new FeatureServiceClient(
+            new HttpClient(new StubHttpMessageHandler(handler)),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer"),
+                QueryRequestMethodPreference = QueryRequestMethodPreference.Get
+            });
+    }
+
+    private static bool IsLayerMetadataRequest(HttpRequestMessage request) {
+        return request.RequestUri?.AbsolutePath.EndsWith(
+            "/FeatureServer/0",
+            StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static HttpResponseMessage CreateLayerMetadataResponse() {
+        return StubHttpMessageHandler.Json("""
+        {
+          "id": 0,
+          "name": "Layer 0",
+          "geometryType": "esriGeometryPoint",
+          "objectIdField": "OBJECTID",
+          "maxRecordCount": 1000,
+          "advancedQueryCapabilities": {
+            "supportsPagination": true
+          },
+          "fields": [
+            { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
+          ],
+          "relationships": [],
+          "extent": {
+            "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
+          }
+        }
+        """);
+    }
+}

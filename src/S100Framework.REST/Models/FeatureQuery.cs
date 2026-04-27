@@ -52,6 +52,19 @@ public sealed record FeatureQuery
     public double? MaxAllowableOffset { get; init; }
 
     /// <summary>
+    /// Gets the raw quantization parameters JSON object used to project returned geometries onto a virtual grid.
+    /// </summary>
+    /// <remarks>
+    /// This value is sent directly as the REST API's <c>quantizationParameters</c> parameter.
+    /// </remarks>
+    public string? QuantizationParametersJson { get; init; }
+
+    /// <summary>
+    /// Gets the multipatch geometry return mode.
+    /// </summary>
+    public FeatureQueryMultipatchOption? MultipatchOption { get; init; }
+
+    /// <summary>
     /// Gets the requested page size.
     /// </summary>
     /// <remarks>
@@ -86,6 +99,19 @@ public sealed record FeatureQuery
     public int? ResultRecordCount { get; init; }
 
     /// <summary>
+    /// Gets the result type used by the service when applying standard or tile max-record-count behavior.
+    /// </summary>
+    public FeatureQueryResultType? ResultType { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether features should be returned when the response exceeds the transfer limit.
+    /// </summary>
+    /// <remarks>
+    /// This is mainly useful with <see cref="FeatureQueryResultType.Tile"/> when a caller wants to detect whether a tile resolution still exceeds the transfer limit.
+    /// </remarks>
+    public bool? ReturnExceededLimitFeatures { get; init; }
+
+    /// <summary>
     /// Gets the default spatial reference ID applied to spatial query parameters when supported by the service.
     /// </summary>
     public int? DefaultSrid { get; init; }
@@ -94,6 +120,22 @@ public sealed record FeatureQuery
     /// Gets the output spatial reference ID for returned geometries.
     /// </summary>
     public int? OutSrid { get; init; }
+
+    /// <summary>
+    /// Gets the well-known ID of the datum transformation applied to projected input geometries.
+    /// </summary>
+    /// <remarks>
+    /// Use either this property or <see cref="DatumTransformationJson"/>, not both.
+    /// </remarks>
+    public int? DatumTransformationWkid { get; init; }
+
+    /// <summary>
+    /// Gets the raw datum transformation JSON object applied to projected input geometries.
+    /// </summary>
+    /// <remarks>
+    /// Use this for WKT-based or composite datum transformations. Use either this property or <see cref="DatumTransformationWkid"/>, not both.
+    /// </remarks>
+    public string? DatumTransformationJson { get; init; }
 
     /// <summary>
     /// Gets the SQL format requested from the service.
