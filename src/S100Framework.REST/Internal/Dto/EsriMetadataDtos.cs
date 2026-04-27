@@ -153,6 +153,8 @@ internal sealed class EsriAdvancedQueryCapabilitiesDto
     public bool? SupportsFullTextSearch { get; init; }
     [JsonPropertyName("supportsPercentileStatistics")]
     public bool? SupportsPercentileStatistics { get; init; }
+    [JsonPropertyName("supportsQueryDateBins")]
+    public bool? SupportsQueryDateBins { get; init; }
 }
 
 internal sealed class EsriFieldDto

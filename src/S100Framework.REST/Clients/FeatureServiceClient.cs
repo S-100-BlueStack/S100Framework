@@ -213,7 +213,8 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
     dto.AdvancedQueryCapabilities?.SupportsReturningGeometryEnvelope ?? false,
     dto.AdvancedQueryCapabilities?.SupportsFullTextSearch ?? false,
     dto.AdvancedQueryCapabilities?.SupportsPercentileStatistics ?? false,
-    dto.SupportsAppend ?? false),
+    dto.SupportsAppend ?? false,
+    dto.AdvancedQueryCapabilities?.SupportsQueryDateBins ?? false),
 dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
             UniqueIdInfo = uniqueIdInfo,
             SupportedAppendFormats = dto.SupportedAppendFormats?

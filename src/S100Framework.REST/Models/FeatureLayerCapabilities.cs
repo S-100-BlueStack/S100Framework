@@ -18,6 +18,7 @@
 /// <param name="SupportsFullTextSearch">Indicates whether the layer supports full-text search.</param>
 /// <param name="SupportsPercentileStatistics">Indicates whether the layer supports percentile statistics.</param>
 /// <param name="SupportsAppend">Indicates whether layer-level append is supported.</param>
+/// <param name="SupportsQueryDateBins">Indicates whether the layer supports <c>queryDateBins</c>.</param>
 public sealed record FeatureLayerCapabilities(
     bool HasAttachments,
     bool SupportsQueryAttachments,
@@ -33,4 +34,5 @@ public sealed record FeatureLayerCapabilities(
     bool SupportsReturningGeometryEnvelope = false,
     bool SupportsFullTextSearch = false,
     bool SupportsPercentileStatistics = false,
-    bool SupportsAppend = false);
+    bool SupportsAppend = false,
+    bool SupportsQueryDateBins = false);

@@ -1,0 +1,240 @@
+﻿using S100Framework.REST.Clients;
+using S100Framework.REST.Configuration;
+using S100Framework.REST.Models;
+using S100Framework.REST.Tests.TestDoubles;
+using Xunit;
+
+namespace S100Framework.REST.Tests.Clients;
+
+public sealed class FeatureLayerClientQueryDateBinsTests
+{
+    [Fact]
+    public async Task QueryDateBinsAsync_SendsDateBinParameters() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<Uri>();
+
+        var client = CreateClient(request => {
+            requestUris.Add(request.RequestUri!);
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/queryDateBins",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "exceededTransferLimit": false,
+                  "features": [
+                    {
+                      "attributes": {
+                        "boundary": 1609459200000,
+                        "item_count": 79,
+                        "avg_value": 300.4
+                      }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        var result = await layerClient.QueryDateBinsAsync(
+            new QueryDateBinsRequest {
+                BinField = "created_at",
+                BinJson = """
+                {
+                  "calendarBin": {
+                    "unit": "day",
+                    "timezone": "Europe/Copenhagen"
+                  }
+                }
+                """,
+                Statistics = [
+                    new StatisticDefinition(
+                        OnStatisticField: "OBJECTID",
+                        OutStatisticFieldName: "item_count",
+                        StatisticType: StatisticType.Count),
+                    new StatisticDefinition(
+                        OnStatisticField: "VALUE",
+                        OutStatisticFieldName: "avg_value",
+                        StatisticType: StatisticType.Average)
+                ],
+                Where = "STATUS = 'Active'",
+                TimeExtent = new FeatureTimeExtent(
+                    Start: new DateTimeOffset(2021, 01, 01, 0, 0, 0, TimeSpan.Zero),
+                    End: new DateTimeOffset(2021, 02, 01, 0, 0, 0, TimeSpan.Zero)),
+                BinOrder = QueryBinsOrder.Descending,
+                ReturnCentroid = false,
+                ResultOffset = 10,
+                ResultRecordCount = 20,
+                ReturnExceededLimitFeatures = false,
+                BinBoundaryAlias = "boundary"
+            },
+            cancellationToken);
+
+        Assert.False(result.ExceededTransferLimit);
+
+        var row = Assert.Single(result.Rows);
+        Assert.Equal(1609459200000L, row.Attributes["boundary"]);
+        Assert.Equal(79L, row.Attributes["item_count"]);
+        Assert.Equal(300.4m, row.Attributes["avg_value"]);
+        Assert.Null(row.Centroid);
+
+        var requestUri = Assert.Single(requestUris);
+        var query = ParseQuery(requestUri);
+
+        Assert.Equal("json", query["f"]);
+        Assert.Equal("created_at", query["binField"]);
+        Assert.Equal("STATUS = 'Active'", query["where"]);
+        Assert.Equal("1609459200000,1612137600000", query["time"]);
+        Assert.Equal("DESC", query["binOrder"]);
+        Assert.Equal("false", query["returnCentroid"]);
+        Assert.Equal("10", query["resultOffset"]);
+        Assert.Equal("20", query["resultRecordCount"]);
+        Assert.Equal("false", query["returnExceededLimitFeatures"]);
+        Assert.Equal("boundary", query["binBoundaryAlias"]);
+        Assert.Contains("\"calendarBin\"", query["bin"], StringComparison.Ordinal);
+        Assert.Contains("\"unit\": \"day\"", query["bin"], StringComparison.Ordinal);
+        Assert.Contains("\"outStatisticFieldName\":\"item_count\"", query["outStatistics"], StringComparison.Ordinal);
+        Assert.Contains("\"outStatisticFieldName\":\"avg_value\"", query["outStatistics"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryDateBinsAsync_MapsCentroid_WhenReturned() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/queryDateBins",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "geometryType": "esriGeometryPoint",
+                  "features": [
+                    {
+                      "centroid": {
+                        "x": 12.5,
+                        "y": 55.7
+                      },
+                      "attributes": {
+                        "boundary": 1609459200000,
+                        "item_count": 42
+                      }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        var result = await layerClient.QueryDateBinsAsync(
+            new QueryDateBinsRequest {
+                BinField = "created_at",
+                BinJson = """
+                {
+                  "calendarBin": {
+                    "unit": "month"
+                  }
+                }
+                """,
+                Statistics = [
+                    new StatisticDefinition(
+                        OnStatisticField: "OBJECTID",
+                        OutStatisticFieldName: "item_count",
+                        StatisticType: StatisticType.Count)
+                ],
+                ReturnCentroid = true
+            },
+            cancellationToken);
+
+        Assert.Equal("esriGeometryPoint", result.GeometryType);
+
+        var row = Assert.Single(result.Rows);
+        Assert.NotNull(row.Centroid);
+        Assert.Equal(12.5m, row.Centroid!["x"]);
+        Assert.Equal(55.7m, row.Centroid["y"]);
+    }
+
+    [Fact]
+    public async Task QueryDateBinsAsync_Throws_WhenBinFieldIsEmpty() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var layerClient = client.GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryDateBinsAsync(
+                new QueryDateBinsRequest {
+                    BinField = " ",
+                    BinJson = """
+                    {
+                      "calendarBin": {
+                        "unit": "day"
+                      }
+                    }
+                    """,
+                    Statistics = [
+                        new StatisticDefinition(
+                            OnStatisticField: "OBJECTID",
+                            OutStatisticFieldName: "item_count",
+                            StatisticType: StatisticType.Count)
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("BinField", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryDateBinsAsync_Throws_WhenStatisticsAreMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var layerClient = client.GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryDateBinsAsync(
+                new QueryDateBinsRequest {
+                    BinField = "created_at",
+                    BinJson = """
+                    {
+                      "calendarBin": {
+                        "unit": "day"
+                      }
+                    }
+                    """
+                },
+                cancellationToken));
+
+        Assert.Contains("statistic", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
+        return new FeatureServiceClient(
+            new HttpClient(new StubHttpMessageHandler(handler)),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            });
+    }
+
+    private static Dictionary<string, string> ParseQuery(Uri uri) {
+        return uri.Query
+            .TrimStart('?')
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => part.Split('=', 2))
+            .ToDictionary(
+                parts => Uri.UnescapeDataString(parts[0]),
+                parts => parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : string.Empty,
+                StringComparer.Ordinal);
+    }
+}
