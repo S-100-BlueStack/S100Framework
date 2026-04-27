@@ -78,4 +78,8 @@ public sealed partial class FeatureServiceClient
             SupportsAppend: supportsAppend ?? false,
             SupportsQueryDomains: supportsQueryDomains ?? false);
     }
+
+    private static FeatureServiceDatasetInfo MapDataset(EsriDatasetDto dto) {
+        return new FeatureServiceDatasetInfo(dto.Id, dto.Name ?? $"Dataset {dto.Id}");
+    }
 }

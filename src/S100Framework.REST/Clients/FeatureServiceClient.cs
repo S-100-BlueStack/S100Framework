@@ -59,106 +59,6 @@ public sealed partial class FeatureServiceClient : IFeatureServiceClient
     }
 
 
-    /// <inheritdoc />
-    public IFeatureLayerClient GetLayerClient(int layerId) {
-        if (layerId < 0) {
-            throw new ArgumentOutOfRangeException(nameof(layerId));
-        }
-
-        return new FeatureLayerClient(this, layerId);
-    }
-
-    /// <inheritdoc />
-    public async Task<IFeatureLayerClient> GetLayerClientAsync(
-    string layerName,
-    CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(layerName)) {
-            throw new ArgumentException("Layer name must be provided.", nameof(layerName));
-        }
-
-        var metadata = await GetMetadataAsync(cancellationToken);
-
-        var matches = metadata.Layers
-            .Concat(metadata.Tables)
-            .Where(dataset => string.Equals(dataset.Name, layerName, StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-
-        return matches.Length switch {
-            0 => throw new InvalidOperationException(
-                $"No layer or table named '{layerName}' was found in the feature service."),
-            > 1 => throw new InvalidOperationException(
-                $"Multiple layers or tables named '{layerName}' were found in the feature service. Use the layer ID instead."),
-            _ => GetLayerClient(matches[0].Id)
-        };
-    }
-
-    internal async Task<FeatureLayerSchema> GetLayerSchemaAsync(
-    int layerId,
-    CancellationToken cancellationToken = default) {
-        var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(_serviceUri, layerId.ToString(CultureInfo.InvariantCulture)),
-            new Dictionary<string, string?> {
-                ["f"] = "json"
-            });
-
-        var dto = await GetAsync<EsriLayerMetadataDto>(uri, cancellationToken);
-
-        var srid = dto.Extent?.SpatialReference is null
-            ? null
-            : _options.PreferLatestWkid
-                ? dto.Extent.SpatialReference.LatestWkid ?? dto.Extent.SpatialReference.Wkid
-                : dto.Extent.SpatialReference.Wkid ?? dto.Extent.SpatialReference.LatestWkid;
-
-        var supportsPagination = dto.AdvancedQueryCapabilities?.SupportsPagination ?? false;
-
-        var uniqueIdInfo = dto.UniqueIdInfo is null
-            ? null
-            : new FeatureLayerUniqueIdInfo(
-                dto.UniqueIdInfo.Type ?? "unknown",
-                dto.UniqueIdInfo.Fields?
-                    .Where(static field => !string.IsNullOrWhiteSpace(field))
-                    .ToArray() ?? Array.Empty<string>(),
-                dto.UniqueIdInfo.OidFieldContainsHashValue ?? false);
-
-        return new FeatureLayerSchema(
-            dto.Id,
-            dto.Name ?? $"Layer {dto.Id}",
-            dto.GeometryType,
-            srid,
-            dto.HasZ ?? false,
-            dto.HasM ?? false,
-            dto.MaxRecordCount,
-            dto.ObjectIdField,
-            dto.Fields?.Select(MapField).ToArray() ?? Array.Empty<FeatureField>(),
-            new FeatureLayerCapabilities(
-    dto.HasAttachments ?? false,
-    dto.SupportsQueryAttachments ?? false,
-    dto.SupportsAttachmentsResizing ?? false,
-    dto.SupportsTopFeaturesQuery ?? false,
-    supportsPagination,
-    dto.AdvancedQueryCapabilities?.SupportsPaginationOnAggregatedQueries ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsQueryRelatedPagination ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
-    dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsReturningGeometryEnvelope ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsFullTextSearch ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsPercentileStatistics ?? false,
-    dto.SupportsAppend ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsQueryDateBins ?? false),
-dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
-            UniqueIdInfo = uniqueIdInfo,
-            SupportedAppendFormats = dto.SupportedAppendFormats?
-        .Where(static value => !string.IsNullOrWhiteSpace(value))
-        .ToArray() ?? Array.Empty<string>(),
-            SupportedAppendSourceFilterFormats = dto.SupportedAppendSourceFilterFormats?
-        .Where(static value => !string.IsNullOrWhiteSpace(value))
-        .ToArray() ?? Array.Empty<string>(),
-            SupportedAppendCapabilities = dto.SupportedAppendCapabilities
-        };
-    }
-
     internal Task<EsriQueryResponseDto> QueryFeaturesAsync(
     int layerId,
     FeatureQuery query,
@@ -1213,30 +1113,6 @@ dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelat
         return string.IsNullOrWhiteSpace(fileName)
             ? null
             : fileName.Trim('"');
-    }
-
-    private static FeatureServiceDatasetInfo MapDataset(EsriDatasetDto dto) {
-        return new FeatureServiceDatasetInfo(dto.Id, dto.Name ?? $"Dataset {dto.Id}");
-    }
-
-    private static FeatureField MapField(EsriFieldDto dto) {
-        return new FeatureField(
-            dto.Name ?? string.Empty,
-            dto.Type ?? string.Empty,
-            dto.Alias,
-            dto.Nullable ?? true,
-            dto.Length);
-    }
-
-    private static FeatureRelationshipInfo MapRelationship(EsriRelationshipInfoDto dto) {
-        return new FeatureRelationshipInfo(
-            dto.Id,
-            dto.Name,
-            dto.RelatedTableId,
-            dto.Cardinality,
-            dto.Role,
-            dto.KeyField,
-            dto.Composite);
     }
 
     internal async Task<ApplyEditsResult> WaitForLayerApplyEditsCompletionAsync(
