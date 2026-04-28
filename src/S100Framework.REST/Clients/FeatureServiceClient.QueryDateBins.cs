@@ -57,14 +57,7 @@ public sealed partial class FeatureServiceClient
         }
 
         if (request.BinOrder.HasValue) {
-            parameters["binOrder"] = request.BinOrder.Value switch {
-                QueryBinsOrder.Ascending => "ASC",
-                QueryBinsOrder.Descending => "DESC",
-                _ => throw new ArgumentOutOfRangeException(
-                    nameof(request.BinOrder),
-                    request.BinOrder,
-                    "Unsupported bin order.")
-            };
+            parameters["binOrder"] = MapQueryBinsOrder(request.BinOrder.Value);
         }
 
         if (request.ReturnCentroid.HasValue) {
