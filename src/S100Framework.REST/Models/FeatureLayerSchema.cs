@@ -195,4 +195,9 @@ public sealed record FeatureLayerSchema
     /// Gets the raw layer append capability string advertised by newer ArcGIS servers, when available.
     /// </summary>
     public string? SupportedAppendCapabilities { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the layer advertises a contingent values definition.
+    /// </summary>
+    public bool HasContingentValuesDefinition { get; init; }
 }

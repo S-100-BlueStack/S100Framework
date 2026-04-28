@@ -42,6 +42,9 @@
 /// <param name="SupportsQueryDataElements">
 /// Indicates whether the service advertises support for the <c>queryDataElements</c> operation.
 /// </param>
+/// <param name="SupportsQueryContingentValues">
+/// Indicates whether the service advertises support for the <c>queryContingentValues</c> operation.
+/// </param>
 public sealed record FeatureServiceCapabilities(
     bool SupportsQuery,
     bool SupportsCreate,
@@ -55,4 +58,5 @@ public sealed record FeatureServiceCapabilities(
     bool SupportsAsyncApplyEdits,
     bool SupportsAppend = false,
     bool SupportsQueryDomains = false,
-    bool SupportsQueryDataElements = false);
+    bool SupportsQueryDataElements = false,
+    bool SupportsQueryContingentValues = false);

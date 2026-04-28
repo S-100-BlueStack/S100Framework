@@ -36,6 +36,15 @@ internal sealed class EsriServiceMetadataDto
 
     [JsonPropertyName("supportsQueryDataElements")]
     public bool? SupportsQueryDataElements { get; init; }
+
+    [JsonPropertyName("supportsQueryContingentValues")]
+    public bool? SupportsQueryContingentValues { get; init; }
+
+    [JsonPropertyName("supportedContingentValuesFormats")]
+    public string? SupportedContingentValuesFormats { get; init; }
+
+    [JsonPropertyName("supportsContingentValuesJson")]
+    public int? SupportsContingentValuesJson { get; init; }
 }
 
 internal sealed class EsriDatasetDto
@@ -110,6 +119,9 @@ internal sealed class EsriLayerMetadataDto
 
     [JsonPropertyName("supportedAppendCapabilities")]
     public string? SupportedAppendCapabilities { get; init; }
+
+    [JsonPropertyName("hasContingentValuesDefinition")]
+    public bool? HasContingentValuesDefinition { get; init; }
 }
 
 internal sealed class EsriUniqueIdInfoDto

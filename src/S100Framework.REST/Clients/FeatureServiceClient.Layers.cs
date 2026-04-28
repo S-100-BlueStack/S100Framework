@@ -108,7 +108,8 @@ public sealed partial class FeatureServiceClient
             SupportedAppendSourceFilterFormats = dto.SupportedAppendSourceFilterFormats?
                 .Where(static value => !string.IsNullOrWhiteSpace(value))
                 .ToArray() ?? Array.Empty<string>(),
-            SupportedAppendCapabilities = dto.SupportedAppendCapabilities
+            SupportedAppendCapabilities = dto.SupportedAppendCapabilities,
+            HasContingentValuesDefinition = dto.HasContingentValuesDefinition ?? false
         };
     }
 
