@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+﻿using S100Framework.REST.Internal.Validation;
 
 namespace S100Framework.REST.Models;
 
@@ -92,12 +92,10 @@ public sealed record QueryDateBinsRequest
             throw new InvalidOperationException("BinField must be provided.");
         }
 
-        ValidateJsonObject(BinJson, nameof(BinJson), required: true);
-        ValidateJsonObject(QuantizationParametersJson, nameof(QuantizationParametersJson), required: false);
+        QueryBinRequestValidation.ValidateJsonObject(BinJson, nameof(BinJson), required: true);
+        QueryBinRequestValidation.ValidateJsonObject(QuantizationParametersJson, nameof(QuantizationParametersJson), required: false);
 
-        if (Statistics.Count == 0) {
-            throw new InvalidOperationException("At least one statistic must be provided.");
-        }
+        QueryBinRequestValidation.ValidateStatistics(Statistics, required: true);
 
         if (Where is not null && string.IsNullOrWhiteSpace(Where)) {
             throw new InvalidOperationException("Where must not be empty when provided.");
@@ -130,75 +128,6 @@ public sealed record QueryDateBinsRequest
 
         if (BinBoundaryAlias is not null && string.IsNullOrWhiteSpace(BinBoundaryAlias)) {
             throw new InvalidOperationException("BinBoundaryAlias must not be empty when provided.");
-        }
-
-        ValidateStatistics();
-    }
-
-    private void ValidateStatistics() {
-        var aliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var statistic in Statistics) {
-            if (string.IsNullOrWhiteSpace(statistic.OnStatisticField)) {
-                throw new InvalidOperationException("StatisticDefinition.OnStatisticField must be provided.");
-            }
-
-            if (string.IsNullOrWhiteSpace(statistic.OutStatisticFieldName)) {
-                throw new InvalidOperationException("StatisticDefinition.OutStatisticFieldName must be provided.");
-            }
-
-            if (!aliases.Add(statistic.OutStatisticFieldName)) {
-                throw new InvalidOperationException(
-                    $"Duplicate statistic alias '{statistic.OutStatisticFieldName}' is not allowed.");
-            }
-
-            var isPercentile = statistic.StatisticType is
-                StatisticType.PercentileContinuous or
-                StatisticType.PercentileDiscrete;
-
-            if (isPercentile) {
-                if (statistic.PercentileParameters is null) {
-                    throw new InvalidOperationException(
-                        "Percentile statistics require PercentileParameters to be provided.");
-                }
-
-                if (double.IsNaN(statistic.PercentileParameters.Value) ||
-                    double.IsInfinity(statistic.PercentileParameters.Value) ||
-                    statistic.PercentileParameters.Value < 0d ||
-                    statistic.PercentileParameters.Value > 1d) {
-                    throw new InvalidOperationException(
-                        "PercentileParameters.Value must be between 0 and 1.");
-                }
-            }
-            else if (statistic.PercentileParameters is not null) {
-                throw new InvalidOperationException(
-                    "PercentileParameters can only be used with percentile statistic types.");
-            }
-        }
-    }
-
-    private static void ValidateJsonObject(string? json, string propertyName, bool required) {
-        if (json is null) {
-            if (required) {
-                throw new InvalidOperationException($"{propertyName} must be provided.");
-            }
-
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(json)) {
-            throw new InvalidOperationException($"{propertyName} must not be empty when provided.");
-        }
-
-        try {
-            using var document = JsonDocument.Parse(json);
-
-            if (document.RootElement.ValueKind != JsonValueKind.Object) {
-                throw new InvalidOperationException($"{propertyName} must be a JSON object.");
-            }
-        }
-        catch (JsonException exception) {
-            throw new InvalidOperationException($"{propertyName} must contain valid JSON.", exception);
         }
     }
 }
