@@ -280,4 +280,131 @@ public sealed class FeatureLayerClientQueryAnalyticAsyncTests
                 parts => parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : string.Empty,
                 StringComparer.Ordinal);
     }
+
+    [Theory]
+    [InlineData("Completed")]
+    [InlineData("CompletedWithErrors")]
+    [InlineData("Completed With Errors")]
+    [InlineData("Succeeded")]
+    [InlineData("esriJobSucceeded")]
+    public void QueryAnalyticJobStatus_IsCompleted_ForSuccessfulStatuses(string status) {
+        var jobStatus = new QueryAnalyticJobStatus(
+            status,
+            ResultUrl: new Uri("https://example.test/jobs/queryAnalytic/abc/result"),
+            SubmissionTime: null,
+            LastUpdatedTime: null);
+
+        Assert.True(jobStatus.IsCompleted);
+        Assert.True(jobStatus.IsTerminal);
+        Assert.False(jobStatus.IsFailed);
+        Assert.False(jobStatus.IsCancelled);
+        Assert.False(jobStatus.IsTimedOut);
+    }
+
+    [Theory]
+    [InlineData("Failed")]
+    [InlineData("Error")]
+    [InlineData("esriJobFailed")]
+    public void QueryAnalyticJobStatus_IsFailed_ForFailureStatuses(string status) {
+        var jobStatus = new QueryAnalyticJobStatus(
+            status,
+            ResultUrl: null,
+            SubmissionTime: null,
+            LastUpdatedTime: null);
+
+        Assert.True(jobStatus.IsFailed);
+        Assert.True(jobStatus.IsTerminal);
+        Assert.False(jobStatus.IsCompleted);
+    }
+
+    [Theory]
+    [InlineData("Cancelled")]
+    [InlineData("Canceled")]
+    [InlineData("esriJobCancelled")]
+    [InlineData("esriJobCanceled")]
+    public void QueryAnalyticJobStatus_IsCancelled_ForCancelledStatuses(string status) {
+        var jobStatus = new QueryAnalyticJobStatus(
+            status,
+            ResultUrl: null,
+            SubmissionTime: null,
+            LastUpdatedTime: null);
+
+        Assert.True(jobStatus.IsCancelled);
+        Assert.True(jobStatus.IsTerminal);
+        Assert.False(jobStatus.IsCompleted);
+    }
+
+    [Theory]
+    [InlineData("TimedOut")]
+    [InlineData("Timed Out")]
+    [InlineData("Timeout")]
+    [InlineData("esriJobTimedOut")]
+    public void QueryAnalyticJobStatus_IsTimedOut_ForTimedOutStatuses(string status) {
+        var jobStatus = new QueryAnalyticJobStatus(
+            status,
+            ResultUrl: null,
+            SubmissionTime: null,
+            LastUpdatedTime: null);
+
+        Assert.True(jobStatus.IsTimedOut);
+        Assert.True(jobStatus.IsTerminal);
+        Assert.False(jobStatus.IsCompleted);
+    }
+
+    [Theory]
+    [InlineData("Submitted")]
+    [InlineData("Waiting")]
+    [InlineData("Executing")]
+    [InlineData("InProgress")]
+    [InlineData("Processing")]
+    [InlineData("Running")]
+    [InlineData("Cancelling")]
+    [InlineData("esriJobSubmitted")]
+    [InlineData("esriJobWaiting")]
+    [InlineData("esriJobExecuting")]
+    [InlineData("esriJobCancelling")]
+    public void QueryAnalyticJobStatus_IsRunning_ForNonTerminalStatuses(string status) {
+        var jobStatus = new QueryAnalyticJobStatus(
+            status,
+            ResultUrl: null,
+            SubmissionTime: null,
+            LastUpdatedTime: null);
+
+        Assert.True(jobStatus.IsRunning);
+        Assert.False(jobStatus.IsTerminal);
+        Assert.False(jobStatus.IsCompleted);
+    }
+
+    [Fact]
+    public async Task GetQueryAnalyticStatusAsync_MapsEsriJobStatusProperty() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (request.RequestUri!.AbsoluteUri == "https://example.test/jobs/queryAnalytic/abc") {
+                return StubHttpMessageHandler.Json("""
+            {
+              "jobStatus": "esriJobSucceeded",
+              "resultUrl": "https://example.test/jobs/queryAnalytic/abc/result",
+              "submissionTime": "1000",
+              "lastUpdatedTime": "3000"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var status = await client.GetLayerClient(0).GetQueryAnalyticStatusAsync(
+            new Uri("https://example.test/jobs/queryAnalytic/abc"),
+            cancellationToken);
+
+        Assert.True(status.IsTerminal);
+        Assert.True(status.IsCompleted);
+        Assert.False(status.IsFailed);
+        Assert.Equal(
+            new Uri("https://example.test/jobs/queryAnalytic/abc/result"),
+            status.ResultUrl);
+        Assert.Equal(1000, status.SubmissionTime);
+        Assert.Equal(3000, status.LastUpdatedTime);
+    }
 }

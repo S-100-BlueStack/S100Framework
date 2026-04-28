@@ -61,16 +61,16 @@ public sealed partial class FeatureServiceClient
     }
 
     internal async Task<QueryAnalyticJobStatus> GetQueryAnalyticStatusAsync(
-        Uri statusUrl,
-        CancellationToken cancellationToken = default) {
+     Uri statusUrl,
+     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(statusUrl);
 
         using var document = await GetAsync<JsonDocument>(statusUrl, cancellationToken);
         var root = document.RootElement;
 
         return new QueryAnalyticJobStatus(
-            Status: root.TryGetProperty("status", out var statusElement)
-                ? statusElement.GetString() ?? "Unknown"
+            Status: TryGetString(root, "status", "jobStatus", out var status)
+                ? status ?? "Unknown"
                 : "Unknown",
             ResultUrl: TryGetUri(root, "resultUrl", "resultURL", out var resultUrl)
                 ? resultUrl
@@ -183,19 +183,41 @@ public sealed partial class FeatureServiceClient
 
     private static bool TryGetString(
         JsonElement root,
-        string primaryPropertyName,
-        string alternatePropertyName,
+        string propertyName,
         out string? value) {
         value = null;
 
-        if (root.TryGetProperty(primaryPropertyName, out var primaryElement)) {
-            value = primaryElement.GetString();
-            return true;
+        if (!root.TryGetProperty(propertyName, out var element)) {
+            return false;
         }
 
-        if (root.TryGetProperty(alternatePropertyName, out var alternateElement)) {
-            value = alternateElement.GetString();
-            return true;
+        value = element.GetString();
+        return true;
+    }
+
+    private static bool TryGetString(
+        JsonElement root,
+        string primaryPropertyName,
+        string alternatePropertyName,
+        out string? value) {
+        return TryGetString(
+            root,
+            [primaryPropertyName, alternatePropertyName],
+            out value);
+    }
+
+    private static bool TryGetString(
+        JsonElement root,
+        IReadOnlyList<string> propertyNames,
+        out string? value) {
+        ArgumentNullException.ThrowIfNull(propertyNames);
+
+        value = null;
+
+        foreach (var propertyName in propertyNames) {
+            if (TryGetString(root, propertyName, out value)) {
+                return true;
+            }
         }
 
         return false;
