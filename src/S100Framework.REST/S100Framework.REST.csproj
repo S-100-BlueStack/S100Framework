@@ -9,7 +9,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.4.0</Version>
+		<Version>1.5.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
@@ -31,13 +31,13 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			- Added layer-level queryAnalytic support.
-			- Added service-level and layer-level queryDataElements support.
-			- Added service-level and layer-level queryContingentValues support.
-			- Added layer-level fieldGroups support.
-			- Added capability metadata for queryAnalytic, queryDataElements, and queryContingentValues.
-			- Added layer schema metadata for contingent values definitions.
-			- Updated README documentation for analytic queries, data elements, contingent values, field groups, and new capability checks.
+			- Added async queryAnalytic submission support.
+			- Added queryAnalytic status polling and result retrieval.
+			- Added WaitForQueryAnalyticCompletionAsync convenience methods.
+			- Added QueryAnalyticWaitOptions and QueryAnalyticJobStatus models.
+			- Added async queryAnalytic capability mapping through FeatureLayerCapabilities.SupportsAsyncQueryAnalytic.
+			- Hardened queryAnalytic job status handling for Esri job-status values such as esriJobSubmitted, esriJobExecuting, esriJobSucceeded, esriJobFailed, esriJobTimedOut, and esriJobCancelled.
+			- Updated README documentation for synchronous and asynchronous queryAnalytic workflows.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 

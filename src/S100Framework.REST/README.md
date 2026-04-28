@@ -13,7 +13,7 @@ Use this library when you want to:
 - work with geometries as NetTopologySuite types
 - use advanced query options such as temporal filters, request shaping, full text search, unique IDs, datum transformations, quantization, and statistics
 - query service domains, data elements, field groups, and contingent values
-- query related records, attachments, top features, estimates, bins, date bins, and analytic rows
+- query related records, attachments, top features, estimates, bins, date bins, and synchronous/asynchronous analytic rows
 - validate SQL expressions before sending dynamic queries
 - edit features with layer-level or service-level `applyEdits`
 - upload temporary server-side files for append workflows
@@ -93,7 +93,7 @@ Use the layer client for layer-level operations:
 - query related records
 - query attachments and download attachment content
 - query top features
-- query bins, date bins, and analytic rows
+- query bins, date bins, and synchronous/asynchronous analytic rows
 - query data elements for the current layer
 - query contingent values and field groups
 - get layer estimates
@@ -375,6 +375,7 @@ Console.WriteLine($"Supports percentile statistics: {schema.Capabilities.Support
 Console.WriteLine($"Supports append: {schema.Capabilities.SupportsAppend}");
 Console.WriteLine($"Supports queryDateBins: {schema.Capabilities.SupportsQueryDateBins}");
 Console.WriteLine($"Supports queryAnalytic: {schema.Capabilities.SupportsQueryAnalytic}");
+Console.WriteLine($"Supports async queryAnalytic: {schema.Capabilities.SupportsAsyncQueryAnalytic}");
 Console.WriteLine($"Has contingent values definition: {schema.HasContingentValuesDefinition}");
 Console.WriteLine($"Supports unique IDs: {schema.SupportsUniqueIds}");
 
@@ -947,6 +948,102 @@ foreach (var row in result.Rows) {
 `OutAnalyticsJson` is raw JSON by design because ArcGIS supports many analytic definitions and this package should not lock consumers into one model too early.
 
 Check `schema.Capabilities.SupportsQueryAnalytic` before using this operation when you need proactive capability checks.
+
+### Async `queryAnalytic`
+
+Use async `queryAnalytic` when the layer supports analytic jobs that may take longer than a normal request. Check `schema.Capabilities.SupportsAsyncQueryAnalytic` before submitting an async job.
+
+```csharp
+using S100Framework.REST.Models;
+
+var schema = await layerClient.GetSchemaAsync();
+
+if (!schema.Capabilities.SupportsAsyncQueryAnalytic) {
+    throw new InvalidOperationException("The layer does not support async queryAnalytic.");
+}
+
+var submission = await layerClient.SubmitQueryAnalyticAsync(new QueryAnalyticRequest {
+    Where = "POP1990 > 0",
+    OutAnalyticsJson = """
+    [
+      {
+        "analyticType": "SUM",
+        "onAnalyticField": "POP1990",
+        "outAnalyticFieldName": "RunningTotal",
+        "analyticParameters": {
+          "partitionBy": "STATE_NAME",
+          "orderBy": "POP1990 ASC"
+        }
+      }
+    ]
+    """,
+    OutFields = ["OBJECTID", "STATE_NAME", "RunningTotal"],
+    ReturnGeometry = false
+});
+
+if (submission.IsPending) {
+    Console.WriteLine(submission.StatusUrl);
+}
+```
+
+### Poll async `queryAnalytic` manually
+
+```csharp
+if (submission.StatusUrl is null) {
+    throw new InvalidOperationException("The server did not return a status URL.");
+}
+
+while (true) {
+    var status = await layerClient.GetQueryAnalyticStatusAsync(submission.StatusUrl);
+
+    if (status.IsCompleted && status.ResultUrl is not null) {
+        var result = await layerClient.GetQueryAnalyticResultAsync(status.ResultUrl);
+
+        foreach (var row in result.Rows) {
+            Console.WriteLine(row.Attributes["RunningTotal"]);
+        }
+
+        break;
+    }
+
+    if (status.IsFailed || status.IsCancelled || status.IsTimedOut) {
+        throw new InvalidOperationException(
+            $"queryAnalytic ended with status '{status.Status}'.");
+    }
+
+    await Task.Delay(TimeSpan.FromSeconds(2));
+}
+```
+
+### Wait for async `queryAnalytic`
+
+```csharp
+var result = await layerClient.WaitForQueryAnalyticCompletionAsync(
+    new QueryAnalyticRequest {
+        Where = "POP1990 > 0",
+        OutAnalyticsJson = """
+        [
+          {
+            "analyticType": "RANK",
+            "onAnalyticField": "POP1990",
+            "outAnalyticFieldName": "PopulationRank"
+          }
+        ]
+        """,
+        OutFields = ["OBJECTID", "STATE_NAME", "PopulationRank"],
+        ReturnGeometry = false
+    },
+    new QueryAnalyticWaitOptions {
+        PollInterval = TimeSpan.FromSeconds(2),
+        Timeout = TimeSpan.FromMinutes(5)
+    });
+
+foreach (var row in result.Rows) {
+    Console.WriteLine(row.Attributes["PopulationRank"]);
+}
+```
+
+`QueryAnalyticJobStatus` understands common Esri job values such as `esriJobSubmitted`, `esriJobExecuting`, `esriJobSucceeded`, `esriJobFailed`, `esriJobTimedOut`, and `esriJobCancelled`.
 
 ---
 
@@ -1766,6 +1863,7 @@ Console.WriteLine(schema.Capabilities.SupportsPercentileStatistics);
 Console.WriteLine(schema.Capabilities.SupportsAppend);
 Console.WriteLine(schema.Capabilities.SupportsQueryDateBins);
 Console.WriteLine(schema.Capabilities.SupportsQueryAnalytic);
+Console.WriteLine(schema.Capabilities.SupportsAsyncQueryAnalytic);
 Console.WriteLine(schema.HasContingentValuesDefinition);
 Console.WriteLine(schema.SupportsUniqueIds);
 ```
@@ -1858,6 +1956,8 @@ When `ReturnTrueCurves` is disabled, the server is expected to return densified 
 - `queryDomains` depends on service-level support and only returns domains referenced by the requested layer IDs.
 - Percentile statistics depend on layer-level support and cannot be combined with unsupported server-side options.
 - `queryBins` and `queryDateBins` use raw JSON for bin configuration to avoid over-constraining ArcGIS-supported payload shapes.
+- `queryAnalytic` uses raw JSON for analytic definitions to avoid over-constraining ArcGIS-supported analytic payload shapes.
+- Async `queryAnalytic` currently uses JSON result payloads. PBF result parsing is not currently implemented.
 - Token acquisition for Portal for ArcGIS login is intentionally outside this package.
 
 ---
