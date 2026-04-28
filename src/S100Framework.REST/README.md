@@ -1,8 +1,8 @@
 # S100Framework.REST
 
-`S100Framework.REST` is a .NET library for reading and editing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite.
+`S100Framework.REST` is a .NET library for reading, editing, and analyzing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite.
 
-It does **not** depend on ArcGIS SDKs or ArcGIS runtime components. It talks directly to Feature Service REST endpoints.
+It does **not** depend on ArcGIS SDKs, ArcGIS Runtime, or ArcGIS licensing. It talks directly to Feature Service REST endpoints.
 
 ## What this library is for
 
@@ -11,12 +11,14 @@ Use this library when you want to:
 - read service metadata, layer metadata, and schema
 - query features from an Esri Feature Service
 - work with geometries as NetTopologySuite types
-- use advanced query options such as temporal filters, request-shaping, full text search, unique IDs, and statistics
+- use advanced query options such as temporal filters, request shaping, full text search, unique IDs, datum transformations, quantization, and statistics
 - query service domains for one or more layers
+- query related records, attachments, top features, estimates, bins, and date bins
+- validate SQL expressions before sending dynamic queries
 - edit features with layer-level or service-level `applyEdits`
-- work with attachments
+- upload temporary server-side files for append workflows
+- bulk-load data with service-level or layer-level `append`
 - get change sets from `extractChanges`
-- submit asynchronous `append` jobs from `edits`, `appendItemId`, or `appendUploadId`
 - convert between NTS geometries / feature records and Esri JSON
 
 ## What most consumers need
@@ -29,7 +31,8 @@ Most consumers only need these steps:
 4. Run queries or edits
 
 If you do **not** need incremental sync or delta tracking, you can ignore the `extractChanges` section.
-If you do **not** need bulk loading, you can also ignore the `append` section.
+If you do **not** need bulk loading, you can ignore the `append` section.
+If you do **not** need aggregated analysis, you can ignore `queryBins` and `queryDateBins`.
 
 ---
 
@@ -68,11 +71,13 @@ Use the service client for service-level operations:
 - get a layer client by ID
 - get a layer client by layer name
 - query service domains for a set of layer IDs
+- get service-level layer estimates
+- upload files to the service uploads endpoint
 - run multi-layer `applyEdits`
 - run `extractChanges`
 - poll async `extractChanges` jobs
 - download async `extractChanges` result files
-- submit and poll async `append` jobs that use literal `edits`
+- submit and poll service-level `append` jobs
 
 ### `IFeatureLayerClient`
 
@@ -85,10 +90,12 @@ Use the layer client for layer-level operations:
 - query related records
 - query attachments and download attachment content
 - query top features
+- query bins and date bins
+- get layer estimates
+- validate SQL expressions
 - run layer-level `applyEdits`
+- run layer-level `append`
 - add, update, and delete attachments
-
-The concrete `FeatureServiceClient` also exposes append overloads for `appendItemId` and `appendUploadId`.
 
 ---
 
@@ -115,12 +122,28 @@ var client = new FeatureServiceClient(
 
 ---
 
+## Dependency injection
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+using S100Framework.REST.Configuration;
+using S100Framework.REST.DependencyInjection;
+
+services.AddFeatureServiceClient(options => {
+    options.ServiceUri = new Uri("https://example.com/arcgis/rest/services/MyService/FeatureServer");
+    options.DefaultPageSize = 100;
+});
+```
+
+Use direct construction when you need explicit control over `HttpClient` lifetime or authentication setup. Use DI when the consuming application already uses `IServiceCollection` and typed clients.
+
+---
+
 ## Authentication
 
 Authentication is intentionally handled through `HttpClient` and optional request authorizers.
 
-That keeps authentication concerns outside the query and edit models.
-The library supports three practical patterns:
+That keeps authentication concerns outside the query and edit models. The library supports three practical patterns:
 
 1. direct Windows / integrated authentication through `HttpClientHandler`
 2. direct bearer tokens
@@ -156,8 +179,7 @@ var client = new FeatureServiceClient(
     });
 ```
 
-This is **not** the same as token-based access through a federated portal.
-If your service expects a token, `UseDefaultCredentials = true` is not enough by itself.
+This is **not** the same as token-based access through a federated portal. If your service expects a token, `UseDefaultCredentials = true` is not enough by itself.
 
 ### Direct bearer token
 
@@ -182,8 +204,6 @@ var client = new FeatureServiceClient(
 ```
 
 ### Static access token provider
-
-If you want to stay on the token-provider model even when you already have a token, use `StaticFeatureServiceAccessTokenProvider`.
 
 ```csharp
 using S100Framework.REST.Authorization;
@@ -280,8 +300,7 @@ var client = new FeatureServiceClient(
     authorizer);
 ```
 
-In this setup, the library does **not** acquire the portal token itself.
-It expects another part of the application to provide that token.
+In this setup, the library does **not** acquire the portal token itself. It expects another part of the application to provide that token.
 
 ### What the library does not do
 
@@ -312,7 +331,7 @@ Console.WriteLine($"Supports query domains: {metadata.Capabilities.SupportsQuery
 Console.WriteLine($"Append formats: {string.Join(", ", metadata.SupportedAppendFormats)}");
 ```
 
-This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits, `extractChanges`, `append`, or `queryDomains`. Esri exposes `supportsAppend`, `supportedAppendFormats`, and `supportsQueryDomains` on the service resource when those operations are available.
+This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits, `extractChanges`, `append`, uploads, or `queryDomains`.
 
 ---
 
@@ -346,6 +365,8 @@ Console.WriteLine($"Has attachments: {schema.Capabilities.HasAttachments}");
 Console.WriteLine($"Supports full text search: {schema.Capabilities.SupportsFullTextSearch}");
 Console.WriteLine($"Supports geometry envelope: {schema.Capabilities.SupportsReturningGeometryEnvelope}");
 Console.WriteLine($"Supports percentile statistics: {schema.Capabilities.SupportsPercentileStatistics}");
+Console.WriteLine($"Supports append: {schema.Capabilities.SupportsAppend}");
+Console.WriteLine($"Supports queryDateBins: {schema.Capabilities.SupportsQueryDateBins}");
 Console.WriteLine($"Supports unique IDs: {schema.SupportsUniqueIds}");
 
 if (schema.UniqueIdInfo is not null) {
@@ -354,7 +375,7 @@ if (schema.UniqueIdInfo is not null) {
 }
 ```
 
-This is the easiest way to discover what a layer looks like before querying or editing it.
+This is the easiest way to discover what a layer looks like before querying, editing, appending, or using advanced layer operations.
 
 ---
 
@@ -441,7 +462,7 @@ var count = await layerClient.QueryCountAsync(query);
 
 Use `TimeInstant` for a single instant and `TimeExtent` for an interval or open-ended range.
 
-### Request shaping with result windows, default SR, and SQL format
+### Request shaping with result windows, result type, default SR, and SQL format
 
 ```csharp
 using S100Framework.REST.Models;
@@ -450,6 +471,8 @@ var query = new FeatureQuery {
     Where = "1=1",
     ResultOffset = 100,
     ResultRecordCount = 50,
+    ResultType = FeatureQueryResultType.Standard,
+    ReturnExceededLimitFeatures = false,
     DefaultSrid = 4326,
     SqlFormat = FeatureQuerySqlFormat.Standard,
     PageSize = 25
@@ -460,8 +483,78 @@ await foreach (var feature in layerClient.QueryAsync(query)) {
 }
 ```
 
-`ResultOffset` and `ResultRecordCount` define the requested result window.
-`PageSize` still controls the client-side batch size while streaming.
+`ResultOffset` and `ResultRecordCount` define the requested result window. `PageSize` still controls the client-side batch size while streaming.
+
+Use `ResultType = FeatureQueryResultType.Tile` when you are intentionally using tile-oriented server behavior.
+
+### Datum transformation
+
+Use `DatumTransformationWkid` when a known transformation ID is enough:
+
+```csharp
+var query = new FeatureQuery {
+    Where = "1=1",
+    OutSrid = 3857,
+    DatumTransformationWkid = 108190
+};
+```
+
+Use `DatumTransformationJson` for composite or WKT-based transformations:
+
+```csharp
+var query = new FeatureQuery {
+    Where = "1=1",
+    DatumTransformationJson = """
+    {
+      "geoTransforms": [
+        {
+          "wkid": 108190,
+          "forward": true
+        }
+      ]
+    }
+    """
+};
+```
+
+Only one of `DatumTransformationWkid` and `DatumTransformationJson` can be set.
+
+### Quantization parameters
+
+```csharp
+var query = new FeatureQuery {
+    Where = "1=1",
+    ReturnGeometry = true,
+    QuantizationParametersJson = """
+    {
+      "mode": "view",
+      "originPosition": "upperLeft",
+      "tolerance": 1,
+      "extent": {
+        "xmin": 0,
+        "ymin": 0,
+        "xmax": 10,
+        "ymax": 10,
+        "spatialReference": { "wkid": 4326 }
+      }
+    }
+    """
+};
+```
+
+Raw JSON is used intentionally here because ArcGIS supports multiple quantization payload shapes.
+
+### Multipatch options
+
+```csharp
+var query = new FeatureQuery {
+    Where = "1=1",
+    ReturnGeometry = true,
+    MultipatchOption = FeatureQueryMultipatchOption.Extent
+};
+```
+
+`MultipatchOption` is only valid when `ReturnGeometry = true`.
 
 ### Return geometry as envelope
 
@@ -583,7 +676,7 @@ var rows = await layerClient.QueryStatisticsAsync(new FeatureStatisticsQuery {
 Console.WriteLine(rows[0].Attributes["P90_DEPTH"]);
 ```
 
-Esri supports percentile statistics through `PERCENTILE_DISC` and `PERCENTILE_CONT`, and layers that support them advertise `supportsPercentileStatistics=true` in advanced query capabilities. Percentile statistics require percentile parameters and cannot be combined with `havingClause`.
+Percentile statistics require percentile parameters and depend on layer support.
 
 ---
 
@@ -617,8 +710,6 @@ This is useful when you need to:
 - resolve code values to user-facing labels without hardcoding them
 - inspect domain metadata for multiple layers in one call
 
-Esri’s `queryDomains` operation processes an array of layer IDs and returns the referenced domain definitions as range, coded-value, or inherited domains. Services that support it advertise `supportsQueryDomains=true`.
-
 ---
 
 ## Query related records
@@ -637,6 +728,174 @@ var related = await layerClient.QueryRelatedRecordsAsync(new RelatedRecordsQuery
 ```
 
 If you are unsure which `RelationshipId` to use, inspect `schema.Relationships` first.
+
+---
+
+## Top features
+
+Use top-features queries when the layer supports server-side top-N selection per group.
+
+```csharp
+using S100Framework.REST.Models;
+
+var rows = await layerClient.QueryTopFeaturesAsync(new TopFeaturesQuery {
+    Where = "1=1",
+    OutFields = ["OBJECTID", "CATEGORY", "SCORE"],
+    ReturnGeometry = false,
+    TopFilter = new TopFeaturesFilter(
+        GroupByFields: ["CATEGORY"],
+        OrderByFields: ["SCORE DESC"],
+        TopCount: 3)
+});
+```
+
+You can also query top-feature object IDs or counts:
+
+```csharp
+var objectIds = await layerClient.QueryTopFeatureObjectIdsAsync(query);
+var count = await layerClient.QueryTopFeatureCountAsync(query);
+```
+
+---
+
+## Estimates
+
+Use `getEstimates` when approximate count/extent information is good enough and you want a lightweight operation.
+
+### Service-level estimates
+
+```csharp
+var estimates = await client.GetEstimatesAsync([0, 1]);
+
+foreach (var estimate in estimates) {
+    Console.WriteLine($"Layer: {estimate.LayerId}");
+    Console.WriteLine($"Count: {estimate.Count}");
+    Console.WriteLine($"Extent: {estimate.Extent?.Envelope}");
+}
+```
+
+Call without layer IDs to ask the service for all returned layer estimates:
+
+```csharp
+var estimates = await client.GetEstimatesAsync();
+```
+
+### Layer-level estimates
+
+```csharp
+var estimate = await layerClient.GetEstimatesAsync();
+
+Console.WriteLine(estimate.Count);
+Console.WriteLine(estimate.Extent?.Envelope);
+```
+
+---
+
+## Validate SQL
+
+Use `validateSQL` before sending SQL entered or generated outside trusted static code.
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await layerClient.ValidateSqlAsync(new ValidateSqlRequest {
+    Sql = "STATUS = 'Active'",
+    SqlType = ValidateSqlType.Where
+});
+
+if (!result.IsValidSql) {
+    foreach (var error in result.ValidationErrors) {
+        Console.WriteLine($"{error.ErrorCode}: {error.Description}");
+    }
+}
+```
+
+This validates the SQL against the layer, but it does not make untrusted SQL automatically safe. Prefer server-supported parameterization or strongly controlled query builders in consuming applications.
+
+---
+
+## Query bins
+
+Use `queryBins` for histogram-like grouped analysis over numeric or date fields.
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await layerClient.QueryBinsAsync(new QueryBinsRequest {
+    Where = "STATUS = 'Active'",
+    BinJson = """
+    {
+      "type": "fixedIntervalBin",
+      "onField": "DEPTH",
+      "parameters": {
+        "interval": 100,
+        "start": 0,
+        "end": 1000
+      }
+    }
+    """,
+    Statistics = [
+        new StatisticDefinition(
+            OnStatisticField: "DEPTH",
+            OutStatisticFieldName: "AVG_DEPTH",
+            StatisticType: StatisticType.Average)
+    ],
+    BinOrder = QueryBinsOrder.Ascending
+});
+
+foreach (var row in result.Rows) {
+    Console.WriteLine($"Bin: {row.Attributes["bin"]}");
+    Console.WriteLine($"Frequency: {row.Attributes["frequency"]}");
+    Console.WriteLine($"Average depth: {row.Attributes["AVG_DEPTH"]}");
+}
+```
+
+`BinJson` is raw JSON by design because ArcGIS supports several bin shapes and this package should not force one model too early.
+
+Stacked bins are returned through `QueryBinsResult.StackFieldNames` and `QueryBinRow.StackedAttributes`.
+
+---
+
+## Query date bins
+
+Use `queryDateBins` for aggregated time-based histograms.
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await layerClient.QueryDateBinsAsync(new QueryDateBinsRequest {
+    BinField = "created_at",
+    BinJson = """
+    {
+      "calendarBin": {
+        "unit": "day",
+        "timezone": "Europe/Copenhagen"
+      }
+    }
+    """,
+    Statistics = [
+        new StatisticDefinition(
+            OnStatisticField: "OBJECTID",
+            OutStatisticFieldName: "item_count",
+            StatisticType: StatisticType.Count)
+    ],
+    Where = "STATUS = 'Active'",
+    TimeExtent = new FeatureTimeExtent(
+        Start: new DateTimeOffset(2025, 01, 01, 0, 0, 0, TimeSpan.Zero),
+        End: new DateTimeOffset(2025, 02, 01, 0, 0, 0, TimeSpan.Zero)),
+    BinOrder = QueryBinsOrder.Ascending,
+    ReturnCentroid = false,
+    ResultRecordCount = 100,
+    BinBoundaryAlias = "boundary"
+});
+
+foreach (var row in result.Rows) {
+    Console.WriteLine($"Boundary: {row.Attributes["boundary"]}");
+    Console.WriteLine($"Count: {row.Attributes["item_count"]}");
+}
+```
+
+Use `ReturnCentroid = true` if the service should return aggregate centroid information for each date bin.
 
 ---
 
@@ -750,7 +1009,7 @@ var result = await layerClient.ApplyEditsAsync(new FeatureEdits {
 });
 ```
 
-### Layer-level async `applyEdits` with manual submit/status/result`
+### Layer-level async `applyEdits` with manual submit/status/result
 
 Use this when you want explicit control over polling, logging, retry behavior, or timeout handling.
 
@@ -800,8 +1059,6 @@ else {
 
 ### Layer-level async `applyEdits` with wait helper
 
-Use this when you want a simpler API and the default polling flow is good enough.
-
 ```csharp
 using NetTopologySuite.Geometries;
 using S100Framework.REST.Models;
@@ -845,57 +1102,7 @@ var result = await client.ApplyEditsAsync(new FeatureServiceEdits {
 });
 ```
 
-### Service-level async `applyEdits` with manual submit/status/result
-
-Use this when you need one request across multiple layers and want explicit control over polling.
-
-```csharp
-using S100Framework.REST.Models;
-
-var submission = await client.SubmitApplyEditsAsync(new FeatureServiceEdits {
-    Layers = [
-        new ServiceLayerEdits {
-            LayerId = 0,
-            DeleteObjectIds = [101]
-        },
-        new ServiceLayerEdits {
-            LayerId = 1,
-            DeleteObjectIds = [202]
-        }
-    ]
-});
-
-FeatureServiceApplyEditsResult result;
-
-if (submission.Result is not null) {
-    result = submission.Result;
-}
-else {
-    if (submission.StatusUrl is null) {
-        throw new InvalidOperationException("The server did not return a result or a status URL.");
-    }
-
-    while (true) {
-        var status = await client.GetApplyEditsStatusAsync(submission.StatusUrl);
-
-        if (status.IsCompleted && status.ResultUrl is not null) {
-            result = await client.GetApplyEditsResultAsync(status.ResultUrl);
-            break;
-        }
-
-        if (status.IsTerminal) {
-            throw new InvalidOperationException(
-                $"applyEdits ended with terminal status '{status.Status}'.");
-        }
-
-        await Task.Delay(TimeSpan.FromSeconds(2));
-    }
-}
-```
-
 ### Service-level async `applyEdits` with wait helper
-
-Use this when you want one multi-layer call and the built-in polling behavior is sufficient.
 
 ```csharp
 using S100Framework.REST.Models;
@@ -921,19 +1128,252 @@ var result = await client.WaitForApplyEditsCompletionAsync(
 
 ---
 
+## Uploads
+
+Use uploads when you want the service to temporarily store a file that another operation can consume. The common use case in this package is upload-backed `append`.
+
+```csharp
+using S100Framework.REST.Models;
+
+await using var stream = File.OpenRead("source.gdb.zip");
+
+var upload = await client.UploadItemAsync(new FeatureServiceUploadRequest {
+    Content = stream,
+    FileName = "source.gdb.zip",
+    ContentType = "application/zip",
+    Description = "Append source"
+});
+
+Console.WriteLine(upload.ItemId);
+```
+
+The returned `ItemId` can be passed as `AppendUploadId`.
+
+---
+
+## `append`
+
+Use `append` when you want the service to ingest a larger payload asynchronously. This is usually the right tool for bulk loads and controlled upsert scenarios.
+
+### Check append support first
+
+Service-level append:
+
+```csharp
+var metadata = await client.GetMetadataAsync();
+
+if (!metadata.Capabilities.SupportsAppend) {
+    throw new InvalidOperationException("The service does not support append.");
+}
+
+Console.WriteLine(string.Join(", ", metadata.SupportedAppendFormats));
+```
+
+Layer-level append:
+
+```csharp
+var schema = await layerClient.GetSchemaAsync();
+
+if (!schema.Capabilities.SupportsAppend) {
+    throw new InvalidOperationException("The layer does not support append.");
+}
+
+Console.WriteLine(string.Join(", ", schema.SupportedAppendFormats));
+```
+
+### Important note about `upsert`
+
+When `upsert = true`, the library validates an important Esri rule before the request is sent:
+
+- append upsert is **not** supported when sync is enabled
+- append upsert is **not** supported when change tracking is enabled
+
+That is validated from service metadata before the append request is submitted.
+
+### Service-level append using literal `edits`
+
+Use this when you already have an append-compatible JSON payload and want to submit it directly.
+
+```csharp
+using S100Framework.REST.Models;
+
+var submission = await client.SubmitAppendAsync(new FeatureServiceAppendEditsRequest {
+    Layers = [0],
+    EditsJson = """
+    {
+      "layers": [
+        {
+          "layerDefinition": { "id": 0 },
+          "featureSet": {
+            "features": [
+              {
+                "attributes": {
+                  "NAME": "Harbor A"
+                },
+                "geometry": {
+                  "x": 12.34,
+                  "y": 56.78,
+                  "spatialReference": { "wkid": 4326 }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+    """,
+    RollbackOnFailure = true,
+    ReturnEditMoment = true
+});
+
+Console.WriteLine(submission.Status);
+Console.WriteLine(submission.JobId);
+Console.WriteLine(submission.StatusUrl);
+```
+
+### Service-level append using `appendItemId`
+
+Use this when the source data already exists as a portal item.
+
+```csharp
+using S100Framework.REST.Models;
+
+var status = await client.WaitForAppendCompletionAsync(
+    new FeatureServiceAppendItemRequest {
+        Layers = [0],
+        AppendItemId = "894d8c12438v4baaac164b636f7e1e2f",
+        AppendUploadFormat = FeatureServiceAppendSourceFormat.FileGeodatabase,
+        LayerMappings = [
+            new FeatureServiceAppendLayerMapping {
+                Id = 0,
+                SourceTableName = "Countries",
+                FieldMappings = [
+                    new FeatureServiceAppendFieldMapping {
+                        Name = "NAME",
+                        Source = "Country"
+                    }
+                ]
+            }
+        ],
+        RollbackOnFailure = true
+    },
+    new AppendWaitOptions {
+        PollInterval = TimeSpan.FromSeconds(2),
+        Timeout = TimeSpan.FromMinutes(2)
+    });
+```
+
+### Service-level append using `appendUploadId`
+
+```csharp
+using S100Framework.REST.Models;
+
+await using var stream = File.OpenRead("source.gdb.zip");
+
+var upload = await client.UploadItemAsync(new FeatureServiceUploadRequest {
+    Content = stream,
+    FileName = "source.gdb.zip",
+    ContentType = "application/zip"
+});
+
+var status = await client.WaitForAppendCompletionAsync(
+    new FeatureServiceAppendUploadRequest {
+        Layers = [0],
+        AppendUploadId = upload.ItemId,
+        AppendUploadFormat = FeatureServiceAppendSourceFormat.FileGeodatabase,
+        LayerMappings = [
+            new FeatureServiceAppendLayerMapping {
+                Id = 0,
+                SourceTableName = "USA"
+            }
+        ],
+        RollbackOnFailure = true
+    },
+    new AppendWaitOptions {
+        PollInterval = TimeSpan.FromSeconds(2),
+        Timeout = TimeSpan.FromMinutes(2)
+    });
+```
+
+### Layer-level append using `appendUploadId`
+
+Use layer-level append when your source maps directly into one target layer.
+
+```csharp
+using S100Framework.REST.Models;
+
+await using var stream = File.OpenRead("source.gdb.zip");
+
+var upload = await client.UploadItemAsync(new FeatureServiceUploadRequest {
+    Content = stream,
+    FileName = "source.gdb.zip",
+    ContentType = "application/zip"
+});
+
+var status = await layerClient.WaitForAppendCompletionAsync(
+    new FeatureLayerAppendUploadRequest {
+        AppendUploadId = upload.ItemId,
+        AppendUploadFormat = FeatureServiceAppendSourceFormat.FileGeodatabase,
+        SourceTableName = "USA",
+        FieldMappings = [
+            new FeatureServiceAppendFieldMapping {
+                Name = "NAME",
+                Source = "SOURCE_NAME"
+            }
+        ],
+        Upsert = true,
+        UpsertMatchingField = "GLOBALID",
+        UpdateGeometry = true,
+        RollbackOnFailure = true
+    },
+    new AppendWaitOptions {
+        PollInterval = TimeSpan.FromSeconds(2),
+        Timeout = TimeSpan.FromMinutes(2)
+    });
+```
+
+Layer-level append also supports `FeatureLayerAppendEditsRequest` and `FeatureLayerAppendItemRequest`.
+
+### Poll an append job manually
+
+```csharp
+var submission = await client.SubmitAppendAsync(new FeatureServiceAppendEditsRequest {
+    Layers = [0],
+    EditsJson = editsJson,
+    RollbackOnFailure = true
+});
+
+if (submission.StatusUrl is not null) {
+    while (true) {
+        var status = await client.GetAppendStatusAsync(submission.StatusUrl);
+
+        if (status.IsCompleted) {
+            Console.WriteLine($"Records processed: {status.RecordCount}");
+            break;
+        }
+
+        if (status.IsTerminal) {
+            throw new InvalidOperationException($"append ended with status '{status.Status}'.");
+        }
+
+        await Task.Delay(TimeSpan.FromSeconds(2));
+    }
+}
+```
+
+---
+
 ## `extractChanges`
 
 Use `extractChanges` when you want to ask the server:
 
 > What has changed since my last sync?
 
-This is **not** the first thing most consumers need.
-It is mainly useful for incremental synchronization, cache refresh, local replicas, or jobs that only want deltas.
+This is **not** the first thing most consumers need. It is mainly useful for incremental synchronization, cache refresh, local replicas, or jobs that only want deltas.
 
 ### Important idea: what `LayerServerGens` means
 
-`LayerServerGens` is the part that often looks strange the first time.
-Think of it as a **bookmark from the last successful change read**.
+`LayerServerGens` is a bookmark from the last successful change read.
 
 A typical flow is:
 
@@ -971,24 +1411,9 @@ var result = await client.ExtractChangesAsync(new ExtractChangesRequest {
 });
 ```
 
-What to remember here:
-
-- `Layers` says which layers you want changes from
-- `LayerServerGens` says where your last sync left off
-- `ReturnInserts`, `ReturnUpdates`, and `ReturnDeletes` decide which change types you want
-- `DataFormat = Json` asks for a JSON result
-
 After a successful call, store the returned `layerServerGens` values if you want to continue incremental sync later.
 
 ### `extractChanges` with layer queries and geometry filter
-
-Use this only if you want to narrow the result.
-
-Examples:
-
-- only changes for one part of the map
-- only changes that match a `where` clause
-- only changes for one layer with different rules than another layer
 
 ```csharp
 using NetTopologySuite.Geometries;
@@ -1017,8 +1442,6 @@ var result = await client.ExtractChangesAsync(new ExtractChangesRequest {
 
 ### `extractChanges` with IDs only
 
-Use this when you only need object IDs or delete IDs, not full feature payloads.
-
 ```csharp
 using S100Framework.REST.Models;
 
@@ -1037,8 +1460,6 @@ var result = await client.ExtractChangesAsync(new ExtractChangesRequest {
 
 ### `extractChanges` with extent only
 
-Use this when you do **not** need the changed features themselves. You only want the area where changes happened.
-
 ```csharp
 using S100Framework.REST.Models;
 
@@ -1055,10 +1476,7 @@ var result = await client.ExtractChangesAsync(new ExtractChangesRequest {
 
 ### Async `extractChanges`
 
-Some `extractChanges` requests are handled asynchronously.
-In that case the first response contains a `statusUrl` instead of the final data, and the job must be polled until completion.
-
-You can still use the low-level API directly:
+Some `extractChanges` requests are handled asynchronously. In that case the first response contains a `statusUrl` instead of the final data, and the job must be polled until completion.
 
 ```csharp
 using S100Framework.REST.Models;
@@ -1078,8 +1496,6 @@ if (submission.StatusUrl is not null) {
     var status = await client.GetExtractChangesStatusAsync(submission.StatusUrl);
 }
 ```
-
-But most consumers should use the convenience helpers instead.
 
 ### Poll until async `extractChanges` completes
 
@@ -1145,214 +1561,7 @@ But the ArcGIS REST parameter value is spelled:
 sqllite
 ```
 
-That spelling comes from the REST API itself.
-The library handles that mapping internally, so callers should keep using the .NET enum value `Sqlite`.
-
----
-
-## `append`
-
-Use `append` when you want the service to ingest a larger payload asynchronously.
-This is usually the right tool for bulk loads and controlled upsert scenarios.
-
-### Check append support first
-
-```csharp
-var metadata = await client.GetMetadataAsync();
-
-if (!metadata.Capabilities.SupportsAppend) {
-    throw new InvalidOperationException("The service does not support append.");
-}
-
-Console.WriteLine(string.Join(", ", metadata.SupportedAppendFormats));
-```
-
-### Important note about `upsert`
-
-When `upsert = true`, the library validates an important Esri rule before the request is sent:
-
-- append upsert is **not** supported when sync is enabled
-- append upsert is **not** supported when change tracking is enabled
-
-That is validated from service metadata before the append request is submitted.
-
-### Append using literal `edits`
-
-Use this when you already have an append-compatible JSON payload and want to submit it directly.
-
-```csharp
-using S100Framework.REST.Models;
-
-var submission = await client.SubmitAppendAsync(new FeatureServiceAppendEditsRequest {
-    Layers = [0],
-    EditsJson = """
-    {
-      "layers": [
-        {
-          "layerDefinition": { "id": 0 },
-          "featureSet": {
-            "features": [
-              {
-                "attributes": {
-                  "NAME": "Harbor A"
-                },
-                "geometry": {
-                  "x": 12.34,
-                  "y": 56.78,
-                  "spatialReference": { "wkid": 4326 }
-                }
-              }
-            ]
-          }
-        }
-      ]
-    }
-    """,
-    RollbackOnFailure = true,
-    ReturnEditMoment = true
-});
-
-Console.WriteLine(submission.Status);
-Console.WriteLine(submission.JobId);
-Console.WriteLine(submission.StatusUrl);
-```
-
-### Poll an append job manually
-
-```csharp
-var submission = await client.SubmitAppendAsync(new FeatureServiceAppendEditsRequest {
-    Layers = [0],
-    EditsJson = editsJson,
-    RollbackOnFailure = true
-});
-
-if (submission.StatusUrl is not null) {
-    while (true) {
-        var status = await client.GetAppendStatusAsync(submission.StatusUrl);
-
-        if (status.IsCompleted) {
-            Console.WriteLine($"Records processed: {status.RecordCount}");
-            break;
-        }
-
-        if (status.IsTerminal) {
-            throw new InvalidOperationException($"append ended with status '{status.Status}'.");
-        }
-
-        await Task.Delay(TimeSpan.FromSeconds(2));
-    }
-}
-```
-
-### Submit and wait for append completion from `edits`
-
-```csharp
-using S100Framework.REST.Extensions;
-using S100Framework.REST.Models;
-
-var status = await client.SubmitAndWaitForAppendAsync(
-    new FeatureServiceAppendEditsRequest {
-        Layers = [0],
-        EditsJson = editsJson,
-        RollbackOnFailure = true
-    },
-    new AppendWaitOptions {
-        PollInterval = TimeSpan.FromSeconds(2),
-        Timeout = TimeSpan.FromMinutes(2)
-    });
-```
-
-This helper throws if the append job reaches a terminal state that is not completed.
-
-### Append using `appendItemId`
-
-Use this when the source data already exists as a portal item.
-
-```csharp
-using S100Framework.REST.Models;
-
-var submission = await client.SubmitAppendAsync(new FeatureServiceAppendItemRequest {
-    Layers = [0],
-    AppendItemId = "894d8c12438v4baaac164b636f7e1e2f",
-    AppendUploadFormat = FeatureServiceAppendSourceFormat.FileGeodatabase,
-    LayerMappings = [
-        new FeatureServiceAppendLayerMapping {
-            Id = 0,
-            SourceTableName = "Countries",
-            FieldMappings = [
-                new FeatureServiceAppendFieldMapping {
-                    Name = "NAME",
-                    Source = "Country"
-                }
-            ]
-        }
-    ],
-    RollbackOnFailure = true
-});
-```
-
-You can then wait on the concrete client overload:
-
-```csharp
-var status = await client.WaitForAppendCompletionAsync(
-    new FeatureServiceAppendItemRequest {
-        Layers = [0],
-        AppendItemId = "hosted-item-1",
-        AppendUploadFormat = FeatureServiceAppendSourceFormat.FeatureService,
-        LayerMappings = [
-            new FeatureServiceAppendLayerMapping {
-                Id = 0,
-                SourceId = 3
-            }
-        ]
-    },
-    new AppendWaitOptions {
-        PollInterval = TimeSpan.FromSeconds(2),
-        Timeout = TimeSpan.FromMinutes(2)
-    });
-```
-
-### Append using `appendUploadId`
-
-Use this when you already uploaded a temporary server-side item and want append to consume that upload.
-
-```csharp
-using S100Framework.REST.Models;
-
-var submission = await client.SubmitAppendAsync(new FeatureServiceAppendUploadRequest {
-    Layers = [0],
-    AppendUploadId = "0c6b928f590f49ebac04761bab413e49",
-    AppendUploadFormat = FeatureServiceAppendSourceFormat.FileGeodatabase,
-    LayerMappings = [
-        new FeatureServiceAppendLayerMapping {
-            Id = 0,
-            SourceTableName = "USA"
-        }
-    ],
-    RollbackOnFailure = true
-});
-```
-
-You can then wait on the concrete client overload:
-
-```csharp
-var status = await client.WaitForAppendCompletionAsync(
-    new FeatureServiceAppendUploadRequest {
-        Layers = [0],
-        AppendUploadId = "0c6b928f590f49ebac04761bab413e49",
-        AppendUploadFormat = FeatureServiceAppendSourceFormat.FileGeodatabase,
-        LayerMappings = [
-            new FeatureServiceAppendLayerMapping {
-                Id = 0,
-                SourceTableName = "USA"
-            }
-        ]
-    },
-    new AppendWaitOptions {
-        PollInterval = TimeSpan.FromSeconds(2),
-        Timeout = TimeSpan.FromMinutes(2)
-    });
-```
+That spelling comes from the REST API itself. The library handles that mapping internally, so callers should keep using the .NET enum value `Sqlite`.
 
 ---
 
@@ -1403,8 +1612,7 @@ var esriFeatureSetJson = EsriJsonFeatureConverter.SerializeFeatureSet(features, 
 
 ## Capability checks
 
-Advanced operations are not supported by every Feature Service.
-The library exposes capability information and also validates important cases at runtime.
+Advanced operations are not supported by every Feature Service. The library exposes capability information and also validates important cases at runtime.
 
 ### Layer capabilities
 
@@ -1416,10 +1624,14 @@ Console.WriteLine(schema.Capabilities.SupportsQueryAttachments);
 Console.WriteLine(schema.Capabilities.SupportsTopFeaturesQuery);
 Console.WriteLine(schema.Capabilities.SupportsPagination);
 Console.WriteLine(schema.Capabilities.SupportsPaginationOnAggregatedQueries);
+Console.WriteLine(schema.Capabilities.SupportsQueryRelatedPagination);
+Console.WriteLine(schema.Capabilities.SupportsAdvancedQueryRelated);
 Console.WriteLine(schema.Capabilities.SupportsAsyncApplyEdits);
 Console.WriteLine(schema.Capabilities.SupportsReturningGeometryEnvelope);
 Console.WriteLine(schema.Capabilities.SupportsFullTextSearch);
 Console.WriteLine(schema.Capabilities.SupportsPercentileStatistics);
+Console.WriteLine(schema.Capabilities.SupportsAppend);
+Console.WriteLine(schema.Capabilities.SupportsQueryDateBins);
 Console.WriteLine(schema.SupportsUniqueIds);
 ```
 
@@ -1458,15 +1670,14 @@ if (metadata.ExtractChangesCapabilities is not null) {
 ### Rule of thumb
 
 - For ordinary queries, you usually do not need to think much about capabilities.
-- For attachments, top features, advanced related queries, statistics pagination, percentile statistics, `queryDomains`, `extractChanges`, and `append`, check capabilities first.
+- For attachments, top features, advanced related queries, statistics pagination, percentile statistics, `queryDomains`, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
 - Even if you skip the manual check, the client will still fail fast for important unsupported operations.
 
 ---
 
 ## Query request method selection
 
-Standard layer `query` requests can use GET or POST.
-The client supports three modes through `FeatureServiceClientOptions.QueryRequestMethodPreference`:
+Standard layer `query` requests can use GET or POST. The client supports three modes through `FeatureServiceClientOptions.QueryRequestMethodPreference`:
 
 - `Auto`
 - `Get`
@@ -1493,9 +1704,7 @@ var client = new FeatureServiceClient(
 
 The library returns NetTopologySuite geometries.
 
-When `ReturnTrueCurves` is disabled, the server is expected to return densified linear geometries.
-When `ReturnTrueCurves` is enabled, the client can currently linearize circular-arc true curves for `curvePaths` and `curveRings`.
-Other true-curve segment types are not yet supported.
+When `ReturnTrueCurves` is disabled, the server is expected to return densified linear geometries. When `ReturnTrueCurves` is enabled, the client can currently linearize circular-arc true curves for `curvePaths` and `curveRings`. Other true-curve segment types are not yet supported.
 
 ---
 
@@ -1507,10 +1716,11 @@ Other true-curve segment types are not yet supported.
 - `extractChanges` is mainly for incremental sync scenarios.
 - Async `extractChanges` SQLite results are downloaded as files.
 - The ArcGIS REST API uses the literal `sqllite` for the SQLite data format parameter. The library hides that detail behind `ExtractChangesDataFormat.Sqlite`.
-- `append` support currently covers `edits`, `appendItemId`, and `appendUploadId` on the service root endpoint.
-- `append` upload creation itself is not handled by the library. `appendUploadId` assumes that the caller already has a valid upload item ID.
+- `append` support covers service-level append and layer-level append with `edits`, `appendItemId`, and `appendUploadId` sources.
+- Upload creation is supported through `UploadItemAsync`, but upload lifecycle cleanup depends on the server and consuming workflow.
 - `queryDomains` depends on service-level support and only returns domains referenced by the requested layer IDs.
-- Percentile statistics depend on layer-level support and cannot be combined with `havingClause`.
+- Percentile statistics depend on layer-level support and cannot be combined with unsupported server-side options.
+- `queryBins` and `queryDateBins` use raw JSON for bin configuration to avoid over-constraining ArcGIS-supported payload shapes.
 - Token acquisition for Portal for ArcGIS login is intentionally outside this package.
 
 ---
@@ -1527,8 +1737,11 @@ If this is your first time using the package, read the sections in this order:
 6. Advanced feature query
 7. Editing features
 8. Attachments
-9. `append`
-10. `extractChanges`
-11. Public Esri JSON converters
+9. Uploads
+10. `append`
+11. `extractChanges`
+12. Estimates and SQL validation
+13. `queryBins` and `queryDateBins`
+14. Public Esri JSON converters
 
-That gets the common cases out of the way before the more specialized bulk-load and sync scenarios.
+That gets the common cases out of the way before the more specialized bulk-load, sync, and analysis scenarios.

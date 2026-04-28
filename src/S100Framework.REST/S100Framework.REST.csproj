@@ -9,13 +9,13 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.2.1</Version>
+		<Version>1.3.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
 		<Product>S100Framework</Product>
 
-		<Description>.NET library for reading and editing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite, without ArcGIS SDK dependencies.</Description>
+		<Description>.NET library for reading, editing, bulk-loading, and analyzing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite, without ArcGIS SDK dependencies.</Description>
 
 		<PackageTags>ArcGIS;Esri;FeatureService;REST;NetTopologySuite;Geometry;S-100</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -31,19 +31,18 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			- 1.2.1 fixed citation issues with readme
-			- Added statistics query support with grouping, HAVING, ordering, and aggregated pagination.
-			- Added percentile statistics support with capability checks.
-			- Added queryDomains support with typed domain models and service capability mapping.
-			- Added advanced query support for time and historicMoment.
-			- Added request-shaping query support for resultOffset, resultRecordCount, defaultSR, sqlFormat, and returnEnvelope.
-			- Added fullText query support.
-			- Added layer unique ID metadata mapping and query support for unique IDs.
-			- Added append capability metadata including supported append formats.
-			- Added async append support for edits, appendItemId, and appendUploadId sources.
-			- Added append job status polling and submit-and-wait convenience helpers.
-			- Expanded README and XML documentation for advanced query, statistics, domains, and append workflows.
-			- Improved query, statistics, domains, and append test coverage.
+			- Added service upload support for append-backed workflows.
+			- Added layer-level append support for edits, appendItemId, and appendUploadId sources.
+			- Added advanced feature query parameters for resultType, returnExceededLimitFeatures, datumTransformation, quantizationParameters, and multipatchOption.
+			- Added service-level and layer-level getEstimates support.
+			- Added layer-level validateSQL support.
+			- Added layer-level queryBins support.
+			- Added layer-level queryDateBins support.
+			- Added append capability mapping for layers.
+			- Added image Collection append source format support.
+			- Reorganized feature service and layer clients into operation-specific partial files.
+			- Consolidated internal statistics serialization, JSON attribute conversion, unique ID serialization, and bin query validation helpers.
+			- Expanded README and XML documentation for uploads, append, advanced query options, estimates, SQL validation, bin queries, and date-bin queries.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 
