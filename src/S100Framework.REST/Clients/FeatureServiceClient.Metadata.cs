@@ -20,11 +20,12 @@ public sealed partial class FeatureServiceClient
         var dto = await GetAsync<EsriServiceMetadataDto>(uri, cancellationToken);
 
         var serviceCapabilities = ParseServiceCapabilities(
-            dto.Capabilities,
-            dto.SyncEnabled,
-            dto.SupportsAppend,
-            dto.SupportsQueryDomains,
-            dto.AdvancedEditingCapabilities);
+     dto.Capabilities,
+     dto.SyncEnabled,
+     dto.SupportsAppend,
+     dto.SupportsQueryDomains,
+     dto.SupportsQueryDataElements,
+     dto.AdvancedEditingCapabilities);
 
         var extractChangesCapabilities = dto.ExtractChangesCapabilities is null
             ? null
@@ -55,11 +56,12 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureServiceCapabilities ParseServiceCapabilities(
-        string? capabilities,
-        bool? syncEnabled,
-        bool? supportsAppend,
-        bool? supportsQueryDomains,
-        EsriAdvancedEditingCapabilitiesDto? advancedEditingCapabilities) {
+     string? capabilities,
+     bool? syncEnabled,
+     bool? supportsAppend,
+     bool? supportsQueryDomains,
+     bool? supportsQueryDataElements,
+     EsriAdvancedEditingCapabilitiesDto? advancedEditingCapabilities) {
         var values = (capabilities ?? string.Empty)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -76,7 +78,8 @@ public sealed partial class FeatureServiceClient
             SyncEnabled: syncEnabled ?? false,
             SupportsAsyncApplyEdits: advancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false,
             SupportsAppend: supportsAppend ?? false,
-            SupportsQueryDomains: supportsQueryDomains ?? false);
+            SupportsQueryDomains: supportsQueryDomains ?? false,
+            SupportsQueryDataElements: supportsQueryDataElements ?? false);
     }
 
     private static FeatureServiceDatasetInfo MapDataset(EsriDatasetDto dto) {

@@ -39,6 +39,9 @@
 /// <param name="SupportsQueryDomains">
 /// Indicates whether the service advertises support for the <c>queryDomains</c> operation.
 /// </param>
+/// <param name="SupportsQueryDataElements">
+/// Indicates whether the service advertises support for the <c>queryDataElements</c> operation.
+/// </param>
 public sealed record FeatureServiceCapabilities(
     bool SupportsQuery,
     bool SupportsCreate,
@@ -51,4 +54,5 @@ public sealed record FeatureServiceCapabilities(
     bool SyncEnabled,
     bool SupportsAsyncApplyEdits,
     bool SupportsAppend = false,
-    bool SupportsQueryDomains = false);
+    bool SupportsQueryDomains = false,
+    bool SupportsQueryDataElements = false);

@@ -33,6 +33,9 @@ internal sealed class EsriServiceMetadataDto
 
     [JsonPropertyName("supportsQueryDomains")]
     public bool? SupportsQueryDomains { get; init; }
+
+    [JsonPropertyName("supportsQueryDataElements")]
+    public bool? SupportsQueryDataElements { get; init; }
 }
 
 internal sealed class EsriDatasetDto
