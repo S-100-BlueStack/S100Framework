@@ -82,7 +82,7 @@ public sealed partial class FeatureServiceClient
             dto.MaxRecordCount,
             dto.ObjectIdField,
             dto.Fields?.Select(MapField).ToArray() ?? Array.Empty<FeatureField>(),
-            new FeatureLayerCapabilities(
+           new FeatureLayerCapabilities(
     dto.HasAttachments ?? false,
     dto.SupportsQueryAttachments ?? false,
     dto.SupportsAttachmentsResizing ?? false,
@@ -99,7 +99,8 @@ public sealed partial class FeatureServiceClient
     dto.AdvancedQueryCapabilities?.SupportsPercentileStatistics ?? false,
     dto.SupportsAppend ?? false,
     dto.AdvancedQueryCapabilities?.SupportsQueryDateBins ?? false,
-    dto.AdvancedQueryCapabilities?.SupportsQueryAnalytic ?? false),
+    dto.AdvancedQueryCapabilities?.SupportsQueryAnalytic ?? false,
+    dto.AdvancedQueryAnalyticCapabilities?.SupportsAsync ?? false),
             dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
             UniqueIdInfo = uniqueIdInfo,
             SupportedAppendFormats = dto.SupportedAppendFormats?

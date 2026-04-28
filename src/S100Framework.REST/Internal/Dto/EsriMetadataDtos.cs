@@ -122,6 +122,9 @@ internal sealed class EsriLayerMetadataDto
 
     [JsonPropertyName("hasContingentValuesDefinition")]
     public bool? HasContingentValuesDefinition { get; init; }
+
+    [JsonPropertyName("advancedQueryAnalyticCapabilities")]
+    public EsriAdvancedQueryAnalyticCapabilitiesDto? AdvancedQueryAnalyticCapabilities { get; init; }
 }
 
 internal sealed class EsriUniqueIdInfoDto
@@ -174,6 +177,17 @@ internal sealed class EsriAdvancedQueryCapabilitiesDto
     public bool? SupportsQueryAnalytic { get; init; }
 }
 
+internal sealed class EsriAdvancedQueryAnalyticCapabilitiesDto
+{
+    [JsonPropertyName("supportsAsync")]
+    public bool? SupportsAsync { get; init; }
+
+    [JsonPropertyName("supportsLinearRegression")]
+    public bool? SupportsLinearRegression { get; init; }
+
+    [JsonPropertyName("supportsPercentileAnalytic")]
+    public bool? SupportsPercentileAnalytic { get; init; }
+}
 internal sealed class EsriFieldDto
 {
     [JsonPropertyName("name")]
