@@ -12,8 +12,8 @@ Use this library when you want to:
 - query features from an Esri Feature Service
 - work with geometries as NetTopologySuite types
 - use advanced query options such as temporal filters, request shaping, full text search, unique IDs, datum transformations, quantization, and statistics
-- query service domains for one or more layers
-- query related records, attachments, top features, estimates, bins, and date bins
+- query service domains, data elements, field groups, and contingent values
+- query related records, attachments, top features, estimates, bins, date bins, and analytic rows
 - validate SQL expressions before sending dynamic queries
 - edit features with layer-level or service-level `applyEdits`
 - upload temporary server-side files for append workflows
@@ -32,7 +32,8 @@ Most consumers only need these steps:
 
 If you do **not** need incremental sync or delta tracking, you can ignore the `extractChanges` section.
 If you do **not** need bulk loading, you can ignore the `append` section.
-If you do **not** need aggregated analysis, you can ignore `queryBins` and `queryDateBins`.
+If you do **not** need aggregated analysis, you can ignore `queryBins`, `queryDateBins`, and `queryAnalytic`.
+If you do **not** build dynamic editing forms, you can ignore `queryDataElements`, `fieldGroups`, and `queryContingentValues`.
 
 ---
 
@@ -71,6 +72,8 @@ Use the service client for service-level operations:
 - get a layer client by ID
 - get a layer client by layer name
 - query service domains for a set of layer IDs
+- query data elements for a set of layer IDs
+- query contingent values for one or more layers or tables
 - get service-level layer estimates
 - upload files to the service uploads endpoint
 - run multi-layer `applyEdits`
@@ -90,7 +93,9 @@ Use the layer client for layer-level operations:
 - query related records
 - query attachments and download attachment content
 - query top features
-- query bins and date bins
+- query bins, date bins, and analytic rows
+- query data elements for the current layer
+- query contingent values and field groups
 - get layer estimates
 - validate SQL expressions
 - run layer-level `applyEdits`
@@ -328,10 +333,12 @@ Console.WriteLine($"Supports uploads: {metadata.Capabilities.SupportsUploads}");
 Console.WriteLine($"Supports change tracking: {metadata.Capabilities.SupportsChangeTracking}");
 Console.WriteLine($"Supports append: {metadata.Capabilities.SupportsAppend}");
 Console.WriteLine($"Supports query domains: {metadata.Capabilities.SupportsQueryDomains}");
+Console.WriteLine($"Supports query data elements: {metadata.Capabilities.SupportsQueryDataElements}");
+Console.WriteLine($"Supports query contingent values: {metadata.Capabilities.SupportsQueryContingentValues}");
 Console.WriteLine($"Append formats: {string.Join(", ", metadata.SupportedAppendFormats)}");
 ```
 
-This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits, `extractChanges`, `append`, uploads, or `queryDomains`.
+This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits, `extractChanges`, `append`, uploads, `queryDomains`, `queryDataElements`, or `queryContingentValues`.
 
 ---
 
@@ -367,6 +374,8 @@ Console.WriteLine($"Supports geometry envelope: {schema.Capabilities.SupportsRet
 Console.WriteLine($"Supports percentile statistics: {schema.Capabilities.SupportsPercentileStatistics}");
 Console.WriteLine($"Supports append: {schema.Capabilities.SupportsAppend}");
 Console.WriteLine($"Supports queryDateBins: {schema.Capabilities.SupportsQueryDateBins}");
+Console.WriteLine($"Supports queryAnalytic: {schema.Capabilities.SupportsQueryAnalytic}");
+Console.WriteLine($"Has contingent values definition: {schema.HasContingentValuesDefinition}");
 Console.WriteLine($"Supports unique IDs: {schema.SupportsUniqueIds}");
 
 if (schema.UniqueIdInfo is not null) {
@@ -375,7 +384,7 @@ if (schema.UniqueIdInfo is not null) {
 }
 ```
 
-This is the easiest way to discover what a layer looks like before querying, editing, appending, or using advanced layer operations.
+This is the easiest way to discover what a layer looks like before querying, editing, appending, validating input, or using advanced layer operations.
 
 ---
 
@@ -896,6 +905,130 @@ foreach (var row in result.Rows) {
 ```
 
 Use `ReturnCentroid = true` if the service should return aggregate centroid information for each date bin.
+
+---
+
+## Query analytic rows
+
+Use `queryAnalytic` when the service supports analytic queries such as windowed calculations, ranking, running totals, aggregate expressions, or other server-side analytic definitions.
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await layerClient.QueryAnalyticAsync(new QueryAnalyticRequest {
+    Where = "POP1990 > 0",
+    AnalyticWhere = "RunningTotal > 100",
+    OutAnalyticsJson = """
+    [
+      {
+        "analyticType": "SUM",
+        "onAnalyticField": "POP1990",
+        "outAnalyticFieldName": "RunningTotal",
+        "analyticParameters": {
+          "partitionBy": "STATE_NAME",
+          "orderBy": "POP1990 ASC"
+        }
+      }
+    ]
+    """,
+    OutFields = ["OBJECTID", "STATE_NAME", "RunningTotal"],
+    ReturnGeometry = false,
+    ResultType = FeatureQueryResultType.Standard,
+    ResultRecordCount = 100,
+    SqlFormat = FeatureQuerySqlFormat.Standard
+});
+
+foreach (var row in result.Rows) {
+    Console.WriteLine(row.Attributes["STATE_NAME"]);
+    Console.WriteLine(row.Attributes["RunningTotal"]);
+}
+```
+
+`OutAnalyticsJson` is raw JSON by design because ArcGIS supports many analytic definitions and this package should not lock consumers into one model too early.
+
+Check `schema.Capabilities.SupportsQueryAnalytic` before using this operation when you need proactive capability checks.
+
+---
+
+## Query data elements
+
+Use `queryDataElements` when you need the raw geodatabase data element metadata associated with layers or tables. This is useful for dynamic tools that need metadata beyond the normal layer schema.
+
+### Service-level data elements
+
+```csharp
+var dataElements = await client.QueryDataElementsAsync([0, 1]);
+
+foreach (var dataElement in dataElements) {
+    Console.WriteLine($"Layer: {dataElement.LayerId}");
+    Console.WriteLine(dataElement.DataElement.GetRawText());
+}
+```
+
+### Layer-level data element
+
+```csharp
+var dataElement = await layerClient.QueryDataElementAsync();
+
+Console.WriteLine(dataElement.LayerId);
+Console.WriteLine(dataElement.DataElement.GetRawText());
+```
+
+The data element itself is exposed as raw JSON because ArcGIS can return different data element shapes depending on service type, dataset type, and server version.
+
+Check `metadata.Capabilities.SupportsQueryDataElements` before using this operation when you need proactive capability checks.
+
+---
+
+## Contingent values and field groups
+
+Use contingent values and field groups when building dynamic edit forms or validation logic where valid values in one field depend on values in another field.
+
+### Query contingent values
+
+Service-level request:
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await client.QueryContingentValuesAsync(new QueryContingentValuesRequest {
+    LayerIds = [0, 2],
+    CompactFormat = false,
+    DomainDictionaries = QueryContingentValuesDomainDictionaries.Trimmed
+});
+
+Console.WriteLine(result.Payload.GetRawText());
+```
+
+Layer-level convenience wrapper:
+
+```csharp
+var result = await layerClient.QueryContingentValuesAsync(new QueryContingentValuesOptions {
+    CompactFormat = false,
+    DomainDictionaries = QueryContingentValuesDomainDictionaries.Trimmed
+});
+
+Console.WriteLine(result.LayerId);
+Console.WriteLine(result.Payload.GetRawText());
+```
+
+The contingent values payload is exposed as raw JSON because ArcGIS returns different shapes for hosted and non-hosted services.
+
+Check `metadata.Capabilities.SupportsQueryContingentValues` before using this operation when you need proactive capability checks.
+
+### Get field groups
+
+```csharp
+var fieldGroups = await layerClient.GetFieldGroupsAsync();
+
+foreach (var group in fieldGroups.FieldGroups) {
+    Console.WriteLine(group.Name);
+    Console.WriteLine($"Restrictive: {group.Restrictive}");
+    Console.WriteLine($"Fields: {string.Join(", ", group.Fields)}");
+}
+```
+
+`schema.HasContingentValuesDefinition` tells you whether the layer advertises contingent value definitions.
 
 ---
 
@@ -1632,6 +1765,8 @@ Console.WriteLine(schema.Capabilities.SupportsFullTextSearch);
 Console.WriteLine(schema.Capabilities.SupportsPercentileStatistics);
 Console.WriteLine(schema.Capabilities.SupportsAppend);
 Console.WriteLine(schema.Capabilities.SupportsQueryDateBins);
+Console.WriteLine(schema.Capabilities.SupportsQueryAnalytic);
+Console.WriteLine(schema.HasContingentValuesDefinition);
 Console.WriteLine(schema.SupportsUniqueIds);
 ```
 
@@ -1647,6 +1782,8 @@ Console.WriteLine(metadata.Capabilities.SupportsChangeTracking);
 Console.WriteLine(metadata.Capabilities.SupportsAsyncApplyEdits);
 Console.WriteLine(metadata.Capabilities.SupportsAppend);
 Console.WriteLine(metadata.Capabilities.SupportsQueryDomains);
+Console.WriteLine(metadata.Capabilities.SupportsQueryDataElements);
+Console.WriteLine(metadata.Capabilities.SupportsQueryContingentValues);
 Console.WriteLine(string.Join(", ", metadata.SupportedAppendFormats));
 ```
 
@@ -1670,7 +1807,7 @@ if (metadata.ExtractChangesCapabilities is not null) {
 ### Rule of thumb
 
 - For ordinary queries, you usually do not need to think much about capabilities.
-- For attachments, top features, advanced related queries, statistics pagination, percentile statistics, `queryDomains`, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
+- For attachments, top features, advanced related queries, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
 - Even if you skip the manual check, the client will still fail fast for important unsupported operations.
 
 ---
