@@ -9,7 +9,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.6.0</Version>
+		<Version>1.7.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
@@ -31,12 +31,12 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			- Added layer-level calculate support.
-			- Added calculate expression helpers for scalar values, SQL expressions, and null assignments.
-			- Added calculate request validation coverage.
-			- Added calculate capability mapping through FeatureLayerCapabilities.SupportsCalculate.
-			- Added upload item delete support for cleaning up temporary server-side upload items.
-			- Updated README documentation for calculate, upload item cleanup, append upload cleanup, and new capability checks.
+			- Added service-level relationships resource support.
+			- Added service-level query support.
+			- Added service-level query request and result models.
+			- Added relationships resource capability mapping through FeatureServiceCapabilities.SupportsRelationshipsResource.
+			- Hardened service-level query serialization for time filters, SQL format handling, returnGeometry, and empty responses.
+			- Updated README documentation for service relationships, service-level query, and new capability checks.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 

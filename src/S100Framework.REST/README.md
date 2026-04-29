@@ -12,7 +12,8 @@ Use this library when you want to:
 - query features from an Esri Feature Service
 - work with geometries as NetTopologySuite types
 - use advanced query options such as temporal filters, request shaping, full text search, unique IDs, datum transformations, quantization, and statistics
-- query service domains, data elements, field groups, and contingent values
+- query service domains, service relationships, data elements, field groups, and contingent values
+- run service-level multi-layer queries
 - query related records, attachments, top features, estimates, bins, date bins, and synchronous/asynchronous analytic rows
 - validate SQL expressions before sending dynamic queries
 - calculate field values server-side for records matched by a layer query
@@ -74,6 +75,8 @@ Use the service client for service-level operations:
 - get a layer client by ID
 - get a layer client by layer name
 - query service domains for a set of layer IDs
+- query service-level relationships
+- run service-level multi-layer queries
 - query data elements for a set of layer IDs
 - query contingent values for one or more layers or tables
 - get service-level layer estimates
@@ -338,10 +341,11 @@ Console.WriteLine($"Supports append: {metadata.Capabilities.SupportsAppend}");
 Console.WriteLine($"Supports query domains: {metadata.Capabilities.SupportsQueryDomains}");
 Console.WriteLine($"Supports query data elements: {metadata.Capabilities.SupportsQueryDataElements}");
 Console.WriteLine($"Supports query contingent values: {metadata.Capabilities.SupportsQueryContingentValues}");
+Console.WriteLine($"Supports relationships resource: {metadata.Capabilities.SupportsRelationshipsResource}");
 Console.WriteLine($"Append formats: {string.Join(", ", metadata.SupportedAppendFormats)}");
 ```
 
-This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits, `extractChanges`, `append`, uploads, `queryDomains`, `queryDataElements`, or `queryContingentValues`.
+This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits, `extractChanges`, `append`, uploads, `queryDomains`, service-level `relationships`, service-level `query`, `queryDataElements`, or `queryContingentValues`.
 
 ---
 
@@ -723,6 +727,99 @@ This is useful when you need to:
 - validate values against domain ranges
 - resolve code values to user-facing labels without hardcoding them
 - inspect domain metadata for multiple layers in one call
+
+---
+
+## Service relationships
+
+Use the service-level `relationships` resource when you need relationship class metadata for the whole feature service instead of inspecting each layer schema individually.
+
+```csharp
+var metadata = await client.GetMetadataAsync();
+
+if (!metadata.Capabilities.SupportsRelationshipsResource) {
+    throw new InvalidOperationException("The service does not support the relationships resource.");
+}
+
+var relationships = await client.GetRelationshipsAsync();
+
+foreach (var relationship in relationships.Relationships) {
+    Console.WriteLine(relationship.Id);
+    Console.WriteLine(relationship.Name);
+    Console.WriteLine($"{relationship.OriginLayerId} -> {relationship.DestinationLayerId}");
+    Console.WriteLine(relationship.Cardinality);
+
+    foreach (var rule in relationship.Rules) {
+        Console.WriteLine(rule.RuleId);
+    }
+}
+```
+
+This is useful for dynamic tools that need to understand relationship classes across the whole service.
+
+---
+
+## Service-level query
+
+Use service-level `query` when you want one request to query multiple layers or tables and receive results grouped by layer ID.
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await client.QueryAsync(new FeatureServiceQueryRequest {
+    LayerDefinitions = [
+        new FeatureServiceLayerQueryDefinition {
+            LayerId = 0,
+            Where = "STATUS = 'Active'",
+            OutFields = ["OBJECTID", "NAME", "STATUS"]
+        },
+        new FeatureServiceLayerQueryDefinition {
+            LayerId = 1,
+            Where = "OBJECTID < 100",
+            OutFields = ["OBJECTID", "INSPECTION_DATE"]
+        }
+    ],
+    ReturnGeometry = true,
+    OutSrid = 4326
+});
+
+foreach (var layerResult in result.Layers) {
+    Console.WriteLine($"Layer: {layerResult.LayerId}");
+    Console.WriteLine($"Exceeded transfer limit: {layerResult.ExceededTransferLimit}");
+
+    foreach (var record in layerResult.Records) {
+        Console.WriteLine(record.ObjectId);
+        Console.WriteLine(record.Geometry?.GeometryType);
+    }
+}
+```
+
+The first service-level query implementation returns feature records grouped by layer. Use layer-level query when you need streaming, count-only, IDs-only, unique IDs, or the most complete layer query option set.
+
+### Service-level query with time and spatial filters
+
+```csharp
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Models;
+
+var result = await client.QueryAsync(new FeatureServiceQueryRequest {
+    LayerDefinitions = [
+        new FeatureServiceLayerQueryDefinition {
+            LayerId = 0,
+            Where = "1=1",
+            OutFields = ["OBJECTID", "NAME"]
+        }
+    ],
+    SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+        new Envelope(10, 11, 55, 56),
+        4326),
+    TimeExtent = new FeatureTimeExtent(
+        Start: new DateTimeOffset(2026, 01, 01, 0, 0, 0, TimeSpan.Zero),
+        End: null),
+    ReturnGeometry = false,
+    SqlFormat = FeatureQuerySqlFormat.Standard
+});
+```
 
 ---
 
@@ -1966,6 +2063,7 @@ Console.WriteLine(metadata.Capabilities.SupportsAppend);
 Console.WriteLine(metadata.Capabilities.SupportsQueryDomains);
 Console.WriteLine(metadata.Capabilities.SupportsQueryDataElements);
 Console.WriteLine(metadata.Capabilities.SupportsQueryContingentValues);
+Console.WriteLine(metadata.Capabilities.SupportsRelationshipsResource);
 Console.WriteLine(string.Join(", ", metadata.SupportedAppendFormats));
 ```
 
@@ -1989,7 +2087,7 @@ if (metadata.ExtractChangesCapabilities is not null) {
 ### Rule of thumb
 
 - For ordinary queries, you usually do not need to think much about capabilities.
-- For attachments, top features, advanced related queries, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, `calculate`, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
+- For attachments, top features, advanced related queries, service-level relationships, service-level query, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, `calculate`, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
 - Even if you skip the manual check, the client will still fail fast for important unsupported operations.
 
 ---
@@ -2038,6 +2136,8 @@ When `ReturnTrueCurves` is disabled, the server is expected to return densified 
 - `append` support covers service-level append and layer-level append with `edits`, `appendItemId`, and `appendUploadId` sources.
 - Upload creation is supported through `UploadItemAsync`, and temporary upload items can be deleted with `DeleteUploadItemAsync` when the server supports the upload delete endpoint.
 - `queryDomains` depends on service-level support and only returns domains referenced by the requested layer IDs.
+- Service-level `relationships` depends on `SupportsRelationshipsResource` and returns service-wide relationship class metadata.
+- Service-level `query` returns feature records grouped by layer; use layer-level query for streaming, count-only, IDs-only, and unique-ID workflows.
 - Percentile statistics depend on layer-level support and cannot be combined with unsupported server-side options.
 - `queryBins` and `queryDateBins` use raw JSON for bin configuration to avoid over-constraining ArcGIS-supported payload shapes.
 - Token acquisition for Portal for ArcGIS login is intentionally outside this package.
@@ -2049,19 +2149,36 @@ When `ReturnTrueCurves` is disabled, the server is expected to return densified 
 If this is your first time using the package, read the sections in this order:
 
 1. Create a service client
-2. Authentication
-3. Get a layer client
-4. Get layer schema
-5. Basic feature query
-6. Advanced feature query
-7. Editing features
-8. Calculate field values
-9. Attachments
-10. Uploads
-11. `append`
-11. `extractChanges`
-12. Estimates and SQL validation
-13. `queryBins` and `queryDateBins`
-14. Public Esri JSON converters
+2. Dependency injection
+3. Authentication
+4. Get service metadata
+5. Get a layer client
+6. Get layer schema
+7. Basic feature query
+8. Advanced feature query
+9. Query statistics
+10. Query domains
+11. Service relationships
+12. Service-level query
+13. Query related records
+14. Top features
+15. Estimates
+16. Validate SQL
+17. Calculate field values
+18. Query bins
+19. Query date bins
+20. Query analytic rows
+21. Query data elements
+22. Contingent values and field groups
+23. Attachments
+24. Editing features
+25. Uploads
+26. `append`
+27. `extractChanges`
+28. Public Esri JSON converters
+29. Capability checks
+30. Query request method selection
+31. Curve handling
+32. Notes and limitations
 
-That gets the common cases out of the way before the more specialized bulk-load, sync, and analysis scenarios.
+That gets the common read/query/edit cases out of the way before the more specialized bulk-load, sync, metadata, and analysis scenarios.
