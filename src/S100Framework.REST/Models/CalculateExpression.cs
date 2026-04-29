@@ -49,6 +49,20 @@ public sealed record CalculateExpression
     }
 
     /// <summary>
+    /// Creates a scalar calculation expression that assigns a JSON <c>null</c> value.
+    /// </summary>
+    /// <param name="field">
+    /// The target field to update.
+    /// </param>
+    /// <returns>
+    /// The created calculation expression.
+    /// </returns>
+
+    public static CalculateExpression ForNull(string field) {
+        return ForValue(field, value: null);
+    }
+
+    /// <summary>
     /// Creates a SQL-based calculation expression.
     /// </summary>
     /// <param name="field">

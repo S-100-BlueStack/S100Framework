@@ -47,7 +47,7 @@ public sealed class FeatureLayerClientCalculateTests
                 Expressions = [
                     CalculateExpression.ForValue("QUALITY", 3),
                     CalculateExpression.ForSqlExpression("SCORE", "BASE_SCORE * 2"),
-                    CalculateExpression.ForValue("REVIEWED_AT", null)
+                    CalculateExpression.ForNull("REVIEWED_AT")
                 ],
                 SqlFormat = FeatureQuerySqlFormat.Standard,
                 GdbVersion = "SDE.DEFAULT",
@@ -81,6 +81,209 @@ public sealed class FeatureLayerClientCalculateTests
 
         Assert.Equal("REVIEWED_AT", expressions[2].GetProperty("field").GetString());
         Assert.Equal(JsonValueKind.Null, expressions[2].GetProperty("value").ValueKind);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_DoesNotSendSqlFormat_WhenSqlFormatIsNone() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestBodies = new List<string>();
+
+        var client = CreateClient(request => {
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0",
+                StringComparison.OrdinalIgnoreCase)) {
+                return CreateLayerMetadataResponse(supportsCalculate: true);
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/calculate",
+                StringComparison.OrdinalIgnoreCase)) {
+                requestBodies.Add(ReadRequestBody(request));
+
+                return StubHttpMessageHandler.Json("""
+                {
+                  "success": true,
+                  "updatedFeatureCount": 1
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        await client.GetLayerClient(0).CalculateAsync(
+            new CalculateRequest {
+                Where = "OBJECTID = 1",
+                Expressions = [
+                    CalculateExpression.ForValue("QUALITY", 4)
+                ],
+                SqlFormat = FeatureQuerySqlFormat.None
+            },
+            cancellationToken);
+
+        var form = ParseFormBody(Assert.Single(requestBodies));
+
+        Assert.False(form.ContainsKey("sqlFormat"));
+    }
+
+    [Fact]
+    public async Task CalculateAsync_SendsNativeSqlFormat_WhenRequested() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestBodies = new List<string>();
+
+        var client = CreateClient(request => {
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0",
+                StringComparison.OrdinalIgnoreCase)) {
+                return CreateLayerMetadataResponse(supportsCalculate: true);
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/calculate",
+                StringComparison.OrdinalIgnoreCase)) {
+                requestBodies.Add(ReadRequestBody(request));
+
+                return StubHttpMessageHandler.Json("""
+                {
+                  "success": true,
+                  "updatedFeatureCount": 1
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        await client.GetLayerClient(0).CalculateAsync(
+            new CalculateRequest {
+                Where = "OBJECTID = 1",
+                Expressions = [
+                    CalculateExpression.ForSqlExpression("SCORE", "BASE_SCORE * 2")
+                ],
+                SqlFormat = FeatureQuerySqlFormat.Native
+            },
+            cancellationToken);
+
+        var form = ParseFormBody(Assert.Single(requestBodies));
+
+        Assert.Equal("native", form["sqlFormat"]);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_SerializesNullScalarValue() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestBodies = new List<string>();
+
+        var client = CreateClient(request => {
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0",
+                StringComparison.OrdinalIgnoreCase)) {
+                return CreateLayerMetadataResponse(supportsCalculate: true);
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/calculate",
+                StringComparison.OrdinalIgnoreCase)) {
+                requestBodies.Add(ReadRequestBody(request));
+
+                return StubHttpMessageHandler.Json("""
+                {
+                  "success": true,
+                  "updatedFeatureCount": 1
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        await client.GetLayerClient(0).CalculateAsync(
+            new CalculateRequest {
+                Where = "OBJECTID = 1",
+                Expressions = [
+                    CalculateExpression.ForNull("REVIEWED_AT")
+                ]
+            },
+            cancellationToken);
+
+        var form = ParseFormBody(Assert.Single(requestBodies));
+
+        using var expressionDocument = JsonDocument.Parse(form["calcExpression"]);
+        var expression = expressionDocument.RootElement[0];
+
+        Assert.Equal("REVIEWED_AT", expression.GetProperty("field").GetString());
+        Assert.Equal(JsonValueKind.Null, expression.GetProperty("value").ValueKind);
+        Assert.False(expression.TryGetProperty("sqlExpression", out _));
+    }
+
+    [Fact]
+    public async Task CalculateAsync_Throws_WhenValueExpressionAlsoHasSqlExpression() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).CalculateAsync(
+                new CalculateRequest {
+                    Expressions = [
+                        new CalculateExpression {
+                            Field = "QUALITY",
+                            Kind = CalculateExpressionKind.Value,
+                            Value = 3,
+                            SqlExpression = "BASE_SCORE * 2"
+                        }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("SqlExpression", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_Throws_WhenSqlExpressionAlsoHasValue() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).CalculateAsync(
+                new CalculateRequest {
+                    Expressions = [
+                        new CalculateExpression {
+                            Field = "SCORE",
+                            Kind = CalculateExpressionKind.SqlExpression,
+                            SqlExpression = "BASE_SCORE * 2",
+                            Value = 3
+                        }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("Value", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_Throws_WhenSqlExpressionIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).CalculateAsync(
+                new CalculateRequest {
+                    Expressions = [
+                        new CalculateExpression {
+                            Field = "SCORE",
+                            Kind = CalculateExpressionKind.SqlExpression
+                        }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("SqlExpression", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -166,7 +369,8 @@ public sealed class FeatureLayerClientCalculateTests
           "fields": [
             { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false },
             { "name": "QUALITY", "type": "esriFieldTypeInteger", "nullable": true },
-            { "name": "SCORE", "type": "esriFieldTypeDouble", "nullable": true }
+            { "name": "SCORE", "type": "esriFieldTypeDouble", "nullable": true },
+            { "name": "REVIEWED_AT", "type": "esriFieldTypeDate", "nullable": true }
           ],
           "relationships": [],
           "extent": {
