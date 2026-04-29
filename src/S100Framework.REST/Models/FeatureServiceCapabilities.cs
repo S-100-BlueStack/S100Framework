@@ -45,6 +45,9 @@
 /// <param name="SupportsQueryContingentValues">
 /// Indicates whether the service advertises support for the <c>queryContingentValues</c> operation.
 /// </param>
+/// <param name="SupportsRelationshipsResource">
+/// Indicates whether the service advertises support for the service-level <c>relationships</c> resource.
+/// </param>
 public sealed record FeatureServiceCapabilities(
     bool SupportsQuery,
     bool SupportsCreate,
@@ -59,4 +62,5 @@ public sealed record FeatureServiceCapabilities(
     bool SupportsAppend = false,
     bool SupportsQueryDomains = false,
     bool SupportsQueryDataElements = false,
-    bool SupportsQueryContingentValues = false);
+    bool SupportsQueryContingentValues = false,
+    bool SupportsRelationshipsResource = false);

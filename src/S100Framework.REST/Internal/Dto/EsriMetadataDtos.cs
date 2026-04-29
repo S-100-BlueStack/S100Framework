@@ -45,6 +45,9 @@ internal sealed class EsriServiceMetadataDto
 
     [JsonPropertyName("supportsContingentValuesJson")]
     public int? SupportsContingentValuesJson { get; init; }
+
+    [JsonPropertyName("supportsRelationshipsResource")]
+    public bool? SupportsRelationshipsResource { get; init; }
 }
 
 internal sealed class EsriDatasetDto
