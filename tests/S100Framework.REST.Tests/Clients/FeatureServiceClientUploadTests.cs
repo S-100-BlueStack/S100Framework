@@ -94,6 +94,114 @@ public sealed class FeatureServiceClientUploadTests
         Assert.Contains("upload", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task DeleteUploadItemAsync_PostsDeleteRequestAndMapsResult() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestBodies = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsUploads: true);
+            }
+
+            if (uri.EndsWith(
+                "/FeatureServer/uploads/0c6b928f590f49ebac04761bab413e49/delete",
+                StringComparison.OrdinalIgnoreCase)) {
+                Assert.Equal(HttpMethod.Post, request.Method);
+
+                requestBodies.Add(ReadRequestBody(request));
+
+                return StubHttpMessageHandler.Json("""
+                {
+                  "success": true
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var result = await client.DeleteUploadItemAsync(
+            "0c6b928f590f49ebac04761bab413e49",
+            cancellationToken);
+
+        Assert.Equal("0c6b928f590f49ebac04761bab413e49", result.ItemId);
+        Assert.True(result.Success);
+
+        var form = ParseFormBody(Assert.Single(requestBodies));
+
+        Assert.Equal("json", form["f"]);
+    }
+
+    [Fact]
+    public async Task DeleteUploadItemAsync_ReturnsFalse_WhenServerReportsFailure() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsUploads: true);
+            }
+
+            if (uri.EndsWith(
+                "/FeatureServer/uploads/missing-upload/delete",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "success": false
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var result = await client.DeleteUploadItemAsync(
+            "missing-upload",
+            cancellationToken);
+
+        Assert.Equal("missing-upload", result.ItemId);
+        Assert.False(result.Success);
+    }
+
+    [Fact]
+    public async Task DeleteUploadItemAsync_Throws_WhenServiceDoesNotAdvertiseUploads() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsUploads: false);
+            }
+
+            throw new InvalidOperationException("HTTP should not be called after metadata lookup.");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
+            client.DeleteUploadItemAsync(
+                "0c6b928f590f49ebac04761bab413e49",
+                cancellationToken));
+
+        Assert.Contains("upload", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DeleteUploadItemAsync_Throws_WhenItemIdIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            client.DeleteUploadItemAsync(
+                " ",
+                cancellationToken));
+
+        Assert.Equal("itemId", exception.ParamName);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
@@ -125,6 +233,18 @@ public sealed class FeatureServiceClientUploadTests
           "capabilities": "{{capabilities}}"
         }
         """);
+    }
+
+    private static Dictionary<string, string> ParseFormBody(string body) {
+        return body
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => part.Split('=', 2))
+            .ToDictionary(
+                parts => Uri.UnescapeDataString(parts[0].Replace("+", " ", StringComparison.Ordinal)),
+                parts => parts.Length > 1
+                    ? Uri.UnescapeDataString(parts[1].Replace("+", " ", StringComparison.Ordinal))
+                    : string.Empty,
+                StringComparer.Ordinal);
     }
 
     private static void AssertMultipartField(string body, string name) {

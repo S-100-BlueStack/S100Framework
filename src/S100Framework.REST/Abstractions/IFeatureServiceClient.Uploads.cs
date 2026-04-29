@@ -20,4 +20,24 @@ public partial interface IFeatureServiceClient
         FeatureServiceUploadRequest request,
         CancellationToken cancellationToken = default) =>
         throw new NotSupportedException("This feature service client does not support upload operations.");
+
+    /// <summary>
+    /// Deletes a server-side upload item from the feature service uploads endpoint.
+    /// </summary>
+    /// <param name="itemId">
+    /// The upload item ID to delete.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token.
+    /// </param>
+    /// <returns>
+    /// The delete result returned by the service.
+    /// </returns>
+    /// <exception cref="NotSupportedException">
+    /// Thrown when the concrete service client implementation does not support upload delete operations.
+    /// </exception>
+    Task<FeatureServiceUploadDeleteResult> DeleteUploadItemAsync(
+        string itemId,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("This feature service client does not support upload delete operations.");
 }

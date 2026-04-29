@@ -78,4 +78,36 @@ public sealed partial class FeatureServiceClient
                 "The feature service does not advertise upload support.");
         }
     }
+
+    /// <inheritdoc />
+    public async Task<FeatureServiceUploadDeleteResult> DeleteUploadItemAsync(
+        string itemId,
+        CancellationToken cancellationToken = default) {
+        if (string.IsNullOrWhiteSpace(itemId)) {
+            throw new ArgumentException("Upload item ID must be provided.", nameof(itemId));
+        }
+
+        await EnsureUploadsSupportedAsync(cancellationToken);
+
+        var endpointUri = UriUtility.AppendPath(
+            _serviceUri,
+            $"uploads/{Uri.EscapeDataString(itemId)}/delete");
+
+        var dto = await PostFormAsync<EsriUploadDeleteResponseDto>(
+            endpointUri,
+            new Dictionary<string, string?> {
+                ["f"] = "json"
+            },
+            cancellationToken);
+
+        if (!dto.Success.HasValue) {
+            throw new FeatureServiceException(
+                "The server returned an upload delete response without a success value.",
+                endpointUri);
+        }
+
+        return new FeatureServiceUploadDeleteResult(
+            itemId,
+            dto.Success.Value);
+    }
 }

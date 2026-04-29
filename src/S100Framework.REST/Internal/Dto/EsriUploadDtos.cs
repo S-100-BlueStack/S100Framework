@@ -28,3 +28,9 @@ internal sealed class EsriUploadItemDto
     [JsonPropertyName("committed")]
     public bool? Committed { get; init; }
 }
+
+internal sealed class EsriUploadDeleteResponseDto
+{
+    [JsonPropertyName("success")]
+    public bool? Success { get; init; }
+}
