@@ -125,6 +125,9 @@ internal sealed class EsriLayerMetadataDto
 
     [JsonPropertyName("advancedQueryAnalyticCapabilities")]
     public EsriAdvancedQueryAnalyticCapabilitiesDto? AdvancedQueryAnalyticCapabilities { get; init; }
+
+    [JsonPropertyName("supportsCalculate")]
+    public bool? SupportsCalculate { get; init; }
 }
 
 internal sealed class EsriUniqueIdInfoDto
