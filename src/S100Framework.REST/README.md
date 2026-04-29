@@ -103,7 +103,7 @@ Use the layer client for layer-level operations:
 - query contingent values and field groups
 - get layer estimates
 - validate SQL expressions
-- calculate field values for matched records
+- calculate field values for matched records synchronously or asynchronously
 - run layer-level `applyEdits`
 - run layer-level `append`
 - add, update, and delete attachments
@@ -384,6 +384,7 @@ Console.WriteLine($"Supports queryDateBins: {schema.Capabilities.SupportsQueryDa
 Console.WriteLine($"Supports queryAnalytic: {schema.Capabilities.SupportsQueryAnalytic}");
 Console.WriteLine($"Supports async queryAnalytic: {schema.Capabilities.SupportsAsyncQueryAnalytic}");
 Console.WriteLine($"Supports calculate: {schema.Capabilities.SupportsCalculate}");
+Console.WriteLine($"Supports async calculate: {schema.Capabilities.SupportsAsyncCalculate}");
 Console.WriteLine($"Has contingent values definition: {schema.HasContingentValuesDefinition}");
 Console.WriteLine($"Supports unique IDs: {schema.SupportsUniqueIds}");
 
@@ -931,6 +932,8 @@ Use `calculate` when the layer supports server-side field updates for records ma
 
 Always use an explicit `Where` expression. The .NET model defaults to `1=1` for consistency with other request models, but calculating against all rows is usually not what you want unless it is intentional.
 
+### Synchronous `calculate`
+
 ```csharp
 using S100Framework.REST.Models;
 
@@ -957,6 +960,82 @@ Console.WriteLine(result.EditMoment);
 ```
 
 `CalculateExpression.ForValue(...)` assigns a scalar value, `CalculateExpression.ForSqlExpression(...)` sends a SQL expression evaluated by the service, and `CalculateExpression.ForNull(...)` assigns a JSON `null` value.
+
+### Submit async `calculate`
+
+Use async `calculate` when the layer supports calculate jobs that may take longer than a normal request.
+
+```csharp
+using S100Framework.REST.Models;
+
+var schema = await layerClient.GetSchemaAsync();
+
+if (!schema.Capabilities.SupportsAsyncCalculate) {
+    throw new InvalidOperationException("The layer does not support async calculate.");
+}
+
+var submission = await layerClient.SubmitCalculateAsync(new CalculateRequest {
+    Where = "STATUS = 'Pending'",
+    Expressions = [
+        CalculateExpression.ForValue("STATUS", "Reviewed")
+    ],
+    SqlFormat = FeatureQuerySqlFormat.Standard
+});
+
+if (submission.IsPending) {
+    Console.WriteLine(submission.StatusUrl);
+}
+
+if (submission.Result is not null) {
+    Console.WriteLine(submission.Result.UpdatedFeatureCount);
+}
+```
+
+### Poll async `calculate` manually
+
+```csharp
+if (submission.StatusUrl is null) {
+    throw new InvalidOperationException("The server did not return a status URL.");
+}
+
+while (true) {
+    var status = await layerClient.GetCalculateStatusAsync(submission.StatusUrl);
+
+    if (status.IsCompleted) {
+        Console.WriteLine(status.RecordCount);
+        break;
+    }
+
+    if (status.IsFailed || status.IsCancelled || status.IsTimedOut) {
+        throw new InvalidOperationException(
+            $"calculate ended with status '{status.Status}'.");
+    }
+
+    await Task.Delay(TimeSpan.FromSeconds(2));
+}
+```
+
+### Wait for async `calculate`
+
+```csharp
+var result = await layerClient.WaitForCalculateCompletionAsync(
+    new CalculateRequest {
+        Where = "STATUS = 'Pending'",
+        Expressions = [
+            CalculateExpression.ForValue("STATUS", "Reviewed")
+        ]
+    },
+    new CalculateWaitOptions {
+        PollInterval = TimeSpan.FromSeconds(2),
+        Timeout = TimeSpan.FromMinutes(5)
+    });
+
+Console.WriteLine(result.Success);
+Console.WriteLine(result.UpdatedFeatureCount);
+```
+
+`CalculateJobStatus` understands common Esri job values such as `esriJobSubmitted`, `esriJobExecuting`, `esriJobSucceeded`, `esriJobFailed`, `esriJobTimedOut`, and `esriJobCancelled`.
+
 
 ---
 
@@ -2045,6 +2124,7 @@ Console.WriteLine(schema.Capabilities.SupportsQueryDateBins);
 Console.WriteLine(schema.Capabilities.SupportsQueryAnalytic);
 Console.WriteLine(schema.Capabilities.SupportsAsyncQueryAnalytic);
 Console.WriteLine(schema.Capabilities.SupportsCalculate);
+Console.WriteLine(schema.Capabilities.SupportsAsyncCalculate);
 Console.WriteLine(schema.HasContingentValuesDefinition);
 Console.WriteLine(schema.SupportsUniqueIds);
 ```
@@ -2087,7 +2167,7 @@ if (metadata.ExtractChangesCapabilities is not null) {
 ### Rule of thumb
 
 - For ordinary queries, you usually do not need to think much about capabilities.
-- For attachments, top features, advanced related queries, service-level relationships, service-level query, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, `calculate`, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
+- For attachments, top features, advanced related queries, service-level relationships, service-level query, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, synchronous/asynchronous `calculate`, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
 - Even if you skip the manual check, the client will still fail fast for important unsupported operations.
 
 ---

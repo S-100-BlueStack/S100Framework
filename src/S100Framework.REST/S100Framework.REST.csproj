@@ -9,7 +9,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.7.0</Version>
+		<Version>1.8.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
@@ -31,12 +31,13 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			- Added service-level relationships resource support.
-			- Added service-level query support.
-			- Added service-level query request and result models.
-			- Added relationships resource capability mapping through FeatureServiceCapabilities.SupportsRelationshipsResource.
-			- Hardened service-level query serialization for time filters, SQL format handling, returnGeometry, and empty responses.
-			- Updated README documentation for service relationships, service-level query, and new capability checks.
+			- Added async calculate submission support.
+			- Added calculate job status polling.
+			- Added WaitForCalculateCompletionAsync convenience methods.
+			- Added CalculateSubmissionResult, CalculateJobStatus, and CalculateWaitOptions models.
+			- Added async calculate capability mapping through FeatureLayerCapabilities.SupportsAsyncCalculate.
+			- Hardened async calculate behavior for immediate results, terminal statuses, timeouts, wait option validation, and timestamp parsing.
+			- Updated README documentation for synchronous and asynchronous calculate workflows.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 
