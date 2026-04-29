@@ -9,13 +9,13 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.5.0</Version>
+		<Version>1.6.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
 		<Product>S100Framework</Product>
 
-		<Description>.NET library for reading, editing, bulk-loading, and analyzing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite, without ArcGIS SDK dependencies.</Description>
+		<Description>.NET library for reading, editing, bulk-loading, calculating, and analyzing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite, without ArcGIS SDK dependencies.</Description>
 
 		<PackageTags>ArcGIS;Esri;FeatureService;REST;NetTopologySuite;Geometry;S-100</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -31,13 +31,12 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			- Added async queryAnalytic submission support.
-			- Added queryAnalytic status polling and result retrieval.
-			- Added WaitForQueryAnalyticCompletionAsync convenience methods.
-			- Added QueryAnalyticWaitOptions and QueryAnalyticJobStatus models.
-			- Added async queryAnalytic capability mapping through FeatureLayerCapabilities.SupportsAsyncQueryAnalytic.
-			- Hardened queryAnalytic job status handling for Esri job-status values such as esriJobSubmitted, esriJobExecuting, esriJobSucceeded, esriJobFailed, esriJobTimedOut, and esriJobCancelled.
-			- Updated README documentation for synchronous and asynchronous queryAnalytic workflows.
+			- Added layer-level calculate support.
+			- Added calculate expression helpers for scalar values, SQL expressions, and null assignments.
+			- Added calculate request validation coverage.
+			- Added calculate capability mapping through FeatureLayerCapabilities.SupportsCalculate.
+			- Added upload item delete support for cleaning up temporary server-side upload items.
+			- Updated README documentation for calculate, upload item cleanup, append upload cleanup, and new capability checks.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 

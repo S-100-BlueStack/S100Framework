@@ -1,6 +1,6 @@
 # S100Framework.REST
 
-`S100Framework.REST` is a .NET library for reading, editing, and analyzing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite.
+`S100Framework.REST` is a .NET library for reading, editing, calculating, bulk-loading, and analyzing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite.
 
 It does **not** depend on ArcGIS SDKs, ArcGIS Runtime, or ArcGIS licensing. It talks directly to Feature Service REST endpoints.
 
@@ -15,8 +15,10 @@ Use this library when you want to:
 - query service domains, data elements, field groups, and contingent values
 - query related records, attachments, top features, estimates, bins, date bins, and synchronous/asynchronous analytic rows
 - validate SQL expressions before sending dynamic queries
+- calculate field values server-side for records matched by a layer query
 - edit features with layer-level or service-level `applyEdits`
 - upload temporary server-side files for append workflows
+- delete temporary server-side upload items after append workflows
 - bulk-load data with service-level or layer-level `append`
 - get change sets from `extractChanges`
 - convert between NTS geometries / feature records and Esri JSON
@@ -98,6 +100,7 @@ Use the layer client for layer-level operations:
 - query contingent values and field groups
 - get layer estimates
 - validate SQL expressions
+- calculate field values for matched records
 - run layer-level `applyEdits`
 - run layer-level `append`
 - add, update, and delete attachments
@@ -376,6 +379,7 @@ Console.WriteLine($"Supports append: {schema.Capabilities.SupportsAppend}");
 Console.WriteLine($"Supports queryDateBins: {schema.Capabilities.SupportsQueryDateBins}");
 Console.WriteLine($"Supports queryAnalytic: {schema.Capabilities.SupportsQueryAnalytic}");
 Console.WriteLine($"Supports async queryAnalytic: {schema.Capabilities.SupportsAsyncQueryAnalytic}");
+Console.WriteLine($"Supports calculate: {schema.Capabilities.SupportsCalculate}");
 Console.WriteLine($"Has contingent values definition: {schema.HasContingentValuesDefinition}");
 Console.WriteLine($"Supports unique IDs: {schema.SupportsUniqueIds}");
 
@@ -385,7 +389,7 @@ if (schema.UniqueIdInfo is not null) {
 }
 ```
 
-This is the easiest way to discover what a layer looks like before querying, editing, appending, validating input, or using advanced layer operations.
+This is the easiest way to discover what a layer looks like before querying, editing, appending, calculating values, validating input, or using advanced layer operations.
 
 ---
 
@@ -821,6 +825,41 @@ if (!result.IsValidSql) {
 ```
 
 This validates the SQL against the layer, but it does not make untrusted SQL automatically safe. Prefer server-supported parameterization or strongly controlled query builders in consuming applications.
+
+---
+
+## Calculate field values
+
+Use `calculate` when the layer supports server-side field updates for records matched by a `where` clause.
+
+Always use an explicit `Where` expression. The .NET model defaults to `1=1` for consistency with other request models, but calculating against all rows is usually not what you want unless it is intentional.
+
+```csharp
+using S100Framework.REST.Models;
+
+var schema = await layerClient.GetSchemaAsync();
+
+if (!schema.Capabilities.SupportsCalculate) {
+    throw new InvalidOperationException("The layer does not support calculate.");
+}
+
+var result = await layerClient.CalculateAsync(new CalculateRequest {
+    Where = "STATUS = 'Pending'",
+    Expressions = [
+        CalculateExpression.ForValue("STATUS", "Reviewed"),
+        CalculateExpression.ForSqlExpression("SCORE", "BASE_SCORE * 2"),
+        CalculateExpression.ForNull("REVIEWED_AT")
+    ],
+    SqlFormat = FeatureQuerySqlFormat.Standard,
+    ReturnEditMoment = true
+});
+
+Console.WriteLine(result.Success);
+Console.WriteLine(result.UpdatedFeatureCount);
+Console.WriteLine(result.EditMoment);
+```
+
+`CalculateExpression.ForValue(...)` assigns a scalar value, `CalculateExpression.ForSqlExpression(...)` sends a SQL expression evaluated by the service, and `CalculateExpression.ForNull(...)` assigns a JSON `null` value.
 
 ---
 
@@ -1379,6 +1418,19 @@ Console.WriteLine(upload.ItemId);
 
 The returned `ItemId` can be passed as `AppendUploadId`.
 
+### Delete an upload item
+
+Use `DeleteUploadItemAsync` when you want to clean up a temporary server-side upload item after the workflow has finished.
+
+```csharp
+var deleteResult = await client.DeleteUploadItemAsync(upload.ItemId);
+
+if (!deleteResult.Success) {
+    Console.WriteLine($"Upload item {deleteResult.ItemId} was not deleted.");
+}
+```
+
+
 ---
 
 ## `append`
@@ -1563,6 +1615,37 @@ var status = await layerClient.WaitForAppendCompletionAsync(
 ```
 
 Layer-level append also supports `FeatureLayerAppendEditsRequest` and `FeatureLayerAppendItemRequest`.
+
+### Upload-backed append with cleanup
+
+Use `try`/`finally` when the upload item should be deleted even if append polling fails.
+
+```csharp
+await using var stream = File.OpenRead("source.gdb.zip");
+
+var upload = await client.UploadItemAsync(new FeatureServiceUploadRequest {
+    Content = stream,
+    FileName = "source.gdb.zip",
+    ContentType = "application/zip"
+});
+
+try {
+    var status = await layerClient.WaitForAppendCompletionAsync(
+        new FeatureLayerAppendUploadRequest {
+            AppendUploadId = upload.ItemId,
+            AppendUploadFormat = FeatureServiceAppendSourceFormat.FileGeodatabase,
+            SourceTableName = "USA",
+            RollbackOnFailure = true
+        },
+        new AppendWaitOptions {
+            PollInterval = TimeSpan.FromSeconds(2),
+            Timeout = TimeSpan.FromMinutes(2)
+        });
+}
+finally {
+    await client.DeleteUploadItemAsync(upload.ItemId);
+}
+```
 
 ### Poll an append job manually
 
@@ -1864,6 +1947,7 @@ Console.WriteLine(schema.Capabilities.SupportsAppend);
 Console.WriteLine(schema.Capabilities.SupportsQueryDateBins);
 Console.WriteLine(schema.Capabilities.SupportsQueryAnalytic);
 Console.WriteLine(schema.Capabilities.SupportsAsyncQueryAnalytic);
+Console.WriteLine(schema.Capabilities.SupportsCalculate);
 Console.WriteLine(schema.HasContingentValuesDefinition);
 Console.WriteLine(schema.SupportsUniqueIds);
 ```
@@ -1905,7 +1989,7 @@ if (metadata.ExtractChangesCapabilities is not null) {
 ### Rule of thumb
 
 - For ordinary queries, you usually do not need to think much about capabilities.
-- For attachments, top features, advanced related queries, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
+- For attachments, top features, advanced related queries, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, `calculate`, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
 - Even if you skip the manual check, the client will still fail fast for important unsupported operations.
 
 ---
@@ -1952,12 +2036,10 @@ When `ReturnTrueCurves` is disabled, the server is expected to return densified 
 - Async `extractChanges` SQLite results are downloaded as files.
 - The ArcGIS REST API uses the literal `sqllite` for the SQLite data format parameter. The library hides that detail behind `ExtractChangesDataFormat.Sqlite`.
 - `append` support covers service-level append and layer-level append with `edits`, `appendItemId`, and `appendUploadId` sources.
-- Upload creation is supported through `UploadItemAsync`, but upload lifecycle cleanup depends on the server and consuming workflow.
+- Upload creation is supported through `UploadItemAsync`, and temporary upload items can be deleted with `DeleteUploadItemAsync` when the server supports the upload delete endpoint.
 - `queryDomains` depends on service-level support and only returns domains referenced by the requested layer IDs.
 - Percentile statistics depend on layer-level support and cannot be combined with unsupported server-side options.
 - `queryBins` and `queryDateBins` use raw JSON for bin configuration to avoid over-constraining ArcGIS-supported payload shapes.
-- `queryAnalytic` uses raw JSON for analytic definitions to avoid over-constraining ArcGIS-supported analytic payload shapes.
-- Async `queryAnalytic` currently uses JSON result payloads. PBF result parsing is not currently implemented.
 - Token acquisition for Portal for ArcGIS login is intentionally outside this package.
 
 ---
@@ -1973,9 +2055,10 @@ If this is your first time using the package, read the sections in this order:
 5. Basic feature query
 6. Advanced feature query
 7. Editing features
-8. Attachments
-9. Uploads
-10. `append`
+8. Calculate field values
+9. Attachments
+10. Uploads
+11. `append`
 11. `extractChanges`
 12. Estimates and SQL validation
 13. `queryBins` and `queryDateBins`
