@@ -89,7 +89,7 @@ public sealed partial class FeatureServiceClient
                 request.MaxAllowableOffset.Value.ToString(CultureInfo.InvariantCulture);
         }
 
-        if (request.SqlFormat.HasValue) {
+        if (request.SqlFormat.HasValue && request.SqlFormat.Value != FeatureQuerySqlFormat.None) {
             parameters["sqlFormat"] = MapServiceQuerySqlFormat(request.SqlFormat.Value);
         }
 
