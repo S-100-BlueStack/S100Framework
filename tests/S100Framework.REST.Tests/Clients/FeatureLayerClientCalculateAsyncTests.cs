@@ -56,6 +56,66 @@ public sealed class FeatureLayerClientCalculateAsyncTests
     }
 
     [Fact]
+    public async Task SubmitCalculateAsync_ReturnsImmediateResult_WhenServiceReturnsResultPayload() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(
+                    supportsCalculate: true,
+                    supportsAsyncCalculate: true);
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/calculate",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "success": true,
+                  "updatedFeatureCount": 12,
+                  "editMoment": 1457994488000
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var submission = await client.GetLayerClient(0).SubmitCalculateAsync(
+            CreateRequest(),
+            cancellationToken);
+
+        Assert.Null(submission.StatusUrl);
+        Assert.False(submission.IsPending);
+        Assert.NotNull(submission.Result);
+        Assert.True(submission.Result!.Success);
+        Assert.Equal(12, submission.Result.UpdatedFeatureCount);
+        Assert.Equal(1457994488000, submission.Result.EditMoment);
+    }
+
+    [Fact]
+    public async Task SubmitCalculateAsync_Throws_WhenLayerDoesNotAdvertiseCalculateSupport() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(
+                    supportsCalculate: false,
+                    supportsAsyncCalculate: true);
+            }
+
+            throw new InvalidOperationException("HTTP should not be called after schema lookup.");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
+            client.GetLayerClient(0).SubmitCalculateAsync(
+                CreateRequest(),
+                cancellationToken));
+
+        Assert.Contains("calculate", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task SubmitCalculateAsync_Throws_WhenLayerDoesNotAdvertiseAsyncCalculateSupport() {
         var cancellationToken = TestContext.Current.CancellationToken;
 
@@ -75,6 +135,51 @@ public sealed class FeatureLayerClientCalculateAsyncTests
                 cancellationToken));
 
         Assert.Contains("calculate", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task WaitForCalculateCompletionAsync_ReturnsImmediateSubmissionResult() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var statusWasCalled = false;
+
+        var client = CreateClient(request => {
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(
+                    supportsCalculate: true,
+                    supportsAsyncCalculate: true);
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/calculate",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "success": true,
+                  "updatedFeatureCount": 12
+                }
+                """);
+            }
+
+            if (request.RequestUri!.AbsoluteUri.StartsWith(
+                "https://example.test/jobs/calculate/",
+                StringComparison.OrdinalIgnoreCase)) {
+                statusWasCalled = true;
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).WaitForCalculateCompletionAsync(
+            CreateRequest(),
+            new CalculateWaitOptions {
+                PollInterval = TimeSpan.Zero,
+                Timeout = TimeSpan.FromSeconds(5)
+            },
+            cancellationToken);
+
+        Assert.True(result.Success);
+        Assert.Equal(12, result.UpdatedFeatureCount);
+        Assert.False(statusWasCalled);
     }
 
     [Fact]
@@ -138,6 +243,136 @@ public sealed class FeatureLayerClientCalculateAsyncTests
     }
 
     [Fact]
+    public async Task WaitForCalculateCompletionAsync_PollsExistingStatusUrlAndMapsResult() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var statusCalls = 0;
+
+        var client = CreateClient(request => {
+            if (request.RequestUri!.AbsoluteUri == "https://example.test/jobs/calculate/abc") {
+                statusCalls++;
+
+                return StubHttpMessageHandler.Json(statusCalls == 1
+                    ? """
+                      {
+                        "jobStatus": "esriJobExecuting"
+                      }
+                      """
+                    : """
+                      {
+                        "jobStatus": "esriJobSucceeded",
+                        "recordCount": "42"
+                      }
+                      """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).WaitForCalculateCompletionAsync(
+            new Uri("https://example.test/jobs/calculate/abc"),
+            new CalculateWaitOptions {
+                PollInterval = TimeSpan.Zero,
+                Timeout = TimeSpan.FromSeconds(5)
+            },
+            cancellationToken);
+
+        Assert.Equal(2, statusCalls);
+        Assert.True(result.Success);
+        Assert.Equal(42, result.UpdatedFeatureCount);
+    }
+
+    [Fact]
+    public async Task WaitForCalculateCompletionAsync_Throws_WhenStatusIsFailed() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (request.RequestUri!.AbsoluteUri == "https://example.test/jobs/calculate/abc") {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "jobStatus": "esriJobFailed"
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).WaitForCalculateCompletionAsync(
+                new Uri("https://example.test/jobs/calculate/abc"),
+                new CalculateWaitOptions {
+                    PollInterval = TimeSpan.Zero,
+                    Timeout = TimeSpan.FromSeconds(5)
+                },
+                cancellationToken));
+
+        Assert.Contains("terminal status", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("esriJobFailed", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task WaitForCalculateCompletionAsync_Throws_WhenPollingTimesOut() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (request.RequestUri!.AbsoluteUri == "https://example.test/jobs/calculate/abc") {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "jobStatus": "esriJobExecuting"
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        await Assert.ThrowsAsync<TimeoutException>(() =>
+            client.GetLayerClient(0).WaitForCalculateCompletionAsync(
+                new Uri("https://example.test/jobs/calculate/abc"),
+                new CalculateWaitOptions {
+                    PollInterval = TimeSpan.Zero,
+                    Timeout = TimeSpan.Zero
+                },
+                cancellationToken));
+    }
+
+    [Fact]
+    public async Task WaitForCalculateCompletionAsync_Throws_WhenPollIntervalIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            client.GetLayerClient(0).WaitForCalculateCompletionAsync(
+                new Uri("https://example.test/jobs/calculate/abc"),
+                new CalculateWaitOptions {
+                    PollInterval = TimeSpan.FromMilliseconds(-1)
+                },
+                cancellationToken));
+
+        Assert.Equal("PollInterval", exception.ParamName);
+    }
+
+    [Fact]
+    public async Task WaitForCalculateCompletionAsync_Throws_WhenTimeoutIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            client.GetLayerClient(0).WaitForCalculateCompletionAsync(
+                new Uri("https://example.test/jobs/calculate/abc"),
+                new CalculateWaitOptions {
+                    Timeout = TimeSpan.FromMilliseconds(-1)
+                },
+                cancellationToken));
+
+        Assert.Equal("Timeout", exception.ParamName);
+    }
+
+    [Fact]
     public async Task GetCalculateStatusAsync_MapsEsriJobStatusProperty() {
         var cancellationToken = TestContext.Current.CancellationToken;
 
@@ -163,6 +398,35 @@ public sealed class FeatureLayerClientCalculateAsyncTests
         Assert.True(status.IsTerminal);
         Assert.True(status.IsCompleted);
         Assert.False(status.IsFailed);
+        Assert.Equal(1000, status.SubmissionTime);
+        Assert.Equal(3000, status.LastUpdatedTime);
+        Assert.Equal(3140, status.RecordCount);
+    }
+
+    [Fact]
+    public async Task GetCalculateStatusAsync_MapsNumericTimestampValues() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (request.RequestUri!.AbsoluteUri == "https://example.test/jobs/calculate/abc") {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "status": "Completed",
+                  "submissionTime": 1000,
+                  "lastUpdatedTime": 3000,
+                  "recordCount": 3140
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var status = await client.GetLayerClient(0).GetCalculateStatusAsync(
+            new Uri("https://example.test/jobs/calculate/abc"),
+            cancellationToken);
+
+        Assert.True(status.IsCompleted);
         Assert.Equal(1000, status.SubmissionTime);
         Assert.Equal(3000, status.LastUpdatedTime);
         Assert.Equal(3140, status.RecordCount);
