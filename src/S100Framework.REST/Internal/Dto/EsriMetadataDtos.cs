@@ -131,6 +131,9 @@ internal sealed class EsriLayerMetadataDto
 
     [JsonPropertyName("supportsCalculate")]
     public bool? SupportsCalculate { get; init; }
+
+    [JsonPropertyName("supportsAsyncCalculate")]
+    public bool? SupportsAsyncCalculate { get; init; }
 }
 
 internal sealed class EsriUniqueIdInfoDto

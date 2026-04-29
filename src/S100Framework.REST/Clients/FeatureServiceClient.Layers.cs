@@ -101,7 +101,8 @@ public sealed partial class FeatureServiceClient
     dto.AdvancedQueryCapabilities?.SupportsQueryDateBins ?? false,
     dto.AdvancedQueryCapabilities?.SupportsQueryAnalytic ?? false,
     dto.AdvancedQueryAnalyticCapabilities?.SupportsAsync ?? false,
-    dto.SupportsCalculate ?? false),
+    dto.SupportsCalculate ?? false,
+    dto.SupportsAsyncCalculate ?? false),
             dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
             UniqueIdInfo = uniqueIdInfo,
             SupportedAppendFormats = dto.SupportedAppendFormats?

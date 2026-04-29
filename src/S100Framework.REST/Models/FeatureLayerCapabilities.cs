@@ -22,6 +22,7 @@
 /// <param name="SupportsQueryAnalytic">Indicates whether the layer supports <c>queryAnalytic</c>.</param>
 /// <param name="SupportsAsyncQueryAnalytic">Indicates whether the layer supports asynchronous <c>queryAnalytic</c>.</param>
 /// <param name="SupportsCalculate">Indicates whether the layer supports the <c>calculate</c> operation.</param>
+/// <param name="SupportsAsyncCalculate">Indicates whether the layer supports asynchronous <c>calculate</c>.</param>
 public sealed record FeatureLayerCapabilities(
     bool HasAttachments,
     bool SupportsQueryAttachments,
@@ -41,4 +42,5 @@ public sealed record FeatureLayerCapabilities(
     bool SupportsQueryDateBins = false,
     bool SupportsQueryAnalytic = false,
     bool SupportsAsyncQueryAnalytic = false,
-    bool SupportsCalculate = false);
+    bool SupportsCalculate = false,
+    bool SupportsAsyncCalculate = false);
