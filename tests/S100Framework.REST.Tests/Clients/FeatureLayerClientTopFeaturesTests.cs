@@ -1,4 +1,5 @@
-﻿using S100Framework.REST.Abstractions;
+﻿using NetTopologySuite.Geometries;
+using S100Framework.REST.Abstractions;
 using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
 using S100Framework.REST.Exceptions;
@@ -300,6 +301,282 @@ public sealed class FeatureLayerClientTopFeaturesTests
 
         Assert.Contains("top-features", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Single(requestUris);
+    }
+
+    [Fact]
+    public async Task QueryTopFeaturesAsync_SendsDefaultWhereObjectIdsSpatialFilterAndTopFilterJson() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var layerClient = CreateLayerClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(supportsTopFeaturesQuery: true);
+            }
+
+            if (IsTopFeaturesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "features": []
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var result = await layerClient.QueryTopFeaturesAsync(
+            new TopFeaturesQuery {
+                Where = "   ",
+                ObjectIds = [10, 20],
+                SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+                    new Envelope(9, 12, 54, 57),
+                    4326),
+                TopFilter = new TopFeaturesFilter {
+                    GroupByFields = ["REGION", "TYPE"],
+                    OrderByFields = ["SCORE DESC", "OBJECTID ASC"],
+                    TopCount = 3
+                }
+            },
+            cancellationToken);
+
+        Assert.Empty(result);
+
+        var requestUri = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/queryTopFeatures?", StringComparison.OrdinalIgnoreCase));
+
+        var decoded = Uri.UnescapeDataString(requestUri);
+
+        Assert.Contains("where=1=1", decoded, StringComparison.Ordinal);
+        Assert.Contains("objectIds=10,20", decoded, StringComparison.Ordinal);
+        Assert.Contains("geometryType=esriGeometryEnvelope", decoded, StringComparison.Ordinal);
+        Assert.Contains("spatialRel=esriSpatialRelIntersects", decoded, StringComparison.Ordinal);
+        Assert.Contains("inSR=4326", decoded, StringComparison.Ordinal);
+        Assert.Contains("geometry=", decoded, StringComparison.Ordinal);
+        Assert.Contains("topFilter=", decoded, StringComparison.Ordinal);
+        Assert.Contains("\"groupByFields\":\"REGION,TYPE\"", decoded, StringComparison.Ordinal);
+        Assert.Contains("\"orderByFields\":\"SCORE DESC,OBJECTID ASC\"", decoded, StringComparison.Ordinal);
+        Assert.Contains("\"topCount\":3", decoded, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryTopFeatureObjectIdsAsync_DoesNotSendFeatureSetOnlyParameters() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var layerClient = CreateLayerClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(supportsTopFeaturesQuery: true);
+            }
+
+            if (IsTopFeaturesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "objectIds": [10, 20]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var objectIds = await layerClient.QueryTopFeatureObjectIdsAsync(
+            new TopFeaturesQuery {
+                Where = "STATUS = 'Active'",
+                OutFields = ["OBJECTID", "PLANNAME"],
+                ReturnGeometry = true,
+                ReturnZ = true,
+                ReturnM = true,
+                OutSrid = 25832,
+                GeometryPrecision = 3,
+                MaxAllowableOffset = 0.5,
+                SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+                    new Envelope(9, 12, 54, 57),
+                    4326),
+                TopFilter = new TopFeaturesFilter {
+                    GroupByFields = ["REGION"],
+                    OrderByFields = ["SCORE DESC"],
+                    TopCount = 2
+                }
+            },
+            cancellationToken);
+
+        Assert.Equal([10, 20], objectIds);
+
+        var requestUri = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/queryTopFeatures?", StringComparison.OrdinalIgnoreCase));
+
+        var decoded = Uri.UnescapeDataString(requestUri);
+
+        Assert.Contains("returnIdsOnly=true", decoded, StringComparison.Ordinal);
+        Assert.Contains("where=STATUS = 'Active'", decoded, StringComparison.Ordinal);
+        Assert.Contains("geometryType=esriGeometryEnvelope", decoded, StringComparison.Ordinal);
+        Assert.Contains("inSR=4326", decoded, StringComparison.Ordinal);
+        Assert.Contains("topFilter=", decoded, StringComparison.Ordinal);
+
+        Assert.DoesNotContain("outFields=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("returnGeometry=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("returnZ=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("returnM=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("outSR=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("geometryPrecision=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("maxAllowableOffset=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("returnCountOnly=", decoded, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryTopFeatureCountAsync_DoesNotSendFeatureSetOnlyGeometryParameters() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var layerClient = CreateLayerClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(supportsTopFeaturesQuery: true);
+            }
+
+            if (IsTopFeaturesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "count": 5
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var result = await layerClient.QueryTopFeatureCountAsync(
+            new TopFeaturesQuery {
+                Where = "STATUS = 'Active'",
+                OutFields = ["OBJECTID", "PLANNAME"],
+                ReturnGeometry = true,
+                ReturnZ = true,
+                ReturnM = true,
+                OutSrid = 25832,
+                GeometryPrecision = 3,
+                MaxAllowableOffset = 0.5,
+                SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+                    new Envelope(9, 12, 54, 57),
+                    4326),
+                TopFilter = new TopFeaturesFilter {
+                    GroupByFields = ["REGION"],
+                    OrderByFields = ["SCORE DESC"],
+                    TopCount = 2
+                }
+            },
+            cancellationToken);
+
+        Assert.Equal(5, result.Count);
+        Assert.Null(result.Extent);
+
+        var requestUri = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/queryTopFeatures?", StringComparison.OrdinalIgnoreCase));
+
+        var decoded = Uri.UnescapeDataString(requestUri);
+
+        Assert.Contains("returnCountOnly=true", decoded, StringComparison.Ordinal);
+        Assert.Contains("where=STATUS = 'Active'", decoded, StringComparison.Ordinal);
+        Assert.Contains("outSR=25832", decoded, StringComparison.Ordinal);
+        Assert.Contains("geometryType=esriGeometryEnvelope", decoded, StringComparison.Ordinal);
+        Assert.Contains("inSR=4326", decoded, StringComparison.Ordinal);
+        Assert.Contains("topFilter=", decoded, StringComparison.Ordinal);
+
+        Assert.DoesNotContain("outFields=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("returnGeometry=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("returnZ=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("returnM=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("geometryPrecision=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("maxAllowableOffset=", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("returnIdsOnly=", decoded, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryTopFeaturesAsync_ThrowsBeforeHttp_WhenTopFilterIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryTopFeaturesAsync(
+                new TopFeaturesQuery(),
+                cancellationToken));
+
+        Assert.Contains("TopFilter", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryTopFeaturesAsync_ThrowsBeforeHttp_WhenTopFilterGroupByFieldsAreMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryTopFeaturesAsync(
+                new TopFeaturesQuery {
+                    TopFilter = new TopFeaturesFilter {
+                        OrderByFields = ["SCORE DESC"],
+                        TopCount = 1
+                    }
+                },
+                cancellationToken));
+
+        Assert.Contains("group-by", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryTopFeaturesAsync_ThrowsBeforeHttp_WhenTopFilterOrderByFieldsAreMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryTopFeaturesAsync(
+                new TopFeaturesQuery {
+                    TopFilter = new TopFeaturesFilter {
+                        GroupByFields = ["REGION"],
+                        TopCount = 1
+                    }
+                },
+                cancellationToken));
+
+        Assert.Contains("order-by", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryTopFeaturesAsync_ThrowsBeforeHttp_WhenTopCountIsNotPositive() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryTopFeaturesAsync(
+                new TopFeaturesQuery {
+                    TopFilter = new TopFeaturesFilter {
+                        GroupByFields = ["REGION"],
+                        OrderByFields = ["SCORE DESC"],
+                        TopCount = 0
+                    }
+                },
+                cancellationToken));
+
+        Assert.Contains("TopCount", exception.Message, StringComparison.Ordinal);
     }
 
     private static IFeatureLayerClient CreateLayerClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
