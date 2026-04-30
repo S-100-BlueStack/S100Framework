@@ -22,6 +22,9 @@ internal sealed class EsriFeatureDto
 
     [JsonPropertyName("geometry")]
     public JsonElement Geometry { get; init; }
+
+    [JsonPropertyName("centroid")]
+    public JsonElement Centroid { get; init; }
 }
 
 internal sealed class EsriIdsResponseDto

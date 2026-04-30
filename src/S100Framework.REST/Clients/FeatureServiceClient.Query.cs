@@ -47,6 +47,10 @@ public sealed partial class FeatureServiceClient
             parameters["returnEnvelope"] = "true";
         }
 
+        if (query.ReturnCentroid.HasValue) {
+            parameters["returnCentroid"] = query.ReturnCentroid.Value ? "true" : "false";
+        }
+
         if (objectIds is { Count: > 0 }) {
             parameters.Remove("where");
             parameters.Remove("uniqueIds");

@@ -1,4 +1,5 @@
-﻿using S100Framework.REST.Clients;
+﻿using NetTopologySuite.Geometries;
+using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
 using S100Framework.REST.Models;
 using S100Framework.REST.Tests.TestDoubles;
@@ -179,6 +180,166 @@ public sealed class FeatureLayerClientAdvancedQueryParameterTests
         Assert.Contains("returnCountOnly=true", decodedQueryRequest, StringComparison.Ordinal);
         Assert.DoesNotContain("outFields=", decodedQueryRequest, StringComparison.Ordinal);
         Assert.Contains("returnDistinctValues=true", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryAsync_IncludesReturnCentroidAndMapsCentroid_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "geometryType": "esriGeometryPolygon",
+                  "spatialReference": {
+                    "wkid": 25832,
+                    "latestWkid": 25832
+                  },
+                  "features": [
+                    {
+                      "attributes": {
+                        "OBJECTID": 10,
+                        "NAME": "Area A"
+                      },
+                      "centroid": {
+                        "x": 12.34,
+                        "y": 56.78,
+                        "spatialReference": {
+                          "wkid": 25832,
+                          "latestWkid": 25832
+                        }
+                      }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+        var results = new List<FeatureRecord>();
+
+        await foreach (var feature in layerClient.QueryAsync(
+            new FeatureQuery {
+                OutFields = ["OBJECTID", "NAME"],
+                ReturnGeometry = false,
+                ReturnCentroid = true
+            },
+            cancellationToken)) {
+            results.Add(feature);
+        }
+
+        var result = Assert.Single(results);
+
+        Assert.Equal(10, result.ObjectId);
+        Assert.Equal("Area A", result.Attributes["NAME"]);
+        Assert.Null(result.Geometry);
+
+        var centroid = Assert.IsType<Point>(result.Centroid);
+        Assert.Equal(12.34, centroid.X);
+        Assert.Equal(56.78, centroid.Y);
+        Assert.Equal(25832, centroid.SRID);
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase));
+
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.Contains("returnGeometry=false", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("returnCentroid=true", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("outFields=OBJECTID,NAME", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryAsync_IncludesReturnCentroidFalse_WhenExplicitlyProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "features": []
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        await foreach (var _ in layerClient.QueryAsync(
+            new FeatureQuery {
+                ReturnCentroid = false
+            },
+            cancellationToken)) {
+        }
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase));
+
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.Contains("returnCentroid=false", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_DoesNotSendReturnCentroid_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "count": 7
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        var count = await layerClient.QueryCountAsync(
+            new FeatureQuery {
+                ReturnCentroid = true
+            },
+            cancellationToken);
+
+        Assert.Equal(7, count);
+
+        var queryRequest = Assert.Single(requestUris);
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.Contains("returnCountOnly=true", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.DoesNotContain("returnCentroid=", decodedQueryRequest, StringComparison.Ordinal);
     }
 
     [Fact]

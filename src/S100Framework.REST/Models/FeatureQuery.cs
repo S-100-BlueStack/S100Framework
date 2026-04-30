@@ -47,6 +47,14 @@ public sealed record FeatureQuery
     public bool ReturnDistinctValues { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the service should return the geometry centroid for each returned feature.
+    /// </summary>
+    /// <remarks>
+    /// This parameter is only sent for feature queries. ArcGIS ignores centroid output for count and object ID queries.
+    /// </remarks>
+    public bool? ReturnCentroid { get; init; }
+
+    /// <summary>
     /// Gets the geometry precision to request from the service.
     /// </summary>
     public int? GeometryPrecision { get; init; }

@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text.Json;
+using NetTopologySuite.Geometries;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.EsriGeometry;
 using S100Framework.REST.Internal.Json;
@@ -26,6 +27,8 @@ public sealed partial class FeatureLayerClient
                 _serviceClient.Options.TrueCurveHandling,
                 _serviceClient.Options.CircularArcSegmentCount);
 
+        var centroid = MapFeatureCentroid(feature.Centroid, schema.Srid);
+
         long? objectId = null;
 
         if (!string.IsNullOrWhiteSpace(schema.ObjectIdFieldName) &&
@@ -33,7 +36,34 @@ public sealed partial class FeatureLayerClient
             objectId = ConvertToInt64(rawObjectId);
         }
 
-        return new FeatureRecord(geometry, attributes, objectId);
+        return new FeatureRecord(geometry, attributes, objectId) {
+            Centroid = centroid
+        };
+    }
+
+    private Point? MapFeatureCentroid(JsonElement centroid, int? defaultSrid) {
+        if (centroid.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
+            return null;
+        }
+
+        if (centroid.ValueKind != JsonValueKind.Object) {
+            throw new InvalidOperationException("The server returned an unsupported centroid payload.");
+        }
+
+        var geometry = EsriGeometryReader.Read(
+            centroid,
+            "esriGeometryPoint",
+            defaultSrid,
+            _serviceClient.Options.PreferLatestWkid,
+            _serviceClient.Options.FixInvalidGeometries,
+            _serviceClient.Options.TrueCurveHandling,
+            _serviceClient.Options.CircularArcSegmentCount);
+
+        return geometry switch {
+            null => null,
+            Point point => point,
+            _ => throw new InvalidOperationException("The server returned a non-point centroid payload.")
+        };
     }
 
     private FeatureRecord MapRelatedRecord(

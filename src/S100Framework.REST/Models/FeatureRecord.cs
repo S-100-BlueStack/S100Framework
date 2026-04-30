@@ -17,4 +17,10 @@ namespace S100Framework.REST.Models;
 public sealed record FeatureRecord(
     Geometry? Geometry,
     IReadOnlyDictionary<string, object?> Attributes,
-    long? ObjectId) : IAttributeRecord;
+    long? ObjectId) : IAttributeRecord
+{
+    /// <summary>
+    /// Gets the feature centroid returned by the service when centroid output is requested and supported.
+    /// </summary>
+    public Point? Centroid { get; init; }
+}
