@@ -10,7 +10,7 @@ Use this library when you want to:
 
 - read service metadata, layer metadata, and schema
 - query features from an Esri Feature Service
-- work with geometries as NetTopologySuite types
+- work with geometries as NetTopologySuite types, including optional feature centroids
 - use advanced query options such as temporal filters, request shaping, full text search, unique IDs, datum transformations, quantization, and statistics
 - query service domains, service relationships, data elements, field groups, and contingent values
 - run service-level multi-layer feature, count, ID, unique-ID, complete-result, and extent queries
@@ -595,6 +595,27 @@ await foreach (var feature in layerClient.QueryAsync(query)) {
 ```
 
 Use this when you only need spatial bounds instead of full geometry payloads.
+
+### Return feature centroids
+
+```csharp
+using S100Framework.REST.Models;
+
+var query = new FeatureQuery {
+    Where = "1=1",
+    OutFields = ["OBJECTID", "NAME"],
+    ReturnGeometry = false,
+    ReturnCentroid = true
+};
+
+await foreach (var feature in layerClient.QueryAsync(query)) {
+    Console.WriteLine($"ObjectId: {feature.ObjectId}");
+    Console.WriteLine($"Centroid: {feature.Centroid?.X}, {feature.Centroid?.Y}");
+}
+```
+
+Use `ReturnCentroid = true` when you need the service-returned centroid for polygon features without also requesting full feature geometry. The centroid is exposed as `FeatureRecord.Centroid` and is `null` when the service does not return a centroid for a feature.
+
 
 ### Full text search
 
@@ -2539,6 +2560,7 @@ When `ReturnTrueCurves` is disabled, the server is expected to return densified 
 - Service-level `query` supports feature-set, count, object-ID, and unique-ID result shapes.
 - `QueryAllAsync` and `QueryExtentsAsync` are service-client convenience methods that execute layer-level queries and group results by layer.
 - Use layer-level query directly when you need streaming control or layer-specific query options that are not represented by `FeatureServiceQueryRequest`.
+- Layer-level `ReturnCentroid` maps service-returned feature centroids to `FeatureRecord.Centroid`; missing or null centroid payloads are represented as `null`.
 - Percentile statistics depend on layer-level support and cannot be combined with unsupported server-side options.
 - `queryBins` and `queryDateBins` use raw JSON for bin configuration to avoid over-constraining ArcGIS-supported payload shapes.
 - Token acquisition for Portal for ArcGIS login is intentionally outside this package.
