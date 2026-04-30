@@ -444,6 +444,212 @@ public sealed class FeatureServiceClientServiceQueryTests
 
         Assert.Contains("query", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task QueryUniqueIdsAsync_MapsEmptyAndMissingUniqueIdPayloads() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<Uri>();
+
+        var client = CreateClient(request => {
+            requestUris.Add(request.RequestUri!);
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "layers": [
+                    {
+                      "id": 0,
+                      "uniqueIdFieldNames": null,
+                      "uniqueIds": []
+                    },
+                    {
+                      "id": 1
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.QueryUniqueIdsAsync(
+            new FeatureServiceQueryRequest {
+                LayerDefinitions = [
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 0
+                    },
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 1
+                    }
+                ]
+            },
+            cancellationToken);
+
+        Assert.Equal(2, result.Layers.Count);
+
+        Assert.Equal(0, result.Layers[0].LayerId);
+        Assert.Empty(result.Layers[0].UniqueIdFieldNames);
+        Assert.Empty(result.Layers[0].UniqueIds);
+        Assert.False(result.Layers[0].IsComposite);
+        Assert.Null(result.Layers[0].ExceededTransferLimit);
+
+        Assert.Equal(1, result.Layers[1].LayerId);
+        Assert.Empty(result.Layers[1].UniqueIdFieldNames);
+        Assert.Empty(result.Layers[1].UniqueIds);
+        Assert.False(result.Layers[1].IsComposite);
+        Assert.Null(result.Layers[1].ExceededTransferLimit);
+
+        var queryRequest = requestUris
+            .Where(uri => uri.AbsolutePath.EndsWith(
+                "/FeatureServer/query",
+                StringComparison.OrdinalIgnoreCase))
+            .Select(ParseQuery)
+            .Single();
+
+        Assert.Equal("true", queryRequest["returnUniqueIdsOnly"]);
+        Assert.False(queryRequest.ContainsKey("returnCountOnly"));
+        Assert.False(queryRequest.ContainsKey("returnIdsOnly"));
+    }
+
+    [Fact]
+    public async Task QueryUniqueIdsAsync_Throws_WhenUniqueIdFieldNamesPayloadIsUnsupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "layers": [
+                    {
+                      "id": 0,
+                      "uniqueIdFieldNames": {
+                        "field": "GLOBALID"
+                      },
+                      "uniqueIds": []
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.QueryUniqueIdsAsync(
+                new FeatureServiceQueryRequest {
+                    LayerDefinitions = [
+                        new FeatureServiceLayerQueryDefinition {
+                            LayerId = 0
+                        }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("uniqueIdFieldNames", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryUniqueIdsAsync_Throws_WhenUniqueIdsPayloadIsUnsupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "layers": [
+                    {
+                      "id": 0,
+                      "uniqueIdFieldNames": "GLOBALID",
+                      "uniqueIds": {
+                        "value": "abc"
+                      }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.QueryUniqueIdsAsync(
+                new FeatureServiceQueryRequest {
+                    LayerDefinitions = [
+                        new FeatureServiceLayerQueryDefinition {
+                            LayerId = 0
+                        }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("uniqueIds", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryUniqueIdsAsync_Throws_WhenUniqueIdComponentPayloadIsUnsupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "layers": [
+                    {
+                      "id": 0,
+                      "uniqueIdFieldNames": ["COUNTRY", "LOCAL_ID"],
+                      "uniqueIds": [
+                        ["DK", { "value": 100 }]
+                      ]
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.QueryUniqueIdsAsync(
+                new FeatureServiceQueryRequest {
+                    LayerDefinitions = [
+                        new FeatureServiceLayerQueryDefinition {
+                            LayerId = 0
+                        }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("unique ID component", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
