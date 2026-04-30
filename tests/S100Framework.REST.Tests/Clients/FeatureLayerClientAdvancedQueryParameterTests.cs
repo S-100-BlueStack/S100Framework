@@ -83,6 +83,105 @@ public sealed class FeatureLayerClientAdvancedQueryParameterTests
     }
 
     [Fact]
+    public async Task QueryAsync_IncludesReturnDistinctValues_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "features": [
+                    {
+                      "attributes": {
+                        "CATEGORY": "A"
+                      }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+        var results = new List<FeatureRecord>();
+
+        await foreach (var feature in layerClient.QueryAsync(
+            new FeatureQuery {
+                OutFields = ["CATEGORY"],
+                ReturnGeometry = false,
+                ReturnDistinctValues = true
+            },
+            cancellationToken)) {
+            results.Add(feature);
+        }
+
+        var result = Assert.Single(results);
+
+        Assert.Null(result.Geometry);
+        Assert.Equal("A", result.Attributes["CATEGORY"]);
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase));
+
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.Contains("outFields=CATEGORY", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("returnGeometry=false", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("returnDistinctValues=true", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_IncludesReturnDistinctValues_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "count": 3
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        var count = await layerClient.QueryCountAsync(
+            new FeatureQuery {
+                OutFields = ["CATEGORY"],
+                ReturnDistinctValues = true
+            },
+            cancellationToken);
+
+        Assert.Equal(3, count);
+
+        var queryRequest = Assert.Single(requestUris);
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.Contains("returnCountOnly=true", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.DoesNotContain("outFields=", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("returnDistinctValues=true", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task QueryCountAsync_IncludesDatumTransformationJson_WhenProvided() {
         var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();

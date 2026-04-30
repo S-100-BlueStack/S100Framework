@@ -39,6 +39,11 @@ public sealed record FeatureQuery
     /// <summary>
     /// Gets a value indicating whether distinct values should be returned.
     /// </summary>
+    /// <remarks>
+    /// When this value is <see langword="true"/>, the service returns distinct values based on
+    /// <see cref="OutFields"/>. Use <see cref="ReturnGeometry"/> set to <see langword="false"/> for reliable
+    /// distinct-value results.
+    /// </remarks>
     public bool ReturnDistinctValues { get; init; }
 
     /// <summary>
