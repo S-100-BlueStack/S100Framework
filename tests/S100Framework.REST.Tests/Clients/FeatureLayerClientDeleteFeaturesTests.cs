@@ -126,6 +126,100 @@ public sealed class FeatureLayerClientDeleteFeaturesTests
     }
 
     [Fact]
+    public async Task DeleteFeaturesAsync_DoesNotSendReturnEditMoment_WhenFalse() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        string? requestBody = null;
+
+        var client = CreateClient(request => {
+            Assert.EndsWith(
+                "/FeatureServer/0/deleteFeatures",
+                request.RequestUri!.AbsolutePath,
+                StringComparison.OrdinalIgnoreCase);
+
+            requestBody = ReadRequestBody(request);
+
+            return StubHttpMessageHandler.Json("""
+            {
+              "success": true
+            }
+            """);
+        });
+
+        await client.GetLayerClient(0).DeleteFeaturesAsync(
+            new DeleteFeaturesRequest {
+                ObjectIds = [10],
+                ReturnEditMoment = false
+            },
+            cancellationToken);
+
+        var form = ParseFormBody(requestBody!);
+
+        Assert.False(form.ContainsKey("returnEditMoment"));
+    }
+
+    [Fact]
+    public async Task DeleteFeaturesAsync_ReturnsFalse_WhenServerReportsFailureWithoutDeleteResults() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            Assert.EndsWith(
+                "/FeatureServer/0/deleteFeatures",
+                request.RequestUri!.AbsolutePath,
+                StringComparison.OrdinalIgnoreCase);
+
+            return StubHttpMessageHandler.Json("""
+            {
+              "success": false
+            }
+            """);
+        });
+
+        var result = await client.GetLayerClient(0).DeleteFeaturesAsync(
+            new DeleteFeaturesRequest {
+                ObjectIds = [10],
+                ReturnDeleteResults = false
+            },
+            cancellationToken);
+
+        Assert.False(result.Success);
+        Assert.Empty(result.DeleteResults);
+    }
+
+    [Fact]
+    public void ForObjectIds_CreatesRequestWithObjectIds() {
+        var request = DeleteFeaturesRequest.ForObjectIds([10, 11]);
+
+        Assert.Equal([10, 11], request.ObjectIds);
+        Assert.Null(request.Where);
+        Assert.Null(request.SpatialFilter);
+        request.Validate();
+    }
+
+    [Fact]
+    public void ForWhere_CreatesRequestWithWhereClause() {
+        var request = DeleteFeaturesRequest.ForWhere("STATUS = 'Obsolete'");
+
+        Assert.Null(request.ObjectIds);
+        Assert.Equal("STATUS = 'Obsolete'", request.Where);
+        Assert.Null(request.SpatialFilter);
+        request.Validate();
+    }
+
+    [Fact]
+    public void ForSpatialFilter_CreatesRequestWithSpatialFilter() {
+        var spatialFilter = FeatureSpatialFilter.FromEnvelope(
+            new Envelope(10, 11, 55, 56),
+            4326);
+
+        var request = DeleteFeaturesRequest.ForSpatialFilter(spatialFilter);
+
+        Assert.Null(request.ObjectIds);
+        Assert.Null(request.Where);
+        Assert.Same(spatialFilter, request.SpatialFilter);
+        request.Validate();
+    }
+
+    [Fact]
     public async Task DeleteFeaturesAsync_Throws_WhenNoDeleteSelectorIsProvided() {
         var cancellationToken = TestContext.Current.CancellationToken;
 
@@ -174,6 +268,41 @@ public sealed class FeatureLayerClientDeleteFeaturesTests
                 cancellationToken));
 
         Assert.Contains("positive", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DeleteFeaturesAsync_Throws_WhenWhereIsWhitespace() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).DeleteFeaturesAsync(
+                new DeleteFeaturesRequest {
+                    Where = " "
+                },
+                cancellationToken));
+
+        Assert.Contains("Where", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DeleteFeaturesAsync_Throws_WhenGdbVersionIsWhitespace() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).DeleteFeaturesAsync(
+                new DeleteFeaturesRequest {
+                    ObjectIds = [10],
+                    GdbVersion = " "
+                },
+                cancellationToken));
+
+        Assert.Contains("GdbVersion", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
