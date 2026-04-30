@@ -343,6 +343,154 @@ public sealed class FeatureLayerClientAdvancedQueryParameterTests
     }
 
     [Fact]
+    public async Task QueryAsync_MapsMissingAndNullCentroidToNull() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "geometryType": "esriGeometryPolygon",
+                  "features": [
+                    {
+                      "attributes": {
+                        "OBJECTID": 10,
+                        "NAME": "Missing centroid"
+                      }
+                    },
+                    {
+                      "attributes": {
+                        "OBJECTID": 11,
+                        "NAME": "Null centroid"
+                      },
+                      "centroid": null
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+        var results = new List<FeatureRecord>();
+
+        await foreach (var feature in layerClient.QueryAsync(
+            new FeatureQuery {
+                ReturnGeometry = false,
+                ReturnCentroid = true
+            },
+            cancellationToken)) {
+            results.Add(feature);
+        }
+
+        Assert.Equal(2, results.Count);
+
+        Assert.Equal(10, results[0].ObjectId);
+        Assert.Equal("Missing centroid", results[0].Attributes["NAME"]);
+        Assert.Null(results[0].Centroid);
+
+        Assert.Equal(11, results[1].ObjectId);
+        Assert.Equal("Null centroid", results[1].Attributes["NAME"]);
+        Assert.Null(results[1].Centroid);
+    }
+
+    [Fact]
+    public async Task QueryAsync_Throws_WhenCentroidPayloadIsUnsupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "geometryType": "esriGeometryPolygon",
+                  "features": [
+                    {
+                      "attributes": {
+                        "OBJECTID": 10
+                      },
+                      "centroid": [12.34, 56.78]
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => {
+            await foreach (var _ in layerClient.QueryAsync(
+                new FeatureQuery {
+                    ReturnGeometry = false,
+                    ReturnCentroid = true
+                },
+                cancellationToken)) {
+            }
+        });
+
+        Assert.Contains("centroid", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryAsync_DoesNotSendReturnCentroid_WhenNotProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "features": []
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        await foreach (var _ in layerClient.QueryAsync(
+            new FeatureQuery(),
+            cancellationToken)) {
+        }
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase));
+
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.DoesNotContain("returnCentroid=", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task QueryCountAsync_IncludesDatumTransformationJson_WhenProvided() {
         var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
