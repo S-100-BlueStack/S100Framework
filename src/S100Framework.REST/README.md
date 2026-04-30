@@ -18,6 +18,8 @@ Use this library when you want to:
 - validate SQL expressions before sending dynamic queries
 - calculate field values server-side for records matched by a layer query
 - edit features with layer-level or service-level `applyEdits`
+- use convenience edit wrappers for add, update, and delete workflows
+- call direct `addFeatures`, `updateFeatures`, and `deleteFeatures` endpoints when endpoint-specific behavior is needed
 - upload temporary server-side files for append workflows
 - delete temporary server-side upload items after append workflows
 - bulk-load data with service-level or layer-level `append`
@@ -105,6 +107,8 @@ Use the layer client for layer-level operations:
 - validate SQL expressions
 - calculate field values for matched records synchronously or asynchronously
 - run layer-level `applyEdits`
+- use layer-level edit convenience wrappers
+- call direct layer-level `addFeatures`, `updateFeatures`, and `deleteFeatures` endpoints
 - run layer-level `append`
 - add, update, and delete attachments
 
@@ -1454,6 +1458,144 @@ var result = await layerClient.ApplyEditsAsync(new FeatureEdits {
 });
 ```
 
+### Layer-level edit convenience wrappers
+
+Use these wrappers when you want a simpler API for normal add, update, or delete-by-object-ID workflows. These wrappers use layer-level `applyEdits` internally and return only the relevant result group.
+
+```csharp
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Models;
+
+var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+
+var addResults = await layerClient.AddFeaturesAsync(
+    [
+        new EditableFeature(
+            geometryFactory.CreatePoint(new Coordinate(12.34, 56.78)),
+            new Dictionary<string, object?> {
+                ["NAME"] = "New harbor"
+            })
+    ],
+    new FeatureEditOptions {
+        RollbackOnFailure = true
+    });
+
+var updateResults = await layerClient.UpdateFeaturesAsync(
+    [
+        new EditableFeature(
+            geometryFactory.CreatePoint(new Coordinate(12.35, 56.79)),
+            new Dictionary<string, object?> {
+                ["OBJECTID"] = 101,
+                ["NAME"] = "Updated harbor"
+            })
+    ]);
+
+var deleteResults = await layerClient.DeleteFeaturesAsync([101, 102]);
+```
+
+Use the direct endpoint request models below when you need endpoint-specific parameters such as `returnEditMoment`, `returnDeleteResults`, delete-by-where, or delete-by-geometry.
+
+### Direct `addFeatures`
+
+Use direct `addFeatures` when you explicitly want the ArcGIS REST `addFeatures` endpoint instead of the `applyEdits` wrapper.
+
+```csharp
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Models;
+
+var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+
+var result = await layerClient.AddFeaturesAsync(new AddFeaturesRequest {
+    Features = [
+        new EditableFeature(
+            geometryFactory.CreatePoint(new Coordinate(12.34, 56.78)),
+            new Dictionary<string, object?> {
+                ["NAME"] = "New harbor"
+            })
+    ],
+    RollbackOnFailure = true,
+    UseGlobalIds = false,
+    ReturnEditMoment = true
+});
+
+foreach (var addResult in result.AddResults) {
+    Console.WriteLine($"{addResult.ObjectId}: {addResult.Success}");
+}
+
+Console.WriteLine(result.EditMoment);
+```
+
+### Direct `updateFeatures`
+
+Use direct `updateFeatures` when you explicitly want the ArcGIS REST `updateFeatures` endpoint instead of the `applyEdits` wrapper.
+
+```csharp
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Models;
+
+var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+
+var result = await layerClient.UpdateFeaturesAsync(new UpdateFeaturesRequest {
+    Features = [
+        new EditableFeature(
+            geometryFactory.CreatePoint(new Coordinate(12.35, 56.79)),
+            new Dictionary<string, object?> {
+                ["OBJECTID"] = 101,
+                ["NAME"] = "Updated harbor"
+            })
+    ],
+    RollbackOnFailure = true,
+    ReturnEditMoment = true
+});
+
+foreach (var updateResult in result.UpdateResults) {
+    Console.WriteLine($"{updateResult.ObjectId}: {updateResult.Success}");
+}
+```
+
+### Direct `deleteFeatures`
+
+Use direct `deleteFeatures` when you need endpoint-specific delete behavior, including delete-by-where or delete-by-geometry.
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await layerClient.DeleteFeaturesAsync(new DeleteFeaturesRequest {
+    ObjectIds = [101, 102],
+    RollbackOnFailure = true,
+    ReturnDeleteResults = true,
+    ReturnEditMoment = true
+});
+
+foreach (var deleteResult in result.DeleteResults) {
+    Console.WriteLine($"{deleteResult.ObjectId}: {deleteResult.Success}");
+}
+```
+
+Delete by where clause:
+
+```csharp
+var result = await layerClient.DeleteFeaturesAsync(DeleteFeaturesRequest.ForWhere(
+    "STATUS = 'Obsolete'"));
+```
+
+Delete by spatial filter:
+
+```csharp
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Models;
+
+var result = await layerClient.DeleteFeaturesAsync(new DeleteFeaturesRequest {
+    Where = "STATUS = 'Obsolete'",
+    SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+        new Envelope(10, 11, 55, 56),
+        4326),
+    ReturnDeleteResults = false
+});
+```
+
+Direct `deleteFeatures` returns either per-feature `DeleteResults` or a top-level success value, depending on service behavior and `ReturnDeleteResults`.
+
 ### Layer-level async `applyEdits` with manual submit/status/result
 
 Use this when you want explicit control over polling, logging, retry behavior, or timeout handling.
@@ -1528,7 +1670,7 @@ var result = await layerClient.WaitForApplyEditsCompletionAsync(
 
 ### Service-level `applyEdits`
 
-Use this when you need one request that touches multiple layers and want the server to complete the request in a single call.
+Use this when you need edits across multiple layers and want the server to complete the request in a single call.
 
 ```csharp
 using S100Framework.REST.Models;
@@ -1570,6 +1712,7 @@ var result = await client.WaitForApplyEditsCompletionAsync(
         Timeout = TimeSpan.FromMinutes(1)
     });
 ```
+
 
 ---
 
@@ -2167,7 +2310,7 @@ if (metadata.ExtractChangesCapabilities is not null) {
 ### Rule of thumb
 
 - For ordinary queries, you usually do not need to think much about capabilities.
-- For attachments, top features, advanced related queries, service-level relationships, service-level query, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, synchronous/asynchronous `calculate`, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
+- For attachments, top features, advanced related queries, service-level relationships, service-level query, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, synchronous/asynchronous `calculate`, direct feature edit endpoints, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
 - Even if you skip the manual check, the client will still fail fast for important unsupported operations.
 
 ---
@@ -2251,7 +2394,7 @@ If this is your first time using the package, read the sections in this order:
 21. Query data elements
 22. Contingent values and field groups
 23. Attachments
-24. Editing features
+24. Editing features, edit convenience wrappers, and direct edit endpoints
 25. Uploads
 26. `append`
 27. `extractChanges`

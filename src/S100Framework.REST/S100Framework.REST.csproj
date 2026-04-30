@@ -9,7 +9,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.8.0</Version>
+		<Version>1.9.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
@@ -31,13 +31,13 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			- Added async calculate submission support.
-			- Added calculate job status polling.
-			- Added WaitForCalculateCompletionAsync convenience methods.
-			- Added CalculateSubmissionResult, CalculateJobStatus, and CalculateWaitOptions models.
-			- Added async calculate capability mapping through FeatureLayerCapabilities.SupportsAsyncCalculate.
-			- Hardened async calculate behavior for immediate results, terminal statuses, timeouts, wait option validation, and timestamp parsing.
-			- Updated README documentation for synchronous and asynchronous calculate workflows.
+			- Added layer-level feature edit convenience wrappers over applyEdits.
+			- Added direct addFeatures endpoint support.
+			- Added direct updateFeatures endpoint support.
+			- Added direct deleteFeatures endpoint support, including object ID, where clause, and spatial-filter delete requests.
+			- Added addFeatures, updateFeatures, and deleteFeatures request/result models.
+			- Hardened direct feature edit validation and response handling.
+			- Updated README documentation for edit convenience wrappers and direct edit endpoints.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 
