@@ -491,6 +491,222 @@ public sealed class FeatureLayerClientAdvancedQueryParameterTests
     }
 
     [Fact]
+    public async Task QueryAsync_IncludesStandardResultTypeAndReturnExceededLimitFeaturesTrue_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "features": []
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        await foreach (var _ in layerClient.QueryAsync(
+            new FeatureQuery {
+                ResultType = FeatureQueryResultType.Standard,
+                ReturnExceededLimitFeatures = true
+            },
+            cancellationToken)) {
+        }
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase));
+
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.Contains("resultType=standard", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("returnExceededLimitFeatures=true", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryAsync_DoesNotSendResultTypeParameters_WhenNotProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "features": []
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        await foreach (var _ in layerClient.QueryAsync(
+            new FeatureQuery(),
+            cancellationToken)) {
+        }
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase));
+
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.DoesNotContain("resultType=", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.DoesNotContain("returnExceededLimitFeatures=", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_IncludesResultTypeAndReturnExceededLimitFeatures_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "count": 7
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        var count = await layerClient.QueryCountAsync(
+            new FeatureQuery {
+                ResultType = FeatureQueryResultType.Tile,
+                ReturnExceededLimitFeatures = false
+            },
+            cancellationToken);
+
+        Assert.Equal(7, count);
+
+        var queryRequest = Assert.Single(requestUris);
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.Contains("returnCountOnly=true", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("resultType=tile", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("returnExceededLimitFeatures=false", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryObjectIdsAsync_IncludesResultTypeAndReturnExceededLimitFeatures_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "objectIds": [10, 20]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        var objectIds = await layerClient.QueryObjectIdsAsync(
+            new FeatureQuery {
+                ResultType = FeatureQueryResultType.Tile,
+                ReturnExceededLimitFeatures = true
+            },
+            cancellationToken);
+
+        Assert.Equal([10, 20], objectIds);
+
+        var queryRequest = Assert.Single(requestUris);
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.Contains("returnIdsOnly=true", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("resultType=tile", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("returnExceededLimitFeatures=true", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryExtentAsync_IncludesResultTypeAndReturnExceededLimitFeatures_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "count": 3,
+                  "extent": {
+                    "xmin": 10.0,
+                    "ymin": 55.0,
+                    "xmax": 11.0,
+                    "ymax": 56.0,
+                    "spatialReference": {
+                      "wkid": 25832,
+                      "latestWkid": 25832
+                    }
+                  }
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+
+        var extent = await layerClient.QueryExtentAsync(
+            new FeatureQuery {
+                ResultType = FeatureQueryResultType.Standard,
+                ReturnExceededLimitFeatures = false
+            },
+            cancellationToken);
+
+        Assert.NotNull(extent);
+        Assert.Equal(25832, extent.Srid);
+
+        var queryRequest = Assert.Single(requestUris);
+        var decodedQueryRequest = Uri.UnescapeDataString(queryRequest);
+
+        Assert.Contains("returnExtentOnly=true", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("resultType=standard", decodedQueryRequest, StringComparison.Ordinal);
+        Assert.Contains("returnExceededLimitFeatures=false", decodedQueryRequest, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task QueryCountAsync_IncludesDatumTransformationJson_WhenProvided() {
         var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<string>();
