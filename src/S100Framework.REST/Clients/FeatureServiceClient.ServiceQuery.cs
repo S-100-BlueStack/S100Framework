@@ -37,6 +37,45 @@ public sealed partial class FeatureServiceClient
     }
 
     /// <inheritdoc />
+    public async Task<FeatureServiceQueryResult> QueryAllAsync(
+        FeatureServiceQueryRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+
+        request.Validate();
+
+        if (!string.IsNullOrWhiteSpace(request.GdbVersion)) {
+            throw new NotSupportedException(
+                "QueryAllAsync executes layer-level query requests and does not currently support GdbVersion.");
+        }
+
+        if (request.TimeReferenceUnknownClient) {
+            throw new NotSupportedException(
+                "QueryAllAsync executes layer-level query requests and does not currently support TimeReferenceUnknownClient.");
+        }
+
+        await EnsureServiceQuerySupportAsync(cancellationToken);
+
+        var layers = new List<FeatureServiceLayerQueryResult>(request.LayerDefinitions.Count);
+
+        foreach (var layerDefinition in request.LayerDefinitions) {
+            var records = new List<FeatureRecord>();
+
+            await foreach (var record in GetLayerClient(layerDefinition.LayerId)
+                .QueryAsync(CreateLayerFeatureQuery(request, layerDefinition), cancellationToken)) {
+                records.Add(record);
+            }
+
+            layers.Add(new FeatureServiceLayerQueryResult(
+                layerDefinition.LayerId,
+                records.ToArray(),
+                ExceededTransferLimit: null));
+        }
+
+        return new FeatureServiceQueryResult(layers);
+    }
+
+    /// <inheritdoc />
     public async Task<FeatureServiceQueryCountResult> QueryCountAsync(
         FeatureServiceQueryRequest request,
         CancellationToken cancellationToken = default) {
@@ -139,6 +178,28 @@ public sealed partial class FeatureServiceClient
         }
 
         return new FeatureServiceQueryExtentsResult(layers);
+    }
+
+    private static FeatureQuery CreateLayerFeatureQuery(
+    FeatureServiceQueryRequest request,
+    FeatureServiceLayerQueryDefinition layerDefinition) {
+        return new FeatureQuery {
+            Where = string.IsNullOrWhiteSpace(layerDefinition.Where)
+                ? "1=1"
+                : layerDefinition.Where,
+            OutFields = layerDefinition.OutFields,
+            ReturnGeometry = request.ReturnGeometry,
+            ReturnZ = request.ReturnZ,
+            ReturnM = request.ReturnM,
+            OutSrid = request.OutSrid,
+            GeometryPrecision = request.GeometryPrecision,
+            MaxAllowableOffset = request.MaxAllowableOffset,
+            SqlFormat = request.SqlFormat,
+            SpatialFilter = request.SpatialFilter,
+            TimeInstant = request.TimeInstant,
+            TimeExtent = request.TimeExtent,
+            HistoricMoment = request.HistoricMoment
+        };
     }
 
     private static FeatureQuery CreateLayerExtentQuery(

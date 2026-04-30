@@ -28,6 +28,31 @@ public partial interface IFeatureServiceClient
         throw new NotSupportedException("This feature service client does not support service-level query operations.");
 
     /// <summary>
+    /// Executes layer-level feature queries for all layer definitions in a service-level query request.
+    /// </summary>
+    /// <param name="request">
+    /// The service-level query request used to derive the layer-level feature queries.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token.
+    /// </param>
+    /// <returns>
+    /// The layer-grouped feature records returned by the feature service.
+    /// </returns>
+    /// <remarks>
+    /// This method is intended for consumers that need complete multi-layer results. It executes one layer-level
+    /// query per layer definition, allowing the existing layer query paging and object ID fallback behavior to avoid
+    /// service-level feature-set transfer limits.
+    /// </remarks>
+    /// <exception cref="NotSupportedException">
+    /// Thrown when the concrete service client implementation does not support service-level query operations.
+    /// </exception>
+    Task<FeatureServiceQueryResult> QueryAllAsync(
+        FeatureServiceQueryRequest request,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("This feature service client does not support service-level query operations.");
+
+    /// <summary>
     /// Executes a service-level <c>query</c> request that returns row counts for one or more layers or tables.
     /// </summary>
     /// <param name="request">

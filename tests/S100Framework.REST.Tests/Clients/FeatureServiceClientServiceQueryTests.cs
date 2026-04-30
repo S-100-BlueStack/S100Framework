@@ -1016,6 +1016,237 @@ public sealed class FeatureServiceClientServiceQueryTests
         Assert.False(query.ContainsKey("returnUniqueIdsOnly"));
     }
 
+    [Fact]
+    public async Task QueryAllAsync_UsesLayerQueryEndpointsAndMapsCompleteLayerResults() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<Uri>();
+
+        var client = CreateClient(request => {
+            requestUris.Add(request.RequestUri!);
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0",
+                StringComparison.OrdinalIgnoreCase)) {
+                return CreateLayerMetadataResponse(
+                    layerId: 0,
+                    name: "Harbors",
+                    geometryType: "esriGeometryPoint");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/1",
+                StringComparison.OrdinalIgnoreCase)) {
+                return CreateLayerMetadataResponse(
+                    layerId: 1,
+                    name: "Inspections",
+                    geometryType: null);
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "geometryType": "esriGeometryPoint",
+                  "spatialReference": {
+                    "wkid": 4326,
+                    "latestWkid": 4326
+                  },
+                  "exceededTransferLimit": false,
+                  "features": [
+                    {
+                      "attributes": {
+                        "OBJECTID": 10,
+                        "NAME": "Harbor A"
+                      },
+                      "geometry": {
+                        "x": 12.34,
+                        "y": 56.78,
+                        "spatialReference": {
+                          "wkid": 4326
+                        }
+                      }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/1/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "features": [
+                    {
+                      "attributes": {
+                        "OBJECTID": 20,
+                        "NAME": "Inspection A"
+                      }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.QueryAllAsync(
+            new FeatureServiceQueryRequest {
+                LayerDefinitions = [
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 0,
+                        Where = "STATUS = 'Active'",
+                        OutFields = ["OBJECTID", "NAME"]
+                    },
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 1,
+                        Where = "OBJECTID < 100",
+                        OutFields = ["OBJECTID", "NAME"]
+                    }
+                ],
+                ReturnGeometry = true,
+                OutSrid = 4326,
+                ReturnZ = false,
+                ReturnM = false,
+                GeometryPrecision = 2,
+                MaxAllowableOffset = 5,
+                SqlFormat = FeatureQuerySqlFormat.Standard
+            },
+            cancellationToken);
+
+        Assert.Equal(2, result.Layers.Count);
+
+        var layer0 = result.Layers[0];
+        Assert.Equal(0, layer0.LayerId);
+        Assert.Null(layer0.ExceededTransferLimit);
+
+        var feature = Assert.Single(layer0.Records);
+        Assert.Equal(10, feature.ObjectId);
+        Assert.Equal("Harbor A", feature.Attributes["NAME"]);
+
+        var point = Assert.IsType<Point>(feature.Geometry);
+        Assert.Equal(12.34, point.X);
+        Assert.Equal(56.78, point.Y);
+
+        var layer1 = result.Layers[1];
+        Assert.Equal(1, layer1.LayerId);
+        Assert.Null(layer1.ExceededTransferLimit);
+
+        var tableRecord = Assert.Single(layer1.Records);
+        Assert.Equal(20, tableRecord.ObjectId);
+        Assert.Null(tableRecord.Geometry);
+        Assert.Equal("Inspection A", tableRecord.Attributes["NAME"]);
+
+        Assert.DoesNotContain(
+            requestUris,
+            uri => uri.AbsolutePath.EndsWith(
+                "/FeatureServer/query",
+                StringComparison.OrdinalIgnoreCase));
+
+        var layerQueryRequests = requestUris
+            .Where(uri => uri.AbsolutePath.EndsWith(
+                "/query",
+                StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        Assert.Equal(2, layerQueryRequests.Length);
+
+        var layer0Query = ParseQuery(layerQueryRequests[0]);
+        Assert.Equal("json", layer0Query["f"]);
+        Assert.Equal("STATUS = 'Active'", layer0Query["where"]);
+        Assert.Equal("OBJECTID,NAME", layer0Query["outFields"]);
+        Assert.Equal("true", layer0Query["returnGeometry"]);
+        Assert.Equal("4326", layer0Query["outSR"]);
+        Assert.Equal("false", layer0Query["returnZ"]);
+        Assert.Equal("false", layer0Query["returnM"]);
+        Assert.Equal("2", layer0Query["geometryPrecision"]);
+        Assert.Equal("5", layer0Query["maxAllowableOffset"]);
+        Assert.Equal("standard", layer0Query["sqlFormat"]);
+        Assert.False(layer0Query.ContainsKey("layerDefs"));
+
+        var layer1Query = ParseQuery(layerQueryRequests[1]);
+        Assert.Equal("OBJECTID < 100", layer1Query["where"]);
+        Assert.Equal("OBJECTID,NAME", layer1Query["outFields"]);
+    }
+
+    [Fact]
+    public async Task QueryAllAsync_Throws_WhenServiceDoesNotAdvertiseQuerySupport() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Uploads");
+            }
+
+            throw new InvalidOperationException("HTTP should not be called after metadata lookup.");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
+            client.QueryAllAsync(
+                new FeatureServiceQueryRequest {
+                    LayerDefinitions = [
+                        new FeatureServiceLayerQueryDefinition {
+                            LayerId = 0
+                        }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("query", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryAllAsync_Throws_WhenGdbVersionIsProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<NotSupportedException>(() =>
+            client.QueryAllAsync(
+                new FeatureServiceQueryRequest {
+                    LayerDefinitions = [
+                        new FeatureServiceLayerQueryDefinition {
+                            LayerId = 0
+                        }
+                    ],
+                    GdbVersion = "SDE.DEFAULT"
+                },
+                cancellationToken));
+
+        Assert.Contains("GdbVersion", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryAllAsync_Throws_WhenTimeReferenceUnknownClientIsProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<NotSupportedException>(() =>
+            client.QueryAllAsync(
+                new FeatureServiceQueryRequest {
+                    LayerDefinitions = [
+                        new FeatureServiceLayerQueryDefinition {
+                            LayerId = 0
+                        }
+                    ],
+                    TimeReferenceUnknownClient = true
+                },
+                cancellationToken));
+
+        Assert.Contains("TimeReferenceUnknownClient", exception.Message, StringComparison.Ordinal);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
@@ -1040,6 +1271,41 @@ public sealed class FeatureServiceClientServiceQueryTests
             { "id": 1, "name": "Inspections" }
           ],
           "capabilities": "{{capabilities}}"
+        }
+        """);
+    }
+
+    private static HttpResponseMessage CreateLayerMetadataResponse(
+    int layerId,
+    string name,
+    string? geometryType) {
+        var geometryTypeProperty = geometryType is null
+            ? string.Empty
+            : $"""
+              "geometryType": "{geometryType}",
+            """;
+
+        return StubHttpMessageHandler.Json($$"""
+        {
+          "id": {{layerId}},
+          "name": "{{name}}",
+          {{geometryTypeProperty}}
+          "objectIdField": "OBJECTID",
+          "maxRecordCount": 1000,
+          "advancedQueryCapabilities": {
+            "supportsPagination": true
+          },
+          "fields": [
+            { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false },
+            { "name": "NAME", "type": "esriFieldTypeString", "nullable": true }
+          ],
+          "relationships": [],
+          "extent": {
+            "spatialReference": {
+              "wkid": 4326,
+              "latestWkid": 4326
+            }
+          }
         }
         """);
     }
