@@ -106,6 +106,9 @@ internal sealed class EsriRelatedRecordGroupDto
 
     [JsonPropertyName("relatedRecords")]
     public List<EsriFeatureDto>? RelatedRecords { get; init; }
+
+    [JsonPropertyName("count")]
+    public long? Count { get; init; }
 }
 
 internal sealed class EsriAttachmentQueryResponseDto

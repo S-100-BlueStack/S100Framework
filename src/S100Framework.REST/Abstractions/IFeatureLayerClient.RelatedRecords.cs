@@ -22,4 +22,20 @@ public partial interface IFeatureLayerClient
     Task<IReadOnlyList<RelatedRecordGroup>> QueryRelatedRecordsAsync(
         RelatedRecordsQuery query,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes a related-records query that returns only the related record count for each source object ID.
+    /// </summary>
+    /// <param name="query">
+    /// The related-records query to execute.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token.
+    /// </param>
+    /// <returns>
+    /// The related record counts grouped by source object ID.
+    /// </returns>
+    Task<IReadOnlyList<RelatedRecordCountGroup>> QueryRelatedRecordCountsAsync(
+        RelatedRecordsQuery query,
+        CancellationToken cancellationToken = default);
 }

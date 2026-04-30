@@ -289,5 +289,11 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
             ApplyEditsWaitOptions? options,
             CancellationToken cancellationToken) =>
             throw new NotImplementedException();
+
+        public Task<IReadOnlyList<RelatedRecordCountGroup>> QueryRelatedRecordCountsAsync(
+    RelatedRecordsQuery query,
+    CancellationToken cancellationToken = default) {
+            throw new NotSupportedException();
+        }
     }
 }

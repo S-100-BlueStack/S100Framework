@@ -13,6 +13,7 @@ public sealed partial class FeatureServiceClient
     internal Task<EsriRelatedRecordsResponseDto> QueryRelatedRecordsAsync(
         int layerId,
         RelatedRecordsQuery query,
+        bool returnCountOnly,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
@@ -31,8 +32,33 @@ public sealed partial class FeatureServiceClient
             ["orderByFields"] = query.OrderBy
         };
 
+        if (returnCountOnly) {
+            parameters["returnCountOnly"] = "true";
+        }
+
+        if (query.ResultOffset.HasValue) {
+            parameters["resultOffset"] = query.ResultOffset.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (query.ResultRecordCount.HasValue) {
+            parameters["resultRecordCount"] = query.ResultRecordCount.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
         if (query.OutSrid.HasValue) {
             parameters["outSR"] = query.OutSrid.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.GdbVersion)) {
+            parameters["gdbVersion"] = query.GdbVersion;
+        }
+
+        if (query.HistoricMoment.HasValue) {
+            parameters["historicMoment"] = query.HistoricMoment.Value.ToUnixTimeMilliseconds()
+                .ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (query.TimeReferenceUnknownClient) {
+            parameters["timeReferenceUnknownClient"] = "true";
         }
 
         if (query.ReturnZ.HasValue) {
@@ -50,6 +76,14 @@ public sealed partial class FeatureServiceClient
         if (query.MaxAllowableOffset.HasValue) {
             parameters["maxAllowableOffset"] =
                 query.MaxAllowableOffset.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (query.DatumTransformationWkid.HasValue) {
+            parameters["datumTransformation"] =
+                query.DatumTransformationWkid.Value.ToString(CultureInfo.InvariantCulture);
+        }
+        else if (!string.IsNullOrWhiteSpace(query.DatumTransformationJson)) {
+            parameters["datumTransformation"] = query.DatumTransformationJson;
         }
 
         var uri = UriUtility.WithQuery(
