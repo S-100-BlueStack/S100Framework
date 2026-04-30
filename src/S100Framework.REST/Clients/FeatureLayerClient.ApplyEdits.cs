@@ -18,6 +18,66 @@ public sealed partial class FeatureLayerClient
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<EditResult>> AddFeaturesAsync(
+        IReadOnlyList<EditableFeature> features,
+        FeatureEditOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(features);
+
+        var effectiveOptions = options ?? new FeatureEditOptions();
+
+        var result = await ApplyEditsAsync(
+            new FeatureEdits {
+                Adds = features,
+                RollbackOnFailure = effectiveOptions.RollbackOnFailure,
+                UseGlobalIds = effectiveOptions.UseGlobalIds
+            },
+            cancellationToken);
+
+        return result.AddResults;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<EditResult>> UpdateFeaturesAsync(
+        IReadOnlyList<EditableFeature> features,
+        FeatureEditOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(features);
+
+        var effectiveOptions = options ?? new FeatureEditOptions();
+
+        var result = await ApplyEditsAsync(
+            new FeatureEdits {
+                Updates = features,
+                RollbackOnFailure = effectiveOptions.RollbackOnFailure,
+                UseGlobalIds = effectiveOptions.UseGlobalIds
+            },
+            cancellationToken);
+
+        return result.UpdateResults;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<EditResult>> DeleteFeaturesAsync(
+        IReadOnlyList<long> objectIds,
+        FeatureEditOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(objectIds);
+
+        var effectiveOptions = options ?? new FeatureEditOptions();
+
+        var result = await ApplyEditsAsync(
+            new FeatureEdits {
+                Deletes = objectIds,
+                RollbackOnFailure = effectiveOptions.RollbackOnFailure,
+                UseGlobalIds = effectiveOptions.UseGlobalIds
+            },
+            cancellationToken);
+
+        return result.DeleteResults;
+    }
+
+    /// <inheritdoc />
     public async Task<ApplyEditsSubmissionResult> SubmitApplyEditsAsync(
         FeatureEdits edits,
         CancellationToken cancellationToken = default) {
