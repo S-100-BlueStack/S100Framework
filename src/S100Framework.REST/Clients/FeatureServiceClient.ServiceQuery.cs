@@ -114,6 +114,62 @@ public sealed partial class FeatureServiceClient
                 .ToArray());
     }
 
+    /// <inheritdoc />
+    public async Task<FeatureServiceQueryExtentsResult> QueryExtentsAsync(
+        FeatureServiceQueryRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+
+        request.Validate();
+        ValidateServiceLayerExtentQueryCompatibility(request);
+
+        await EnsureServiceQuerySupportAsync(cancellationToken);
+
+        var layers = new List<FeatureServiceLayerExtentResult>(request.LayerDefinitions.Count);
+
+        foreach (var layerDefinition in request.LayerDefinitions) {
+            var extent = await QueryExtentAsync(
+                layerDefinition.LayerId,
+                CreateLayerExtentQuery(request, layerDefinition),
+                cancellationToken);
+
+            layers.Add(new FeatureServiceLayerExtentResult(
+                layerDefinition.LayerId,
+                extent));
+        }
+
+        return new FeatureServiceQueryExtentsResult(layers);
+    }
+
+    private static FeatureQuery CreateLayerExtentQuery(
+    FeatureServiceQueryRequest request,
+    FeatureServiceLayerQueryDefinition layerDefinition) {
+        return new FeatureQuery {
+            Where = string.IsNullOrWhiteSpace(layerDefinition.Where)
+                ? "1=1"
+                : layerDefinition.Where,
+            OutSrid = request.OutSrid,
+            SqlFormat = request.SqlFormat,
+            SpatialFilter = request.SpatialFilter,
+            TimeInstant = request.TimeInstant,
+            TimeExtent = request.TimeExtent,
+            HistoricMoment = request.HistoricMoment
+        };
+    }
+
+    private static void ValidateServiceLayerExtentQueryCompatibility(
+        FeatureServiceQueryRequest request) {
+        if (!string.IsNullOrWhiteSpace(request.GdbVersion)) {
+            throw new NotSupportedException(
+                "QueryExtentsAsync executes layer-level query requests and does not currently support GdbVersion.");
+        }
+
+        if (request.TimeReferenceUnknownClient) {
+            throw new NotSupportedException(
+                "QueryExtentsAsync executes layer-level query requests and does not currently support TimeReferenceUnknownClient.");
+        }
+    }
+
     private async Task EnsureServiceQuerySupportAsync(
         CancellationToken cancellationToken) {
         var metadata = await GetMetadataAsync(cancellationToken);

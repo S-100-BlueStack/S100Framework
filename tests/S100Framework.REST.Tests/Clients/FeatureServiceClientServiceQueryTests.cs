@@ -650,6 +650,197 @@ public sealed class FeatureServiceClientServiceQueryTests
         Assert.Contains("unique ID component", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task QueryExtentsAsync_UsesLayerQueryEndpointsAndMapsLayerExtents() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<Uri>();
+
+        var client = CreateClient(request => {
+            requestUris.Add(request.RequestUri!);
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "count": 12,
+                  "extent": {
+                    "xmin": 10.0,
+                    "ymin": 55.0,
+                    "xmax": 11.0,
+                    "ymax": 56.0,
+                    "spatialReference": {
+                      "wkid": 25832,
+                      "latestWkid": 25832
+                    }
+                  }
+                }
+                """);
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/1/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "count": 0,
+                  "extent": null
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.QueryExtentsAsync(
+            new FeatureServiceQueryRequest {
+                LayerDefinitions = [
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 0,
+                        Where = "STATUS = 'Active'"
+                    },
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 1,
+                        Where = "INSPECTION_REQUIRED = 1"
+                    }
+                ],
+                OutSrid = 25832,
+                SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+                    new Envelope(9, 12, 54, 57),
+                    4326),
+                TimeInstant = DateTimeOffset.UnixEpoch,
+                SqlFormat = FeatureQuerySqlFormat.Standard
+            },
+            cancellationToken);
+
+        Assert.Equal(2, result.Layers.Count);
+
+        var layer0 = result.Layers[0];
+        Assert.Equal(0, layer0.LayerId);
+        Assert.NotNull(layer0.Extent);
+        Assert.Equal(10.0, layer0.Extent.Envelope.MinX);
+        Assert.Equal(11.0, layer0.Extent.Envelope.MaxX);
+        Assert.Equal(55.0, layer0.Extent.Envelope.MinY);
+        Assert.Equal(56.0, layer0.Extent.Envelope.MaxY);
+        Assert.Equal(25832, layer0.Extent.Srid);
+
+        var layer1 = result.Layers[1];
+        Assert.Equal(1, layer1.LayerId);
+        Assert.Null(layer1.Extent);
+
+        Assert.DoesNotContain(
+            requestUris,
+            uri => uri.AbsolutePath.EndsWith(
+                "/FeatureServer/query",
+                StringComparison.OrdinalIgnoreCase));
+
+        var layerQueryRequests = requestUris
+            .Where(uri => uri.AbsolutePath.EndsWith(
+                "/query",
+                StringComparison.OrdinalIgnoreCase))
+            .Where(uri => !IsServiceMetadataUri(uri))
+            .ToArray();
+
+        Assert.Equal(2, layerQueryRequests.Length);
+
+        var layer0Query = ParseQuery(layerQueryRequests[0]);
+        Assert.Equal("json", layer0Query["f"]);
+        Assert.Equal("true", layer0Query["returnExtentOnly"]);
+        Assert.Equal("25832", layer0Query["outSR"]);
+        Assert.Equal("0", layer0Query["time"]);
+        Assert.Equal("standard", layer0Query["sqlFormat"]);
+        Assert.Equal("STATUS = 'Active'", layer0Query["where"]);
+        Assert.Equal("esriGeometryEnvelope", layer0Query["geometryType"]);
+        Assert.Equal("4326", layer0Query["inSR"]);
+        Assert.False(layer0Query.ContainsKey("returnCountOnly"));
+        Assert.False(layer0Query.ContainsKey("returnIdsOnly"));
+        Assert.False(layer0Query.ContainsKey("returnUniqueIdsOnly"));
+
+        var layer1Query = ParseQuery(layerQueryRequests[1]);
+        Assert.Equal("true", layer1Query["returnExtentOnly"]);
+        Assert.Equal("INSPECTION_REQUIRED = 1", layer1Query["where"]);
+    }
+
+    [Fact]
+    public async Task QueryExtentsAsync_Throws_WhenServiceDoesNotAdvertiseQuerySupport() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Uploads");
+            }
+
+            throw new InvalidOperationException("HTTP should not be called after metadata lookup.");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
+            client.QueryExtentsAsync(
+                new FeatureServiceQueryRequest {
+                    LayerDefinitions = [
+                        new FeatureServiceLayerQueryDefinition {
+                            LayerId = 0
+                        }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("query", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryExtentsAsync_Throws_WhenGdbVersionIsProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<NotSupportedException>(() =>
+            client.QueryExtentsAsync(
+                new FeatureServiceQueryRequest {
+                    LayerDefinitions = [
+                        new FeatureServiceLayerQueryDefinition {
+                            LayerId = 0
+                        }
+                    ],
+                    GdbVersion = "SDE.DEFAULT"
+                },
+                cancellationToken));
+
+        Assert.Contains("GdbVersion", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryExtentsAsync_Throws_WhenTimeReferenceUnknownClientIsProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<NotSupportedException>(() =>
+            client.QueryExtentsAsync(
+                new FeatureServiceQueryRequest {
+                    LayerDefinitions = [
+                        new FeatureServiceLayerQueryDefinition {
+                            LayerId = 0
+                        }
+                    ],
+                    TimeReferenceUnknownClient = true
+                },
+                cancellationToken));
+
+        Assert.Contains("TimeReferenceUnknownClient", exception.Message, StringComparison.Ordinal);
+    }
+
+    private static bool IsServiceMetadataUri(Uri uri) {
+        return uri.AbsolutePath.EndsWith(
+            "/FeatureServer",
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

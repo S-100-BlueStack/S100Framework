@@ -86,4 +86,28 @@ public partial interface IFeatureServiceClient
         FeatureServiceQueryRequest request,
         CancellationToken cancellationToken = default) =>
         throw new NotSupportedException("This feature service client does not support service-level query operations.");
+
+    /// <summary>
+    /// Executes extent-only layer queries for the layer definitions in a service-level query request.
+    /// </summary>
+    /// <param name="request">
+    /// The service-level query request used to derive the layer extent queries.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token.
+    /// </param>
+    /// <returns>
+    /// The layer-grouped extents returned by the feature service.
+    /// </returns>
+    /// <remarks>
+    /// ArcGIS REST exposes <c>returnExtentOnly</c> on layer-level query endpoints. This method executes one
+    /// layer-level query per layer definition and groups the results by layer ID.
+    /// </remarks>
+    /// <exception cref="NotSupportedException">
+    /// Thrown when the concrete service client implementation does not support service-level query operations.
+    /// </exception>
+    Task<FeatureServiceQueryExtentsResult> QueryExtentsAsync(
+        FeatureServiceQueryRequest request,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("This feature service client does not support service-level query operations.");
 }
