@@ -1,6 +1,5 @@
 ﻿using System.Globalization;
 using S100Framework.REST.Internal.Dto;
-using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
 
 namespace S100Framework.REST.Clients;
@@ -86,12 +85,9 @@ public sealed partial class FeatureServiceClient
             parameters["datumTransformation"] = query.DatumTransformationJson;
         }
 
-        var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(
-                _serviceUri,
-                $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryRelatedRecords"),
-            parameters);
-
-        return GetAsync<EsriRelatedRecordsResponseDto>(uri, cancellationToken);
+        return SendLayerQueryAsync<EsriRelatedRecordsResponseDto>(
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryRelatedRecords",
+            parameters,
+            cancellationToken);
     }
 }
