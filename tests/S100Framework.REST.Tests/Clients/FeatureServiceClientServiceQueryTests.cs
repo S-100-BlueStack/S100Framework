@@ -1247,6 +1247,297 @@ public sealed class FeatureServiceClientServiceQueryTests
         Assert.Contains("TimeReferenceUnknownClient", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task QueryAllAsync_SendsDefaultWhereTimeExtentHistoricMomentAndSpatialFilter() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<Uri>();
+        var timeStart = new DateTimeOffset(2026, 01, 01, 0, 0, 0, TimeSpan.Zero);
+        var timeEnd = new DateTimeOffset(2026, 01, 31, 0, 0, 0, TimeSpan.Zero);
+        var historicMoment = new DateTimeOffset(2025, 12, 01, 0, 0, 0, TimeSpan.Zero);
+
+        var client = CreateClient(request => {
+            requestUris.Add(request.RequestUri!);
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0",
+                StringComparison.OrdinalIgnoreCase)) {
+                return CreateLayerMetadataResponse(
+                    layerId: 0,
+                    name: "Harbors",
+                    geometryType: "esriGeometryPoint");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "geometryType": "esriGeometryPoint",
+                  "spatialReference": {
+                    "wkid": 25832,
+                    "latestWkid": 25832
+                  },
+                  "features": []
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.QueryAllAsync(
+            new FeatureServiceQueryRequest {
+                LayerDefinitions = [
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 0
+                    }
+                ],
+                OutSrid = 25832,
+                SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+                    new Envelope(9, 12, 54, 57),
+                    4326),
+                TimeExtent = new FeatureTimeExtent(timeStart, timeEnd),
+                HistoricMoment = historicMoment
+            },
+            cancellationToken);
+
+        var layer = Assert.Single(result.Layers);
+        Assert.Equal(0, layer.LayerId);
+        Assert.Empty(layer.Records);
+        Assert.Null(layer.ExceededTransferLimit);
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase));
+
+        var query = ParseQuery(queryRequest);
+
+        Assert.Equal("json", query["f"]);
+        Assert.Equal("1=1", query["where"]);
+        Assert.Equal("25832", query["outSR"]);
+        Assert.Equal(
+            $"{timeStart.ToUnixTimeMilliseconds()},{timeEnd.ToUnixTimeMilliseconds()}",
+            query["time"]);
+        Assert.Equal(
+            historicMoment.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture),
+            query["historicMoment"]);
+        Assert.Equal("esriGeometryEnvelope", query["geometryType"]);
+        Assert.Equal("4326", query["inSR"]);
+        Assert.True(query.ContainsKey("geometry"));
+    }
+
+    [Fact]
+    public async Task QueryAllAsync_SendsTimeInstantWhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<Uri>();
+        var timeInstant = new DateTimeOffset(2026, 02, 15, 12, 30, 0, TimeSpan.Zero);
+
+        var client = CreateClient(request => {
+            requestUris.Add(request.RequestUri!);
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0",
+                StringComparison.OrdinalIgnoreCase)) {
+                return CreateLayerMetadataResponse(
+                    layerId: 0,
+                    name: "Harbors",
+                    geometryType: "esriGeometryPoint");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "geometryType": "esriGeometryPoint",
+                  "features": []
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        await client.QueryAllAsync(
+            new FeatureServiceQueryRequest {
+                LayerDefinitions = [
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 0,
+                        Where = "OBJECTID > 0"
+                    }
+                ],
+                TimeInstant = timeInstant
+            },
+            cancellationToken);
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase));
+
+        var query = ParseQuery(queryRequest);
+
+        Assert.Equal("OBJECTID > 0", query["where"]);
+        Assert.Equal(
+            timeInstant.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture),
+            query["time"]);
+    }
+
+    [Fact]
+    public async Task QueryAllAsync_DoesNotSendServiceLevelQueryParametersToLayerQueries() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<Uri>();
+
+        var client = CreateClient(request => {
+            requestUris.Add(request.RequestUri!);
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0",
+                StringComparison.OrdinalIgnoreCase)) {
+                return CreateLayerMetadataResponse(
+                    layerId: 0,
+                    name: "Harbors",
+                    geometryType: "esriGeometryPoint");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "geometryType": "esriGeometryPoint",
+                  "features": []
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        await client.QueryAllAsync(
+            new FeatureServiceQueryRequest {
+                LayerDefinitions = [
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 0,
+                        Where = "STATUS = 'Active'",
+                        OutFields = ["OBJECTID", "NAME"]
+                    }
+                ],
+                ReturnGeometry = false,
+                ReturnZ = true,
+                ReturnM = true,
+                GeometryPrecision = 3,
+                MaxAllowableOffset = 12.5
+            },
+            cancellationToken);
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase));
+
+        var query = ParseQuery(queryRequest);
+
+        Assert.Equal("STATUS = 'Active'", query["where"]);
+        Assert.Equal("OBJECTID,NAME", query["outFields"]);
+        Assert.Equal("false", query["returnGeometry"]);
+        Assert.Equal("true", query["returnZ"]);
+        Assert.Equal("true", query["returnM"]);
+        Assert.Equal("3", query["geometryPrecision"]);
+        Assert.Equal("12.5", query["maxAllowableOffset"]);
+
+        Assert.False(query.ContainsKey("layerDefs"));
+        Assert.Equal("false", query["returnTrueCurves"]);
+        Assert.False(query.ContainsKey("returnExtentOnly"));
+        Assert.False(query.ContainsKey("returnCountOnly"));
+        Assert.False(query.ContainsKey("returnIdsOnly"));
+        Assert.False(query.ContainsKey("returnUniqueIdsOnly"));
+    }
+
+    [Fact]
+    public async Task QueryAllAsync_PreservesLayerOrderWhenLayerResultsAreEmpty() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/2",
+                StringComparison.OrdinalIgnoreCase)) {
+                return CreateLayerMetadataResponse(
+                    layerId: 2,
+                    name: "First",
+                    geometryType: "esriGeometryPoint");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/5",
+                StringComparison.OrdinalIgnoreCase)) {
+                return CreateLayerMetadataResponse(
+                    layerId: 5,
+                    name: "Second",
+                    geometryType: "esriGeometryPoint");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/2/query",
+                StringComparison.OrdinalIgnoreCase) ||
+                request.RequestUri!.AbsolutePath.EndsWith(
+                    "/FeatureServer/5/query",
+                    StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "geometryType": "esriGeometryPoint",
+                  "features": []
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.QueryAllAsync(
+            new FeatureServiceQueryRequest {
+                LayerDefinitions = [
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 2
+                    },
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 5
+                    }
+                ]
+            },
+            cancellationToken);
+
+        Assert.Equal(2, result.Layers.Count);
+        Assert.Equal(2, result.Layers[0].LayerId);
+        Assert.Equal(5, result.Layers[1].LayerId);
+        Assert.Empty(result.Layers[0].Records);
+        Assert.Empty(result.Layers[1].Records);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
