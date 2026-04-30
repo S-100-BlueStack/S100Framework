@@ -22,25 +22,118 @@ public sealed partial class FeatureServiceClient
 
         request.Validate();
 
-        var metadata = await GetMetadataAsync(cancellationToken);
+        await EnsureServiceQuerySupportAsync(cancellationToken);
 
-        if (!metadata.Capabilities.SupportsQuery) {
-            throw new FeatureServiceCapabilityException(
-                "The feature service does not advertise query support.");
-        }
+        var parameters = CreateServiceQueryParameters(request);
 
-        var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(_serviceUri, "query"),
-            CreateServiceQueryParameters(request));
-
-        var dto = await GetAsync<EsriServiceQueryResponseDto>(
-            uri,
+        var dto = await SendServiceQueryAsync<EsriServiceQueryResponseDto>(
+            parameters,
             cancellationToken);
 
         return new FeatureServiceQueryResult(
             (dto.Layers ?? new List<EsriServiceQueryLayerDto>())
                 .Select(MapServiceQueryLayer)
                 .ToArray());
+    }
+
+    /// <inheritdoc />
+    public async Task<FeatureServiceQueryCountResult> QueryCountAsync(
+        FeatureServiceQueryRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+
+        request.Validate();
+
+        await EnsureServiceQuerySupportAsync(cancellationToken);
+
+        var parameters = CreateServiceQueryParameters(request);
+        parameters["returnCountOnly"] = "true";
+
+        var dto = await SendServiceQueryAsync<EsriServiceQueryResponseDto>(
+            parameters,
+            cancellationToken);
+
+        return new FeatureServiceQueryCountResult(
+            (dto.Layers ?? new List<EsriServiceQueryLayerDto>())
+                .Select(static layer => new FeatureServiceLayerCountResult(
+                    layer.Id,
+                    layer.Count ?? 0))
+                .ToArray());
+    }
+
+    /// <inheritdoc />
+    public async Task<FeatureServiceQueryObjectIdsResult> QueryObjectIdsAsync(
+        FeatureServiceQueryRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+
+        request.Validate();
+
+        await EnsureServiceQuerySupportAsync(cancellationToken);
+
+        var parameters = CreateServiceQueryParameters(request);
+        parameters["returnIdsOnly"] = "true";
+
+        var dto = await SendServiceQueryAsync<EsriServiceQueryResponseDto>(
+            parameters,
+            cancellationToken);
+
+        return new FeatureServiceQueryObjectIdsResult(
+            (dto.Layers ?? new List<EsriServiceQueryLayerDto>())
+                .Select(static layer => new FeatureServiceLayerObjectIdsResult(
+                    layer.Id,
+                    layer.ObjectIdFieldName,
+                    layer.ObjectIds?.ToArray() ?? Array.Empty<long>()))
+                .ToArray());
+    }
+
+    /// <inheritdoc />
+    public async Task<FeatureServiceQueryUniqueIdsResult> QueryUniqueIdsAsync(
+        FeatureServiceQueryRequest request,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(request);
+
+        request.Validate();
+
+        await EnsureServiceQuerySupportAsync(cancellationToken);
+
+        var parameters = CreateServiceQueryParameters(request);
+        parameters["returnUniqueIdsOnly"] = "true";
+
+        var dto = await SendServiceQueryAsync<EsriServiceQueryResponseDto>(
+            parameters,
+            cancellationToken);
+
+        return new FeatureServiceQueryUniqueIdsResult(
+            (dto.Layers ?? new List<EsriServiceQueryLayerDto>())
+                .Select(static layer => new FeatureServiceLayerUniqueIdsResult(
+                    layer.Id,
+                    ReadServiceQueryUniqueIdFieldNames(layer.UniqueIdFieldNames),
+                    ReadServiceQueryUniqueIds(layer.UniqueIds),
+                    layer.ExceededTransferLimit))
+                .ToArray());
+    }
+
+    private async Task EnsureServiceQuerySupportAsync(
+        CancellationToken cancellationToken) {
+        var metadata = await GetMetadataAsync(cancellationToken);
+
+        if (!metadata.Capabilities.SupportsQuery) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not advertise query support.");
+        }
+    }
+
+    private Task<TResponse> SendServiceQueryAsync<TResponse>(
+        Dictionary<string, string?> parameters,
+        CancellationToken cancellationToken) {
+        var uri = UriUtility.WithQuery(
+            UriUtility.AppendPath(_serviceUri, "query"),
+            parameters);
+
+        return GetAsync<TResponse>(
+            uri,
+            cancellationToken);
     }
 
     private Dictionary<string, string?> CreateServiceQueryParameters(
@@ -177,6 +270,65 @@ public sealed partial class FeatureServiceClient
         return _options.PreferLatestWkid
             ? spatialReference.LatestWkid ?? spatialReference.Wkid
             : spatialReference.Wkid ?? spatialReference.LatestWkid;
+    }
+
+    private static IReadOnlyList<string> ReadServiceQueryUniqueIdFieldNames(
+        JsonElement element) {
+        return element.ValueKind switch {
+            JsonValueKind.Undefined or JsonValueKind.Null => Array.Empty<string>(),
+            JsonValueKind.String => element.GetString() is { Length: > 0 } value
+                ? [value]
+                : Array.Empty<string>(),
+            JsonValueKind.Array => element.EnumerateArray()
+                .Select(static item => item.ValueKind == JsonValueKind.String ? item.GetString() : null)
+                .Where(static value => !string.IsNullOrWhiteSpace(value))
+                .Cast<string>()
+                .ToArray(),
+            _ => throw new InvalidOperationException(
+                "The server returned an unsupported payload for uniqueIdFieldNames.")
+        };
+    }
+
+    private static IReadOnlyList<FeatureUniqueId> ReadServiceQueryUniqueIds(
+        JsonElement element) {
+        if (element.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
+            return Array.Empty<FeatureUniqueId>();
+        }
+
+        if (element.ValueKind != JsonValueKind.Array) {
+            throw new InvalidOperationException("The server returned an unsupported payload for uniqueIds.");
+        }
+
+        var result = new List<FeatureUniqueId>();
+
+        foreach (var item in element.EnumerateArray()) {
+            if (item.ValueKind == JsonValueKind.Array) {
+                result.Add(new FeatureUniqueId(
+                    item.EnumerateArray()
+                        .Select(ReadServiceQueryUniqueIdComponent)
+                        .ToArray()));
+
+                continue;
+            }
+
+            result.Add(new FeatureUniqueId([ReadServiceQueryUniqueIdComponent(item)]));
+        }
+
+        return result;
+    }
+
+    private static string ReadServiceQueryUniqueIdComponent(
+        JsonElement element) {
+        return element.ValueKind switch {
+            JsonValueKind.String => element.GetString()
+                ?? throw new InvalidOperationException(
+                    "The server returned a null unique ID component."),
+            JsonValueKind.Number => element.GetRawText(),
+            JsonValueKind.True => bool.TrueString,
+            JsonValueKind.False => bool.FalseString,
+            _ => throw new InvalidOperationException(
+                "The server returned an unsupported unique ID component value.")
+        };
     }
 
     private static string MapServiceQuerySqlFormat(

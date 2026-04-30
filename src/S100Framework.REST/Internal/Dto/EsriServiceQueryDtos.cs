@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace S100Framework.REST.Internal.Dto;
 
@@ -36,6 +37,18 @@ internal sealed class EsriServiceQueryLayerDto
 
     [JsonPropertyName("features")]
     public List<EsriFeatureDto>? Features { get; init; }
+
+    [JsonPropertyName("count")]
+    public long? Count { get; init; }
+
+    [JsonPropertyName("objectIds")]
+    public List<long>? ObjectIds { get; init; }
+
+    [JsonPropertyName("uniqueIdFieldNames")]
+    public JsonElement UniqueIdFieldNames { get; init; }
+
+    [JsonPropertyName("uniqueIds")]
+    public JsonElement UniqueIds { get; init; }
 
     [JsonPropertyName("exceededTransferLimit")]
     public bool? ExceededTransferLimit { get; init; }

@@ -267,6 +267,183 @@ public sealed class FeatureServiceClientServiceQueryTests
         Assert.Contains("Duplicate", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task QueryShapeAsyncMethods_SendReturnShapeFlagsAndMapLayerResults() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<Uri>();
+
+        var client = CreateClient(request => {
+            requestUris.Add(request.RequestUri!);
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                var query = ParseQuery(request.RequestUri);
+
+                if (query.ContainsKey("returnCountOnly")) {
+                    return StubHttpMessageHandler.Json("""
+                    {
+                      "layers": [
+                        {
+                          "id": 0,
+                          "count": 42
+                        },
+                        {
+                          "id": 1,
+                          "count": 7
+                        }
+                      ]
+                    }
+                    """);
+                }
+
+                if (query.ContainsKey("returnIdsOnly")) {
+                    return StubHttpMessageHandler.Json("""
+                    {
+                      "layers": [
+                        {
+                          "id": 0,
+                          "objectIdFieldName": "OBJECTID",
+                          "objectIds": [10, 20, 30]
+                        },
+                        {
+                          "id": 1,
+                          "objectIdFieldName": "OBJECTID",
+                          "objectIds": [100]
+                        }
+                      ]
+                    }
+                    """);
+                }
+
+                if (query.ContainsKey("returnUniqueIdsOnly")) {
+                    return StubHttpMessageHandler.Json("""
+                    {
+                      "layers": [
+                        {
+                          "id": 0,
+                          "uniqueIdFieldNames": "GLOBALID",
+                          "uniqueIds": ["a", "b", "c"],
+                          "exceededTransferLimit": false
+                        },
+                        {
+                          "id": 1,
+                          "uniqueIdFieldNames": ["COUNTRY", "LOCAL_ID"],
+                          "uniqueIds": [
+                            ["DK", 100],
+                            ["NO", 200]
+                          ],
+                          "exceededTransferLimit": true
+                        }
+                      ]
+                    }
+                    """);
+                }
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var request = new FeatureServiceQueryRequest {
+            LayerDefinitions = [
+                new FeatureServiceLayerQueryDefinition {
+                    LayerId = 0,
+                    Where = "STATUS = 'Active'"
+                },
+                new FeatureServiceLayerQueryDefinition {
+                    LayerId = 1,
+                    Where = "INSPECTION_REQUIRED = 1"
+                }
+            ]
+        };
+
+        var countResult = await client.QueryCountAsync(request, cancellationToken);
+        var objectIdsResult = await client.QueryObjectIdsAsync(request, cancellationToken);
+        var uniqueIdsResult = await client.QueryUniqueIdsAsync(request, cancellationToken);
+
+        Assert.Equal(2, countResult.Layers.Count);
+        Assert.Equal(0, countResult.Layers[0].LayerId);
+        Assert.Equal(42, countResult.Layers[0].Count);
+        Assert.Equal(1, countResult.Layers[1].LayerId);
+        Assert.Equal(7, countResult.Layers[1].Count);
+
+        Assert.Equal(2, objectIdsResult.Layers.Count);
+        Assert.Equal(0, objectIdsResult.Layers[0].LayerId);
+        Assert.Equal("OBJECTID", objectIdsResult.Layers[0].ObjectIdFieldName);
+        Assert.Equal([10, 20, 30], objectIdsResult.Layers[0].ObjectIds);
+        Assert.Equal(1, objectIdsResult.Layers[1].LayerId);
+        Assert.Equal([100], objectIdsResult.Layers[1].ObjectIds);
+
+        Assert.Equal(2, uniqueIdsResult.Layers.Count);
+
+        var simpleUniqueIdLayer = uniqueIdsResult.Layers[0];
+        Assert.Equal(0, simpleUniqueIdLayer.LayerId);
+        Assert.Equal(["GLOBALID"], simpleUniqueIdLayer.UniqueIdFieldNames);
+        Assert.False(simpleUniqueIdLayer.IsComposite);
+        Assert.False(simpleUniqueIdLayer.ExceededTransferLimit);
+        Assert.Collection(
+    simpleUniqueIdLayer.UniqueIds,
+    uniqueId => Assert.Equal("a", uniqueId.SingleValue),
+    uniqueId => Assert.Equal("b", uniqueId.SingleValue),
+    uniqueId => Assert.Equal("c", uniqueId.SingleValue));
+
+        var compositeUniqueIdLayer = uniqueIdsResult.Layers[1];
+        Assert.Equal(1, compositeUniqueIdLayer.LayerId);
+        Assert.Equal(["COUNTRY", "LOCAL_ID"], compositeUniqueIdLayer.UniqueIdFieldNames);
+        Assert.True(compositeUniqueIdLayer.IsComposite);
+        Assert.True(compositeUniqueIdLayer.ExceededTransferLimit);
+        Assert.Null(compositeUniqueIdLayer.UniqueIds[0].SingleValue);
+        Assert.Equal(["DK", "100"], compositeUniqueIdLayer.UniqueIds[0].Components);
+        Assert.Equal(["NO", "200"], compositeUniqueIdLayer.UniqueIds[1].Components);
+
+        var queryRequests = requestUris
+            .Where(uri => uri.AbsolutePath.EndsWith(
+                "/FeatureServer/query",
+                StringComparison.OrdinalIgnoreCase))
+            .Select(ParseQuery)
+            .ToArray();
+
+        Assert.Equal(3, queryRequests.Length);
+        Assert.Equal("true", queryRequests[0]["returnCountOnly"]);
+        Assert.False(queryRequests[0].ContainsKey("returnIdsOnly"));
+        Assert.False(queryRequests[0].ContainsKey("returnUniqueIdsOnly"));
+        Assert.Equal("true", queryRequests[1]["returnIdsOnly"]);
+        Assert.False(queryRequests[1].ContainsKey("returnCountOnly"));
+        Assert.False(queryRequests[1].ContainsKey("returnUniqueIdsOnly"));
+        Assert.Equal("true", queryRequests[2]["returnUniqueIdsOnly"]);
+        Assert.False(queryRequests[2].ContainsKey("returnCountOnly"));
+        Assert.False(queryRequests[2].ContainsKey("returnIdsOnly"));
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_Throws_WhenServiceDoesNotAdvertiseQuerySupport() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Uploads");
+            }
+
+            throw new InvalidOperationException("HTTP should not be called after metadata lookup.");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
+            client.QueryCountAsync(
+                new FeatureServiceQueryRequest {
+                    LayerDefinitions = [
+                        new FeatureServiceLayerQueryDefinition {
+                            LayerId = 0
+                        }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("query", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
