@@ -9,7 +9,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.11.0</Version>
+		<Version>1.12.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
@@ -31,10 +31,14 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			- Added layer-level centroid query support through FeatureQuery.ReturnCentroid.
-			- Added FeatureRecord.Centroid for service-returned feature centroid points.
-			- Hardened layer query behavior for distinct values, centroid mapping, result type parameters, unique IDs, full-text queries, and GET/POST request method selection.
-			- Updated README documentation for feature centroid queries.
+			- Added advanced related-record query support for ordering, pagination, historic moment, geodatabase version, unknown time zone clients, geometry shaping, output spatial reference, and datum transformations.
+			- Added QueryRelatedRecordCountsAsync for related-record count-only queries.
+			- Added RelatedRecordCountGroup result model.
+			- Added related-record capability checks for advanced related queries and related-record pagination.
+			- Updated queryRelatedRecords to respect GET, POST, and Auto query request method selection.
+			- Hardened top-features capability and request behavior.
+			- Hardened statistics percentile, envelope query, and related-record query behavior with tests.
+			- Updated README documentation for advanced related-record queries.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 

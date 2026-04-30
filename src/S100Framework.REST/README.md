@@ -14,7 +14,7 @@ Use this library when you want to:
 - use advanced query options such as temporal filters, request shaping, full text search, unique IDs, datum transformations, quantization, and statistics
 - query service domains, service relationships, data elements, field groups, and contingent values
 - run service-level multi-layer feature, count, ID, unique-ID, complete-result, and extent queries
-- query related records, attachments, top features, estimates, bins, date bins, and synchronous/asynchronous analytic rows
+- query related records and related-record counts, attachments, top features, estimates, bins, date bins, and synchronous/asynchronous analytic rows
 - validate SQL expressions before sending dynamic queries
 - calculate field values server-side for records matched by a layer query
 - edit features with layer-level or service-level `applyEdits`
@@ -1027,6 +1027,8 @@ var result = await client.QueryAsync(new FeatureServiceQueryRequest {
 
 ## Query related records
 
+Use `queryRelatedRecords` when you need records connected through a relationship class from the current layer.
+
 ```csharp
 using S100Framework.REST.Models;
 
@@ -1036,11 +1038,82 @@ var relationshipId = schema.Relationships[0].Id;
 var related = await layerClient.QueryRelatedRecordsAsync(new RelatedRecordsQuery {
     ObjectIds = [1, 2, 3],
     RelationshipId = relationshipId,
-    OutFields = ["*"]
+    OutFields = ["OBJECTID", "NAME"],
+    DefinitionExpression = "STATUS = 'Active'",
+    ReturnGeometry = false
 });
+
+foreach (var group in related) {
+    Console.WriteLine($"Source object ID: {group.SourceObjectId}");
+
+    foreach (var record in group.Records) {
+        Console.WriteLine(record.GetRequiredString("NAME"));
+    }
+}
 ```
 
 If you are unsure which `RelationshipId` to use, inspect `schema.Relationships` first.
+
+### Related-record counts
+
+Use `QueryRelatedRecordCountsAsync` when you only need the number of related records per source object ID.
+
+```csharp
+var counts = await layerClient.QueryRelatedRecordCountsAsync(new RelatedRecordsQuery {
+    ObjectIds = [1, 2, 3],
+    RelationshipId = relationshipId
+});
+
+foreach (var group in counts) {
+    Console.WriteLine($"{group.SourceObjectId}: {group.Count}");
+}
+```
+
+Count-only related-record queries require the layer to support advanced related-record queries.
+
+### Ordering and pagination
+
+Related-record queries can request server-side ordering and pagination when the layer advertises the corresponding capabilities.
+
+```csharp
+var page = await layerClient.QueryRelatedRecordsAsync(new RelatedRecordsQuery {
+    ObjectIds = [1, 2, 3],
+    RelationshipId = relationshipId,
+    OutFields = ["OBJECTID", "NAME", "CREATED_DATE"],
+    OrderBy = "CREATED_DATE DESC",
+    ResultOffset = 0,
+    ResultRecordCount = 100
+});
+```
+
+- `OrderBy` uses the REST `orderByFields` parameter and requires advanced related-record query support.
+- `ResultOffset` and `ResultRecordCount` use related-record pagination and require related-record pagination support.
+
+### Versioned, historic, and projected related records
+
+Related-record queries also support geodatabase version, historic moment, unknown time zone handling, output spatial reference, geometry shaping, and datum transformations.
+
+```csharp
+var historic = await layerClient.QueryRelatedRecordsAsync(new RelatedRecordsQuery {
+    ObjectIds = [1],
+    RelationshipId = relationshipId,
+    OutFields = ["OBJECTID", "NAME"],
+    ReturnGeometry = true,
+    OutSrid = 25832,
+    GdbVersion = "SDE.DEFAULT",
+    HistoricMoment = DateTimeOffset.UtcNow.AddDays(-7),
+    TimeReferenceUnknownClient = true,
+    GeometryPrecision = 2,
+    MaxAllowableOffset = 0.5,
+    DatumTransformationWkid = 108190
+});
+```
+
+For composite or WKT-based transformations, use `DatumTransformationJson` instead of `DatumTransformationWkid`. Only one datum transformation option can be set at a time.
+
+### Related-record request method selection
+
+`queryRelatedRecords` uses the same GET/POST/Auto transport selection as layer-level `query`. This helps avoid overly long URLs when `ObjectIds`, `DefinitionExpression`, or datum transformation JSON become large. Configure this with `FeatureServiceClientOptions.QueryRequestMethodPreference` and `AutoPostQueryLengthThreshold`.
 
 ---
 
@@ -2514,13 +2587,13 @@ if (metadata.ExtractChangesCapabilities is not null) {
 
 ## Query request method selection
 
-Standard layer `query` requests can use GET or POST. The client supports three modes through `FeatureServiceClientOptions.QueryRequestMethodPreference`:
+Standard layer `query` requests and `queryRelatedRecords` requests can use GET or POST. The client supports three modes through `FeatureServiceClientOptions.QueryRequestMethodPreference`:
 
 - `Auto`
 - `Get`
 - `Post`
 
-`Auto` uses GET for shorter requests and switches to POST when the generated query URL becomes too long.
+`Auto` uses GET for shorter requests and switches to POST when the generated query URL becomes too long. This applies to ordinary layer queries and related-record queries.
 
 ```csharp
 using S100Framework.REST.Clients;
@@ -2561,6 +2634,7 @@ When `ReturnTrueCurves` is disabled, the server is expected to return densified 
 - `QueryAllAsync` and `QueryExtentsAsync` are service-client convenience methods that execute layer-level queries and group results by layer.
 - Use layer-level query directly when you need streaming control or layer-specific query options that are not represented by `FeatureServiceQueryRequest`.
 - Layer-level `ReturnCentroid` maps service-returned feature centroids to `FeatureRecord.Centroid`; missing or null centroid payloads are represented as `null`.
+- Advanced related-record queries, related-record counts, and related-record pagination depend on layer-level capability support.
 - Percentile statistics depend on layer-level support and cannot be combined with unsupported server-side options.
 - `queryBins` and `queryDateBins` use raw JSON for bin configuration to avoid over-constraining ArcGIS-supported payload shapes.
 - Token acquisition for Portal for ArcGIS login is intentionally outside this package.
