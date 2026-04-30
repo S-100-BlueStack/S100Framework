@@ -4,6 +4,7 @@ using S100Framework.REST.Configuration;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Models;
 using S100Framework.REST.Tests.TestDoubles;
+using System.Globalization;
 using Xunit;
 
 namespace S100Framework.REST.Tests.Clients;
@@ -839,6 +840,180 @@ public sealed class FeatureServiceClientServiceQueryTests
         return uri.AbsolutePath.EndsWith(
             "/FeatureServer",
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryExtentsAsync_SendsDefaultWhereTimeExtentAndHistoricMoment() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<Uri>();
+        var timeStart = new DateTimeOffset(2026, 01, 01, 0, 0, 0, TimeSpan.Zero);
+        var timeEnd = new DateTimeOffset(2026, 01, 31, 0, 0, 0, TimeSpan.Zero);
+        var historicMoment = new DateTimeOffset(2025, 12, 01, 0, 0, 0, TimeSpan.Zero);
+
+        var client = CreateClient(request => {
+            requestUris.Add(request.RequestUri!);
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "extent": {
+                    "xmin": 10.0,
+                    "ymin": 55.0,
+                    "xmax": 11.0,
+                    "ymax": 56.0
+                  }
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.QueryExtentsAsync(
+            new FeatureServiceQueryRequest {
+                LayerDefinitions = [
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 0
+                    }
+                ],
+                TimeExtent = new FeatureTimeExtent(timeStart, timeEnd),
+                HistoricMoment = historicMoment
+            },
+            cancellationToken);
+
+        var layer = Assert.Single(result.Layers);
+        Assert.Equal(0, layer.LayerId);
+        Assert.NotNull(layer.Extent);
+        Assert.Null(layer.Extent.Srid);
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase));
+
+        var query = ParseQuery(queryRequest);
+
+        Assert.Equal("json", query["f"]);
+        Assert.Equal("true", query["returnExtentOnly"]);
+        Assert.Equal("1=1", query["where"]);
+        Assert.Equal(
+            $"{timeStart.ToUnixTimeMilliseconds()},{timeEnd.ToUnixTimeMilliseconds()}",
+            query["time"]);
+        Assert.Equal(
+            historicMoment.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture),
+            query["historicMoment"]);
+    }
+
+    [Fact]
+    public async Task QueryExtentsAsync_MapsIncompleteExtentToNull() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "extent": {
+                    "xmin": 10.0,
+                    "ymin": 55.0,
+                    "xmax": 11.0
+                  }
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.QueryExtentsAsync(
+            new FeatureServiceQueryRequest {
+                LayerDefinitions = [
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 0
+                    }
+                ]
+            },
+            cancellationToken);
+
+        var layer = Assert.Single(result.Layers);
+
+        Assert.Equal(0, layer.LayerId);
+        Assert.Null(layer.Extent);
+    }
+
+    [Fact]
+    public async Task QueryExtentsAsync_DoesNotSendFeatureSetOrIdResultParameters() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<Uri>();
+
+        var client = CreateClient(request => {
+            requestUris.Add(request.RequestUri!);
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "extent": null
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        await client.QueryExtentsAsync(
+            new FeatureServiceQueryRequest {
+                LayerDefinitions = [
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 0,
+                        Where = "OBJECTID > 0",
+                        OutFields = ["OBJECTID", "NAME"]
+                    }
+                ],
+                ReturnGeometry = true,
+                ReturnZ = true,
+                ReturnM = true,
+                GeometryPrecision = 2,
+                MaxAllowableOffset = 5
+            },
+            cancellationToken);
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase));
+
+        var query = ParseQuery(queryRequest);
+
+        Assert.Equal("true", query["returnExtentOnly"]);
+        Assert.Equal("OBJECTID > 0", query["where"]);
+        Assert.False(query.ContainsKey("returnGeometry"));
+        Assert.False(query.ContainsKey("returnZ"));
+        Assert.False(query.ContainsKey("returnM"));
+        Assert.False(query.ContainsKey("geometryPrecision"));
+        Assert.False(query.ContainsKey("maxAllowableOffset"));
+        Assert.False(query.ContainsKey("outFields"));
+        Assert.False(query.ContainsKey("returnCountOnly"));
+        Assert.False(query.ContainsKey("returnIdsOnly"));
+        Assert.False(query.ContainsKey("returnUniqueIdsOnly"));
     }
 
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
