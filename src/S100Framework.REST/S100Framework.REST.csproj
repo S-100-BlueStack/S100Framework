@@ -9,7 +9,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.9.0</Version>
+		<Version>1.10.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
@@ -31,13 +31,12 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			- Added layer-level feature edit convenience wrappers over applyEdits.
-			- Added direct addFeatures endpoint support.
-			- Added direct updateFeatures endpoint support.
-			- Added direct deleteFeatures endpoint support, including object ID, where clause, and spatial-filter delete requests.
-			- Added addFeatures, updateFeatures, and deleteFeatures request/result models.
-			- Hardened direct feature edit validation and response handling.
-			- Updated README documentation for edit convenience wrappers and direct edit endpoints.
+			- Added service-level query result shapes for counts, object IDs, and unique IDs.
+			- Added QueryAllAsync for complete multi-layer feature queries using layer-level query behavior.
+			- Added QueryExtentsAsync for multi-layer extent queries using layer-level returnExtentOnly requests.
+			- Added service-level query result models for counts, object IDs, unique IDs, and extents.
+			- Hardened service-level query, unique ID, extent, and complete multi-layer query behavior with tests.
+			- Updated README documentation for service-level query v2 APIs.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 

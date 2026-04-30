@@ -13,7 +13,7 @@ Use this library when you want to:
 - work with geometries as NetTopologySuite types
 - use advanced query options such as temporal filters, request shaping, full text search, unique IDs, datum transformations, quantization, and statistics
 - query service domains, service relationships, data elements, field groups, and contingent values
-- run service-level multi-layer queries
+- run service-level multi-layer feature, count, ID, unique-ID, complete-result, and extent queries
 - query related records, attachments, top features, estimates, bins, date bins, and synchronous/asynchronous analytic rows
 - validate SQL expressions before sending dynamic queries
 - calculate field values server-side for records matched by a layer query
@@ -78,7 +78,7 @@ Use the service client for service-level operations:
 - get a layer client by layer name
 - query service domains for a set of layer IDs
 - query service-level relationships
-- run service-level multi-layer queries
+- run service-level multi-layer feature, count, ID, unique-ID, complete-result, and extent queries
 - query data elements for a set of layer IDs
 - query contingent values for one or more layers or tables
 - get service-level layer estimates
@@ -766,7 +766,24 @@ This is useful for dynamic tools that need to understand relationship classes ac
 
 ## Service-level query
 
-Use service-level `query` when you want one request to query multiple layers or tables and receive results grouped by layer ID.
+Use service-level query APIs when you want to work with multiple layers or tables from the same Feature Service through one service client.
+
+The service client exposes separate methods for the main response shapes:
+
+- `QueryAsync` returns feature records grouped by layer from the service-level `query` endpoint.
+- `QueryAllAsync` executes complete layer-level feature queries for each layer definition and groups the results by layer.
+- `QueryCountAsync` returns counts grouped by layer from the service-level `query` endpoint.
+- `QueryObjectIdsAsync` returns object IDs grouped by layer from the service-level `query` endpoint.
+- `QueryUniqueIdsAsync` returns unique IDs grouped by layer from the service-level `query` endpoint.
+- `QueryExtentsAsync` executes layer-level extent-only queries for each layer definition and groups the extents by layer.
+
+`QueryAsync`, `QueryCountAsync`, `QueryObjectIdsAsync`, and `QueryUniqueIdsAsync` call the service-level `/FeatureServer/query` endpoint directly.
+
+`QueryAllAsync` and `QueryExtentsAsync` are service-client convenience methods. They derive one layer-level query per `FeatureServiceLayerQueryDefinition`. This is useful when the consumer wants a multi-layer result shape but also wants to reuse the more complete layer-level query behavior.
+
+### Service-level feature-set query
+
+Use `QueryAsync` when you want one service-level request and the expected result set is small enough for the service-level feature-set response.
 
 ```csharp
 using S100Framework.REST.Models;
@@ -799,7 +816,166 @@ foreach (var layerResult in result.Layers) {
 }
 ```
 
-The first service-level query implementation returns feature records grouped by layer. Use layer-level query when you need streaming, count-only, IDs-only, unique IDs, or the most complete layer query option set.
+### Complete multi-layer query
+
+Use `QueryAllAsync` when you want complete feature records for multiple layers and want the existing layer-level query behavior, including paging and object-ID fallback where supported.
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await client.QueryAllAsync(new FeatureServiceQueryRequest {
+    LayerDefinitions = [
+        new FeatureServiceLayerQueryDefinition {
+            LayerId = 0,
+            Where = "STATUS = 'Active'",
+            OutFields = ["OBJECTID", "NAME", "STATUS"]
+        },
+        new FeatureServiceLayerQueryDefinition {
+            LayerId = 1,
+            Where = "OBJECTID < 100",
+            OutFields = ["OBJECTID", "INSPECTION_DATE"]
+        }
+    ],
+    ReturnGeometry = true,
+    OutSrid = 4326
+});
+
+foreach (var layerResult in result.Layers) {
+    Console.WriteLine($"Layer: {layerResult.LayerId}");
+
+    foreach (var record in layerResult.Records) {
+        Console.WriteLine(record.ObjectId);
+    }
+}
+```
+
+`QueryAllAsync` executes layer-level queries. It currently does not support service-level-only request options such as `GdbVersion` and `TimeReferenceUnknownClient`.
+
+### Service-level counts
+
+Use `QueryCountAsync` when you need row counts for multiple layers or tables without returning features.
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await client.QueryCountAsync(new FeatureServiceQueryRequest {
+    LayerDefinitions = [
+        new FeatureServiceLayerQueryDefinition {
+            LayerId = 0,
+            Where = "STATUS = 'Active'"
+        },
+        new FeatureServiceLayerQueryDefinition {
+            LayerId = 1,
+            Where = "INSPECTION_REQUIRED = 1"
+        }
+    ]
+});
+
+foreach (var layer in result.Layers) {
+    Console.WriteLine($"Layer {layer.LayerId}: {layer.Count}");
+}
+```
+
+### Service-level object IDs
+
+Use `QueryObjectIdsAsync` when you need object IDs for multiple layers or tables.
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await client.QueryObjectIdsAsync(new FeatureServiceQueryRequest {
+    LayerDefinitions = [
+        new FeatureServiceLayerQueryDefinition {
+            LayerId = 0,
+            Where = "STATUS = 'Active'"
+        },
+        new FeatureServiceLayerQueryDefinition {
+            LayerId = 1,
+            Where = "INSPECTION_REQUIRED = 1"
+        }
+    ]
+});
+
+foreach (var layer in result.Layers) {
+    Console.WriteLine($"Layer {layer.LayerId} object ID field: {layer.ObjectIdFieldName}");
+
+    foreach (var objectId in layer.ObjectIds) {
+        Console.WriteLine(objectId);
+    }
+}
+```
+
+### Service-level unique IDs
+
+Use `QueryUniqueIdsAsync` when the service supports unique IDs and you need stable unique identifiers grouped by layer.
+
+```csharp
+using S100Framework.REST.Models;
+
+var result = await client.QueryUniqueIdsAsync(new FeatureServiceQueryRequest {
+    LayerDefinitions = [
+        new FeatureServiceLayerQueryDefinition {
+            LayerId = 0,
+            Where = "STATUS = 'Active'"
+        }
+    ]
+});
+
+foreach (var layer in result.Layers) {
+    Console.WriteLine($"Layer {layer.LayerId}");
+    Console.WriteLine($"Composite unique ID: {layer.IsComposite}");
+    Console.WriteLine(string.Join(", ", layer.UniqueIdFieldNames));
+
+    foreach (var uniqueId in layer.UniqueIds) {
+        if (uniqueId.SingleValue is not null) {
+            Console.WriteLine(uniqueId.SingleValue);
+        }
+        else {
+            Console.WriteLine(string.Join(", ", uniqueId.Components));
+        }
+    }
+}
+```
+
+### Multi-layer extents
+
+Use `QueryExtentsAsync` when you need extents for multiple layers. ArcGIS REST exposes `returnExtentOnly` on layer-level query endpoints, so this method executes one layer-level extent query per layer definition and returns the results grouped by layer.
+
+```csharp
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Models;
+
+var result = await client.QueryExtentsAsync(new FeatureServiceQueryRequest {
+    LayerDefinitions = [
+        new FeatureServiceLayerQueryDefinition {
+            LayerId = 0,
+            Where = "STATUS = 'Active'"
+        },
+        new FeatureServiceLayerQueryDefinition {
+            LayerId = 1,
+            Where = "INSPECTION_REQUIRED = 1"
+        }
+    ],
+    SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+        new Envelope(10, 11, 55, 56),
+        4326),
+    OutSrid = 4326
+});
+
+foreach (var layer in result.Layers) {
+    Console.WriteLine($"Layer {layer.LayerId}");
+
+    if (layer.Extent is null) {
+        Console.WriteLine("No extent returned.");
+        continue;
+    }
+
+    Console.WriteLine(layer.Extent.Srid);
+    Console.WriteLine(layer.Extent.Envelope);
+}
+```
+
+`QueryExtentsAsync` executes layer-level queries. It currently does not support service-level-only request options such as `GdbVersion` and `TimeReferenceUnknownClient`.
 
 ### Service-level query with time and spatial filters
 
@@ -2360,7 +2536,9 @@ When `ReturnTrueCurves` is disabled, the server is expected to return densified 
 - Upload creation is supported through `UploadItemAsync`, and temporary upload items can be deleted with `DeleteUploadItemAsync` when the server supports the upload delete endpoint.
 - `queryDomains` depends on service-level support and only returns domains referenced by the requested layer IDs.
 - Service-level `relationships` depends on `SupportsRelationshipsResource` and returns service-wide relationship class metadata.
-- Service-level `query` returns feature records grouped by layer; use layer-level query for streaming, count-only, IDs-only, and unique-ID workflows.
+- Service-level `query` supports feature-set, count, object-ID, and unique-ID result shapes.
+- `QueryAllAsync` and `QueryExtentsAsync` are service-client convenience methods that execute layer-level queries and group results by layer.
+- Use layer-level query directly when you need streaming control or layer-specific query options that are not represented by `FeatureServiceQueryRequest`.
 - Percentile statistics depend on layer-level support and cannot be combined with unsupported server-side options.
 - `queryBins` and `queryDateBins` use raw JSON for bin configuration to avoid over-constraining ArcGIS-supported payload shapes.
 - Token acquisition for Portal for ArcGIS login is intentionally outside this package.
