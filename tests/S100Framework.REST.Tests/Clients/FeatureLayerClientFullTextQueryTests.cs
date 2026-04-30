@@ -153,6 +153,119 @@ public sealed class FeatureLayerClientFullTextQueryTests
     }
 
     [Fact]
+    public async Task QueryAsync_IncludesSerializedFullTextExpression_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(
+                    supportsPagination: true,
+                    supportsReturningGeometryEnvelope: false,
+                    supportsFullTextSearch: true);
+            }
+
+            if (uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "features": [
+                    {
+                      "attributes": {
+                        "OBJECTID": 10,
+                        "NAME": "Broken pipe"
+                      }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var layerClient = client.GetLayerClient(0);
+        var results = new List<FeatureRecord>();
+
+        await foreach (var feature in layerClient.QueryAsync(
+            new FeatureQuery {
+                OutFields = ["OBJECTID", "NAME"],
+                ReturnGeometry = false,
+                FullText =
+                [
+                    new FeatureQueryFullTextExpression {
+                        OnFields = ["NAME"],
+                        SearchTerm = "broken pipe",
+                        SearchType = FeatureQueryFullTextSearchType.Simple,
+                        Operator = FeatureQueryFullTextOperator.And
+                    }
+                ]
+            },
+            cancellationToken)) {
+            results.Add(feature);
+        }
+
+        var result = Assert.Single(results);
+
+        Assert.Equal(10, result.ObjectId);
+        Assert.Null(result.Geometry);
+        Assert.Equal("Broken pipe", result.Attributes["NAME"]);
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase));
+
+        var uriBuilder = new Uri(queryRequest);
+        var fullTextParameter = uriBuilder.Query.TrimStart('?')
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Single(part => part.StartsWith("fullText=", StringComparison.Ordinal))
+            .Substring("fullText=".Length);
+
+        var fullTextJson = Uri.UnescapeDataString(fullTextParameter);
+
+        using var document = JsonDocument.Parse(fullTextJson);
+        var expressions = document.RootElement;
+
+        Assert.Equal(JsonValueKind.Array, expressions.ValueKind);
+
+        var expression = Assert.Single(expressions.EnumerateArray());
+        Assert.Equal("broken pipe", expression.GetProperty("searchTerm").GetString());
+        Assert.Equal("simple", expression.GetProperty("searchType").GetString());
+        Assert.Equal("and", expression.GetProperty("operator").GetString());
+
+        var onFields = expression.GetProperty("onFields");
+        Assert.Equal(JsonValueKind.Array, onFields.ValueKind);
+        Assert.Equal("NAME", onFields[0].GetString());
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_Throws_WhenFullTextExpressionCombinesSearchAndSqlExpression() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var client = CreateClient(_ => throw new InvalidOperationException("HTTP should not be called."));
+        var layerClient = client.GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryCountAsync(
+                new FeatureQuery {
+                    FullText =
+                    [
+                        new FeatureQueryFullTextExpression {
+                            OnFields = ["NAME"],
+                            SearchTerm = "broken pipe",
+                            SqlExpression = "NAME IS NOT NULL"
+                        }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("FullText", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SqlExpression", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task QueryCountAsync_Throws_WhenFullTextExpressionDoesNotContainSearchOrSqlExpression() {
         var cancellationToken = TestContext.Current.CancellationToken;
         var client = CreateClient(_ => throw new InvalidOperationException("HTTP should not be called."));
