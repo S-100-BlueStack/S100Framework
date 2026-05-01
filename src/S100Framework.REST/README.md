@@ -11,10 +11,10 @@ Use this library when you want to:
 - read service metadata, layer metadata, and schema
 - query features from an Esri Feature Service
 - work with geometries as NetTopologySuite types, including optional feature centroids
-- use advanced query options such as temporal filters, request shaping, spatial distance filters, cache hints, full text search, unique IDs, datum transformations, quantization, and statistics
+- use advanced query options such as temporal filters, unknown time reference handling, geodatabase versions, request shaping, spatial distance filters, cache hints, full text search, unique IDs, datum transformations, quantization, and statistics
 - query service domains, service relationships, data elements, field groups, and contingent values
 - run service-level multi-layer feature, count, ID, unique-ID, complete-result, and extent queries
-- query related records and related-record counts, attachments, top features, estimates, bins, date bins, and synchronous/asynchronous analytic rows
+- query related records and related-record counts, attachments, attachment counts, top features, estimates, bins, date bins, and synchronous/asynchronous analytic rows
 - validate SQL expressions before sending dynamic queries
 - calculate field values server-side for records matched by a layer query
 - edit features with layer-level or service-level `applyEdits`
@@ -98,7 +98,7 @@ Use the layer client for layer-level operations:
 - query counts, object IDs, unique IDs, and extents
 - query statistics
 - query related records
-- query attachments and download attachment content
+- query attachments, query attachment counts, and download attachment content
 - query top features
 - query bins, date bins, and synchronous/asynchronous analytic rows
 - query data elements for the current layer
@@ -497,6 +497,24 @@ var count = await layerClient.QueryCountAsync(query);
 ```
 
 Use `TimeInstant` for a single instant and `TimeExtent` for an interval or open-ended range.
+
+### Versioned and unknown time reference queries
+
+Use `GdbVersion` when querying a specific geodatabase version. Use `TimeReferenceUnknownClient` when the client can work with date fields whose time reference is unknown.
+
+```csharp
+using S100Framework.REST.Models;
+
+var query = new FeatureQuery {
+    Where = "STATUS = 'Active'",
+    GdbVersion = "SDE.DEFAULT",
+    TimeReferenceUnknownClient = true
+};
+
+var objectIds = await layerClient.QueryObjectIdsAsync(query);
+```
+
+`GdbVersion` and `TimeReferenceUnknownClient` are also forwarded by service-client convenience methods such as `QueryAllAsync` and `QueryExtentsAsync` when they execute layer-level queries.
 
 ### Spatial distance filters
 
@@ -921,7 +939,7 @@ foreach (var layerResult in result.Layers) {
 }
 ```
 
-`QueryAllAsync` executes layer-level queries. It currently does not support service-level-only request options such as `GdbVersion` and `TimeReferenceUnknownClient`.
+`QueryAllAsync` executes layer-level queries. It forwards shared query options such as `GdbVersion`, `TimeReferenceUnknownClient`, temporal filters, spatial filters, output SR, SQL format, geometry precision, and geometry generalization to each layer-level query.
 
 ### Service-level counts
 
@@ -1047,7 +1065,7 @@ foreach (var layer in result.Layers) {
 }
 ```
 
-`QueryExtentsAsync` executes layer-level queries. It currently does not support service-level-only request options such as `GdbVersion` and `TimeReferenceUnknownClient`.
+`QueryExtentsAsync` executes layer-level queries. It forwards shared extent-query options such as `GdbVersion`, `TimeReferenceUnknownClient`, temporal filters, spatial filters, output SR, and SQL format to each layer-level extent query.
 
 ### Service-level query with time and spatial filters
 
@@ -1069,6 +1087,8 @@ var result = await client.QueryAsync(new FeatureServiceQueryRequest {
     TimeExtent = new FeatureTimeExtent(
         Start: new DateTimeOffset(2026, 01, 01, 0, 0, 0, TimeSpan.Zero),
         End: null),
+    GdbVersion = "SDE.DEFAULT",
+    TimeReferenceUnknownClient = true,
     ReturnGeometry = false,
     SqlFormat = FeatureQuerySqlFormat.Standard
 });
@@ -1192,6 +1212,8 @@ You can also query top-feature object IDs or counts:
 var objectIds = await layerClient.QueryTopFeatureObjectIdsAsync(query);
 var count = await layerClient.QueryTopFeatureCountAsync(query);
 ```
+
+`queryTopFeatures` uses the same GET/POST/Auto transport selection as layer-level `query`. This helps avoid overly long URLs when `TopFilter`, `Where`, `ObjectIds`, or spatial filter parameters become large.
 
 ---
 
@@ -1681,6 +1703,8 @@ var metadata = await client.GetMetadataAsync();
 
 var canReadAttachments = schema.Capabilities.HasAttachments;
 var canQueryAttachments = schema.Capabilities.HasAttachments && schema.Capabilities.SupportsQueryAttachments;
+var canQueryAttachmentCounts = canQueryAttachments && schema.Capabilities.SupportsQueryAttachmentsCountOnly;
+var canOrderAttachmentQueries = canQueryAttachments && schema.Capabilities.SupportsQueryAttachmentOrderByFields;
 var canEditAttachments = schema.Capabilities.HasAttachments && metadata.Capabilities.SupportsEditing;
 var canUploadAttachments = canEditAttachments && metadata.Capabilities.SupportsUploads;
 ```
@@ -1704,6 +1728,65 @@ foreach (var group in groups) {
     }
 }
 ```
+
+You can select parent features by object IDs, global IDs, or a definition expression:
+
+```csharp
+var byGlobalId = await layerClient.QueryAttachmentsAsync(new AttachmentQuery {
+    GlobalIds = ["{parent-global-id}"],
+    ReturnMetadata = true
+});
+
+var byExpression = await layerClient.QueryAttachmentsAsync(new AttachmentQuery {
+    DefinitionExpression = "STATUS = 'Active'",
+    AttachmentTypes = ["image/jpeg", "application/pdf"],
+    Keywords = ["inspection"],
+    MinimumSizeBytes = 1024,
+    MaximumSizeBytes = 10_000_000,
+    ResultOffset = 0,
+    ResultRecordCount = 100
+});
+```
+
+`ObjectIds` and `GlobalIds` cannot be combined in the same `AttachmentQuery`. At least one of `ObjectIds`, `GlobalIds`, or `DefinitionExpression` must be provided.
+
+### Query attachment counts
+
+Use `QueryAttachmentCountsAsync` when you only need the number of attachments per parent feature.
+
+```csharp
+var counts = await layerClient.QueryAttachmentCountsAsync(new AttachmentQuery {
+    DefinitionExpression = "STATUS = 'Active'"
+});
+
+foreach (var group in counts) {
+    Console.WriteLine($"Parent object: {group.SourceObjectId}");
+    Console.WriteLine($"Parent global ID: {group.SourceGlobalId}");
+    Console.WriteLine($"Attachment count: {group.Count}");
+}
+```
+
+Attachment count queries require `schema.Capabilities.SupportsQueryAttachmentsCountOnly`.
+
+### Attachment ordering and pagination
+
+Attachment queries can request server-side ordering and result windows when the service supports them.
+
+```csharp
+var page = await layerClient.QueryAttachmentsAsync(new AttachmentQuery {
+    ObjectIds = [1, 2, 3],
+    OrderByFields = ["size DESC", "name ASC"],
+    ResultOffset = 0,
+    ResultRecordCount = 50,
+    ReturnMetadata = true
+});
+```
+
+Use `schema.Capabilities.SupportsQueryAttachmentOrderByFields` before setting `OrderByFields` when you want proactive capability checks.
+
+### Attachment request method selection
+
+`queryAttachments` uses the same GET/POST/Auto transport selection as layer-level `query`. This helps avoid overly long URLs when object IDs, global IDs, definition expressions, filters, or pagination parameters become large.
 
 ### Download an attachment
 
@@ -2602,6 +2685,8 @@ Console.WriteLine(schema.Capabilities.SupportsQueryWithDatumTransformation);
 Console.WriteLine(schema.Capabilities.SupportsCoordinatesQuantization);
 Console.WriteLine(schema.Capabilities.SupportsCurrentUserQueries);
 Console.WriteLine(schema.Capabilities.SupportsQueryWithCacheHint);
+Console.WriteLine(schema.Capabilities.SupportsQueryAttachmentsCountOnly);
+Console.WriteLine(schema.Capabilities.SupportsQueryAttachmentOrderByFields);
 Console.WriteLine(schema.HasContingentValuesDefinition);
 Console.WriteLine(schema.SupportsUniqueIds);
 ```
@@ -2644,20 +2729,20 @@ if (metadata.ExtractChangesCapabilities is not null) {
 ### Rule of thumb
 
 - For ordinary queries, you usually do not need to think much about capabilities.
-- For attachments, top features, advanced related queries, service-level relationships, service-level query, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, synchronous/asynchronous `calculate`, direct feature edit endpoints, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
+- For attachments, attachment count queries, attachment query ordering, top features, advanced related queries, service-level relationships, service-level query, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, synchronous/asynchronous `calculate`, direct feature edit endpoints, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
 - Even if you skip the manual check, the client will still fail fast for important unsupported operations.
 
 ---
 
 ## Query request method selection
 
-Standard layer `query` requests and `queryRelatedRecords` requests can use GET or POST. The client supports three modes through `FeatureServiceClientOptions.QueryRequestMethodPreference`:
+Several query-style endpoints can use GET or POST. The client supports three modes through `FeatureServiceClientOptions.QueryRequestMethodPreference`:
 
 - `Auto`
 - `Get`
 - `Post`
 
-`Auto` uses GET for shorter requests and switches to POST when the generated query URL becomes too long. This applies to ordinary layer queries and related-record queries.
+`Auto` uses GET for shorter requests and switches to POST when the generated query URL becomes too long. This applies to ordinary layer queries, related-record queries, top-features queries, and attachment queries.
 
 ```csharp
 using S100Framework.REST.Clients;
@@ -2694,11 +2779,11 @@ When `ReturnTrueCurves` is disabled, the server is expected to return densified 
 - Upload creation is supported through `UploadItemAsync`, and temporary upload items can be deleted with `DeleteUploadItemAsync` when the server supports the upload delete endpoint.
 - `queryDomains` depends on service-level support and only returns domains referenced by the requested layer IDs.
 - Service-level `relationships` depends on `SupportsRelationshipsResource` and returns service-wide relationship class metadata.
-- Service-level `query` supports feature-set, count, object-ID, and unique-ID result shapes.
+- Service-level `query` supports feature-set, count, object-ID, and unique-ID result shapes. `QueryAllAsync` and `QueryExtentsAsync` execute layer-level queries so they can forward layer-supported options such as `GdbVersion` and `TimeReferenceUnknownClient`.
 - `QueryAllAsync` and `QueryExtentsAsync` are service-client convenience methods that execute layer-level queries and group results by layer.
 - Use layer-level query directly when you need streaming control or layer-specific query options that are not represented by `FeatureServiceQueryRequest`.
 - Layer-level `ReturnCentroid` maps service-returned feature centroids to `FeatureRecord.Centroid`; missing or null centroid payloads are represented as `null`.
-- Advanced related-record queries, related-record counts, and related-record pagination depend on layer-level capability support.
+- Advanced related-record queries, related-record counts, and related-record pagination depend on layer-level capability support. Attachment count queries and attachment ordering also depend on layer-level capability support.
 - Percentile statistics depend on layer-level support and cannot be combined with unsupported server-side options.
 - `queryBins` and `queryDateBins` use raw JSON for bin configuration to avoid over-constraining ArcGIS-supported payload shapes.
 - Token acquisition for Portal for ArcGIS login is intentionally outside this package.
