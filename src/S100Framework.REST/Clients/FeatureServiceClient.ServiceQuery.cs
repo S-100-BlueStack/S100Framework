@@ -44,11 +44,6 @@ public sealed partial class FeatureServiceClient
 
         request.Validate();
 
-        if (!string.IsNullOrWhiteSpace(request.GdbVersion)) {
-            throw new NotSupportedException(
-                "QueryAllAsync executes layer-level query requests and does not currently support GdbVersion.");
-        }
-
         await EnsureServiceQuerySupportAsync(cancellationToken);
 
         var layers = new List<FeatureServiceLayerQueryResult>(request.LayerDefinitions.Count);
@@ -155,7 +150,6 @@ public sealed partial class FeatureServiceClient
         ArgumentNullException.ThrowIfNull(request);
 
         request.Validate();
-        ValidateServiceLayerExtentQueryCompatibility(request);
 
         await EnsureServiceQuerySupportAsync(cancellationToken);
 
@@ -176,8 +170,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureQuery CreateLayerFeatureQuery(
-        FeatureServiceQueryRequest request,
-        FeatureServiceLayerQueryDefinition layerDefinition) {
+    FeatureServiceQueryRequest request,
+    FeatureServiceLayerQueryDefinition layerDefinition) {
         return new FeatureQuery {
             Where = string.IsNullOrWhiteSpace(layerDefinition.Where)
                 ? "1=1"
@@ -187,6 +181,7 @@ public sealed partial class FeatureServiceClient
             ReturnZ = request.ReturnZ,
             ReturnM = request.ReturnM,
             OutSrid = request.OutSrid,
+            GdbVersion = request.GdbVersion,
             GeometryPrecision = request.GeometryPrecision,
             MaxAllowableOffset = request.MaxAllowableOffset,
             SqlFormat = request.SqlFormat,
@@ -199,13 +194,14 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureQuery CreateLayerExtentQuery(
-        FeatureServiceQueryRequest request,
-        FeatureServiceLayerQueryDefinition layerDefinition) {
+    FeatureServiceQueryRequest request,
+    FeatureServiceLayerQueryDefinition layerDefinition) {
         return new FeatureQuery {
             Where = string.IsNullOrWhiteSpace(layerDefinition.Where)
                 ? "1=1"
                 : layerDefinition.Where,
             OutSrid = request.OutSrid,
+            GdbVersion = request.GdbVersion,
             SqlFormat = request.SqlFormat,
             SpatialFilter = request.SpatialFilter,
             TimeInstant = request.TimeInstant,
@@ -213,14 +209,6 @@ public sealed partial class FeatureServiceClient
             HistoricMoment = request.HistoricMoment,
             TimeReferenceUnknownClient = request.TimeReferenceUnknownClient
         };
-    }
-
-    private static void ValidateServiceLayerExtentQueryCompatibility(
-        FeatureServiceQueryRequest request) {
-        if (!string.IsNullOrWhiteSpace(request.GdbVersion)) {
-            throw new NotSupportedException(
-                "QueryExtentsAsync executes layer-level query requests and does not currently support GdbVersion.");
-        }
     }
 
     private async Task EnsureServiceQuerySupportAsync(

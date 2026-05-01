@@ -218,4 +218,12 @@ public sealed record FeatureQuery
     /// Gets the historic moment to query when the layer supports historic moment queries.
     /// </summary>
     public DateTimeOffset? HistoricMoment { get; init; }
+
+    /// <summary>
+    /// Gets the geodatabase version to query.
+    /// </summary>
+    /// <remarks>
+    /// This value is sent as the ArcGIS REST <c>gdbVersion</c> parameter.
+    /// </remarks>
+    public string? GdbVersion { get; init; }
 }

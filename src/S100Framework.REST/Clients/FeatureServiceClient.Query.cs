@@ -201,6 +201,10 @@ public sealed partial class FeatureServiceClient
             throw new InvalidOperationException("OrderBy must not be empty when provided.");
         }
 
+        if (query.GdbVersion is not null && string.IsNullOrWhiteSpace(query.GdbVersion)) {
+            throw new InvalidOperationException("GdbVersion must not be empty when provided.");
+        }
+
         if (query.DefaultSrid is <= 0) {
             throw new InvalidOperationException("DefaultSrid must be greater than zero when provided.");
         }
@@ -409,6 +413,10 @@ public sealed partial class FeatureServiceClient
 
         if (query.TimeReferenceUnknownClient) {
             parameters["timeReferenceUnknownClient"] = "true";
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.GdbVersion)) {
+            parameters["gdbVersion"] = query.GdbVersion;
         }
 
         if (query.DefaultSrid.HasValue) {
