@@ -1,6 +1,7 @@
 ﻿using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
 using S100Framework.REST.Tests.TestDoubles;
+using S100Framework.REST.Models;
 using Xunit;
 
 namespace S100Framework.REST.Tests.Clients;
@@ -211,5 +212,226 @@ public sealed class FeatureLayerSchemaMetadataTests
         Assert.False(schema.Capabilities.SupportsCoordinatesQuantization);
         Assert.False(schema.Capabilities.SupportsCurrentUserQueries);
         Assert.False(schema.Capabilities.SupportsQueryWithCacheHint);
+    }
+
+    [Fact]
+    public async Task GetSchemaAsync_MapsPartiallySpecifiedAdvancedQueryCapabilities() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateSchemaClient("""
+        {
+          "id": 0,
+          "name": "PartialCapabilities",
+          "objectIdField": "OBJECTID",
+          "fields": [
+            { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
+          ],
+          "relationships": [],
+          "advancedQueryCapabilities": {
+            "supportsPagination": false,
+            "supportsPaginationOnAggregatedQueries": true,
+            "supportsQueryRelatedPagination": false,
+            "supportsAdvancedQueryRelated": true,
+            "supportsOrderBy": false,
+            "supportsDistinct": true,
+            "supportsReturningGeometryEnvelope": false,
+            "supportsFullTextSearch": true,
+            "supportsPercentileStatistics": false,
+            "supportsQueryDateBins": true,
+            "supportsQueryAnalytic": false,
+            "supportsReturningQueryExtent": true,
+            "supportsReturningGeometryCentroid": false,
+            "supportsDefaultSR": true,
+            "supportsOutFieldSqlExpression": false,
+            "supportsSqlExpression": true,
+            "supportsHavingClause": false,
+            "supportsQueryWithDistance": true,
+            "supportsQueryWithResultType": false,
+            "supportsQueryWithHistoricMoment": true,
+            "supportsQueryWithDatumTransformation": false,
+            "supportsCoordinatesQuantization": true,
+            "supportsCurrentUserQueries": false,
+            "supportsQueryWithCacheHint": true
+          },
+          "extent": {
+            "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
+          }
+        }
+        """);
+
+        var schema = await client.GetLayerClient(0).GetSchemaAsync(cancellationToken);
+
+        Assert.False(schema.Capabilities.SupportsPagination);
+        Assert.True(schema.Capabilities.SupportsPaginationOnAggregatedQueries);
+        Assert.False(schema.Capabilities.SupportsQueryRelatedPagination);
+        Assert.True(schema.Capabilities.SupportsAdvancedQueryRelated);
+        Assert.False(schema.Capabilities.SupportsOrderBy);
+        Assert.True(schema.Capabilities.SupportsDistinct);
+        Assert.False(schema.Capabilities.SupportsReturningGeometryEnvelope);
+        Assert.True(schema.Capabilities.SupportsFullTextSearch);
+        Assert.False(schema.Capabilities.SupportsPercentileStatistics);
+        Assert.True(schema.Capabilities.SupportsQueryDateBins);
+        Assert.False(schema.Capabilities.SupportsQueryAnalytic);
+        Assert.True(schema.Capabilities.SupportsReturningQueryExtent);
+        Assert.False(schema.Capabilities.SupportsReturningGeometryCentroid);
+        Assert.True(schema.Capabilities.SupportsDefaultSrid);
+        Assert.False(schema.Capabilities.SupportsOutFieldSqlExpression);
+        Assert.True(schema.Capabilities.SupportsSqlExpression);
+        Assert.False(schema.Capabilities.SupportsHavingClause);
+        Assert.True(schema.Capabilities.SupportsQueryWithDistance);
+        Assert.False(schema.Capabilities.SupportsQueryWithResultType);
+        Assert.True(schema.Capabilities.SupportsQueryWithHistoricMoment);
+        Assert.False(schema.Capabilities.SupportsQueryWithDatumTransformation);
+        Assert.True(schema.Capabilities.SupportsCoordinatesQuantization);
+        Assert.False(schema.Capabilities.SupportsCurrentUserQueries);
+        Assert.True(schema.Capabilities.SupportsQueryWithCacheHint);
+    }
+
+    [Fact]
+    public async Task GetSchemaAsync_MapsNullAdvancedQueryCapabilitiesToFalse() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateSchemaClient("""
+        {
+          "id": 0,
+          "name": "NullAdvancedQueryCapabilities",
+          "objectIdField": "OBJECTID",
+          "fields": [
+            { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
+          ],
+          "relationships": [],
+          "advancedQueryCapabilities": null,
+          "extent": {
+            "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
+          }
+        }
+        """);
+
+        var schema = await client.GetLayerClient(0).GetSchemaAsync(cancellationToken);
+
+        Assert.False(schema.Capabilities.SupportsPagination);
+        Assert.False(schema.Capabilities.SupportsPaginationOnAggregatedQueries);
+        Assert.False(schema.Capabilities.SupportsQueryRelatedPagination);
+        Assert.False(schema.Capabilities.SupportsAdvancedQueryRelated);
+        Assert.False(schema.Capabilities.SupportsOrderBy);
+        Assert.False(schema.Capabilities.SupportsDistinct);
+        Assert.False(schema.Capabilities.SupportsReturningGeometryEnvelope);
+        Assert.False(schema.Capabilities.SupportsFullTextSearch);
+        Assert.False(schema.Capabilities.SupportsPercentileStatistics);
+        Assert.False(schema.Capabilities.SupportsQueryDateBins);
+        Assert.False(schema.Capabilities.SupportsQueryAnalytic);
+        Assert.False(schema.Capabilities.SupportsReturningQueryExtent);
+        Assert.False(schema.Capabilities.SupportsReturningGeometryCentroid);
+        Assert.False(schema.Capabilities.SupportsDefaultSrid);
+        Assert.False(schema.Capabilities.SupportsOutFieldSqlExpression);
+        Assert.False(schema.Capabilities.SupportsSqlExpression);
+        Assert.False(schema.Capabilities.SupportsHavingClause);
+        Assert.False(schema.Capabilities.SupportsQueryWithDistance);
+        Assert.False(schema.Capabilities.SupportsQueryWithResultType);
+        Assert.False(schema.Capabilities.SupportsQueryWithHistoricMoment);
+        Assert.False(schema.Capabilities.SupportsQueryWithDatumTransformation);
+        Assert.False(schema.Capabilities.SupportsCoordinatesQuantization);
+        Assert.False(schema.Capabilities.SupportsCurrentUserQueries);
+        Assert.False(schema.Capabilities.SupportsQueryWithCacheHint);
+    }
+
+    [Fact]
+    public async Task GetSchemaAsync_MapsNullAdvancedEditingAndAnalyticCapabilitiesToFalse() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateSchemaClient("""
+        {
+          "id": 0,
+          "name": "NullNestedCapabilities",
+          "objectIdField": "OBJECTID",
+          "fields": [
+            { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
+          ],
+          "relationships": [],
+          "advancedQueryCapabilities": {
+            "supportsQueryAnalytic": true
+          },
+          "advancedEditingCapabilities": null,
+          "advancedQueryAnalyticCapabilities": null,
+          "extent": {
+            "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
+          }
+        }
+        """);
+
+        var schema = await client.GetLayerClient(0).GetSchemaAsync(cancellationToken);
+
+        Assert.False(schema.Capabilities.SupportsAsyncApplyEdits);
+        Assert.True(schema.Capabilities.SupportsQueryAnalytic);
+        Assert.False(schema.Capabilities.SupportsAsyncQueryAnalytic);
+    }
+
+    [Fact]
+    public void FeatureLayerCapabilities_CanBeConstructedWithOriginalRequiredParameters() {
+        var capabilities = new FeatureLayerCapabilities(
+            HasAttachments: true,
+            SupportsQueryAttachments: true,
+            SupportsAttachmentsResizing: false,
+            SupportsTopFeaturesQuery: true,
+            SupportsPagination: true,
+            SupportsPaginationOnAggregatedQueries: false,
+            SupportsQueryRelatedPagination: true,
+            SupportsAdvancedQueryRelated: true,
+            SupportsOrderBy: true,
+            SupportsDistinct: true,
+            SupportsAsyncApplyEdits: false);
+
+        Assert.True(capabilities.HasAttachments);
+        Assert.True(capabilities.SupportsQueryAttachments);
+        Assert.False(capabilities.SupportsAttachmentsResizing);
+        Assert.True(capabilities.SupportsTopFeaturesQuery);
+        Assert.True(capabilities.SupportsPagination);
+        Assert.False(capabilities.SupportsPaginationOnAggregatedQueries);
+        Assert.True(capabilities.SupportsQueryRelatedPagination);
+        Assert.True(capabilities.SupportsAdvancedQueryRelated);
+        Assert.True(capabilities.SupportsOrderBy);
+        Assert.True(capabilities.SupportsDistinct);
+        Assert.False(capabilities.SupportsAsyncApplyEdits);
+
+        Assert.False(capabilities.SupportsReturningGeometryEnvelope);
+        Assert.False(capabilities.SupportsFullTextSearch);
+        Assert.False(capabilities.SupportsPercentileStatistics);
+        Assert.False(capabilities.SupportsAppend);
+        Assert.False(capabilities.SupportsQueryDateBins);
+        Assert.False(capabilities.SupportsQueryAnalytic);
+        Assert.False(capabilities.SupportsAsyncQueryAnalytic);
+        Assert.False(capabilities.SupportsCalculate);
+        Assert.False(capabilities.SupportsAsyncCalculate);
+        Assert.False(capabilities.SupportsReturningQueryExtent);
+        Assert.False(capabilities.SupportsReturningGeometryCentroid);
+        Assert.False(capabilities.SupportsDefaultSrid);
+        Assert.False(capabilities.SupportsOutFieldSqlExpression);
+        Assert.False(capabilities.SupportsSqlExpression);
+        Assert.False(capabilities.SupportsHavingClause);
+        Assert.False(capabilities.SupportsQueryWithDistance);
+        Assert.False(capabilities.SupportsQueryWithResultType);
+        Assert.False(capabilities.SupportsQueryWithHistoricMoment);
+        Assert.False(capabilities.SupportsQueryWithDatumTransformation);
+        Assert.False(capabilities.SupportsCoordinatesQuantization);
+        Assert.False(capabilities.SupportsCurrentUserQueries);
+        Assert.False(capabilities.SupportsQueryWithCacheHint);
+    }
+
+    private static FeatureServiceClient CreateSchemaClient(string layerMetadataJson) {
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.Contains("/FeatureServer/0?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json(layerMetadataJson);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        return new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            });
     }
 }
