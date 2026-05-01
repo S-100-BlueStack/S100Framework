@@ -11,7 +11,7 @@ Use this library when you want to:
 - read service metadata, layer metadata, and schema
 - query features from an Esri Feature Service
 - work with geometries as NetTopologySuite types, including optional feature centroids
-- use advanced query options such as temporal filters, request shaping, full text search, unique IDs, datum transformations, quantization, and statistics
+- use advanced query options such as temporal filters, request shaping, spatial distance filters, cache hints, full text search, unique IDs, datum transformations, quantization, and statistics
 - query service domains, service relationships, data elements, field groups, and contingent values
 - run service-level multi-layer feature, count, ID, unique-ID, complete-result, and extent queries
 - query related records and related-record counts, attachments, top features, estimates, bins, date bins, and synchronous/asynchronous analytic rows
@@ -389,6 +389,19 @@ Console.WriteLine($"Supports queryAnalytic: {schema.Capabilities.SupportsQueryAn
 Console.WriteLine($"Supports async queryAnalytic: {schema.Capabilities.SupportsAsyncQueryAnalytic}");
 Console.WriteLine($"Supports calculate: {schema.Capabilities.SupportsCalculate}");
 Console.WriteLine($"Supports async calculate: {schema.Capabilities.SupportsAsyncCalculate}");
+Console.WriteLine($"Supports extent-only query: {schema.Capabilities.SupportsReturningQueryExtent}");
+Console.WriteLine($"Supports centroid output: {schema.Capabilities.SupportsReturningGeometryCentroid}");
+Console.WriteLine($"Supports default SR: {schema.Capabilities.SupportsDefaultSrid}");
+Console.WriteLine($"Supports SQL expressions: {schema.Capabilities.SupportsSqlExpression}");
+Console.WriteLine($"Supports out-field SQL expressions: {schema.Capabilities.SupportsOutFieldSqlExpression}");
+Console.WriteLine($"Supports having clause: {schema.Capabilities.SupportsHavingClause}");
+Console.WriteLine($"Supports spatial distance queries: {schema.Capabilities.SupportsQueryWithDistance}");
+Console.WriteLine($"Supports result type: {schema.Capabilities.SupportsQueryWithResultType}");
+Console.WriteLine($"Supports historic moment: {schema.Capabilities.SupportsQueryWithHistoricMoment}");
+Console.WriteLine($"Supports datum transformation: {schema.Capabilities.SupportsQueryWithDatumTransformation}");
+Console.WriteLine($"Supports coordinate quantization: {schema.Capabilities.SupportsCoordinatesQuantization}");
+Console.WriteLine($"Supports current user queries: {schema.Capabilities.SupportsCurrentUserQueries}");
+Console.WriteLine($"Supports query cache hint: {schema.Capabilities.SupportsQueryWithCacheHint}");
 Console.WriteLine($"Has contingent values definition: {schema.HasContingentValuesDefinition}");
 Console.WriteLine($"Supports unique IDs: {schema.SupportsUniqueIds}");
 
@@ -485,7 +498,42 @@ var count = await layerClient.QueryCountAsync(query);
 
 Use `TimeInstant` for a single instant and `TimeExtent` for an interval or open-ended range.
 
-### Request shaping with result windows, result type, default SR, and SQL format
+### Spatial distance filters
+
+Use a spatial distance when you want ArcGIS to evaluate a spatial relationship against a buffered input geometry.
+
+```csharp
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Models;
+
+var query = new FeatureQuery {
+    Where = "1=1",
+    SpatialFilter = FeatureSpatialFilter.FromGeometry(
+        new Point(12.34, 56.78) {
+            SRID = 4326
+        },
+        distance: 100,
+        distanceUnit: FeatureSpatialDistanceUnit.Meter)
+};
+
+var count = await layerClient.QueryCountAsync(query);
+```
+
+You can also use distance with envelope filters:
+
+```csharp
+var query = new FeatureQuery {
+    SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+        new Envelope(10, 11, 55, 56),
+        inSrid: 4326,
+        distance: 2.5,
+        distanceUnit: FeatureSpatialDistanceUnit.Kilometer)
+};
+```
+
+The supported units are `Meter`, `StatuteMile`, `Foot`, `Kilometer`, `NauticalMile`, and `UsNauticalMile`. Use `schema.Capabilities.SupportsQueryWithDistance` when you need a proactive capability check.
+
+### Request shaping with result windows, result type, default SR, cache hint, and SQL format
 
 ```csharp
 using S100Framework.REST.Models;
@@ -497,6 +545,7 @@ var query = new FeatureQuery {
     ResultType = FeatureQueryResultType.Standard,
     ReturnExceededLimitFeatures = false,
     DefaultSrid = 4326,
+    CacheHint = true,
     SqlFormat = FeatureQuerySqlFormat.Standard,
     PageSize = 25
 };
@@ -509,6 +558,8 @@ await foreach (var feature in layerClient.QueryAsync(query)) {
 `ResultOffset` and `ResultRecordCount` define the requested result window. `PageSize` still controls the client-side batch size while streaming.
 
 Use `ResultType = FeatureQueryResultType.Tile` when you are intentionally using tile-oriented server behavior.
+
+Use `CacheHint = true` when the layer advertises query cache support and the query is suitable for server-side response caching. You can check `schema.Capabilities.SupportsQueryWithCacheHint` before enabling it.
 
 ### Datum transformation
 
@@ -2538,6 +2589,19 @@ Console.WriteLine(schema.Capabilities.SupportsQueryAnalytic);
 Console.WriteLine(schema.Capabilities.SupportsAsyncQueryAnalytic);
 Console.WriteLine(schema.Capabilities.SupportsCalculate);
 Console.WriteLine(schema.Capabilities.SupportsAsyncCalculate);
+Console.WriteLine(schema.Capabilities.SupportsReturningQueryExtent);
+Console.WriteLine(schema.Capabilities.SupportsReturningGeometryCentroid);
+Console.WriteLine(schema.Capabilities.SupportsDefaultSrid);
+Console.WriteLine(schema.Capabilities.SupportsOutFieldSqlExpression);
+Console.WriteLine(schema.Capabilities.SupportsSqlExpression);
+Console.WriteLine(schema.Capabilities.SupportsHavingClause);
+Console.WriteLine(schema.Capabilities.SupportsQueryWithDistance);
+Console.WriteLine(schema.Capabilities.SupportsQueryWithResultType);
+Console.WriteLine(schema.Capabilities.SupportsQueryWithHistoricMoment);
+Console.WriteLine(schema.Capabilities.SupportsQueryWithDatumTransformation);
+Console.WriteLine(schema.Capabilities.SupportsCoordinatesQuantization);
+Console.WriteLine(schema.Capabilities.SupportsCurrentUserQueries);
+Console.WriteLine(schema.Capabilities.SupportsQueryWithCacheHint);
 Console.WriteLine(schema.HasContingentValuesDefinition);
 Console.WriteLine(schema.SupportsUniqueIds);
 ```

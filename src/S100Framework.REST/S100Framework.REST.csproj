@@ -9,7 +9,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.12.0</Version>
+		<Version>1.13.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
@@ -31,14 +31,13 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			- Added advanced related-record query support for ordering, pagination, historic moment, geodatabase version, unknown time zone clients, geometry shaping, output spatial reference, and datum transformations.
-			- Added QueryRelatedRecordCountsAsync for related-record count-only queries.
-			- Added RelatedRecordCountGroup result model.
-			- Added related-record capability checks for advanced related queries and related-record pagination.
-			- Updated queryRelatedRecords to respect GET, POST, and Auto query request method selection.
-			- Hardened top-features capability and request behavior.
-			- Hardened statistics percentile, envelope query, and related-record query behavior with tests.
-			- Updated README documentation for advanced related-record queries.
+			- Expanded layer capability metadata mapping for advanced query features, including defaultSR, geometry centroid, query extent, SQL expressions, having clauses, distance queries, result type, historic moment, datum transformations, coordinate quantization, current user queries, and cache hints.
+			- Added spatial distance query support through FeatureSpatialFilter distance and FeatureSpatialDistanceUnit.
+			- Added FeatureQuery.CacheHint support for ArcGIS REST cacheHint query requests.
+			- Hardened expanded capability metadata mapping for partial and null metadata payloads.
+			- Hardened spatial distance query behavior across layer query, service-level query, complete multi-layer query, and top-features query paths.
+			- Hardened existing defaultSR query behavior.
+			- Updated README documentation for spatial distance filters, cache hints, and expanded layer capabilities.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 
