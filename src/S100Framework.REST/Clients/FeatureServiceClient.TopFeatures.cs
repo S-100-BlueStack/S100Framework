@@ -2,7 +2,6 @@
 using System.Text.Json;
 using NetTopologySuite.Geometries;
 using S100Framework.REST.Internal.Dto;
-using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
 
 namespace S100Framework.REST.Clients;
@@ -32,13 +31,10 @@ public sealed partial class FeatureServiceClient
             ? string.Join(",", query.OutFields)
             : "*";
 
-        var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(
-                _serviceUri,
-                $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryTopFeatures"),
-            parameters);
-
-        return GetAsync<EsriQueryResponseDto>(uri, cancellationToken);
+        return SendLayerQueryAsync<EsriQueryResponseDto>(
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryTopFeatures",
+            parameters,
+            cancellationToken);
     }
 
     internal Task<EsriIdsResponseDto> QueryTopFeatureIdsAsync(
@@ -62,13 +58,10 @@ public sealed partial class FeatureServiceClient
         parameters["f"] = "json";
         parameters["returnIdsOnly"] = "true";
 
-        var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(
-                _serviceUri,
-                $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryTopFeatures"),
-            parameters);
-
-        return GetAsync<EsriIdsResponseDto>(uri, cancellationToken);
+        return SendLayerQueryAsync<EsriIdsResponseDto>(
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryTopFeatures",
+            parameters,
+            cancellationToken);
     }
 
     internal async Task<TopFeaturesCountResult> QueryTopFeatureCountAsync(
@@ -87,13 +80,10 @@ public sealed partial class FeatureServiceClient
         parameters["f"] = "json";
         parameters["returnCountOnly"] = "true";
 
-        var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(
-                _serviceUri,
-                $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryTopFeatures"),
-            parameters);
-
-        var dto = await GetAsync<EsriTopFeaturesCountResponseDto>(uri, cancellationToken);
+        var dto = await SendLayerQueryAsync<EsriTopFeaturesCountResponseDto>(
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryTopFeatures",
+            parameters,
+            cancellationToken);
 
         FeatureExtent? extent = null;
 
