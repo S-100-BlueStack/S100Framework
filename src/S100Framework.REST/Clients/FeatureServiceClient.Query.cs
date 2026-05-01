@@ -407,6 +407,10 @@ public sealed partial class FeatureServiceClient
             parameters["historicMoment"] = FormatEpochMilliseconds(query.HistoricMoment.Value);
         }
 
+        if (query.TimeReferenceUnknownClient) {
+            parameters["timeReferenceUnknownClient"] = "true";
+        }
+
         if (query.DefaultSrid.HasValue) {
             parameters["defaultSR"] = query.DefaultSrid.Value.ToString(CultureInfo.InvariantCulture);
         }

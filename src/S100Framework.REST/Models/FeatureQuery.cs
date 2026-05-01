@@ -207,6 +207,14 @@ public sealed record FeatureQuery
     public FeatureTimeExtent? TimeExtent { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the client can work with date fields whose time reference is unknown.
+    /// </summary>
+    /// <remarks>
+    /// This value is sent as the ArcGIS REST <c>timeReferenceUnknownClient</c> parameter.
+    /// </remarks>
+    public bool TimeReferenceUnknownClient { get; init; }
+
+    /// <summary>
     /// Gets the historic moment to query when the layer supports historic moment queries.
     /// </summary>
     public DateTimeOffset? HistoricMoment { get; init; }

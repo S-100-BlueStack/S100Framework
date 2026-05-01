@@ -49,11 +49,6 @@ public sealed partial class FeatureServiceClient
                 "QueryAllAsync executes layer-level query requests and does not currently support GdbVersion.");
         }
 
-        if (request.TimeReferenceUnknownClient) {
-            throw new NotSupportedException(
-                "QueryAllAsync executes layer-level query requests and does not currently support TimeReferenceUnknownClient.");
-        }
-
         await EnsureServiceQuerySupportAsync(cancellationToken);
 
         var layers = new List<FeatureServiceLayerQueryResult>(request.LayerDefinitions.Count);
@@ -181,8 +176,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureQuery CreateLayerFeatureQuery(
-    FeatureServiceQueryRequest request,
-    FeatureServiceLayerQueryDefinition layerDefinition) {
+        FeatureServiceQueryRequest request,
+        FeatureServiceLayerQueryDefinition layerDefinition) {
         return new FeatureQuery {
             Where = string.IsNullOrWhiteSpace(layerDefinition.Where)
                 ? "1=1"
@@ -198,13 +193,14 @@ public sealed partial class FeatureServiceClient
             SpatialFilter = request.SpatialFilter,
             TimeInstant = request.TimeInstant,
             TimeExtent = request.TimeExtent,
-            HistoricMoment = request.HistoricMoment
+            HistoricMoment = request.HistoricMoment,
+            TimeReferenceUnknownClient = request.TimeReferenceUnknownClient
         };
     }
 
     private static FeatureQuery CreateLayerExtentQuery(
-    FeatureServiceQueryRequest request,
-    FeatureServiceLayerQueryDefinition layerDefinition) {
+        FeatureServiceQueryRequest request,
+        FeatureServiceLayerQueryDefinition layerDefinition) {
         return new FeatureQuery {
             Where = string.IsNullOrWhiteSpace(layerDefinition.Where)
                 ? "1=1"
@@ -214,7 +210,8 @@ public sealed partial class FeatureServiceClient
             SpatialFilter = request.SpatialFilter,
             TimeInstant = request.TimeInstant,
             TimeExtent = request.TimeExtent,
-            HistoricMoment = request.HistoricMoment
+            HistoricMoment = request.HistoricMoment,
+            TimeReferenceUnknownClient = request.TimeReferenceUnknownClient
         };
     }
 
@@ -223,11 +220,6 @@ public sealed partial class FeatureServiceClient
         if (!string.IsNullOrWhiteSpace(request.GdbVersion)) {
             throw new NotSupportedException(
                 "QueryExtentsAsync executes layer-level query requests and does not currently support GdbVersion.");
-        }
-
-        if (request.TimeReferenceUnknownClient) {
-            throw new NotSupportedException(
-                "QueryExtentsAsync executes layer-level query requests and does not currently support TimeReferenceUnknownClient.");
         }
     }
 
