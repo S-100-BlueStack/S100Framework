@@ -16,11 +16,15 @@ public sealed class FeatureSpatialFilter
         string geometryJson,
         string geometryType,
         SpatialRelationship spatialRelationship,
-        int? inSrid) {
+        int? inSrid,
+        double? distance,
+        FeatureSpatialDistanceUnit? distanceUnit) {
         GeometryJson = geometryJson;
         GeometryType = geometryType;
         SpatialRelationship = spatialRelationship;
         InSrid = inSrid;
+        Distance = distance;
+        DistanceUnit = distanceUnit;
     }
 
     /// <summary>
@@ -34,6 +38,11 @@ public sealed class FeatureSpatialFilter
     internal string GeometryType { get; }
 
     /// <summary>
+    /// Gets the ArcGIS distance unit used for the spatial query buffer.
+    /// </summary>
+    internal FeatureSpatialDistanceUnit? DistanceUnit { get; }
+
+    /// <summary>
     /// Gets the spatial relationship used when evaluating the filter.
     /// </summary>
     public SpatialRelationship SpatialRelationship { get; }
@@ -42,6 +51,11 @@ public sealed class FeatureSpatialFilter
     /// Gets the spatial reference ID of the input geometry, when available.
     /// </summary>
     public int? InSrid { get; }
+
+    /// <summary>
+    /// Gets the buffer distance used when evaluating the spatial filter.
+    /// </summary>
+    public double? Distance { get; }
 
     /// <summary>
     /// Creates a spatial filter from an envelope.
@@ -55,6 +69,12 @@ public sealed class FeatureSpatialFilter
     /// <param name="spatialRelationship">
     /// The spatial relationship to apply.
     /// </param>
+    /// <param name="distance">
+    /// The optional buffer distance to apply around the input geometry.
+    /// </param>
+    /// <param name="distanceUnit">
+    /// The optional linear unit used for <paramref name="distance" />.
+    /// </param>
     /// <returns>
     /// A spatial filter based on the provided envelope.
     /// </returns>
@@ -62,23 +82,29 @@ public sealed class FeatureSpatialFilter
     /// Thrown when <paramref name="envelope" /> is <see langword="null" />.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the envelope is null or empty.
+    /// Thrown when the envelope is null or empty, or when the distance configuration is invalid.
     /// </exception>
     public static FeatureSpatialFilter FromEnvelope(
         Envelope envelope,
         int? inSrid,
-        SpatialRelationship spatialRelationship = SpatialRelationship.Intersects) {
+        SpatialRelationship spatialRelationship = SpatialRelationship.Intersects,
+        double? distance = null,
+        FeatureSpatialDistanceUnit? distanceUnit = null) {
         ArgumentNullException.ThrowIfNull(envelope);
 
         if (envelope.IsNull) {
             throw new InvalidOperationException("Envelope must not be null or empty.");
         }
 
+        ValidateDistance(distance, distanceUnit);
+
         return new FeatureSpatialFilter(
             EsriQueryGeometryWriter.WriteEnvelope(envelope, inSrid),
             EsriGeometryTypes.Envelope,
             spatialRelationship,
-            inSrid);
+            inSrid,
+            distance,
+            distanceUnit);
     }
 
     /// <summary>
@@ -93,6 +119,12 @@ public sealed class FeatureSpatialFilter
     /// <param name="spatialRelationship">
     /// The spatial relationship to apply.
     /// </param>
+    /// <param name="distance">
+    /// The optional buffer distance to apply around the input geometry.
+    /// </param>
+    /// <param name="distanceUnit">
+    /// The optional linear unit used for <paramref name="distance" />.
+    /// </param>
     /// <returns>
     /// A spatial filter based on the provided geometry.
     /// </returns>
@@ -100,7 +132,7 @@ public sealed class FeatureSpatialFilter
     /// Thrown when <paramref name="geometry" /> is <see langword="null" />.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the geometry is empty.
+    /// Thrown when the geometry is empty, or when the distance configuration is invalid.
     /// </exception>
     /// <exception cref="NotSupportedException">
     /// Thrown when the geometry type cannot be serialized to an ArcGIS query geometry.
@@ -108,12 +140,16 @@ public sealed class FeatureSpatialFilter
     public static FeatureSpatialFilter FromGeometry(
         Geometry geometry,
         int? inSrid = null,
-        SpatialRelationship spatialRelationship = SpatialRelationship.Intersects) {
+        SpatialRelationship spatialRelationship = SpatialRelationship.Intersects,
+        double? distance = null,
+        FeatureSpatialDistanceUnit? distanceUnit = null) {
         ArgumentNullException.ThrowIfNull(geometry);
 
         if (geometry.IsEmpty) {
             throw new InvalidOperationException("Geometry must not be empty.");
         }
+
+        ValidateDistance(distance, distanceUnit);
 
         var resolvedSrid = inSrid ?? (geometry.SRID > 0 ? geometry.SRID : null);
         var geometryType = ResolveGeometryType(geometry);
@@ -122,7 +158,21 @@ public sealed class FeatureSpatialFilter
             EsriQueryGeometryWriter.WriteGeometry(geometry, resolvedSrid),
             geometryType,
             spatialRelationship,
-            resolvedSrid);
+            resolvedSrid,
+            distance,
+            distanceUnit);
+    }
+
+    private static void ValidateDistance(
+        double? distance,
+        FeatureSpatialDistanceUnit? distanceUnit) {
+        if (distance is < 0) {
+            throw new InvalidOperationException("Distance must be greater than or equal to zero when provided.");
+        }
+
+        if (distanceUnit.HasValue && !distance.HasValue) {
+            throw new InvalidOperationException("DistanceUnit requires Distance to be specified.");
+        }
     }
 
     private static string ResolveGeometryType(Geometry geometry) {

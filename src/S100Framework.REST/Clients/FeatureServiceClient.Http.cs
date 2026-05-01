@@ -77,9 +77,21 @@ public sealed partial class FeatureServiceClient
         }
     }
 
+    private static string MapSpatialDistanceUnit(FeatureSpatialDistanceUnit value) {
+        return value switch {
+            FeatureSpatialDistanceUnit.Meter => "esriSRUnit_Meter",
+            FeatureSpatialDistanceUnit.StatuteMile => "esriSRUnit_StatuteMile",
+            FeatureSpatialDistanceUnit.Foot => "esriSRUnit_Foot",
+            FeatureSpatialDistanceUnit.Kilometer => "esriSRUnit_Kilometer",
+            FeatureSpatialDistanceUnit.NauticalMile => "esriSRUnit_NauticalMile",
+            FeatureSpatialDistanceUnit.UsNauticalMile => "esriSRUnit_USNauticalMile",
+            _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unsupported spatial distance unit.")
+        };
+    }
+
     private static void ApplySpatialFilter(
-        IDictionary<string, string?> parameters,
-        FeatureSpatialFilter? spatialFilter) {
+     IDictionary<string, string?> parameters,
+     FeatureSpatialFilter? spatialFilter) {
         if (spatialFilter is null) {
             return;
         }
@@ -90,6 +102,14 @@ public sealed partial class FeatureServiceClient
 
         if (spatialFilter.InSrid.HasValue) {
             parameters["inSR"] = spatialFilter.InSrid.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (spatialFilter.Distance.HasValue) {
+            parameters["distance"] = spatialFilter.Distance.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (spatialFilter.DistanceUnit.HasValue) {
+            parameters["units"] = MapSpatialDistanceUnit(spatialFilter.DistanceUnit.Value);
         }
     }
 
