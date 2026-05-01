@@ -420,6 +420,10 @@ public sealed partial class FeatureServiceClient
                 query.ReturnExceededLimitFeatures.Value ? "true" : "false";
         }
 
+        if (query.CacheHint.HasValue) {
+            parameters["cacheHint"] = query.CacheHint.Value ? "true" : "false";
+        }
+
         if (query.DatumTransformationWkid.HasValue) {
             parameters["datumTransformation"] =
                 query.DatumTransformationWkid.Value.ToString(CultureInfo.InvariantCulture);

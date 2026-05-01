@@ -125,6 +125,15 @@ public sealed record FeatureQuery
     public bool? ReturnExceededLimitFeatures { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the service should use query response caching when supported.
+    /// </summary>
+    /// <remarks>
+    /// This value is sent as the ArcGIS REST <c>cacheHint</c> parameter. Consumers can inspect
+    /// <see cref="FeatureLayerCapabilities.SupportsQueryWithCacheHint"/> before enabling it.
+    /// </remarks>
+    public bool? CacheHint { get; init; }
+
+    /// <summary>
     /// Gets the default spatial reference ID applied to spatial query parameters when supported by the service.
     /// </summary>
     public int? DefaultSrid { get; init; }
