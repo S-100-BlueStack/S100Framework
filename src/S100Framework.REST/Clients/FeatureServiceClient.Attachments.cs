@@ -13,9 +13,9 @@ namespace S100Framework.REST.Clients;
 public sealed partial class FeatureServiceClient
 {
     internal Task<EsriAttachmentQueryResponseDto> QueryAttachmentsAsync(
-        int layerId,
-        AttachmentQuery query,
-        CancellationToken cancellationToken = default) {
+     int layerId,
+     AttachmentQuery query,
+     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
         query.Validate();
@@ -43,13 +43,10 @@ public sealed partial class FeatureServiceClient
             parameters["size"] = $"{min},{max}";
         }
 
-        var uri = UriUtility.WithQuery(
-            UriUtility.AppendPath(
-                _serviceUri,
-                $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryAttachments"),
-            parameters);
-
-        return GetAsync<EsriAttachmentQueryResponseDto>(uri, cancellationToken);
+        return SendLayerQueryAsync<EsriAttachmentQueryResponseDto>(
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryAttachments",
+            parameters,
+            cancellationToken);
     }
 
     internal async Task<AttachmentContent> DownloadAttachmentAsync(
