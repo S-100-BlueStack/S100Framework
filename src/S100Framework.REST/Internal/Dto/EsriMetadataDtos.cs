@@ -174,16 +174,60 @@ internal sealed class EsriAdvancedQueryCapabilitiesDto
 
     [JsonPropertyName("supportsDistinct")]
     public bool? SupportsDistinct { get; init; }
+
     [JsonPropertyName("supportsReturningGeometryEnvelope")]
     public bool? SupportsReturningGeometryEnvelope { get; init; }
+
     [JsonPropertyName("supportsFullTextSearch")]
     public bool? SupportsFullTextSearch { get; init; }
+
     [JsonPropertyName("supportsPercentileStatistics")]
     public bool? SupportsPercentileStatistics { get; init; }
+
     [JsonPropertyName("supportsQueryDateBins")]
     public bool? SupportsQueryDateBins { get; init; }
+
     [JsonPropertyName("supportsQueryAnalytic")]
     public bool? SupportsQueryAnalytic { get; init; }
+
+    [JsonPropertyName("supportsReturningQueryExtent")]
+    public bool? SupportsReturningQueryExtent { get; init; }
+
+    [JsonPropertyName("supportsReturningGeometryCentroid")]
+    public bool? SupportsReturningGeometryCentroid { get; init; }
+
+    [JsonPropertyName("supportsDefaultSR")]
+    public bool? SupportsDefaultSrid { get; init; }
+
+    [JsonPropertyName("supportsOutFieldSqlExpression")]
+    public bool? SupportsOutFieldSqlExpression { get; init; }
+
+    [JsonPropertyName("supportsSqlExpression")]
+    public bool? SupportsSqlExpression { get; init; }
+
+    [JsonPropertyName("supportsHavingClause")]
+    public bool? SupportsHavingClause { get; init; }
+
+    [JsonPropertyName("supportsQueryWithDistance")]
+    public bool? SupportsQueryWithDistance { get; init; }
+
+    [JsonPropertyName("supportsQueryWithResultType")]
+    public bool? SupportsQueryWithResultType { get; init; }
+
+    [JsonPropertyName("supportsQueryWithHistoricMoment")]
+    public bool? SupportsQueryWithHistoricMoment { get; init; }
+
+    [JsonPropertyName("supportsQueryWithDatumTransformation")]
+    public bool? SupportsQueryWithDatumTransformation { get; init; }
+
+    [JsonPropertyName("supportsCoordinatesQuantization")]
+    public bool? SupportsCoordinatesQuantization { get; init; }
+
+    [JsonPropertyName("supportsCurrentUserQueries")]
+    public bool? SupportsCurrentUserQueries { get; init; }
+
+    [JsonPropertyName("supportsQueryWithCacheHint")]
+    public bool? SupportsQueryWithCacheHint { get; init; }
 }
 
 internal sealed class EsriAdvancedQueryAnalyticCapabilitiesDto

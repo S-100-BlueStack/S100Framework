@@ -23,6 +23,19 @@
 /// <param name="SupportsAsyncQueryAnalytic">Indicates whether the layer supports asynchronous <c>queryAnalytic</c>.</param>
 /// <param name="SupportsCalculate">Indicates whether the layer supports the <c>calculate</c> operation.</param>
 /// <param name="SupportsAsyncCalculate">Indicates whether the layer supports asynchronous <c>calculate</c>.</param>
+/// <param name="SupportsReturningQueryExtent">Indicates whether extent-only layer queries are supported.</param>
+/// <param name="SupportsReturningGeometryCentroid">Indicates whether feature query centroid output is supported.</param>
+/// <param name="SupportsDefaultSrid">Indicates whether the layer supports the query <c>defaultSR</c> parameter.</param>
+/// <param name="SupportsOutFieldSqlExpression">Indicates whether SQL expressions are supported in query out fields.</param>
+/// <param name="SupportsSqlExpression">Indicates whether SQL expressions are supported in statistics, group-by, and order-by query parameters.</param>
+/// <param name="SupportsHavingClause">Indicates whether statistics queries support <c>havingClause</c>.</param>
+/// <param name="SupportsQueryWithDistance">Indicates whether spatial queries support distance and units parameters.</param>
+/// <param name="SupportsQueryWithResultType">Indicates whether queries support <c>resultType</c>.</param>
+/// <param name="SupportsQueryWithHistoricMoment">Indicates whether queries support <c>historicMoment</c>.</param>
+/// <param name="SupportsQueryWithDatumTransformation">Indicates whether queries support <c>datumTransformation</c>.</param>
+/// <param name="SupportsCoordinatesQuantization">Indicates whether queries support coordinate quantization.</param>
+/// <param name="SupportsCurrentUserQueries">Indicates whether WHERE clauses support the <c>current_user</c> keyword.</param>
+/// <param name="SupportsQueryWithCacheHint">Indicates whether queries support cache hints.</param>
 public sealed record FeatureLayerCapabilities(
     bool HasAttachments,
     bool SupportsQueryAttachments,
@@ -43,4 +56,17 @@ public sealed record FeatureLayerCapabilities(
     bool SupportsQueryAnalytic = false,
     bool SupportsAsyncQueryAnalytic = false,
     bool SupportsCalculate = false,
-    bool SupportsAsyncCalculate = false);
+    bool SupportsAsyncCalculate = false,
+    bool SupportsReturningQueryExtent = false,
+    bool SupportsReturningGeometryCentroid = false,
+    bool SupportsDefaultSrid = false,
+    bool SupportsOutFieldSqlExpression = false,
+    bool SupportsSqlExpression = false,
+    bool SupportsHavingClause = false,
+    bool SupportsQueryWithDistance = false,
+    bool SupportsQueryWithResultType = false,
+    bool SupportsQueryWithHistoricMoment = false,
+    bool SupportsQueryWithDatumTransformation = false,
+    bool SupportsCoordinatesQuantization = false,
+    bool SupportsCurrentUserQueries = false,
+    bool SupportsQueryWithCacheHint = false);
