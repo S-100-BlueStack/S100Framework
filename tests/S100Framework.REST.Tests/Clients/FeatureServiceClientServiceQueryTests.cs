@@ -1538,6 +1538,148 @@ public sealed class FeatureServiceClientServiceQueryTests
         Assert.Empty(result.Layers[1].Records);
     }
 
+    [Fact]
+    public async Task QueryCountAsync_IncludesSpatialDistanceAndUnits_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<Uri>();
+
+        var client = CreateClient(request => {
+            requestUris.Add(request.RequestUri!);
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "layers": [
+                    {
+                      "id": 0,
+                      "count": 3
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.QueryCountAsync(
+            new FeatureServiceQueryRequest {
+                LayerDefinitions = [
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 0,
+                        Where = "STATUS = 'Active'"
+                    }
+                ],
+                SpatialFilter = FeatureSpatialFilter.FromGeometry(
+                    new Point(12.34, 56.78) {
+                        SRID = 4326
+                    },
+                    distance: 250,
+                    distanceUnit: FeatureSpatialDistanceUnit.Meter)
+            },
+            cancellationToken);
+
+        var layer = Assert.Single(result.Layers);
+
+        Assert.Equal(0, layer.LayerId);
+        Assert.Equal(3, layer.Count);
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.AbsolutePath.EndsWith(
+                "/FeatureServer/query",
+                StringComparison.OrdinalIgnoreCase));
+
+        var query = ParseQuery(queryRequest);
+
+        Assert.Equal("true", query["returnCountOnly"]);
+        Assert.Equal("esriGeometryPoint", query["geometryType"]);
+        Assert.Equal("esriSpatialRelIntersects", query["spatialRel"]);
+        Assert.Equal("4326", query["inSR"]);
+        Assert.Equal("250", query["distance"]);
+        Assert.Equal("esriSRUnit_Meter", query["units"]);
+        Assert.True(query.ContainsKey("geometry"));
+    }
+
+    [Fact]
+    public async Task QueryAllAsync_ForwardsSpatialDistanceToLayerQueries() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<Uri>();
+
+        var client = CreateClient(request => {
+            requestUris.Add(request.RequestUri!);
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(capabilities: "Query");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0",
+                StringComparison.OrdinalIgnoreCase)) {
+                return CreateLayerMetadataResponse(
+                    layerId: 0,
+                    name: "Harbors",
+                    geometryType: "esriGeometryPoint");
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "geometryType": "esriGeometryPoint",
+                  "features": []
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.QueryAllAsync(
+            new FeatureServiceQueryRequest {
+                LayerDefinitions = [
+                    new FeatureServiceLayerQueryDefinition {
+                        LayerId = 0,
+                        Where = "STATUS = 'Active'"
+                    }
+                ],
+                SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+                    new Envelope(10, 11, 55, 56),
+                    inSrid: 4326,
+                    distance: 2.5,
+                    distanceUnit: FeatureSpatialDistanceUnit.Kilometer)
+            },
+            cancellationToken);
+
+        var layer = Assert.Single(result.Layers);
+
+        Assert.Equal(0, layer.LayerId);
+        Assert.Empty(layer.Records);
+
+        var queryRequest = Assert.Single(
+            requestUris,
+            uri => uri.AbsolutePath.EndsWith(
+                "/FeatureServer/0/query",
+                StringComparison.OrdinalIgnoreCase));
+
+        var query = ParseQuery(queryRequest);
+
+        Assert.Equal("STATUS = 'Active'", query["where"]);
+        Assert.Equal("esriGeometryEnvelope", query["geometryType"]);
+        Assert.Equal("4326", query["inSR"]);
+        Assert.Equal("2.5", query["distance"]);
+        Assert.Equal("esriSRUnit_Kilometer", query["units"]);
+        Assert.True(query.ContainsKey("geometry"));
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

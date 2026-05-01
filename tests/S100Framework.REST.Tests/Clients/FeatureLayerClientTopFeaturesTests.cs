@@ -579,6 +579,116 @@ public sealed class FeatureLayerClientTopFeaturesTests
         Assert.Contains("TopCount", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task QueryTopFeaturesAsync_IncludesSpatialDistanceAndUnits_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var layerClient = CreateLayerClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(supportsTopFeaturesQuery: true);
+            }
+
+            if (IsTopFeaturesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "features": []
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var result = await layerClient.QueryTopFeaturesAsync(
+            new TopFeaturesQuery {
+                SpatialFilter = FeatureSpatialFilter.FromGeometry(
+                    new Point(12.34, 56.78) {
+                        SRID = 4326
+                    },
+                    distance: 100,
+                    distanceUnit: FeatureSpatialDistanceUnit.Meter),
+                TopFilter = new TopFeaturesFilter {
+                    GroupByFields = ["REGION"],
+                    OrderByFields = ["SCORE DESC"],
+                    TopCount = 2
+                }
+            },
+            cancellationToken);
+
+        Assert.Empty(result);
+
+        var requestUri = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/queryTopFeatures?", StringComparison.OrdinalIgnoreCase));
+
+        var decoded = Uri.UnescapeDataString(requestUri);
+
+        Assert.Contains("geometryType=esriGeometryPoint", decoded, StringComparison.Ordinal);
+        Assert.Contains("spatialRel=esriSpatialRelIntersects", decoded, StringComparison.Ordinal);
+        Assert.Contains("inSR=4326", decoded, StringComparison.Ordinal);
+        Assert.Contains("distance=100", decoded, StringComparison.Ordinal);
+        Assert.Contains("units=esriSRUnit_Meter", decoded, StringComparison.Ordinal);
+        Assert.Contains("geometry=", decoded, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryTopFeatureCountAsync_IncludesSpatialDistanceWithoutUnits_WhenUnitIsOmitted() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var layerClient = CreateLayerClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(supportsTopFeaturesQuery: true);
+            }
+
+            if (IsTopFeaturesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "count": 4
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var result = await layerClient.QueryTopFeatureCountAsync(
+            new TopFeaturesQuery {
+                SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+                    new Envelope(10, 11, 55, 56),
+                    inSrid: 4326,
+                    distance: 25),
+                TopFilter = new TopFeaturesFilter {
+                    GroupByFields = ["REGION"],
+                    OrderByFields = ["SCORE DESC"],
+                    TopCount = 2
+                }
+            },
+            cancellationToken);
+
+        Assert.Equal(4, result.Count);
+
+        var requestUri = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/queryTopFeatures?", StringComparison.OrdinalIgnoreCase));
+
+        var decoded = Uri.UnescapeDataString(requestUri);
+
+        Assert.Contains("returnCountOnly=true", decoded, StringComparison.Ordinal);
+        Assert.Contains("geometryType=esriGeometryEnvelope", decoded, StringComparison.Ordinal);
+        Assert.Contains("inSR=4326", decoded, StringComparison.Ordinal);
+        Assert.Contains("distance=25", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("units=", decoded, StringComparison.Ordinal);
+    }
+
     private static IFeatureLayerClient CreateLayerClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

@@ -226,6 +226,81 @@ public sealed class FeatureLayerClientSpatialDistanceQueryTests
         Assert.Contains("Distance", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task QueryAsync_IncludesZeroSpatialDistance_WhenProvided() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var requestUris = new List<string>();
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+            requestUris.Add(uri);
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (IsLayerQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "geometryType": "esriGeometryPoint",
+                  "features": []
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        await foreach (var _ in client.GetLayerClient(0).QueryAsync(
+            new FeatureQuery {
+                SpatialFilter = FeatureSpatialFilter.FromGeometry(
+                    new Point(12.34, 56.78) {
+                        SRID = 4326
+                    },
+                    distance: 0,
+                    distanceUnit: FeatureSpatialDistanceUnit.Meter)
+            },
+            cancellationToken)) {
+        }
+
+        var requestUri = Assert.Single(
+            requestUris,
+            uri => uri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase));
+
+        var query = ParseQuery(new Uri(requestUri));
+
+        Assert.Equal("0", query["distance"]);
+        Assert.Equal("esriSRUnit_Meter", query["units"]);
+    }
+
+    [Fact]
+    public void FromGeometry_UsesGeometrySrid_WhenInputSridIsOmitted() {
+        var filter = FeatureSpatialFilter.FromGeometry(
+            new Point(12.34, 56.78) {
+                SRID = 25832
+            },
+            distance: 10,
+            distanceUnit: FeatureSpatialDistanceUnit.Meter);
+
+        Assert.Equal(25832, filter.InSrid);
+        Assert.Equal(10, filter.Distance);
+    }
+
+    [Fact]
+    public void FromGeometry_UsesExplicitInputSrid_WhenProvided() {
+        var filter = FeatureSpatialFilter.FromGeometry(
+            new Point(12.34, 56.78) {
+                SRID = 25832
+            },
+            inSrid: 4326,
+            distance: 10,
+            distanceUnit: FeatureSpatialDistanceUnit.Meter);
+
+        Assert.Equal(4326, filter.InSrid);
+        Assert.Equal(10, filter.Distance);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
