@@ -36,6 +36,8 @@
 /// <param name="SupportsCoordinatesQuantization">Indicates whether queries support coordinate quantization.</param>
 /// <param name="SupportsCurrentUserQueries">Indicates whether WHERE clauses support the <c>current_user</c> keyword.</param>
 /// <param name="SupportsQueryWithCacheHint">Indicates whether queries support cache hints.</param>
+/// <param name="SupportsQueryAttachmentsCountOnly">Indicates whether attachment count-only queries are supported.</param>
+/// <param name="SupportsQueryAttachmentOrderByFields">Indicates whether attachment query ordering is supported.</param>
 public sealed record FeatureLayerCapabilities(
     bool HasAttachments,
     bool SupportsQueryAttachments,
@@ -69,4 +71,6 @@ public sealed record FeatureLayerCapabilities(
     bool SupportsQueryWithDatumTransformation = false,
     bool SupportsCoordinatesQuantization = false,
     bool SupportsCurrentUserQueries = false,
-    bool SupportsQueryWithCacheHint = false);
+    bool SupportsQueryWithCacheHint = false,
+    bool SupportsQueryAttachmentsCountOnly = false,
+    bool SupportsQueryAttachmentOrderByFields = false);

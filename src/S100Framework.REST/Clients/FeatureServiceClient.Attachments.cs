@@ -13,9 +13,21 @@ namespace S100Framework.REST.Clients;
 public sealed partial class FeatureServiceClient
 {
     internal Task<EsriAttachmentQueryResponseDto> QueryAttachmentsAsync(
-     int layerId,
-     AttachmentQuery query,
-     CancellationToken cancellationToken = default) {
+    int layerId,
+    AttachmentQuery query,
+    CancellationToken cancellationToken = default) {
+        return QueryAttachmentsAsync(
+            layerId,
+            query,
+            returnCountOnly: false,
+            cancellationToken);
+    }
+
+    internal Task<EsriAttachmentQueryResponseDto> QueryAttachmentsAsync(
+       int layerId,
+       AttachmentQuery query,
+       bool returnCountOnly,
+       CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
         query.Validate();
@@ -25,6 +37,9 @@ public sealed partial class FeatureServiceClient
             ["objectIds"] = query.ObjectIds is { Count: > 0 }
                 ? string.Join(",", query.ObjectIds)
                 : null,
+            ["globalIds"] = query.GlobalIds is { Count: > 0 }
+                ? string.Join(",", query.GlobalIds)
+                : null,
             ["definitionExpression"] = query.DefinitionExpression,
             ["attachmentTypes"] = query.AttachmentTypes is { Count: > 0 }
                 ? string.Join(",", query.AttachmentTypes)
@@ -32,9 +47,21 @@ public sealed partial class FeatureServiceClient
             ["keywords"] = query.Keywords is { Count: > 0 }
                 ? string.Join(",", query.Keywords)
                 : null,
+            ["orderByFields"] = query.OrderByFields is { Count: > 0 }
+                ? string.Join(",", query.OrderByFields)
+                : null,
             ["returnUrl"] = query.ReturnUrl ? "true" : null,
-            ["returnMetadata"] = query.ReturnMetadata ? "true" : null
+            ["returnMetadata"] = query.ReturnMetadata ? "true" : null,
+            ["returnCountOnly"] = returnCountOnly ? "true" : null
         };
+
+        if (query.ResultOffset.HasValue) {
+            parameters["resultOffset"] = query.ResultOffset.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (query.ResultRecordCount.HasValue) {
+            parameters["resultRecordCount"] = query.ResultRecordCount.Value.ToString(CultureInfo.InvariantCulture);
+        }
 
         if (query.MinimumSizeBytes.HasValue || query.MaximumSizeBytes.HasValue) {
             var min = query.MinimumSizeBytes?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;

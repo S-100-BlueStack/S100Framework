@@ -71,7 +71,9 @@ public sealed class FeatureLayerSchemaMetadataTests
                     "supportsQueryWithDatumTransformation": true,
                     "supportsCoordinatesQuantization": true,
                     "supportsCurrentUserQueries": true,
-                    "supportsQueryWithCacheHint": true
+                    "supportsQueryWithCacheHint": true,
+                    "supportsQueryAttachmentsCountOnly": true,
+                    "supportsQueryAttachmentOrderByFields": true
                   },
                   "advancedEditingCapabilities": {
                     "supportsAsyncApplyEdits": true
@@ -133,6 +135,8 @@ public sealed class FeatureLayerSchemaMetadataTests
         Assert.True(schema.Capabilities.SupportsCoordinatesQuantization);
         Assert.True(schema.Capabilities.SupportsCurrentUserQueries);
         Assert.True(schema.Capabilities.SupportsQueryWithCacheHint);
+        Assert.True(schema.Capabilities.SupportsQueryAttachmentsCountOnly);
+        Assert.True(schema.Capabilities.SupportsQueryAttachmentOrderByFields);
 
         Assert.Single(schema.Relationships);
         Assert.Equal(7, schema.Relationships[0].Id);
@@ -212,6 +216,8 @@ public sealed class FeatureLayerSchemaMetadataTests
         Assert.False(schema.Capabilities.SupportsCoordinatesQuantization);
         Assert.False(schema.Capabilities.SupportsCurrentUserQueries);
         Assert.False(schema.Capabilities.SupportsQueryWithCacheHint);
+        Assert.False(schema.Capabilities.SupportsQueryAttachmentsCountOnly);
+        Assert.False(schema.Capabilities.SupportsQueryAttachmentOrderByFields);
     }
 
     [Fact]

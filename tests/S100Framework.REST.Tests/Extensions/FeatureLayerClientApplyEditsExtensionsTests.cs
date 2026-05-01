@@ -295,5 +295,11 @@ public sealed class FeatureLayerClientApplyEditsExtensionsTests
     CancellationToken cancellationToken = default) {
             throw new NotSupportedException();
         }
+
+        public Task<IReadOnlyList<AttachmentCountGroup>> QueryAttachmentCountsAsync(
+    AttachmentQuery query,
+    CancellationToken cancellationToken = default) {
+            throw new NotSupportedException();
+        }
     }
 }

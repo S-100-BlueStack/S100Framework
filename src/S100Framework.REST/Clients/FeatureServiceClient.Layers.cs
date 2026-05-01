@@ -115,7 +115,9 @@ public sealed partial class FeatureServiceClient
                 dto.AdvancedQueryCapabilities?.SupportsQueryWithDatumTransformation ?? false,
                 dto.AdvancedQueryCapabilities?.SupportsCoordinatesQuantization ?? false,
                 dto.AdvancedQueryCapabilities?.SupportsCurrentUserQueries ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryWithCacheHint ?? false),
+                dto.AdvancedQueryCapabilities?.SupportsQueryWithCacheHint ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsQueryAttachmentsCountOnly ?? false,
+                dto.AdvancedQueryCapabilities?.SupportsQueryAttachmentOrderByFields ?? false),
             dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
             UniqueIdInfo = uniqueIdInfo,
             SupportedAppendFormats = dto.SupportedAppendFormats?

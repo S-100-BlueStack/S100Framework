@@ -148,6 +148,8 @@ public sealed class FeatureLayerClientAttachmentsTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             layerClient.QueryAttachmentsAsync(new AttachmentQuery(), cancellationToken));
 
-        Assert.Contains("ObjectIds or DefinitionExpression", exception.Message);
+        Assert.Contains("ObjectIds", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("GlobalIds", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("DefinitionExpression", exception.Message, StringComparison.Ordinal);
     }
 }

@@ -18,9 +18,13 @@ public sealed partial class FeatureLayerClient
         query.Validate();
 
         var schema = await GetSchemaAsync(cancellationToken);
-        EnsureAttachmentQuerySupported(schema);
+        EnsureAttachmentQuerySupported(schema, query, requireCountOnly: false);
 
-        var response = await _serviceClient.QueryAttachmentsAsync(_layerId, query, cancellationToken);
+        var response = await _serviceClient.QueryAttachmentsAsync(
+            _layerId,
+            query,
+            returnCountOnly: false,
+            cancellationToken);
 
         return (response.AttachmentGroups ?? new List<EsriAttachmentGroupDto>())
             .Select(group => new AttachmentGroup(
@@ -32,6 +36,30 @@ public sealed partial class FeatureLayerClient
                         group.ParentObjectId,
                         group.ParentGlobalId))
                     .ToArray()))
+            .ToArray();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<AttachmentCountGroup>> QueryAttachmentCountsAsync(
+        AttachmentQuery query,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(query);
+        query.Validate();
+
+        var schema = await GetSchemaAsync(cancellationToken);
+        EnsureAttachmentQuerySupported(schema, query, requireCountOnly: true);
+
+        var response = await _serviceClient.QueryAttachmentsAsync(
+            _layerId,
+            query,
+            returnCountOnly: true,
+            cancellationToken);
+
+        return (response.AttachmentGroups ?? new List<EsriAttachmentGroupDto>())
+            .Select(static group => new AttachmentCountGroup(
+                group.ParentObjectId,
+                group.ParentGlobalId,
+                group.Count ?? 0))
             .ToArray();
     }
 
@@ -108,12 +136,26 @@ public sealed partial class FeatureLayerClient
         }
     }
 
-    private static void EnsureAttachmentQuerySupported(FeatureLayerSchema schema) {
+    private static void EnsureAttachmentQuerySupported(
+        FeatureLayerSchema schema,
+        AttachmentQuery query,
+        bool requireCountOnly) {
         EnsureAttachmentReadSupported(schema);
 
         if (!schema.Capabilities.SupportsQueryAttachments) {
             throw new FeatureServiceCapabilityException(
                 $"Layer '{schema.Name}' ({schema.LayerId}) does not support attachment queries.");
+        }
+
+        if (requireCountOnly && !schema.Capabilities.SupportsQueryAttachmentsCountOnly) {
+            throw new FeatureServiceCapabilityException(
+                $"Layer '{schema.Name}' ({schema.LayerId}) does not support attachment count queries.");
+        }
+
+        if (query.OrderByFields is { Count: > 0 } &&
+            !schema.Capabilities.SupportsQueryAttachmentOrderByFields) {
+            throw new FeatureServiceCapabilityException(
+                $"Layer '{schema.Name}' ({schema.LayerId}) does not support attachment order-by fields.");
         }
     }
 

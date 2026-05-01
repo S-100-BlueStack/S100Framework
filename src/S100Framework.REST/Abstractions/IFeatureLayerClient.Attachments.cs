@@ -24,6 +24,22 @@ public partial interface IFeatureLayerClient
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Queries attachment counts for matching parent features in the current layer.
+    /// </summary>
+    /// <param name="query">
+    /// The attachment query to execute.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The cancellation token.
+    /// </param>
+    /// <returns>
+    /// The attachment counts grouped by parent feature.
+    /// </returns>
+    Task<IReadOnlyList<AttachmentCountGroup>> QueryAttachmentCountsAsync(
+        AttachmentQuery query,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Downloads a specific attachment for a feature in the current layer.
     /// </summary>
     /// <param name="objectId">

@@ -228,6 +228,12 @@ internal sealed class EsriAdvancedQueryCapabilitiesDto
 
     [JsonPropertyName("supportsQueryWithCacheHint")]
     public bool? SupportsQueryWithCacheHint { get; init; }
+
+    [JsonPropertyName("supportsQueryAttachmentsCountOnly")]
+    public bool? SupportsQueryAttachmentsCountOnly { get; init; }
+
+    [JsonPropertyName("supportsQueryAttachmentOrderByFields")]
+    public bool? SupportsQueryAttachmentOrderByFields { get; init; }
 }
 
 internal sealed class EsriAdvancedQueryAnalyticCapabilitiesDto
