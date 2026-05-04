@@ -45,12 +45,15 @@ public sealed record CalculateRequest
     /// <summary>
     /// Validates the calculate request before it is sent.
     /// </summary>
+    /// <summary>
+    /// Validates the calculate request before it is sent.
+    /// </summary>
     public void Validate() {
         if (Where is not null && string.IsNullOrWhiteSpace(Where)) {
             throw new InvalidOperationException("Where must not be empty when provided.");
         }
 
-        if (Expressions.Count == 0) {
+        if (Expressions is null || Expressions.Count == 0) {
             throw new InvalidOperationException("At least one calculate expression must be provided.");
         }
 

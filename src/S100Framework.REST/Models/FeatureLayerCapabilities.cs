@@ -73,4 +73,13 @@ public sealed record FeatureLayerCapabilities(
     bool SupportsCurrentUserQueries = false,
     bool SupportsQueryWithCacheHint = false,
     bool SupportsQueryAttachmentsCountOnly = false,
-    bool SupportsQueryAttachmentOrderByFields = false);
+    bool SupportsQueryAttachmentOrderByFields = false)
+{
+    /// <summary>
+    /// Gets the SQL dialects the layer advertises for <c>calculate</c> expressions.
+    /// </summary>
+    /// <remarks>
+    /// An empty collection means the layer did not advertise the value, so callers should rely on server-side validation.
+    /// </remarks>
+    public IReadOnlyList<FeatureQuerySqlFormat> SupportedSqlFormatsInCalculate { get; init; } = Array.Empty<FeatureQuerySqlFormat>();
+}
