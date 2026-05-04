@@ -6,13 +6,13 @@ namespace S100Framework.REST.Internal.Dto;
 internal sealed class EsriQueryBinsResponseDto
 {
     [JsonPropertyName("features")]
-    public List<EsriQueryBinFeatureDto>? Features { get; init; }
+    public List<EsriQueryBinFeatureDto?>? Features { get; init; }
 
     [JsonPropertyName("exceededTransferLimit")]
     public bool? ExceededTransferLimit { get; init; }
 
     [JsonPropertyName("stackFieldNames")]
-    public List<string>? StackFieldNames { get; init; }
+    public List<string?>? StackFieldNames { get; init; }
 }
 
 internal sealed class EsriQueryBinFeatureDto
@@ -21,5 +21,5 @@ internal sealed class EsriQueryBinFeatureDto
     public JsonElement Attributes { get; init; }
 
     [JsonPropertyName("stackedAttributes")]
-    public List<JsonElement>? StackedAttributes { get; init; }
+    public List<JsonElement?>? StackedAttributes { get; init; }
 }
