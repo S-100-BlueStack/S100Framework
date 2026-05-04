@@ -29,13 +29,19 @@ public sealed partial class FeatureServiceClient
 
         return new FeatureLayerFieldGroupsResult(
             layerId,
-            (dto.FieldGroups ?? new List<EsriFieldGroupDto>())
-                .Select(static fieldGroup => new FeatureFieldGroup(
-                    fieldGroup.Name ?? string.Empty,
-                    fieldGroup.Restrictive,
-                    fieldGroup.Fields?
-                        .Where(static field => !string.IsNullOrWhiteSpace(field))
-                        .ToArray() ?? Array.Empty<string>()))
+            (dto.FieldGroups ?? Enumerable.Empty<EsriFieldGroupDto?>())
+                .Where(static fieldGroup => fieldGroup is not null)
+                .Select(static fieldGroup => MapFieldGroup(fieldGroup!))
+                .ToArray());
+    }
+
+    private static FeatureFieldGroup MapFieldGroup(EsriFieldGroupDto dto) {
+        return new FeatureFieldGroup(
+            dto.Name ?? string.Empty,
+            dto.Restrictive,
+            (dto.Fields ?? Enumerable.Empty<string?>())
+                .Where(static field => !string.IsNullOrWhiteSpace(field))
+                .Select(static field => field!)
                 .ToArray());
     }
 }

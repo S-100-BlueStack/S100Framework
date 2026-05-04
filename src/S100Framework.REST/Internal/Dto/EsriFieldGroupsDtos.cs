@@ -5,7 +5,7 @@ namespace S100Framework.REST.Internal.Dto;
 internal sealed class EsriFieldGroupsResponseDto
 {
     [JsonPropertyName("fieldGroups")]
-    public List<EsriFieldGroupDto>? FieldGroups { get; init; }
+    public List<EsriFieldGroupDto?>? FieldGroups { get; init; }
 }
 
 internal sealed class EsriFieldGroupDto
@@ -17,5 +17,5 @@ internal sealed class EsriFieldGroupDto
     public bool? Restrictive { get; init; }
 
     [JsonPropertyName("fields")]
-    public List<string>? Fields { get; init; }
+    public List<string?>? Fields { get; init; }
 }
