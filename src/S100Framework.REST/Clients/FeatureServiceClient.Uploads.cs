@@ -35,8 +35,9 @@ public sealed partial class FeatureServiceClient
 
         var fileContent = new StreamContent(request.Content!);
 
-        if (!string.IsNullOrWhiteSpace(request.ContentType)) {
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue(request.ContentType);
+        if (request.ContentType is not null &&
+            MediaTypeHeaderValue.TryParse(request.ContentType, out var contentType)) {
+            fileContent.Headers.ContentType = contentType;
         }
 
         multipartContent.Add(fileContent, "file", request.FileName);
