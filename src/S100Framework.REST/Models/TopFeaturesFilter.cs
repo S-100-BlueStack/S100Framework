@@ -26,16 +26,32 @@ public sealed record TopFeaturesFilter
     /// <exception cref="InvalidOperationException">
     /// Thrown when group-by fields, order-by fields, or top count are not configured correctly.
     /// </exception>
-    public void Validate() {
-        if (GroupByFields.Count == 0) {
+    public void Validate()
+    {
+        if (GroupByFields is not { Count: > 0 })
+        {
             throw new InvalidOperationException("At least one group-by field must be provided.");
         }
 
-        if (OrderByFields.Count == 0) {
+        if (GroupByFields.Any(static field => string.IsNullOrWhiteSpace(field)))
+        {
+            throw new InvalidOperationException(
+                "GroupByFields must not contain null, empty, or whitespace-only values.");
+        }
+
+        if (OrderByFields is not { Count: > 0 })
+        {
             throw new InvalidOperationException("At least one order-by field must be provided.");
         }
 
-        if (TopCount <= 0) {
+        if (OrderByFields.Any(static field => string.IsNullOrWhiteSpace(field)))
+        {
+            throw new InvalidOperationException(
+                "OrderByFields must not contain null, empty, or whitespace-only values.");
+        }
+
+        if (TopCount <= 0)
+        {
             throw new InvalidOperationException("TopCount must be greater than zero.");
         }
     }
