@@ -89,11 +89,9 @@ public sealed partial class FeatureServiceClient
     private static AddFeaturesResult MapAddFeaturesResult(
         EsriAddFeaturesResponseDto dto,
         Uri requestUri) {
-        var addResults = dto.AddResults?
-            .Select(MapEditResult)
-            .ToArray() ?? Array.Empty<EditResult>();
+        var addResults = MapEditResults(dto.AddResults);
 
-        if (addResults.Length == 0) {
+        if (addResults.Count == 0) {
             throw new FeatureServiceException(
                 "The server returned an addFeatures response without add results.",
                 requestUri);
@@ -108,11 +106,9 @@ public sealed partial class FeatureServiceClient
     private static UpdateFeaturesResult MapUpdateFeaturesResult(
         EsriUpdateFeaturesResponseDto dto,
         Uri requestUri) {
-        var updateResults = dto.UpdateResults?
-            .Select(MapEditResult)
-            .ToArray() ?? Array.Empty<EditResult>();
+        var updateResults = MapEditResults(dto.UpdateResults);
 
-        if (updateResults.Length == 0) {
+        if (updateResults.Count == 0) {
             throw new FeatureServiceException(
                 "The server returned an updateFeatures response without update results.",
                 requestUri);
@@ -122,5 +118,13 @@ public sealed partial class FeatureServiceClient
             updateResults.All(static result => result.Success),
             updateResults,
             dto.EditMoment);
+    }
+
+    private static IReadOnlyList<EditResult> MapEditResults(
+        IEnumerable<EsriEditResultDto>? results) {
+        return results?
+            .Where(static result => result is not null)
+            .Select(static result => MapEditResult(result!))
+            .ToArray() ?? Array.Empty<EditResult>();
     }
 }
