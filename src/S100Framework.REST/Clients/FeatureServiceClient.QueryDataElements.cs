@@ -35,8 +35,9 @@ public sealed partial class FeatureServiceClient
 
         var dto = await GetAsync<EsriQueryDataElementsResponseDto>(uri, cancellationToken);
 
-        return (dto.LayerDataElements ?? new List<EsriLayerDataElementDto>())
-            .Select(layerDataElement => MapFeatureLayerDataElement(layerDataElement, uri))
+        return (dto.LayerDataElements ?? Enumerable.Empty<EsriLayerDataElementDto?>())
+            .Where(static layerDataElement => layerDataElement is not null)
+            .Select(layerDataElement => MapFeatureLayerDataElement(layerDataElement!, uri))
             .ToArray();
     }
 

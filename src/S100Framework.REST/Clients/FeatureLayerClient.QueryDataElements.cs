@@ -14,7 +14,7 @@ public sealed partial class FeatureLayerClient
             [_layerId],
             cancellationToken);
 
-        return dataElements.SingleOrDefault()
+        return dataElements.SingleOrDefault(dataElement => dataElement.LayerId == _layerId)
                ?? throw new InvalidOperationException(
                    $"The feature service did not return a data element for layer {_layerId}.");
     }

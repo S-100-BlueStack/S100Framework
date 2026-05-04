@@ -1,4 +1,5 @@
-﻿using S100Framework.REST.Clients;
+﻿using System.Text.Json;
+using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Tests.TestDoubles;
@@ -16,15 +17,11 @@ public sealed class FeatureServiceClientQueryDataElementsTests
         var client = CreateClient(request => {
             requestUris.Add(request.RequestUri!);
 
-            if (request.RequestUri!.AbsolutePath.EndsWith(
-                "/FeatureServer",
-                StringComparison.OrdinalIgnoreCase)) {
+            if (IsServiceMetadataRequest(request)) {
                 return CreateServiceMetadataResponse(supportsQueryDataElements: true);
             }
 
-            if (request.RequestUri!.AbsolutePath.EndsWith(
-                "/FeatureServer/queryDataElements",
-                StringComparison.OrdinalIgnoreCase)) {
+            if (IsQueryDataElementsRequest(request)) {
                 return StubHttpMessageHandler.Json("""
                 {
                   "layerDataElements": [
@@ -74,13 +71,153 @@ public sealed class FeatureServiceClientQueryDataElementsTests
     }
 
     [Fact]
+    public async Task QueryDataElementsAsync_ReturnsEmptyList_WhenLayerDataElementsPropertyIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsQueryDataElements: true);
+            }
+
+            if (IsQueryDataElementsRequest(request)) {
+                return StubHttpMessageHandler.Json("{}");
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var dataElements = await client.QueryDataElementsAsync([0], cancellationToken);
+
+        Assert.Empty(dataElements);
+    }
+
+    [Fact]
+    public async Task QueryDataElementsAsync_ReturnsEmptyList_WhenLayerDataElementsPropertyIsNull() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsQueryDataElements: true);
+            }
+
+            if (IsQueryDataElementsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "layerDataElements": null
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var dataElements = await client.QueryDataElementsAsync([0], cancellationToken);
+
+        Assert.Empty(dataElements);
+    }
+
+    [Fact]
+    public async Task QueryDataElementsAsync_IgnoresNullLayerDataElementItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsQueryDataElements: true);
+            }
+
+            if (IsQueryDataElementsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "layerDataElements": [
+                    null,
+                    {
+                      "layerId": 0,
+                      "dataElement": {
+                        "name": "Layer 0"
+                      }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var dataElement = Assert.Single(await client.QueryDataElementsAsync([0], cancellationToken));
+
+        Assert.Equal(0, dataElement.LayerId);
+        Assert.Equal("Layer 0", dataElement.DataElement.GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task QueryDataElementsAsync_Throws_WhenReturnedDataElementOmitsLayerId() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsQueryDataElements: true);
+            }
+
+            if (IsQueryDataElementsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "layerDataElements": [
+                    {
+                      "dataElement": {
+                        "name": "Layer without id"
+                      }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.QueryDataElementsAsync([0], cancellationToken));
+
+        Assert.Contains("layer ID", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryDataElementsAsync_ReturnsUndefinedDataElement_WhenServerOmitsDataElementPayload() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsQueryDataElements: true);
+            }
+
+            if (IsQueryDataElementsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "layerDataElements": [
+                    {
+                      "layerId": 0
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var dataElement = Assert.Single(await client.QueryDataElementsAsync([0], cancellationToken));
+
+        Assert.Equal(0, dataElement.LayerId);
+        Assert.Equal(JsonValueKind.Undefined, dataElement.DataElement.ValueKind);
+    }
+
+    [Fact]
     public async Task QueryDataElementsAsync_Throws_WhenServiceDoesNotAdvertiseSupport() {
         var cancellationToken = TestContext.Current.CancellationToken;
 
         var client = CreateClient(request => {
-            if (request.RequestUri!.AbsolutePath.EndsWith(
-                "/FeatureServer",
-                StringComparison.OrdinalIgnoreCase)) {
+            if (IsServiceMetadataRequest(request)) {
                 return CreateServiceMetadataResponse(supportsQueryDataElements: false);
             }
 
@@ -111,9 +248,7 @@ public sealed class FeatureServiceClientQueryDataElementsTests
         var cancellationToken = TestContext.Current.CancellationToken;
 
         var client = CreateClient(request => {
-            if (request.RequestUri!.AbsolutePath.EndsWith(
-                "/FeatureServer",
-                StringComparison.OrdinalIgnoreCase)) {
+            if (IsServiceMetadataRequest(request)) {
                 return CreateServiceMetadataResponse(supportsQueryDataElements: true);
             }
 
@@ -131,6 +266,18 @@ public sealed class FeatureServiceClientQueryDataElementsTests
             new FeatureServiceClientOptions {
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             });
+    }
+
+    private static bool IsServiceMetadataRequest(HttpRequestMessage request) {
+        return request.RequestUri?.AbsolutePath.EndsWith(
+            "/FeatureServer",
+            StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static bool IsQueryDataElementsRequest(HttpRequestMessage request) {
+        return request.RequestUri?.AbsolutePath.EndsWith(
+            "/FeatureServer/queryDataElements",
+            StringComparison.OrdinalIgnoreCase) == true;
     }
 
     private static HttpResponseMessage CreateServiceMetadataResponse(bool supportsQueryDataElements) {
