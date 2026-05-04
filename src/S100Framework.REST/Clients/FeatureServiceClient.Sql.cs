@@ -43,11 +43,21 @@ public sealed partial class FeatureServiceClient
 
         return new ValidateSqlResult(
             dto.IsValidSql.Value,
-            (dto.ValidationErrors ?? new List<EsriValidateSqlErrorDto>())
-                .Select(static error => new ValidateSqlValidationError(
-                    error.ErrorCode,
-                    error.Description))
-                .ToArray());
+            MapValidationErrors(dto.ValidationErrors));
+    }
+
+    private static IReadOnlyList<ValidateSqlValidationError> MapValidationErrors(
+        IEnumerable<EsriValidateSqlErrorDto?>? errors) {
+        if (errors is null) {
+            return Array.Empty<ValidateSqlValidationError>();
+        }
+
+        return errors
+            .Where(static error => error is not null)
+            .Select(static error => new ValidateSqlValidationError(
+                error!.ErrorCode,
+                error.Description))
+            .ToArray();
     }
 
     private static string MapValidateSqlType(ValidateSqlType value) {

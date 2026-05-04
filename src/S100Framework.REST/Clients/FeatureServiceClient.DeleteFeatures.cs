@@ -57,11 +57,9 @@ public sealed partial class FeatureServiceClient
     private static DeleteFeaturesResult MapDeleteFeaturesResult(
         EsriDeleteFeaturesResponseDto dto,
         Uri requestUri) {
-        var deleteResults = dto.DeleteResults?
-            .Select(MapEditResult)
-            .ToArray() ?? Array.Empty<EditResult>();
+        var deleteResults = MapEditResults(dto.DeleteResults);
 
-        if (!dto.Success.HasValue && deleteResults.Length == 0) {
+        if (!dto.Success.HasValue && deleteResults.Count == 0) {
             throw new FeatureServiceException(
                 "The server returned a deleteFeatures response without a success value or delete results.",
                 requestUri);

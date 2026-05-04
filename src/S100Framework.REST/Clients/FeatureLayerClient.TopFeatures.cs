@@ -22,8 +22,9 @@ public sealed partial class FeatureLayerClient
 
         var response = await _serviceClient.QueryTopFeaturesAsync(_layerId, query, cancellationToken);
 
-        return (response.Features ?? new List<EsriFeatureDto>())
-            .Select(feature => MapFeature(schema, feature))
+        return (response.Features ?? Enumerable.Empty<EsriFeatureDto>())
+            .Where(static feature => feature is not null)
+            .Select(feature => MapFeature(schema, feature!))
             .ToArray();
     }
 

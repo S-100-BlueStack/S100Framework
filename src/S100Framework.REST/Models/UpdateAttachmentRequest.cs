@@ -1,4 +1,6 @@
-﻿namespace S100Framework.REST.Models;
+﻿using System.Net.Http.Headers;
+
+namespace S100Framework.REST.Models;
 
 /// <summary>
 /// Defines a request to update an existing attachment on a feature.
@@ -70,6 +72,24 @@ public sealed class UpdateAttachmentRequest
 
         if (string.IsNullOrWhiteSpace(FileName)) {
             throw new InvalidOperationException("FileName must be provided.");
+        }
+
+        if (ContentType is not null) {
+            if (string.IsNullOrWhiteSpace(ContentType)) {
+                throw new InvalidOperationException("ContentType must not be empty when provided.");
+            }
+
+            if (!MediaTypeHeaderValue.TryParse(ContentType, out _)) {
+                throw new InvalidOperationException("ContentType must be a valid media type when provided.");
+            }
+        }
+
+        if (Keywords is not null && string.IsNullOrWhiteSpace(Keywords)) {
+            throw new InvalidOperationException("Keywords must not be empty when provided.");
+        }
+
+        if (GdbVersion is not null && string.IsNullOrWhiteSpace(GdbVersion)) {
+            throw new InvalidOperationException("GdbVersion must not be empty when provided.");
         }
     }
 }

@@ -6,7 +6,7 @@ namespace S100Framework.REST.Internal.Dto;
 internal sealed class EsriQueryDataElementsResponseDto
 {
     [JsonPropertyName("layerDataElements")]
-    public List<EsriLayerDataElementDto>? LayerDataElements { get; init; }
+    public List<EsriLayerDataElementDto?>? LayerDataElements { get; init; }
 }
 
 internal sealed class EsriLayerDataElementDto

@@ -31,8 +31,9 @@ public sealed partial class FeatureServiceClient
             cancellationToken);
 
         return new FeatureServiceRelationshipsResult(
-            (dto.Relationships ?? new List<EsriServiceRelationshipDto>())
-                .Select(MapServiceRelationship)
+            (dto.Relationships ?? Enumerable.Empty<EsriServiceRelationshipDto?>())
+                .Where(static relationship => relationship is not null)
+                .Select(static relationship => MapServiceRelationship(relationship!))
                 .ToArray());
     }
 
@@ -54,8 +55,9 @@ public sealed partial class FeatureServiceClient
             dto.Cardinality,
             dto.Attributed,
             dto.Composite,
-            (dto.Rules ?? new List<EsriServiceRelationshipRuleDto>())
-                .Select(MapServiceRelationshipRule)
+            (dto.Rules ?? Enumerable.Empty<EsriServiceRelationshipRuleDto?>())
+                .Where(static rule => rule is not null)
+                .Select(static rule => MapServiceRelationshipRule(rule!))
                 .ToArray());
     }
 

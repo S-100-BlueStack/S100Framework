@@ -1,4 +1,6 @@
-﻿namespace S100Framework.REST.Models;
+﻿using System.Net.Http.Headers;
+
+namespace S100Framework.REST.Models;
 
 /// <summary>
 /// Represents a file upload request for the feature service uploads endpoint.
@@ -41,8 +43,14 @@ public sealed record FeatureServiceUploadRequest
             throw new InvalidOperationException("FileName must be provided.");
         }
 
-        if (ContentType is not null && string.IsNullOrWhiteSpace(ContentType)) {
-            throw new InvalidOperationException("ContentType must not be empty when provided.");
+        if (ContentType is not null) {
+            if (string.IsNullOrWhiteSpace(ContentType)) {
+                throw new InvalidOperationException("ContentType must not be empty when provided.");
+            }
+
+            if (!MediaTypeHeaderValue.TryParse(ContentType, out _)) {
+                throw new InvalidOperationException("ContentType must be a valid media type when provided.");
+            }
         }
 
         if (Description is not null && string.IsNullOrWhiteSpace(Description)) {

@@ -40,31 +40,22 @@ public sealed partial class FeatureServiceClient
             UriUtility.AppendPath(_serviceUri, "queryDomains"),
             new Dictionary<string, string?> {
                 ["f"] = "json",
-                ["layers"] = JsonSerializer.Serialize(layerIds)
+                ["layers"] = JsonSerializer.Serialize(layerIds, JsonOptions)
             });
 
         var dto = await GetAsync<EsriQueryDomainsResponseDto>(uri, cancellationToken);
 
-        return (dto.Domains ?? new List<EsriDomainDto>())
-            .Select(MapDomain)
+        return (dto.Domains ?? Enumerable.Empty<EsriDomainDto?>())
+            .Where(static domain => domain is not null)
+            .Select(static domain => MapDomain(domain!))
             .ToArray();
     }
 
     private static FeatureServiceDomain MapDomain(EsriDomainDto dto) {
-        ArgumentNullException.ThrowIfNull(dto);
-
-        FeatureServiceDomainRange? range = null;
-
-        if (dto.Range.ValueKind == JsonValueKind.Array &&
-            dto.Range.GetArrayLength() >= 2) {
-            range = new FeatureServiceDomainRange(
-                ReadScalar(dto.Range[0]),
-                ReadScalar(dto.Range[1]));
-        }
-
-        var codedValues = (dto.CodedValues ?? new List<EsriCodedValueDto>())
+        var codedValues = (dto.CodedValues ?? Enumerable.Empty<EsriCodedValueDto?>())
+            .Where(static codedValue => codedValue is not null)
             .Select(static codedValue => new FeatureServiceCodedValue(
-                codedValue.Name ?? string.Empty,
+                codedValue!.Name ?? string.Empty,
                 ReadScalar(codedValue.Code)))
             .ToArray();
 
@@ -74,8 +65,18 @@ public sealed partial class FeatureServiceClient
             dto.FieldType,
             dto.MergePolicy,
             dto.SplitPolicy,
-            range,
+            MapDomainRange(dto.Range),
             codedValues);
+    }
+
+    private static FeatureServiceDomainRange? MapDomainRange(JsonElement range) {
+        if (range.ValueKind != JsonValueKind.Array || range.GetArrayLength() < 2) {
+            return null;
+        }
+
+        return new FeatureServiceDomainRange(
+            ReadScalar(range[0]),
+            ReadScalar(range[1]));
     }
 
     private static object? ReadScalar(JsonElement element) {
@@ -87,8 +88,8 @@ public sealed partial class FeatureServiceClient
             JsonValueKind.False => false,
             JsonValueKind.Number when element.TryGetInt64(out var int64Value) => int64Value,
             JsonValueKind.Number when element.TryGetDouble(out var doubleValue) => doubleValue,
-            JsonValueKind.Array => element.GetRawText(),
-            JsonValueKind.Object => element.GetRawText(),
+            JsonValueKind.Array => JsonSerializer.Serialize(element),
+            JsonValueKind.Object => JsonSerializer.Serialize(element),
             _ => element.GetRawText()
         };
     }

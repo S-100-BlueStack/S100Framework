@@ -72,6 +72,46 @@ public sealed partial class FeatureServiceClient
                     .ToArray() ?? Array.Empty<string>(),
                 dto.UniqueIdInfo.OidFieldContainsHashValue ?? false);
 
+        var capabilities = new FeatureLayerCapabilities(
+            dto.HasAttachments ?? false,
+            dto.SupportsQueryAttachments ?? false,
+            dto.SupportsAttachmentsResizing ?? false,
+            dto.SupportsTopFeaturesQuery ?? false,
+            supportsPagination,
+            dto.AdvancedQueryCapabilities?.SupportsPaginationOnAggregatedQueries ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsQueryRelatedPagination ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
+            dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsReturningGeometryEnvelope ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsFullTextSearch ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsPercentileStatistics ?? false,
+            dto.SupportsAppend ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsQueryDateBins ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsQueryAnalytic ?? false,
+            dto.AdvancedQueryAnalyticCapabilities?.SupportsAsync ?? false,
+            dto.SupportsCalculate ?? false,
+            dto.SupportsAsyncCalculate ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsReturningQueryExtent ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsReturningGeometryCentroid ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsDefaultSrid ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsOutFieldSqlExpression ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsSqlExpression ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsHavingClause ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsQueryWithDistance ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsQueryWithResultType ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsQueryWithHistoricMoment ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsQueryWithDatumTransformation ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsCoordinatesQuantization ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsCurrentUserQueries ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsQueryWithCacheHint ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsQueryAttachmentsCountOnly ?? false,
+            dto.AdvancedQueryCapabilities?.SupportsQueryAttachmentOrderByFields ?? false) {
+            SupportedSqlFormatsInCalculate = MapSupportedCalculateSqlFormats(dto.AdvancedEditingCapabilities),
+            SupportsValidateSql = dto.SupportsValidateSql ?? false
+        };
+
         return new FeatureLayerSchema(
             dto.Id,
             dto.Name ?? $"Layer {dto.Id}",
@@ -82,42 +122,7 @@ public sealed partial class FeatureServiceClient
             dto.MaxRecordCount,
             dto.ObjectIdField,
             dto.Fields?.Select(MapField).ToArray() ?? Array.Empty<FeatureField>(),
-                       new FeatureLayerCapabilities(
-                dto.HasAttachments ?? false,
-                dto.SupportsQueryAttachments ?? false,
-                dto.SupportsAttachmentsResizing ?? false,
-                dto.SupportsTopFeaturesQuery ?? false,
-                supportsPagination,
-                dto.AdvancedQueryCapabilities?.SupportsPaginationOnAggregatedQueries ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryRelatedPagination ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsAdvancedQueryRelated ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsOrderBy ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsDistinct ?? false,
-                dto.AdvancedEditingCapabilities?.SupportsAsyncApplyEdits ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsReturningGeometryEnvelope ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsFullTextSearch ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsPercentileStatistics ?? false,
-                dto.SupportsAppend ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryDateBins ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryAnalytic ?? false,
-                dto.AdvancedQueryAnalyticCapabilities?.SupportsAsync ?? false,
-                dto.SupportsCalculate ?? false,
-                dto.SupportsAsyncCalculate ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsReturningQueryExtent ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsReturningGeometryCentroid ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsDefaultSrid ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsOutFieldSqlExpression ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsSqlExpression ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsHavingClause ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryWithDistance ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryWithResultType ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryWithHistoricMoment ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryWithDatumTransformation ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsCoordinatesQuantization ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsCurrentUserQueries ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryWithCacheHint ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryAttachmentsCountOnly ?? false,
-                dto.AdvancedQueryCapabilities?.SupportsQueryAttachmentOrderByFields ?? false),
+            capabilities,
             dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
             UniqueIdInfo = uniqueIdInfo,
             SupportedAppendFormats = dto.SupportedAppendFormats?
@@ -128,6 +133,37 @@ public sealed partial class FeatureServiceClient
                 .ToArray() ?? Array.Empty<string>(),
             SupportedAppendCapabilities = dto.SupportedAppendCapabilities,
             HasContingentValuesDefinition = dto.HasContingentValuesDefinition ?? false
+        };
+    }
+
+    private static IReadOnlyList<FeatureQuerySqlFormat> MapSupportedCalculateSqlFormats(
+        EsriAdvancedEditingCapabilitiesDto? dto) {
+        if (dto is null) {
+            return Array.Empty<FeatureQuerySqlFormat>();
+        }
+
+        var values = Enumerable.Empty<string>();
+
+        if (dto.SupportedSqlFormatsInCalculate is not null) {
+            values = values.Concat(dto.SupportedSqlFormatsInCalculate);
+        }
+
+        if (dto.SupportedSqlFormatesInCalculate is not null) {
+            values = values.Concat(dto.SupportedSqlFormatesInCalculate);
+        }
+
+        return values
+            .Select(MapCalculateSqlFormat)
+            .Where(static value => value != FeatureQuerySqlFormat.None)
+            .Distinct()
+            .ToArray();
+    }
+
+    private static FeatureQuerySqlFormat MapCalculateSqlFormat(string? value) {
+        return value?.Trim().ToLowerInvariant() switch {
+            "standard" => FeatureQuerySqlFormat.Standard,
+            "native" => FeatureQuerySqlFormat.Native,
+            _ => FeatureQuerySqlFormat.None
         };
     }
 

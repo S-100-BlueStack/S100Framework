@@ -9,18 +9,14 @@ namespace S100Framework.REST.Tests.Clients;
 public sealed class FeatureLayerClientQueryBinsTests
 {
     [Fact]
-    public async Task QueryBinsAsync_SendsBinAndStatisticsParameters()
-    {
+    public async Task QueryBinsAsync_SendsBinAndStatisticsParameters() {
         var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<Uri>();
 
         var client = CreateClient(request => {
             requestUris.Add(request.RequestUri!);
 
-            if (request.RequestUri!.AbsolutePath.EndsWith(
-                "/FeatureServer/0/queryBins",
-                StringComparison.OrdinalIgnoreCase))
-            {
+            if (IsQueryBinsRequest(request)) {
                 return StubHttpMessageHandler.Json("""
                 {
                   "exceededTransferLimit": false,
@@ -45,8 +41,7 @@ public sealed class FeatureLayerClientQueryBinsTests
         var layerClient = client.GetLayerClient(0);
 
         var result = await layerClient.QueryBinsAsync(
-            new QueryBinsRequest
-            {
+            new QueryBinsRequest {
                 Where = "STATUS = 'Active'",
                 BinJson = """
                 {
@@ -91,15 +86,11 @@ public sealed class FeatureLayerClientQueryBinsTests
     }
 
     [Fact]
-    public async Task QueryBinsAsync_MapsStackedAttributes()
-    {
+    public async Task QueryBinsAsync_MapsStackedAttributes() {
         var cancellationToken = TestContext.Current.CancellationToken;
 
         var client = CreateClient(request => {
-            if (request.RequestUri!.AbsolutePath.EndsWith(
-                "/FeatureServer/0/queryBins",
-                StringComparison.OrdinalIgnoreCase))
-            {
+            if (IsQueryBinsRequest(request)) {
                 return StubHttpMessageHandler.Json("""
                 {
                   "stackFieldNames": [
@@ -135,8 +126,7 @@ public sealed class FeatureLayerClientQueryBinsTests
         var layerClient = client.GetLayerClient(0);
 
         var result = await layerClient.QueryBinsAsync(
-            new QueryBinsRequest
-            {
+            new QueryBinsRequest {
                 BinJson = """
                 {
                   "type": "autoIntervalBin",
@@ -164,8 +154,219 @@ public sealed class FeatureLayerClientQueryBinsTests
     }
 
     [Fact]
-    public async Task QueryBinsAsync_Throws_WhenBinJsonIsInvalid()
-    {
+    public async Task QueryBinsAsync_ReturnsEmptyRows_WhenFeaturesPropertyIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsQueryBinsRequest(request)) {
+                return StubHttpMessageHandler.Json("{}");
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).QueryBinsAsync(
+            new QueryBinsRequest {
+                BinJson = """
+                {
+                  "type": "autoIntervalBin",
+                  "onField": "DEPTH",
+                  "parameters": {
+                    "numberOfBins": 2
+                  }
+                }
+                """
+            },
+            cancellationToken);
+
+        Assert.Empty(result.Rows);
+        Assert.Empty(result.StackFieldNames);
+        Assert.Null(result.ExceededTransferLimit);
+    }
+
+    [Fact]
+    public async Task QueryBinsAsync_ReturnsEmptyRows_WhenFeaturesPropertyIsNull() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsQueryBinsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "features": null,
+                  "stackFieldNames": null
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).QueryBinsAsync(
+            new QueryBinsRequest {
+                BinJson = """
+                {
+                  "type": "autoIntervalBin",
+                  "onField": "DEPTH",
+                  "parameters": {
+                    "numberOfBins": 2
+                  }
+                }
+                """
+            },
+            cancellationToken);
+
+        Assert.Empty(result.Rows);
+        Assert.Empty(result.StackFieldNames);
+    }
+
+    [Fact]
+    public async Task QueryBinsAsync_IgnoresNullFeatureItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsQueryBinsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "features": [
+                    null,
+                    {
+                      "attributes": {
+                        "bin": 1,
+                        "frequency": 14
+                      }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).QueryBinsAsync(
+            new QueryBinsRequest {
+                BinJson = """
+                {
+                  "type": "autoIntervalBin",
+                  "onField": "DEPTH",
+                  "parameters": {
+                    "numberOfBins": 2
+                  }
+                }
+                """
+            },
+            cancellationToken);
+
+        var row = Assert.Single(result.Rows);
+
+        Assert.Equal(1L, row.Attributes["bin"]);
+        Assert.Equal(14L, row.Attributes["frequency"]);
+    }
+
+    [Fact]
+    public async Task QueryBinsAsync_FiltersBlankStackFieldNamesAndNullStackedAttributes() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsQueryBinsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "stackFieldNames": [
+                    null,
+                    "",
+                    "   ",
+                    "CATEGORY",
+                    "frequency"
+                  ],
+                  "features": [
+                    {
+                      "attributes": {
+                        "bin": 1
+                      },
+                      "stackedAttributes": [
+                        null,
+                        {
+                          "CATEGORY": "A",
+                          "frequency": 7
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).QueryBinsAsync(
+            new QueryBinsRequest {
+                BinJson = """
+                {
+                  "type": "autoIntervalBin",
+                  "onField": "DEPTH",
+                  "parameters": {
+                    "numberOfBins": 2
+                  },
+                  "stackBy": {
+                    "value": "CATEGORY",
+                    "type": "field"
+                  }
+                }
+                """
+            },
+            cancellationToken);
+
+        Assert.Equal(["CATEGORY", "frequency"], result.StackFieldNames);
+
+        var row = Assert.Single(result.Rows);
+        var stackedAttributes = Assert.Single(row.StackedAttributes);
+
+        Assert.Equal("A", stackedAttributes["CATEGORY"]);
+        Assert.Equal(7L, stackedAttributes["frequency"]);
+    }
+
+    [Fact]
+    public async Task QueryBinsAsync_ReturnsEmptyAttributes_WhenFeatureOmitsAttributes() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsQueryBinsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "features": [
+                    {
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).QueryBinsAsync(
+            new QueryBinsRequest {
+                BinJson = """
+                {
+                  "type": "autoIntervalBin",
+                  "onField": "DEPTH",
+                  "parameters": {
+                    "numberOfBins": 2
+                  }
+                }
+                """
+            },
+            cancellationToken);
+
+        var row = Assert.Single(result.Rows);
+
+        Assert.Empty(row.Attributes);
+        Assert.Empty(row.StackedAttributes);
+    }
+
+    [Fact]
+    public async Task QueryBinsAsync_Throws_WhenBinJsonIsInvalid() {
         var cancellationToken = TestContext.Current.CancellationToken;
 
         var client = CreateClient(_ =>
@@ -175,8 +376,7 @@ public sealed class FeatureLayerClientQueryBinsTests
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             layerClient.QueryBinsAsync(
-                new QueryBinsRequest
-                {
+                new QueryBinsRequest {
                     BinJson = "not-json"
                 },
                 cancellationToken));
@@ -184,18 +384,21 @@ public sealed class FeatureLayerClientQueryBinsTests
         Assert.Contains("BinJson", exception.Message, StringComparison.Ordinal);
     }
 
-    private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler)
-    {
+    private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
-            new FeatureServiceClientOptions
-            {
+            new FeatureServiceClientOptions {
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             });
     }
 
-    private static Dictionary<string, string> ParseQuery(Uri uri)
-    {
+    private static bool IsQueryBinsRequest(HttpRequestMessage request) {
+        return request.RequestUri?.AbsolutePath.EndsWith(
+            "/FeatureServer/0/queryBins",
+            StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static Dictionary<string, string> ParseQuery(Uri uri) {
         return uri.Query
             .TrimStart('?')
             .Split('&', StringSplitOptions.RemoveEmptyEntries)

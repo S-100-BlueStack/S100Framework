@@ -70,18 +70,37 @@ public sealed record TopFeaturesQuery
     /// Validates the query configuration.
     /// </summary>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when <see cref="TopFilter" /> is missing or when <see cref="ObjectIds" />
-    /// is provided as an empty collection.
+    /// Thrown when <see cref="TopFilter" /> is missing or when query options are configured incorrectly.
     /// </exception>
     public void Validate() {
-        TopFilter?.Validate();
-
         if (TopFilter is null) {
             throw new InvalidOperationException("TopFilter must be provided.");
         }
 
+        TopFilter.Validate();
+
+        if (Where is not null && string.IsNullOrWhiteSpace(Where)) {
+            return;
+        }
+
         if (ObjectIds is { Count: 0 }) {
             throw new InvalidOperationException("ObjectIds must not be empty when provided.");
+        }
+
+        if (OutFields?.Any(static field => string.IsNullOrWhiteSpace(field)) == true) {
+            throw new InvalidOperationException("OutFields must not contain null, empty, or whitespace-only values.");
+        }
+
+        if (OutSrid is <= 0) {
+            throw new InvalidOperationException("OutSrid must be greater than zero when provided.");
+        }
+
+        if (GeometryPrecision is < 0) {
+            throw new InvalidOperationException("GeometryPrecision must be greater than or equal to zero when provided.");
+        }
+
+        if (MaxAllowableOffset is < 0) {
+            throw new InvalidOperationException("MaxAllowableOffset must be greater than or equal to zero when provided.");
         }
     }
 }

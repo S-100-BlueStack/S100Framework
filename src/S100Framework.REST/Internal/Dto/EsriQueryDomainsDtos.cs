@@ -6,7 +6,7 @@ namespace S100Framework.REST.Internal.Dto;
 internal sealed class EsriQueryDomainsResponseDto
 {
     [JsonPropertyName("domains")]
-    public List<EsriDomainDto>? Domains { get; init; }
+    public List<EsriDomainDto?>? Domains { get; init; }
 }
 
 internal sealed class EsriDomainDto
@@ -30,7 +30,7 @@ internal sealed class EsriDomainDto
     public JsonElement Range { get; init; }
 
     [JsonPropertyName("codedValues")]
-    public List<EsriCodedValueDto>? CodedValues { get; init; }
+    public List<EsriCodedValueDto?>? CodedValues { get; init; }
 }
 
 internal sealed class EsriCodedValueDto

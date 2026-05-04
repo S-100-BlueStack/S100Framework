@@ -5,7 +5,7 @@ namespace S100Framework.REST.Internal.Dto;
 internal sealed class EsriServiceRelationshipsResponseDto
 {
     [JsonPropertyName("relationships")]
-    public List<EsriServiceRelationshipDto>? Relationships { get; init; }
+    public List<EsriServiceRelationshipDto?>? Relationships { get; init; }
 }
 
 internal sealed class EsriServiceRelationshipDto
@@ -47,7 +47,7 @@ internal sealed class EsriServiceRelationshipDto
     public string? DestinationForeignKey { get; init; }
 
     [JsonPropertyName("rules")]
-    public List<EsriServiceRelationshipRuleDto>? Rules { get; init; }
+    public List<EsriServiceRelationshipRuleDto?>? Rules { get; init; }
 
     [JsonPropertyName("cardinality")]
     public string? Cardinality { get; init; }

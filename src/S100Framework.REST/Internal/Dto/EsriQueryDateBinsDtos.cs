@@ -6,7 +6,7 @@ namespace S100Framework.REST.Internal.Dto;
 internal sealed class EsriQueryDateBinsResponseDto
 {
     [JsonPropertyName("features")]
-    public List<EsriQueryDateBinFeatureDto>? Features { get; init; }
+    public List<EsriQueryDateBinFeatureDto?>? Features { get; init; }
 
     [JsonPropertyName("exceededTransferLimit")]
     public bool? ExceededTransferLimit { get; init; }

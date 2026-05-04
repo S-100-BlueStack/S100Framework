@@ -63,4 +63,27 @@ public sealed record FeatureServiceCapabilities(
     bool SupportsQueryDomains = false,
     bool SupportsQueryDataElements = false,
     bool SupportsQueryContingentValues = false,
-    bool SupportsRelationshipsResource = false);
+    bool SupportsRelationshipsResource = false)
+{
+    /// <summary>
+    /// Gets the formats advertised for the <c>queryContingentValues</c> operation.
+    /// </summary>
+    /// <remarks>
+    /// ArcGIS services typically advertise values such as <c>JSON</c> and <c>PBF</c>.
+    /// An empty collection means the service did not advertise supported formats.
+    /// </remarks>
+    public IReadOnlyList<string> SupportedContingentValuesFormats { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Gets the contingent values JSON capability version advertised by the service.
+    /// </summary>
+    /// <remarks>
+    /// Hosted feature services advertise <c>2</c> when they support the newer contingent values JSON format.
+    /// </remarks>
+    public int? ContingentValuesJsonVersion { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the service advertises support for contingent values JSON.
+    /// </summary>
+    public bool SupportsContingentValuesJson => ContingentValuesJsonVersion.HasValue;
+}

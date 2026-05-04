@@ -31,7 +31,7 @@ public sealed partial class FeatureServiceClient
             cancellationToken);
 
         return new FeatureServiceQueryResult(
-            (dto.Layers ?? new List<EsriServiceQueryLayerDto>())
+            EnumerateServiceQueryLayers(dto.Layers)
                 .Select(MapServiceQueryLayer)
                 .ToArray());
     }
@@ -83,7 +83,7 @@ public sealed partial class FeatureServiceClient
             cancellationToken);
 
         return new FeatureServiceQueryCountResult(
-            (dto.Layers ?? new List<EsriServiceQueryLayerDto>())
+            EnumerateServiceQueryLayers(dto.Layers)
                 .Select(static layer => new FeatureServiceLayerCountResult(
                     layer.Id,
                     layer.Count ?? 0))
@@ -108,11 +108,11 @@ public sealed partial class FeatureServiceClient
             cancellationToken);
 
         return new FeatureServiceQueryObjectIdsResult(
-            (dto.Layers ?? new List<EsriServiceQueryLayerDto>())
+            EnumerateServiceQueryLayers(dto.Layers)
                 .Select(static layer => new FeatureServiceLayerObjectIdsResult(
                     layer.Id,
                     layer.ObjectIdFieldName,
-                    layer.ObjectIds?.ToArray() ?? Array.Empty<long>()))
+                    ReadServiceQueryObjectIds(layer.ObjectIds)))
                 .ToArray());
     }
 
@@ -134,7 +134,7 @@ public sealed partial class FeatureServiceClient
             cancellationToken);
 
         return new FeatureServiceQueryUniqueIdsResult(
-            (dto.Layers ?? new List<EsriServiceQueryLayerDto>())
+            EnumerateServiceQueryLayers(dto.Layers)
                 .Select(static layer => new FeatureServiceLayerUniqueIdsResult(
                     layer.Id,
                     ReadServiceQueryUniqueIdFieldNames(layer.UniqueIdFieldNames),
@@ -170,8 +170,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureQuery CreateLayerFeatureQuery(
-    FeatureServiceQueryRequest request,
-    FeatureServiceLayerQueryDefinition layerDefinition) {
+        FeatureServiceQueryRequest request,
+        FeatureServiceLayerQueryDefinition layerDefinition) {
         return new FeatureQuery {
             Where = string.IsNullOrWhiteSpace(layerDefinition.Where)
                 ? "1=1"
@@ -194,8 +194,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureQuery CreateLayerExtentQuery(
-    FeatureServiceQueryRequest request,
-    FeatureServiceLayerQueryDefinition layerDefinition) {
+        FeatureServiceQueryRequest request,
+        FeatureServiceLayerQueryDefinition layerDefinition) {
         return new FeatureQuery {
             Where = string.IsNullOrWhiteSpace(layerDefinition.Where)
                 ? "1=1"
@@ -315,12 +315,13 @@ public sealed partial class FeatureServiceClient
 
         return new FeatureServiceLayerQueryResult(
             dto.Id,
-            (dto.Features ?? new List<EsriFeatureDto>())
+            (dto.Features ?? Enumerable.Empty<EsriFeatureDto?>())
+                .Where(static feature => feature is not null)
                 .Select(feature => MapServiceQueryFeature(
                     dto.GeometryType,
                     srid,
                     dto.ObjectIdFieldName,
-                    feature))
+                    feature!))
                 .ToArray(),
             dto.ExceededTransferLimit);
     }
@@ -367,6 +368,21 @@ public sealed partial class FeatureServiceClient
         return _options.PreferLatestWkid
             ? spatialReference.LatestWkid ?? spatialReference.Wkid
             : spatialReference.Wkid ?? spatialReference.LatestWkid;
+    }
+
+    private static IEnumerable<EsriServiceQueryLayerDto> EnumerateServiceQueryLayers(
+        IEnumerable<EsriServiceQueryLayerDto?>? layers) {
+        return layers?
+            .Where(static layer => layer is not null)
+            .Select(static layer => layer!) ?? Enumerable.Empty<EsriServiceQueryLayerDto>();
+    }
+
+    private static IReadOnlyList<long> ReadServiceQueryObjectIds(
+        IEnumerable<long?>? objectIds) {
+        return objectIds?
+            .Where(static objectId => objectId.HasValue)
+            .Select(static objectId => objectId!.Value)
+            .ToArray() ?? Array.Empty<long>();
     }
 
     private static IReadOnlyList<string> ReadServiceQueryUniqueIdFieldNames(

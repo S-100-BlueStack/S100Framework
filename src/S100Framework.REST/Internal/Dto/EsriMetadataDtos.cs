@@ -134,6 +134,9 @@ internal sealed class EsriLayerMetadataDto
 
     [JsonPropertyName("supportsAsyncCalculate")]
     public bool? SupportsAsyncCalculate { get; init; }
+
+    [JsonPropertyName("supportsValidateSQL")]
+    public bool? SupportsValidateSql { get; init; }
 }
 
 internal sealed class EsriUniqueIdInfoDto
@@ -152,8 +155,13 @@ internal sealed class EsriAdvancedEditingCapabilitiesDto
 {
     [JsonPropertyName("supportsAsyncApplyEdits")]
     public bool? SupportsAsyncApplyEdits { get; init; }
-}
 
+    [JsonPropertyName("supportedSqlFormatsInCalculate")]
+    public List<string>? SupportedSqlFormatsInCalculate { get; init; }
+
+    [JsonPropertyName("supportedSqlFormatesInCalculate")]
+    public List<string>? SupportedSqlFormatesInCalculate { get; init; }
+}
 
 internal sealed class EsriAdvancedQueryCapabilitiesDto
 {

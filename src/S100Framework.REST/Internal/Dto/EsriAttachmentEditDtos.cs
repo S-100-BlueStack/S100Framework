@@ -5,7 +5,7 @@ namespace S100Framework.REST.Internal.Dto;
 internal sealed class EsriDeleteAttachmentsResponseDto
 {
     [JsonPropertyName("deleteAttachmentResults")]
-    public List<EsriAttachmentEditResultDto>? DeleteAttachmentResults { get; init; }
+    public List<EsriAttachmentEditResultDto?>? DeleteAttachmentResults { get; init; }
 
     [JsonPropertyName("editMoment")]
     public long? EditMoment { get; init; }
@@ -38,7 +38,7 @@ internal sealed class EsriAddAttachmentResponseDto
 internal sealed class EsriUpdateAttachmentResponseDto
 {
     [JsonPropertyName("updateAttachmentResults")]
-    public List<EsriAttachmentEditResultDto>? UpdateAttachmentResults { get; init; }
+    public List<EsriAttachmentEditResultDto?>? UpdateAttachmentResults { get; init; }
 
     [JsonPropertyName("editMoment")]
     public long? EditMoment { get; init; }

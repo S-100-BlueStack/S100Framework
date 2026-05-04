@@ -18,6 +18,8 @@ public sealed partial class FeatureLayerClient
         request.Validate();
 
         var schema = await GetSchemaAsync(cancellationToken);
+        EnsureQueryAnalyticSupported(schema);
+
         var response = await _serviceClient.QueryAnalyticAsync(_layerId, request, cancellationToken);
 
         return MapQueryAnalyticResult(schema, response);
@@ -32,6 +34,7 @@ public sealed partial class FeatureLayerClient
         request.Validate();
 
         var schema = await GetSchemaAsync(cancellationToken);
+        EnsureQueryAnalyticSupported(schema);
         EnsureAsyncQueryAnalyticSupported(schema);
 
         var submission = await _serviceClient.SubmitQueryAnalyticAsync(
@@ -139,13 +142,21 @@ public sealed partial class FeatureLayerClient
     }
 
     private QueryAnalyticResult MapQueryAnalyticResult(
-     FeatureLayerSchema schema,
-     EsriQueryResponseDto response) {
+        FeatureLayerSchema schema,
+        EsriQueryResponseDto response) {
         return new QueryAnalyticResult(
-            (response.Features ?? new List<EsriFeatureDto>())
-                .Select(feature => MapFeature(schema, feature))
+            (response.Features ?? Enumerable.Empty<EsriFeatureDto>())
+                .Where(static feature => feature is not null)
+                .Select(feature => MapFeature(schema, feature!))
                 .ToArray(),
             response.ExceededTransferLimit);
+    }
+
+    private static void EnsureQueryAnalyticSupported(FeatureLayerSchema schema) {
+        if (!schema.Capabilities.SupportsQueryAnalytic) {
+            throw new FeatureServiceCapabilityException(
+                $"Layer '{schema.Name}' ({schema.LayerId}) does not advertise queryAnalytic support.");
+        }
     }
 
     private static void EnsureAsyncQueryAnalyticSupported(FeatureLayerSchema schema) {

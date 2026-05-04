@@ -114,12 +114,20 @@ public sealed record QueryAnalyticRequest
             throw new InvalidOperationException("OrderBy must not be empty when provided.");
         }
 
+        if (ResultType.HasValue && !Enum.IsDefined(ResultType.Value)) {
+            throw new InvalidOperationException("ResultType must be a supported query result type.");
+        }
+
         if (ResultOffset is < 0) {
             throw new InvalidOperationException("ResultOffset must not be negative when provided.");
         }
 
         if (ResultRecordCount is <= 0) {
             throw new InvalidOperationException("ResultRecordCount must be greater than zero when provided.");
+        }
+
+        if (SqlFormat.HasValue && !Enum.IsDefined(SqlFormat.Value)) {
+            throw new InvalidOperationException("SqlFormat must be a supported SQL format.");
         }
     }
 

@@ -9,23 +9,18 @@ namespace S100Framework.REST.Tests.Clients;
 public sealed class FeatureServiceClientRelationshipsTests
 {
     [Fact]
-    public async Task GetRelationshipsAsync_GetsRelationshipsResourceAndMapsResult()
-    {
+    public async Task GetRelationshipsAsync_GetsRelationshipsResourceAndMapsResult() {
         var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<Uri>();
 
         var client = CreateClient(request => {
             requestUris.Add(request.RequestUri!);
 
-            if (IsServiceMetadataRequest(request))
-            {
+            if (IsServiceMetadataRequest(request)) {
                 return CreateServiceMetadataResponse(supportsRelationshipsResource: true);
             }
 
-            if (request.RequestUri!.AbsolutePath.EndsWith(
-                "/FeatureServer/relationships",
-                StringComparison.OrdinalIgnoreCase))
-            {
+            if (IsRelationshipsRequest(request)) {
                 Assert.Equal(HttpMethod.Get, request.Method);
 
                 return StubHttpMessageHandler.Json("""
@@ -107,20 +102,15 @@ public sealed class FeatureServiceClientRelationshipsTests
     }
 
     [Fact]
-    public async Task GetRelationshipsAsync_ReturnsEmptyList_WhenNoRelationshipsAreReturned()
-    {
+    public async Task GetRelationshipsAsync_ReturnsEmptyList_WhenNoRelationshipsAreReturned() {
         var cancellationToken = TestContext.Current.CancellationToken;
 
         var client = CreateClient(request => {
-            if (IsServiceMetadataRequest(request))
-            {
+            if (IsServiceMetadataRequest(request)) {
                 return CreateServiceMetadataResponse(supportsRelationshipsResource: true);
             }
 
-            if (request.RequestUri!.AbsolutePath.EndsWith(
-                "/FeatureServer/relationships",
-                StringComparison.OrdinalIgnoreCase))
-            {
+            if (IsRelationshipsRequest(request)) {
                 return StubHttpMessageHandler.Json("""
                 {
                   "relationships": []
@@ -137,13 +127,204 @@ public sealed class FeatureServiceClientRelationshipsTests
     }
 
     [Fact]
-    public async Task GetRelationshipsAsync_Throws_WhenServiceDoesNotAdvertiseSupport()
-    {
+    public async Task GetRelationshipsAsync_ReturnsEmptyList_WhenRelationshipsPropertyIsMissing() {
         var cancellationToken = TestContext.Current.CancellationToken;
 
         var client = CreateClient(request => {
-            if (IsServiceMetadataRequest(request))
-            {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsRelationshipsResource: true);
+            }
+
+            if (IsRelationshipsRequest(request)) {
+                return StubHttpMessageHandler.Json("{}");
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetRelationshipsAsync(cancellationToken);
+
+        Assert.Empty(result.Relationships);
+    }
+
+    [Fact]
+    public async Task GetRelationshipsAsync_ReturnsEmptyList_WhenRelationshipsPropertyIsNull() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsRelationshipsResource: true);
+            }
+
+            if (IsRelationshipsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "relationships": null
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetRelationshipsAsync(cancellationToken);
+
+        Assert.Empty(result.Relationships);
+    }
+
+    [Fact]
+    public async Task GetRelationshipsAsync_IgnoresNullRelationshipItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsRelationshipsResource: true);
+            }
+
+            if (IsRelationshipsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "relationships": [
+                    null,
+                    {
+                      "id": 7,
+                      "name": "county_division"
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetRelationshipsAsync(cancellationToken);
+
+        var relationship = Assert.Single(result.Relationships);
+
+        Assert.Equal(7, relationship.Id);
+        Assert.Equal("county_division", relationship.Name);
+        Assert.Empty(relationship.Rules);
+    }
+
+    [Fact]
+    public async Task GetRelationshipsAsync_ReturnsEmptyRules_WhenRulesPropertyIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsRelationshipsResource: true);
+            }
+
+            if (IsRelationshipsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "relationships": [
+                    {
+                      "id": 7,
+                      "name": "county_division"
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetRelationshipsAsync(cancellationToken);
+
+        var relationship = Assert.Single(result.Relationships);
+
+        Assert.Equal(7, relationship.Id);
+        Assert.Empty(relationship.Rules);
+    }
+
+    [Fact]
+    public async Task GetRelationshipsAsync_ReturnsEmptyRules_WhenRulesPropertyIsNull() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsRelationshipsResource: true);
+            }
+
+            if (IsRelationshipsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "relationships": [
+                    {
+                      "id": 7,
+                      "name": "county_division",
+                      "rules": null
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetRelationshipsAsync(cancellationToken);
+
+        var relationship = Assert.Single(result.Relationships);
+
+        Assert.Equal(7, relationship.Id);
+        Assert.Empty(relationship.Rules);
+    }
+
+    [Fact]
+    public async Task GetRelationshipsAsync_IgnoresNullRuleItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsRelationshipsResource: true);
+            }
+
+            if (IsRelationshipsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "relationships": [
+                    {
+                      "id": 7,
+                      "name": "county_division",
+                      "rules": [
+                        null,
+                        {
+                          "ruleID": 1,
+                          "originSubtypeCode": 10,
+                          "originMinimumCardinality": 0,
+                          "originMaximumCardinality": 2
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetRelationshipsAsync(cancellationToken);
+
+        var relationship = Assert.Single(result.Relationships);
+        var rule = Assert.Single(relationship.Rules);
+
+        Assert.Equal(1, rule.RuleId);
+        Assert.Equal(10, rule.OriginSubtypeCode);
+        Assert.Equal(0, rule.OriginMinimumCardinality);
+        Assert.Equal(2, rule.OriginMaximumCardinality);
+    }
+
+    [Fact]
+    public async Task GetRelationshipsAsync_Throws_WhenServiceDoesNotAdvertiseSupport() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
                 return CreateServiceMetadataResponse(supportsRelationshipsResource: false);
             }
 
@@ -157,13 +338,11 @@ public sealed class FeatureServiceClientRelationshipsTests
     }
 
     [Fact]
-    public async Task GetMetadataAsync_MapsRelationshipsResourceCapability()
-    {
+    public async Task GetMetadataAsync_MapsRelationshipsResourceCapability() {
         var cancellationToken = TestContext.Current.CancellationToken;
 
         var client = CreateClient(request => {
-            if (IsServiceMetadataRequest(request))
-            {
+            if (IsServiceMetadataRequest(request)) {
                 return CreateServiceMetadataResponse(supportsRelationshipsResource: true);
             }
 
@@ -175,25 +354,27 @@ public sealed class FeatureServiceClientRelationshipsTests
         Assert.True(metadata.Capabilities.SupportsRelationshipsResource);
     }
 
-    private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler)
-    {
+    private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
-            new FeatureServiceClientOptions
-            {
+            new FeatureServiceClientOptions {
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             });
     }
 
-    private static bool IsServiceMetadataRequest(HttpRequestMessage request)
-    {
+    private static bool IsServiceMetadataRequest(HttpRequestMessage request) {
         return request.RequestUri?.AbsolutePath.EndsWith(
             "/FeatureServer",
             StringComparison.OrdinalIgnoreCase) == true;
     }
 
-    private static HttpResponseMessage CreateServiceMetadataResponse(bool supportsRelationshipsResource)
-    {
+    private static bool IsRelationshipsRequest(HttpRequestMessage request) {
+        return request.RequestUri?.AbsolutePath.EndsWith(
+            "/FeatureServer/relationships",
+            StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static HttpResponseMessage CreateServiceMetadataResponse(bool supportsRelationshipsResource) {
         return StubHttpMessageHandler.Json($$"""
         {
           "layers": [
@@ -209,8 +390,7 @@ public sealed class FeatureServiceClientRelationshipsTests
         """);
     }
 
-    private static Dictionary<string, string> ParseQuery(Uri uri)
-    {
+    private static Dictionary<string, string> ParseQuery(Uri uri) {
         return uri.Query
             .TrimStart('?')
             .Split('&', StringSplitOptions.RemoveEmptyEntries)

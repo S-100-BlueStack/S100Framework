@@ -18,6 +18,7 @@ public sealed partial class FeatureLayerClient
 
         var schema = await GetSchemaAsync(cancellationToken);
         EnsureCalculateSupported(schema);
+        EnsureCalculateSqlFormatSupported(schema, request);
 
         return await _serviceClient.CalculateAsync(
             _layerId,
@@ -36,6 +37,7 @@ public sealed partial class FeatureLayerClient
         var schema = await GetSchemaAsync(cancellationToken);
         EnsureCalculateSupported(schema);
         EnsureAsyncCalculateSupported(schema);
+        EnsureCalculateSqlFormatSupported(schema, request);
 
         return await _serviceClient.SubmitCalculateAsync(
             _layerId,
@@ -132,6 +134,34 @@ public sealed partial class FeatureLayerClient
             throw new FeatureServiceCapabilityException(
                 $"Layer '{schema.Name}' ({schema.LayerId}) does not advertise asynchronous calculate support.");
         }
+    }
+
+    private static void EnsureCalculateSqlFormatSupported(
+        FeatureLayerSchema schema,
+        CalculateRequest request) {
+        if (request.SqlFormat is not { } sqlFormat || sqlFormat == FeatureQuerySqlFormat.None) {
+            return;
+        }
+
+        var supportedSqlFormats = schema.Capabilities.SupportedSqlFormatsInCalculate;
+
+        if (supportedSqlFormats.Count == 0 || supportedSqlFormats.Contains(sqlFormat)) {
+            return;
+        }
+
+        throw new FeatureServiceCapabilityException(
+            $"Layer '{schema.Name}' ({schema.LayerId}) does not advertise calculate SQL format " +
+            $"'{FormatCalculateSqlFormat(sqlFormat)}'. Supported formats: " +
+            $"{string.Join(", ", supportedSqlFormats.Select(FormatCalculateSqlFormat))}.");
+    }
+
+    private static string FormatCalculateSqlFormat(FeatureQuerySqlFormat value) {
+        return value switch {
+            FeatureQuerySqlFormat.Standard => "standard",
+            FeatureQuerySqlFormat.Native => "native",
+            FeatureQuerySqlFormat.None => "none",
+            _ => value.ToString()
+        };
     }
 
     private static CalculateWaitOptions GetValidatedCalculateWaitOptions(

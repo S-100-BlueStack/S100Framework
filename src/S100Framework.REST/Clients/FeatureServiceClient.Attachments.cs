@@ -127,9 +127,9 @@ public sealed partial class FeatureServiceClient
     }
 
     internal async Task<DeleteAttachmentsResult> DeleteAttachmentsAsync(
-        int layerId,
-        DeleteAttachmentsRequest request,
-        CancellationToken cancellationToken = default) {
+     int layerId,
+     DeleteAttachmentsRequest request,
+     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
         request.Validate();
@@ -153,7 +153,10 @@ public sealed partial class FeatureServiceClient
             cancellationToken);
 
         return new DeleteAttachmentsResult(
-            dto.DeleteAttachmentResults?.Select(MapAttachmentEditResult).ToArray() ?? Array.Empty<AttachmentEditResult>(),
+            (dto.DeleteAttachmentResults ?? Enumerable.Empty<EsriAttachmentEditResultDto?>())
+                .Where(static result => result is not null)
+                .Select(static result => MapAttachmentEditResult(result!))
+                .ToArray(),
             dto.EditMoment);
     }
 
@@ -237,9 +240,9 @@ public sealed partial class FeatureServiceClient
     }
 
     internal async Task<UpdateAttachmentResult> UpdateAttachmentAsync(
-        int layerId,
-        UpdateAttachmentRequest request,
-        CancellationToken cancellationToken = default) {
+      int layerId,
+      UpdateAttachmentRequest request,
+      CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
         request.Validate();
@@ -297,8 +300,13 @@ public sealed partial class FeatureServiceClient
             endpointUri,
             timeoutCts.Token);
 
-        var resultDto = dto.UpdateAttachmentResults?.SingleOrDefault()
-            ?? throw new FeatureServiceException(
+        var results = (dto.UpdateAttachmentResults ?? Enumerable.Empty<EsriAttachmentEditResultDto?>())
+            .Where(static result => result is not null)
+            .ToArray();
+
+        var resultDto = results.Length == 1
+            ? results[0]!
+            : throw new FeatureServiceException(
                 "The server did not return exactly one updateAttachmentResults entry.",
                 endpointUri);
 
