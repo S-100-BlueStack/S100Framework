@@ -5,7 +5,7 @@ namespace S100Framework.REST.Internal.Dto;
 internal sealed class EsriServiceEstimatesResponseDto
 {
     [JsonPropertyName("layerEstimates")]
-    public List<EsriLayerEstimateDto>? LayerEstimates { get; init; }
+    public List<EsriLayerEstimateDto?>? LayerEstimates { get; init; }
 }
 
 internal sealed class EsriLayerEstimateDto

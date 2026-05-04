@@ -69,8 +69,9 @@ public sealed partial class FeatureServiceClient
 
         var dto = await GetAsync<EsriServiceEstimatesResponseDto>(endpointUri, cancellationToken);
 
-        return (dto.LayerEstimates ?? new List<EsriLayerEstimateDto>())
-            .Select(estimate => MapServiceLayerEstimate(estimate, endpointUri))
+        return (dto.LayerEstimates ?? Enumerable.Empty<EsriLayerEstimateDto?>())
+            .Where(static estimate => estimate is not null)
+            .Select(estimate => MapServiceLayerEstimate(estimate!, endpointUri))
             .ToArray();
     }
 
