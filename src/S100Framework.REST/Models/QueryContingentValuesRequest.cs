@@ -27,20 +27,22 @@ public sealed record QueryContingentValuesRequest
     /// Validates the contingent values query request before it is sent.
     /// </summary>
     public void Validate() {
-        if (LayerIds is null) {
-            return;
+        if (LayerIds is not null) {
+            if (LayerIds.Count == 0) {
+                throw new InvalidOperationException("LayerIds must not be empty when provided.");
+            }
+
+            if (LayerIds.Any(static layerId => layerId < 0)) {
+                throw new InvalidOperationException("LayerIds must not contain negative values.");
+            }
+
+            if (LayerIds.Distinct().Count() != LayerIds.Count) {
+                throw new InvalidOperationException("LayerIds must not contain duplicate values.");
+            }
         }
 
-        if (LayerIds.Count == 0) {
-            throw new InvalidOperationException("LayerIds must not be empty when provided.");
-        }
-
-        if (LayerIds.Any(static layerId => layerId < 0)) {
-            throw new InvalidOperationException("LayerIds must not contain negative values.");
-        }
-
-        if (LayerIds.Distinct().Count() != LayerIds.Count) {
-            throw new InvalidOperationException("LayerIds must not contain duplicate values.");
+        if (DomainDictionaries.HasValue && !Enum.IsDefined(DomainDictionaries.Value)) {
+            throw new InvalidOperationException("DomainDictionaries must be a supported contingent values domain dictionary option.");
         }
     }
 }

@@ -20,14 +20,16 @@ public sealed partial class FeatureServiceClient
         var dto = await GetAsync<EsriServiceMetadataDto>(uri, cancellationToken);
 
         var serviceCapabilities = ParseServiceCapabilities(
-     dto.Capabilities,
-     dto.SyncEnabled,
-     dto.SupportsAppend,
-     dto.SupportsQueryDomains,
-     dto.SupportsQueryDataElements,
-     dto.SupportsQueryContingentValues,
-     dto.SupportsRelationshipsResource,
-     dto.AdvancedEditingCapabilities);
+            dto.Capabilities,
+            dto.SyncEnabled,
+            dto.SupportsAppend,
+            dto.SupportsQueryDomains,
+            dto.SupportsQueryDataElements,
+            dto.SupportsQueryContingentValues,
+            dto.SupportedContingentValuesFormats,
+            dto.SupportsContingentValuesJson,
+            dto.SupportsRelationshipsResource,
+            dto.AdvancedEditingCapabilities);
 
         var extractChangesCapabilities = dto.ExtractChangesCapabilities is null
             ? null
@@ -58,14 +60,16 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureServiceCapabilities ParseServiceCapabilities(
-     string? capabilities,
-     bool? syncEnabled,
-     bool? supportsAppend,
-     bool? supportsQueryDomains,
-     bool? supportsQueryDataElements,
-     bool? supportsQueryContingentValues,
-     bool? supportsRelationshipsResource,
-     EsriAdvancedEditingCapabilitiesDto? advancedEditingCapabilities) {
+        string? capabilities,
+        bool? syncEnabled,
+        bool? supportsAppend,
+        bool? supportsQueryDomains,
+        bool? supportsQueryDataElements,
+        bool? supportsQueryContingentValues,
+        string? supportedContingentValuesFormats,
+        int? supportsContingentValuesJson,
+        bool? supportsRelationshipsResource,
+        EsriAdvancedEditingCapabilitiesDto? advancedEditingCapabilities) {
         var values = (capabilities ?? string.Empty)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -85,8 +89,26 @@ public sealed partial class FeatureServiceClient
             SupportsQueryDomains: supportsQueryDomains ?? false,
             SupportsQueryDataElements: supportsQueryDataElements ?? false,
             SupportsQueryContingentValues: supportsQueryContingentValues ?? false,
-            SupportsRelationshipsResource: supportsRelationshipsResource ?? false);
+            SupportsRelationshipsResource: supportsRelationshipsResource ?? false) {
+            SupportedContingentValuesFormats = ParseDelimitedValues(supportedContingentValuesFormats),
+            ContingentValuesJsonVersion = supportsContingentValuesJson is > 0
+                ? supportsContingentValuesJson
+                : null
+        };
     }
+
+    private static IReadOnlyList<string> ParseDelimitedValues(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return Array.Empty<string>();
+        }
+
+        return value
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(static item => item.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     private static FeatureServiceDatasetInfo MapDataset(EsriDatasetDto dto) {
         return new FeatureServiceDatasetInfo(dto.Id, dto.Name ?? $"Dataset {dto.Id}");
     }
