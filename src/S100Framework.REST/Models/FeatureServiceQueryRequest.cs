@@ -140,5 +140,9 @@ public sealed record FeatureServiceQueryRequest
         if (GdbVersion is not null && string.IsNullOrWhiteSpace(GdbVersion)) {
             throw new InvalidOperationException("GdbVersion must not be empty when provided.");
         }
+
+        if (SqlFormat.HasValue && !Enum.IsDefined(SqlFormat.Value)) {
+            throw new InvalidOperationException("SqlFormat must be a supported SQL format.");
+        }
     }
 }

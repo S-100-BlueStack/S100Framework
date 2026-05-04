@@ -6,7 +6,7 @@ namespace S100Framework.REST.Internal.Dto;
 internal sealed class EsriServiceQueryResponseDto
 {
     [JsonPropertyName("layers")]
-    public List<EsriServiceQueryLayerDto>? Layers { get; init; }
+    public List<EsriServiceQueryLayerDto?>? Layers { get; init; }
 }
 
 internal sealed class EsriServiceQueryLayerDto
@@ -36,13 +36,13 @@ internal sealed class EsriServiceQueryLayerDto
     public List<EsriFieldDto>? Fields { get; init; }
 
     [JsonPropertyName("features")]
-    public List<EsriFeatureDto>? Features { get; init; }
+    public List<EsriFeatureDto?>? Features { get; init; }
 
     [JsonPropertyName("count")]
     public long? Count { get; init; }
 
     [JsonPropertyName("objectIds")]
-    public List<long>? ObjectIds { get; init; }
+    public List<long?>? ObjectIds { get; init; }
 
     [JsonPropertyName("uniqueIdFieldNames")]
     public JsonElement UniqueIdFieldNames { get; init; }
