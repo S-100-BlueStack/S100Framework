@@ -44,5 +44,17 @@ public sealed record DeleteAttachmentsRequest
         if (AttachmentIds.Count == 0) {
             throw new InvalidOperationException("At least one attachment ID must be provided.");
         }
+
+        if (AttachmentIds.Any(static attachmentId => attachmentId < 0)) {
+            throw new InvalidOperationException("AttachmentIds must not contain negative values.");
+        }
+
+        if (AttachmentIds.Distinct().Count() != AttachmentIds.Count) {
+            throw new InvalidOperationException("AttachmentIds must not contain duplicate values.");
+        }
+
+        if (GdbVersion is not null && string.IsNullOrWhiteSpace(GdbVersion)) {
+            throw new InvalidOperationException("GdbVersion must not be empty when provided.");
+        }
     }
 }
