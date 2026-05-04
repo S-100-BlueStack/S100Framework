@@ -108,7 +108,8 @@ public sealed partial class FeatureServiceClient
             dto.AdvancedQueryCapabilities?.SupportsQueryWithCacheHint ?? false,
             dto.AdvancedQueryCapabilities?.SupportsQueryAttachmentsCountOnly ?? false,
             dto.AdvancedQueryCapabilities?.SupportsQueryAttachmentOrderByFields ?? false) {
-            SupportedSqlFormatsInCalculate = MapSupportedCalculateSqlFormats(dto.AdvancedEditingCapabilities)
+            SupportedSqlFormatsInCalculate = MapSupportedCalculateSqlFormats(dto.AdvancedEditingCapabilities),
+            SupportsValidateSql = dto.SupportsValidateSql ?? false
         };
 
         return new FeatureLayerSchema(

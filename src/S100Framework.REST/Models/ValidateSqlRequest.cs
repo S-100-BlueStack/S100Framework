@@ -18,11 +18,13 @@ public sealed record ValidateSqlRequest
     /// <summary>
     /// Validates the SQL validation request before it is sent.
     /// </summary>
-    public void Validate()
-    {
-        if (string.IsNullOrWhiteSpace(Sql))
-        {
+    public void Validate() {
+        if (string.IsNullOrWhiteSpace(Sql)) {
             throw new InvalidOperationException("Sql must be provided.");
+        }
+
+        if (!Enum.IsDefined(SqlType)) {
+            throw new InvalidOperationException("SqlType must be a supported SQL validation type.");
         }
     }
 }

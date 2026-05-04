@@ -8,7 +8,7 @@ internal sealed class EsriValidateSqlResponseDto
     public bool? IsValidSql { get; init; }
 
     [JsonPropertyName("validationErrors")]
-    public List<EsriValidateSqlErrorDto>? ValidationErrors { get; init; }
+    public List<EsriValidateSqlErrorDto?>? ValidationErrors { get; init; }
 }
 
 internal sealed class EsriValidateSqlErrorDto

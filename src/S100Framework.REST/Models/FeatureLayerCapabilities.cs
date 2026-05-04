@@ -82,4 +82,9 @@ public sealed record FeatureLayerCapabilities(
     /// An empty collection means the layer did not advertise the value, so callers should rely on server-side validation.
     /// </remarks>
     public IReadOnlyList<FeatureQuerySqlFormat> SupportedSqlFormatsInCalculate { get; init; } = Array.Empty<FeatureQuerySqlFormat>();
+
+    /// <summary>
+    /// Gets a value indicating whether the layer advertises support for the <c>validateSQL</c> operation.
+    /// </summary>
+    public bool SupportsValidateSql { get; init; }
 }
