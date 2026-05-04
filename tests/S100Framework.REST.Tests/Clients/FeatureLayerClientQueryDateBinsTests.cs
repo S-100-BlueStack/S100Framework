@@ -16,9 +16,7 @@ public sealed class FeatureLayerClientQueryDateBinsTests
         var client = CreateClient(request => {
             requestUris.Add(request.RequestUri!);
 
-            if (request.RequestUri!.AbsolutePath.EndsWith(
-                "/FeatureServer/0/queryDateBins",
-                StringComparison.OrdinalIgnoreCase)) {
+            if (IsQueryDateBinsRequest(request)) {
                 return StubHttpMessageHandler.Json("""
                 {
                   "exceededTransferLimit": false,
@@ -106,9 +104,7 @@ public sealed class FeatureLayerClientQueryDateBinsTests
         var cancellationToken = TestContext.Current.CancellationToken;
 
         var client = CreateClient(request => {
-            if (request.RequestUri!.AbsolutePath.EndsWith(
-                "/FeatureServer/0/queryDateBins",
-                StringComparison.OrdinalIgnoreCase)) {
+            if (IsQueryDateBinsRequest(request)) {
                 return StubHttpMessageHandler.Json("""
                 {
                   "geometryType": "esriGeometryPoint",
@@ -159,6 +155,179 @@ public sealed class FeatureLayerClientQueryDateBinsTests
         Assert.NotNull(row.Centroid);
         Assert.Equal(12.5m, row.Centroid!["x"]);
         Assert.Equal(55.7m, row.Centroid["y"]);
+    }
+
+    [Fact]
+    public async Task QueryDateBinsAsync_ReturnsEmptyRows_WhenFeaturesPropertyIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsQueryDateBinsRequest(request)) {
+                return StubHttpMessageHandler.Json("{}");
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).QueryDateBinsAsync(
+            CreateMinimalRequest(),
+            cancellationToken);
+
+        Assert.Empty(result.Rows);
+        Assert.Null(result.ExceededTransferLimit);
+        Assert.Null(result.GeometryType);
+    }
+
+    [Fact]
+    public async Task QueryDateBinsAsync_ReturnsEmptyRows_WhenFeaturesPropertyIsNull() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsQueryDateBinsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "features": null
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).QueryDateBinsAsync(
+            CreateMinimalRequest(),
+            cancellationToken);
+
+        Assert.Empty(result.Rows);
+    }
+
+    [Fact]
+    public async Task QueryDateBinsAsync_IgnoresNullFeatureItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsQueryDateBinsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "features": [
+                    null,
+                    {
+                      "attributes": {
+                        "boundary": 1609459200000,
+                        "item_count": 79
+                      }
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).QueryDateBinsAsync(
+            CreateMinimalRequest(),
+            cancellationToken);
+
+        var row = Assert.Single(result.Rows);
+
+        Assert.Equal(1609459200000L, row.Attributes["boundary"]);
+        Assert.Equal(79L, row.Attributes["item_count"]);
+    }
+
+    [Fact]
+    public async Task QueryDateBinsAsync_ReturnsEmptyAttributes_WhenFeatureOmitsAttributes() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsQueryDateBinsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "features": [
+                    {
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).QueryDateBinsAsync(
+            CreateMinimalRequest(),
+            cancellationToken);
+
+        var row = Assert.Single(result.Rows);
+
+        Assert.Empty(row.Attributes);
+        Assert.Null(row.Centroid);
+    }
+
+    [Fact]
+    public async Task QueryDateBinsAsync_IgnoresNullCentroid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsQueryDateBinsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "features": [
+                    {
+                      "attributes": {
+                        "boundary": 1609459200000
+                      },
+                      "centroid": null
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).QueryDateBinsAsync(
+            CreateMinimalRequest(),
+            cancellationToken);
+
+        var row = Assert.Single(result.Rows);
+
+        Assert.Equal(1609459200000L, row.Attributes["boundary"]);
+        Assert.Null(row.Centroid);
+    }
+
+    [Fact]
+    public async Task QueryDateBinsAsync_IgnoresNonObjectCentroid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsQueryDateBinsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+                {
+                  "features": [
+                    {
+                      "attributes": {
+                        "boundary": 1609459200000
+                      },
+                      "centroid": "not-a-centroid-object"
+                    }
+                  ]
+                }
+                """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.GetLayerClient(0).QueryDateBinsAsync(
+            CreateMinimalRequest(),
+            cancellationToken);
+
+        var row = Assert.Single(result.Rows);
+
+        Assert.Equal(1609459200000L, row.Attributes["boundary"]);
+        Assert.Null(row.Centroid);
     }
 
     [Fact]
@@ -219,12 +388,37 @@ public sealed class FeatureLayerClientQueryDateBinsTests
         Assert.Contains("statistic", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    private static QueryDateBinsRequest CreateMinimalRequest() {
+        return new QueryDateBinsRequest {
+            BinField = "created_at",
+            BinJson = """
+            {
+              "calendarBin": {
+                "unit": "day"
+              }
+            }
+            """,
+            Statistics = [
+                new StatisticDefinition(
+                    OnStatisticField: "OBJECTID",
+                    OutStatisticFieldName: "item_count",
+                    StatisticType: StatisticType.Count)
+            ]
+        };
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
             new FeatureServiceClientOptions {
                 ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
             });
+    }
+
+    private static bool IsQueryDateBinsRequest(HttpRequestMessage request) {
+        return request.RequestUri?.AbsolutePath.EndsWith(
+            "/FeatureServer/0/queryDateBins",
+            StringComparison.OrdinalIgnoreCase) == true;
     }
 
     private static Dictionary<string, string> ParseQuery(Uri uri) {
