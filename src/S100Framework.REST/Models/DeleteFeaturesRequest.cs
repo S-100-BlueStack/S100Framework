@@ -115,6 +115,10 @@ public sealed record DeleteFeaturesRequest
             throw new InvalidOperationException("ObjectIds must contain only positive values.");
         }
 
+        if (ObjectIds is not null && ObjectIds.Distinct().Count() != ObjectIds.Count) {
+            throw new InvalidOperationException("ObjectIds must not contain duplicate values.");
+        }
+
         if (Where is not null && string.IsNullOrWhiteSpace(Where)) {
             throw new InvalidOperationException("Where must not be empty when provided.");
         }

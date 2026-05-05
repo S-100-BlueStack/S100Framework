@@ -57,8 +57,8 @@ public sealed record AddFeaturesRequest
     }
 
     private static void ValidateFeatures(
-        IReadOnlyList<EditableFeature>? features,
-        string propertyName) {
+     IReadOnlyList<EditableFeature>? features,
+     string propertyName) {
         if (features is null) {
             throw new InvalidOperationException($"{propertyName} must be provided.");
         }
@@ -67,8 +67,18 @@ public sealed record AddFeaturesRequest
             throw new InvalidOperationException($"{propertyName} must contain at least one feature.");
         }
 
-        if (features.Any(static feature => feature is null)) {
-            throw new InvalidOperationException($"{propertyName} must not contain null values.");
+        foreach (var feature in features) {
+            if (feature is null) {
+                throw new InvalidOperationException($"{propertyName} must not contain null values.");
+            }
+
+            if (feature.Attributes is null) {
+                throw new InvalidOperationException($"{propertyName}.Attributes must be provided.");
+            }
+
+            if (feature.Attributes.Keys.Any(static key => string.IsNullOrWhiteSpace(key))) {
+                throw new InvalidOperationException($"{propertyName}.Attributes must not contain empty attribute names.");
+            }
         }
     }
 }

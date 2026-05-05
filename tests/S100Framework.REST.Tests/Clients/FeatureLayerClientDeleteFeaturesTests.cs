@@ -331,6 +331,24 @@ public sealed class FeatureLayerClientDeleteFeaturesTests
         Assert.Contains("deleteFeatures", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task DeleteFeaturesAsync_Throws_WhenObjectIdsContainDuplicateValues() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).DeleteFeaturesAsync(
+                new DeleteFeaturesRequest {
+                    ObjectIds = [10, 10]
+                },
+                cancellationToken));
+
+        Assert.Contains("ObjectIds", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("duplicate", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

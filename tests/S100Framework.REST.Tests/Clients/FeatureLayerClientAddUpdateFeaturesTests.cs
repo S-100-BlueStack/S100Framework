@@ -530,6 +530,95 @@ public sealed class FeatureLayerClientAddUpdateFeaturesTests
         Assert.Contains("updateFeatures", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task AddFeaturesAsync_Throws_WhenFeatureAttributesAreNull() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).AddFeaturesAsync(
+                new AddFeaturesRequest {
+                    Features = [
+                        new EditableFeature(
+                        Geometry: null,
+                        Attributes: null!)
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("Features.Attributes", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AddFeaturesAsync_Throws_WhenFeatureAttributesContainBlankName() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).AddFeaturesAsync(
+                new AddFeaturesRequest {
+                    Features = [
+                        new EditableFeature(
+                        Geometry: null,
+                        new Dictionary<string, object?> {
+                            [" "] = "invalid"
+                        })
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("Features.Attributes", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UpdateFeaturesAsync_Throws_WhenFeatureAttributesAreNull() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).UpdateFeaturesAsync(
+                new UpdateFeaturesRequest {
+                    Features = [
+                        new EditableFeature(
+                        Geometry: null,
+                        Attributes: null!)
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("Features.Attributes", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UpdateFeaturesAsync_Throws_WhenFeatureAttributesContainBlankName() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).UpdateFeaturesAsync(
+                new UpdateFeaturesRequest {
+                    Features = [
+                        new EditableFeature(
+                        Geometry: null,
+                        new Dictionary<string, object?> {
+                            ["OBJECTID"] = 202,
+                            [" "] = "invalid"
+                        })
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("Features.Attributes", exception.Message, StringComparison.Ordinal);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
