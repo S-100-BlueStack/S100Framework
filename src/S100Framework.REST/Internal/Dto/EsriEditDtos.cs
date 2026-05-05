@@ -5,13 +5,13 @@ namespace S100Framework.REST.Internal.Dto;
 internal sealed class EsriApplyEditsResponseDto
 {
     [JsonPropertyName("addResults")]
-    public List<EsriEditResultDto>? AddResults { get; init; }
+    public List<EsriEditResultDto?>? AddResults { get; init; }
 
     [JsonPropertyName("updateResults")]
-    public List<EsriEditResultDto>? UpdateResults { get; init; }
+    public List<EsriEditResultDto?>? UpdateResults { get; init; }
 
     [JsonPropertyName("deleteResults")]
-    public List<EsriEditResultDto>? DeleteResults { get; init; }
+    public List<EsriEditResultDto?>? DeleteResults { get; init; }
 }
 
 internal sealed class EsriEditResultDto

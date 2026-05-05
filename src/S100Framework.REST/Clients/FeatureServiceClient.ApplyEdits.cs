@@ -248,11 +248,30 @@ public sealed partial class FeatureServiceClient
     }
 
     private static ApplyEditsResult MapApplyEditsResult(
-        EsriApplyEditsResponseDto dto) {
+     EsriApplyEditsResponseDto dto) {
         return new ApplyEditsResult(
-            dto.AddResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
-            dto.UpdateResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
-            dto.DeleteResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>());
+            MapApplyEditsResults(dto.AddResults),
+            MapApplyEditsResults(dto.UpdateResults),
+            MapApplyEditsResults(dto.DeleteResults));
+    }
+
+    private static IReadOnlyList<EditResult> MapApplyEditsResults(
+     IEnumerable<EsriEditResultDto?>? results) {
+        if (results is null) {
+            return Array.Empty<EditResult>();
+        }
+
+        var mappedResults = new List<EditResult>();
+
+        foreach (var result in results) {
+            if (result is null) {
+                continue;
+            }
+
+            mappedResults.Add(MapEditResult(result));
+        }
+
+        return mappedResults;
     }
 
     private static EditResult MapEditResult(EsriEditResultDto dto) {
@@ -442,12 +461,12 @@ public sealed partial class FeatureServiceClient
     }
 
     private static ServiceLayerEditResults MapServiceLayerEditResults(
-        EsriServiceLayerEditResultsDto dto) {
+    EsriServiceLayerEditResultsDto dto) {
         return new ServiceLayerEditResults(
             dto.Id,
-            dto.AddResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
-            dto.UpdateResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>(),
-            dto.DeleteResults?.Select(MapEditResult).ToArray() ?? Array.Empty<EditResult>());
+            MapApplyEditsResults(dto.AddResults),
+            MapApplyEditsResults(dto.UpdateResults),
+            MapApplyEditsResults(dto.DeleteResults));
     }
 
     /// <inheritdoc />
