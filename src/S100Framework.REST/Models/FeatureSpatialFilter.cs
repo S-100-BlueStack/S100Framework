@@ -82,7 +82,7 @@ public sealed class FeatureSpatialFilter
     /// Thrown when <paramref name="envelope" /> is <see langword="null" />.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the envelope is null or empty, or when the distance configuration is invalid.
+    /// Thrown when the envelope is null or empty, or when spatial options are invalid.
     /// </exception>
     public static FeatureSpatialFilter FromEnvelope(
         Envelope envelope,
@@ -96,7 +96,11 @@ public sealed class FeatureSpatialFilter
             throw new InvalidOperationException("Envelope must not be null or empty.");
         }
 
-        ValidateDistance(distance, distanceUnit);
+        ValidateOptions(
+            inSrid,
+            spatialRelationship,
+            distance,
+            distanceUnit);
 
         return new FeatureSpatialFilter(
             EsriQueryGeometryWriter.WriteEnvelope(envelope, inSrid),
@@ -132,7 +136,7 @@ public sealed class FeatureSpatialFilter
     /// Thrown when <paramref name="geometry" /> is <see langword="null" />.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the geometry is empty, or when the distance configuration is invalid.
+    /// Thrown when the geometry is empty, or when spatial options are invalid.
     /// </exception>
     /// <exception cref="NotSupportedException">
     /// Thrown when the geometry type cannot be serialized to an ArcGIS query geometry.
@@ -149,9 +153,14 @@ public sealed class FeatureSpatialFilter
             throw new InvalidOperationException("Geometry must not be empty.");
         }
 
-        ValidateDistance(distance, distanceUnit);
-
         var resolvedSrid = inSrid ?? (geometry.SRID > 0 ? geometry.SRID : null);
+
+        ValidateOptions(
+            resolvedSrid,
+            spatialRelationship,
+            distance,
+            distanceUnit);
+
         var geometryType = ResolveGeometryType(geometry);
 
         return new FeatureSpatialFilter(
@@ -163,11 +172,30 @@ public sealed class FeatureSpatialFilter
             distanceUnit);
     }
 
-    private static void ValidateDistance(
+    private static void ValidateOptions(
+        int? inSrid,
+        SpatialRelationship spatialRelationship,
         double? distance,
         FeatureSpatialDistanceUnit? distanceUnit) {
+        if (inSrid is <= 0) {
+            throw new InvalidOperationException("InSrid must be greater than zero when provided.");
+        }
+
+        if (!Enum.IsDefined(spatialRelationship)) {
+            throw new InvalidOperationException("SpatialRelationship must be a supported spatial relationship.");
+        }
+
+        if (distance.HasValue &&
+            (double.IsNaN(distance.Value) || double.IsInfinity(distance.Value))) {
+            throw new InvalidOperationException("Distance must be a finite value when provided.");
+        }
+
         if (distance is < 0) {
             throw new InvalidOperationException("Distance must be greater than or equal to zero when provided.");
+        }
+
+        if (distanceUnit.HasValue && !Enum.IsDefined(distanceUnit.Value)) {
+            throw new InvalidOperationException("DistanceUnit must be a supported spatial distance unit.");
         }
 
         if (distanceUnit.HasValue && !distance.HasValue) {

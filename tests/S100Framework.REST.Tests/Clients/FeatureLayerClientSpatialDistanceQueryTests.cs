@@ -214,6 +214,62 @@ public sealed class FeatureLayerClientSpatialDistanceQueryTests
         Assert.Contains("Distance", exception.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void FromGeometry_Throws_WhenDistanceIsNotFinite(double distance) {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            FeatureSpatialFilter.FromGeometry(
+                new Point(12.34, 56.78),
+                distance: distance));
+
+        Assert.Contains("Distance", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("finite", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void FromEnvelope_Throws_WhenInputSridIsNotPositive() {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            FeatureSpatialFilter.FromEnvelope(
+                new Envelope(10, 11, 55, 56),
+                inSrid: 0));
+
+        Assert.Contains("InSrid", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FromGeometry_Throws_WhenExplicitInputSridIsNotPositive() {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            FeatureSpatialFilter.FromGeometry(
+                new Point(12.34, 56.78),
+                inSrid: -1));
+
+        Assert.Contains("InSrid", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FromGeometry_Throws_WhenSpatialRelationshipIsInvalid() {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            FeatureSpatialFilter.FromGeometry(
+                new Point(12.34, 56.78),
+                spatialRelationship: (SpatialRelationship)999));
+
+        Assert.Contains("SpatialRelationship", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FromEnvelope_Throws_WhenDistanceUnitIsInvalid() {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            FeatureSpatialFilter.FromEnvelope(
+                new Envelope(10, 11, 55, 56),
+                inSrid: 4326,
+                distance: 10,
+                distanceUnit: (FeatureSpatialDistanceUnit)999));
+
+        Assert.Contains("DistanceUnit", exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void FromEnvelope_Throws_WhenDistanceUnitIsProvidedWithoutDistance() {
         var exception = Assert.Throws<InvalidOperationException>(() =>
