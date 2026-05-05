@@ -80,6 +80,10 @@ public sealed record FeatureServiceAppendItemRequest
             throw new InvalidOperationException("AppendItemId must be provided.");
         }
 
+        if (AppendUploadFormat.HasValue && !Enum.IsDefined(AppendUploadFormat.Value)) {
+            throw new InvalidOperationException("AppendUploadFormat must be a supported append source format.");
+        }
+
         if (GdbVersion is not null && string.IsNullOrWhiteSpace(GdbVersion)) {
             throw new InvalidOperationException("GdbVersion must not be empty when provided.");
         }

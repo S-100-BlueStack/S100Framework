@@ -28,5 +28,9 @@ public sealed record FeatureLayerAppendUploadRequest : FeatureLayerAppendRequest
         if (!AppendUploadFormat.HasValue) {
             throw new InvalidOperationException("AppendUploadFormat must be provided.");
         }
+
+        if (!Enum.IsDefined(AppendUploadFormat.Value)) {
+            throw new InvalidOperationException("AppendUploadFormat must be a supported append source format.");
+        }
     }
 }
