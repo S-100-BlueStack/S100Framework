@@ -288,6 +288,95 @@ public sealed class FeatureLayerClientFullTextQueryTests
         Assert.Contains("SqlExpression", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task QueryCountAsync_Throws_WhenFullTextContainsNullExpression() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var client = CreateClient(_ => throw new InvalidOperationException("HTTP should not be called."));
+        var layerClient = client.GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryCountAsync(
+                new FeatureQuery {
+                    FullText =
+                    [
+                        null!
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("FullText", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("null", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_Throws_WhenFullTextSearchTypeIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var client = CreateClient(_ => throw new InvalidOperationException("HTTP should not be called."));
+        var layerClient = client.GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryCountAsync(
+                new FeatureQuery {
+                    FullText =
+                    [
+                        new FeatureQueryFullTextExpression {
+                        OnFields = ["NAME"],
+                        SearchTerm = "broken pipe",
+                        SearchType = (FeatureQueryFullTextSearchType)999
+                    }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("SearchType", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_Throws_WhenFullTextOperatorIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var client = CreateClient(_ => throw new InvalidOperationException("HTTP should not be called."));
+        var layerClient = client.GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryCountAsync(
+                new FeatureQuery {
+                    FullText =
+                    [
+                        new FeatureQueryFullTextExpression {
+                        OnFields = ["NAME"],
+                        SearchTerm = "broken pipe",
+                        Operator = (FeatureQueryFullTextOperator)999
+                    }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("Operator", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_Throws_WhenFullTextSearchOperatorIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var client = CreateClient(_ => throw new InvalidOperationException("HTTP should not be called."));
+        var layerClient = client.GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryCountAsync(
+                new FeatureQuery {
+                    FullText =
+                    [
+                        new FeatureQueryFullTextExpression {
+                        OnFields = ["NAME"],
+                        SearchTerm = "broken pipe",
+                        SearchOperator = (FeatureQueryFullTextSearchOperator)999
+                    }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("SearchOperator", exception.Message, StringComparison.Ordinal);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

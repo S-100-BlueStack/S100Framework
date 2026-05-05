@@ -334,7 +334,7 @@ public sealed partial class FeatureServiceClient
                 value switch {
                     FeatureQueryFullTextSearchType.Simple => "simple",
                     FeatureQueryFullTextSearchType.Prefix => "prefix",
-                    _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+                    _ => throw new InvalidOperationException("FullText SearchType must be a supported full text search type.")
                 };
 
             static string MapOperator(FeatureQueryFullTextOperator value) =>
@@ -342,14 +342,14 @@ public sealed partial class FeatureServiceClient
                     FeatureQueryFullTextOperator.And => "and",
                     FeatureQueryFullTextOperator.Or => "or",
                     FeatureQueryFullTextOperator.Not => "not",
-                    _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+                    _ => throw new InvalidOperationException("FullText Operator must be a supported full text operator.")
                 };
 
             static string MapSearchOperator(FeatureQueryFullTextSearchOperator value) =>
                 value switch {
                     FeatureQueryFullTextSearchOperator.And => "and",
                     FeatureQueryFullTextSearchOperator.Or => "or",
-                    _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+                    _ => throw new InvalidOperationException("FullText SearchOperator must be a supported full text search operator.")
                 };
 
             ArgumentNullException.ThrowIfNull(expressions);
@@ -361,7 +361,9 @@ public sealed partial class FeatureServiceClient
             var payload = new List<Dictionary<string, object?>>(expressions.Count);
 
             foreach (var expression in expressions) {
-                ArgumentNullException.ThrowIfNull(expression);
+                if (expression is null) {
+                    throw new InvalidOperationException("FullText must not contain null expressions.");
+                }
 
                 var hasSqlExpression = !string.IsNullOrWhiteSpace(expression.SqlExpression);
                 var hasStructuredExpression =
