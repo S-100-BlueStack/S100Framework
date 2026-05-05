@@ -211,15 +211,23 @@ public sealed class PortalServerTokenExchangeProvider : IFeatureServiceAccessTok
             parts.Add(error.Message);
         }
 
-        if (error.Details is { Count: > 0 }) {
-            parts.Add(string.Join(
-                " | ",
-                error.Details.Where(static detail => !string.IsNullOrWhiteSpace(detail))));
+        var details = NormalizeErrorDetails(error.Details);
+
+        if (details.Count > 0) {
+            parts.Add(string.Join(" | ", details));
         }
 
         return parts.Count > 0
             ? $"The portal token exchange endpoint returned an authentication error. {string.Join(" - ", parts)}"
             : "The portal token exchange endpoint returned an authentication error.";
+    }
+
+    private static IReadOnlyList<string> NormalizeErrorDetails(
+    IEnumerable<string?>? details) {
+        return details?
+            .Where(static detail => !string.IsNullOrWhiteSpace(detail))
+            .Select(static detail => detail!)
+            .ToArray() ?? Array.Empty<string>();
     }
 
     private void ThrowIfDisposed() {
@@ -235,7 +243,7 @@ public sealed class PortalServerTokenExchangeProvider : IFeatureServiceAccessTok
         ExchangeTokenError? Error);
 
     private sealed record ExchangeTokenError(
-        int? Code,
-        string? Message,
-        IReadOnlyList<string>? Details);
+     int? Code,
+     string? Message,
+     IReadOnlyList<string?>? Details);
 }

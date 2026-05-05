@@ -235,15 +235,23 @@ public sealed class ArcGisServerGenerateTokenProvider : IFeatureServiceAccessTok
             parts.Add(error.Message);
         }
 
-        if (error.Details is { Count: > 0 }) {
-            parts.Add(string.Join(
-                " | ",
-                error.Details.Where(static detail => !string.IsNullOrWhiteSpace(detail))));
+        var details = NormalizeErrorDetails(error.Details);
+
+        if (details.Count > 0) {
+            parts.Add(string.Join(" | ", details));
         }
 
         return parts.Count > 0
             ? $"The token service returned an authentication error. {string.Join(" - ", parts)}"
             : "The token service returned an authentication error.";
+    }
+
+    private static IReadOnlyList<string> NormalizeErrorDetails(
+    IEnumerable<string?>? details) {
+        return details?
+            .Where(static detail => !string.IsNullOrWhiteSpace(detail))
+            .Select(static detail => detail!)
+            .ToArray() ?? Array.Empty<string>();
     }
 
     private void ThrowIfDisposed() {
@@ -258,7 +266,7 @@ public sealed class ArcGisServerGenerateTokenProvider : IFeatureServiceAccessTok
         GenerateTokenError? Error);
 
     private sealed record GenerateTokenError(
-        int? Code,
-        string? Message,
-        IReadOnlyList<string>? Details);
+    int? Code,
+    string? Message,
+    IReadOnlyList<string?>? Details);
 }

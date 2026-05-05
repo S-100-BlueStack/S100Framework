@@ -160,6 +160,75 @@ public sealed class PortalServerTokenExchangeProviderTests
     }
 
     [Fact]
+    public async Task GetAccessTokenAsync_FiltersBlankPortalErrorDetails() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        using var httpClient = new HttpClient(new StubHttpMessageHandler(_ =>
+            StubHttpMessageHandler.Json("""
+        {
+          "error": {
+            "code": 498,
+            "message": "Invalid portal token.",
+            "details": [
+              null,
+              "",
+              "   ",
+              "Token is expired."
+            ]
+          }
+        }
+        """)));
+
+        using var provider = new PortalServerTokenExchangeProvider(
+            httpClient,
+            new FakePortalAccessTokenProvider("bad-portal-token"),
+            new PortalServerTokenExchangeOptions {
+                GenerateTokenUri = new Uri("https://portal.example.com/portal/sharing/rest/generateToken"),
+                ServerUrl = new Uri("https://server.example.com/server")
+            });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceAuthenticationException>(() =>
+            provider.GetAccessTokenAsync(cancellationToken).AsTask());
+
+        Assert.Contains("Invalid portal token.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Token is expired.", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(" |  | ", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_UsesStableFallback_WhenPortalErrorPayloadHasOnlyBlankDetails() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        using var httpClient = new HttpClient(new StubHttpMessageHandler(_ =>
+            StubHttpMessageHandler.Json("""
+        {
+          "error": {
+            "details": [
+              null,
+              "",
+              "   "
+            ]
+          }
+        }
+        """)));
+
+        using var provider = new PortalServerTokenExchangeProvider(
+            httpClient,
+            new FakePortalAccessTokenProvider("bad-portal-token"),
+            new PortalServerTokenExchangeOptions {
+                GenerateTokenUri = new Uri("https://portal.example.com/portal/sharing/rest/generateToken"),
+                ServerUrl = new Uri("https://server.example.com/server")
+            });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceAuthenticationException>(() =>
+            provider.GetAccessTokenAsync(cancellationToken).AsTask());
+
+        Assert.Equal(
+            "The portal token exchange endpoint returned an authentication error.",
+            exception.Message);
+    }
+
+    [Fact]
     public async Task GetAccessTokenAsync_UsesLatestPortalToken_WhenRefreshing() {
         var cancellationToken = TestContext.Current.CancellationToken;
         var requestCount = 0;

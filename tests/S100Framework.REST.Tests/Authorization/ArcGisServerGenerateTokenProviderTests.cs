@@ -168,4 +168,77 @@ public sealed class ArcGisServerGenerateTokenProviderTests
 
         Assert.Contains("Invalid token or credentials", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_FiltersBlankErrorDetails() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        using var httpClient = new HttpClient(new StubHttpMessageHandler(_ =>
+            StubHttpMessageHandler.Json("""
+        {
+          "error": {
+            "code": 498,
+            "message": "Invalid credentials.",
+            "details": [
+              null,
+              "",
+              "   ",
+              "Password is invalid."
+            ]
+          }
+        }
+        """)));
+
+        using var provider = new ArcGisServerGenerateTokenProvider(
+            httpClient,
+            new ArcGisServerGenerateTokenOptions {
+                TokenUri = new Uri("https://example.test/arcgis/tokens/generateToken"),
+                Username = "testUser",
+                Password = "wrongPassword",
+                ClientType = ArcGisServerTokenClientType.RequestIp,
+                ExpirationMinutes = 60
+            });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceAuthenticationException>(() =>
+            provider.GetAccessTokenAsync(cancellationToken).AsTask());
+
+        Assert.Contains("Invalid credentials.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Password is invalid.", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(" |  | ", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_UsesStableFallback_WhenErrorPayloadHasOnlyBlankDetails() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        using var httpClient = new HttpClient(new StubHttpMessageHandler(_ =>
+            StubHttpMessageHandler.Json("""
+        {
+          "error": {
+            "details": [
+              null,
+              "",
+              "   "
+            ]
+          }
+        }
+        """)));
+
+        using var provider = new ArcGisServerGenerateTokenProvider(
+            httpClient,
+            new ArcGisServerGenerateTokenOptions {
+                TokenUri = new Uri("https://example.test/arcgis/tokens/generateToken"),
+                Username = "testUser",
+                Password = "wrongPassword",
+                ClientType = ArcGisServerTokenClientType.RequestIp,
+                ExpirationMinutes = 60
+            });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceAuthenticationException>(() =>
+            provider.GetAccessTokenAsync(cancellationToken).AsTask());
+
+        Assert.Equal(
+            "The token service returned an authentication error.",
+            exception.Message);
+    }
 }
