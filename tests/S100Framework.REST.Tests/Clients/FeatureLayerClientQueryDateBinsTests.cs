@@ -388,6 +388,65 @@ public sealed class FeatureLayerClientQueryDateBinsTests
         Assert.Contains("statistic", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task QueryDateBinsAsync_Throws_WhenBinOrderIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).QueryDateBinsAsync(
+                CreateMinimalRequest() with {
+                    BinOrder = (QueryBinsOrder)999
+                },
+                cancellationToken));
+
+        Assert.Contains("BinOrder", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryDateBinsAsync_Throws_WhenStatisticsContainNullValue() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).QueryDateBinsAsync(
+                CreateMinimalRequest() with {
+                    Statistics = [
+                        null!
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("Statistics", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("null", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryDateBinsAsync_Throws_WhenStatisticTypeIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).QueryDateBinsAsync(
+                CreateMinimalRequest() with {
+                    Statistics = [
+                        new StatisticDefinition(
+                        OnStatisticField: "OBJECTID",
+                        OutStatisticFieldName: "BROKEN_STAT",
+                        StatisticType: (StatisticType)999)
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("StatisticType", exception.Message, StringComparison.Ordinal);
+    }
+
     private static QueryDateBinsRequest CreateMinimalRequest() {
         return new QueryDateBinsRequest {
             BinField = "created_at",

@@ -384,6 +384,92 @@ public sealed class FeatureLayerClientQueryBinsTests
         Assert.Contains("BinJson", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task QueryBinsAsync_Throws_WhenBinOrderIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).QueryBinsAsync(
+                new QueryBinsRequest {
+                    BinJson = """
+                {
+                  "type": "autoIntervalBin",
+                  "onField": "DEPTH",
+                  "parameters": {
+                    "numberOfBins": 2
+                  }
+                }
+                """,
+                    BinOrder = (QueryBinsOrder)999
+                },
+                cancellationToken));
+
+        Assert.Contains("BinOrder", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryBinsAsync_Throws_WhenStatisticsContainNullValue() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).QueryBinsAsync(
+                new QueryBinsRequest {
+                    BinJson = """
+                {
+                  "type": "autoIntervalBin",
+                  "onField": "DEPTH",
+                  "parameters": {
+                    "numberOfBins": 2
+                  }
+                }
+                """,
+                    Statistics = [
+                        null!
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("Statistics", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("null", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryBinsAsync_Throws_WhenStatisticTypeIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).QueryBinsAsync(
+                new QueryBinsRequest {
+                    BinJson = """
+                {
+                  "type": "autoIntervalBin",
+                  "onField": "DEPTH",
+                  "parameters": {
+                    "numberOfBins": 2
+                  }
+                }
+                """,
+                    Statistics = [
+                        new StatisticDefinition(
+                        OnStatisticField: "DEPTH",
+                        OutStatisticFieldName: "BROKEN_STAT",
+                        StatisticType: (StatisticType)999)
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("StatisticType", exception.Message, StringComparison.Ordinal);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

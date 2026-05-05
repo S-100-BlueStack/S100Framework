@@ -101,6 +101,8 @@ public sealed record QueryDateBinsRequest
             throw new InvalidOperationException("Where must not be empty when provided.");
         }
 
+        QueryBinRequestValidation.ValidateBinOrder(BinOrder);
+
         if (TimeExtent is not null) {
             if (!TimeExtent.Start.HasValue && !TimeExtent.End.HasValue) {
                 throw new InvalidOperationException("TimeExtent must specify at least one bound.");

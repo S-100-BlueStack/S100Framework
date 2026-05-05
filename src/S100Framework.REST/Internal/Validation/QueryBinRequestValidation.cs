@@ -33,8 +33,14 @@ internal static class QueryBinRequestValidation
         }
     }
 
+    internal static void ValidateBinOrder(QueryBinsOrder? binOrder) {
+        if (binOrder.HasValue && !Enum.IsDefined(binOrder.Value)) {
+            throw new InvalidOperationException("BinOrder must be a supported bin order.");
+        }
+    }
+
     internal static void ValidateStatistics(
-        IReadOnlyList<StatisticDefinition>? statistics,
+        IReadOnlyList<StatisticDefinition?>? statistics,
         bool required) {
         if (statistics is null) {
             if (required) {
@@ -54,12 +60,20 @@ internal static class QueryBinRequestValidation
         var aliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var statistic in statistics) {
+            if (statistic is null) {
+                throw new InvalidOperationException("Statistics must not contain null values.");
+            }
+
             if (string.IsNullOrWhiteSpace(statistic.OnStatisticField)) {
                 throw new InvalidOperationException("StatisticDefinition.OnStatisticField must be provided.");
             }
 
             if (string.IsNullOrWhiteSpace(statistic.OutStatisticFieldName)) {
                 throw new InvalidOperationException("StatisticDefinition.OutStatisticFieldName must be provided.");
+            }
+
+            if (!Enum.IsDefined(statistic.StatisticType)) {
+                throw new InvalidOperationException("StatisticDefinition.StatisticType must be a supported statistic type.");
             }
 
             if (!aliases.Add(statistic.OutStatisticFieldName)) {

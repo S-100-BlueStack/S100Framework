@@ -101,6 +101,8 @@ public sealed record QueryBinsRequest
             throw new InvalidOperationException("Where must not be empty when provided.");
         }
 
+        QueryBinRequestValidation.ValidateBinOrder(BinOrder);
+
         if (DefaultSrid is <= 0) {
             throw new InvalidOperationException("DefaultSrid must be greater than zero when provided.");
         }
