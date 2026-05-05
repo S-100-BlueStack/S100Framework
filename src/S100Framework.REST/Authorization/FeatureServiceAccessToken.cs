@@ -50,6 +50,14 @@ public sealed record FeatureServiceAccessToken(
                 "RefreshBeforeExpiration must be greater than or equal to zero.");
         }
 
+        if (refreshBeforeExpiration == TimeSpan.Zero) {
+            return IsExpired(utcNow);
+        }
+
+        if (ExpiresAtUtc <= DateTimeOffset.MinValue + refreshBeforeExpiration) {
+            return true;
+        }
+
         return utcNow >= ExpiresAtUtc - refreshBeforeExpiration;
     }
 }
