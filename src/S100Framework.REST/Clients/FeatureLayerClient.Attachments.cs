@@ -26,13 +26,14 @@ public sealed partial class FeatureLayerClient
             returnCountOnly: false,
             cancellationToken);
 
-        return (response.AttachmentGroups ?? new List<EsriAttachmentGroupDto>())
+        return EnumerateAttachmentGroups(response.AttachmentGroups)
             .Select(group => new AttachmentGroup(
                 group.ParentObjectId,
                 group.ParentGlobalId,
-                (group.AttachmentInfos ?? new List<JsonElement>())
+                (group.AttachmentInfos ?? Enumerable.Empty<JsonElement?>())
+                    .Where(static info => info.HasValue && info.Value.ValueKind == JsonValueKind.Object)
                     .Select(info => MapAttachmentInfo(
-                        info,
+                        info!.Value,
                         group.ParentObjectId,
                         group.ParentGlobalId))
                     .ToArray()))
@@ -55,7 +56,7 @@ public sealed partial class FeatureLayerClient
             returnCountOnly: true,
             cancellationToken);
 
-        return (response.AttachmentGroups ?? new List<EsriAttachmentGroupDto>())
+        return EnumerateAttachmentGroups(response.AttachmentGroups)
             .Select(static group => new AttachmentCountGroup(
                 group.ParentObjectId,
                 group.ParentGlobalId,
@@ -127,6 +128,13 @@ public sealed partial class FeatureLayerClient
             _layerId,
             request,
             cancellationToken);
+    }
+
+    private static IEnumerable<EsriAttachmentGroupDto> EnumerateAttachmentGroups(
+    IEnumerable<EsriAttachmentGroupDto?>? groups) {
+        return groups?
+            .Where(static group => group is not null)
+            .Select(static group => group!) ?? Enumerable.Empty<EsriAttachmentGroupDto>();
     }
 
     private static void EnsureAttachmentReadSupported(FeatureLayerSchema schema) {

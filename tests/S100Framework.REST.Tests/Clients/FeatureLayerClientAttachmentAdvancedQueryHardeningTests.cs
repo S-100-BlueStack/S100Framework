@@ -362,6 +362,218 @@ public sealed class FeatureLayerClientAttachmentAdvancedQueryHardeningTests
         Assert.Contains("MaximumSizeBytes", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task QueryAttachmentsAsync_IgnoresNullAttachmentGroupAndAttachmentInfoItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(
+                    supportsCountOnly: false,
+                    supportsOrderByFields: false);
+            }
+
+            if (IsAttachmentQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "attachmentGroups": [
+                null,
+                {
+                  "parentObjectId": 100,
+                  "parentGlobalId": "{parent-global-id}",
+                  "attachmentInfos": [
+                    null,
+                    {
+                      "id": 1,
+                      "globalId": "{attachment-global-id}",
+                      "name": "photo.jpg",
+                      "contentType": "image/jpeg",
+                      "size": 1234
+                    }
+                  ]
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var groups = await client.GetLayerClient(0).QueryAttachmentsAsync(
+            new AttachmentQuery {
+                ObjectIds = [100]
+            },
+            cancellationToken);
+
+        var group = Assert.Single(groups);
+
+        Assert.Equal(100, group.SourceObjectId);
+        Assert.Equal("{parent-global-id}", group.SourceGlobalId);
+
+        var attachment = Assert.Single(group.Attachments);
+
+        Assert.Equal(1, attachment.AttachmentId);
+        Assert.Equal("{attachment-global-id}", attachment.GlobalId);
+        Assert.Equal("photo.jpg", attachment.Name);
+        Assert.Equal("image/jpeg", attachment.ContentType);
+        Assert.Equal(1234, attachment.Size);
+    }
+
+    [Fact]
+    public async Task QueryAttachmentsAsync_IgnoresNonObjectAttachmentInfoItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(
+                    supportsCountOnly: false,
+                    supportsOrderByFields: false);
+            }
+
+            if (IsAttachmentQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "attachmentGroups": [
+                {
+                  "parentObjectId": 100,
+                  "attachmentInfos": [
+                    "not-an-object",
+                    123,
+                    true,
+                    {
+                      "id": 2,
+                      "name": "report.pdf"
+                    }
+                  ]
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var groups = await client.GetLayerClient(0).QueryAttachmentsAsync(
+            new AttachmentQuery {
+                ObjectIds = [100]
+            },
+            cancellationToken);
+
+        var group = Assert.Single(groups);
+        var attachment = Assert.Single(group.Attachments);
+
+        Assert.Equal(2, attachment.AttachmentId);
+        Assert.Equal("report.pdf", attachment.Name);
+    }
+
+    [Fact]
+    public async Task QueryAttachmentCountsAsync_IgnoresNullAttachmentGroupItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(
+                    supportsCountOnly: true,
+                    supportsOrderByFields: false);
+            }
+
+            if (IsAttachmentQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "attachmentGroups": [
+                null,
+                {
+                  "parentObjectId": 100,
+                  "parentGlobalId": "{parent-global-id}",
+                  "count": 5
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var counts = await client.GetLayerClient(0).QueryAttachmentCountsAsync(
+            new AttachmentQuery {
+                ObjectIds = [100]
+            },
+            cancellationToken);
+
+        var count = Assert.Single(counts);
+
+        Assert.Equal(100, count.SourceObjectId);
+        Assert.Equal("{parent-global-id}", count.SourceGlobalId);
+        Assert.Equal(5, count.Count);
+    }
+
+    [Fact]
+    public void AttachmentQuery_Throws_WhenObjectIdsContainNegativeValues() {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new AttachmentQuery {
+                ObjectIds = [100, -1]
+            }.Validate());
+
+        Assert.Contains("ObjectIds", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AttachmentQuery_Throws_WhenObjectIdsContainDuplicateValues() {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new AttachmentQuery {
+                ObjectIds = [100, 100]
+            }.Validate());
+
+        Assert.Contains("ObjectIds", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("duplicate", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AttachmentQuery_Throws_WhenGlobalIdsContainDuplicateValues() {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new AttachmentQuery {
+                GlobalIds = ["{AAA}", "{aaa}"]
+            }.Validate());
+
+        Assert.Contains("GlobalIds", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("duplicate", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void AttachmentQuery_Throws_WhenAttachmentTypesContainEmptyValues(string attachmentType) {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new AttachmentQuery {
+                ObjectIds = [100],
+                AttachmentTypes = [attachmentType]
+            }.Validate());
+
+        Assert.Contains("AttachmentTypes", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void AttachmentQuery_Throws_WhenKeywordsContainEmptyValues(string keyword) {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new AttachmentQuery {
+                ObjectIds = [100],
+                Keywords = [keyword]
+            }.Validate());
+
+        Assert.Contains("Keywords", exception.Message, StringComparison.Ordinal);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

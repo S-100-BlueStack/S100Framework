@@ -114,7 +114,7 @@ internal sealed class EsriRelatedRecordGroupDto
 internal sealed class EsriAttachmentQueryResponseDto
 {
     [JsonPropertyName("attachmentGroups")]
-    public List<EsriAttachmentGroupDto>? AttachmentGroups { get; init; }
+    public List<EsriAttachmentGroupDto?>? AttachmentGroups { get; init; }
 }
 
 internal sealed class EsriAttachmentGroupDto
@@ -126,7 +126,7 @@ internal sealed class EsriAttachmentGroupDto
     public string? ParentGlobalId { get; init; }
 
     [JsonPropertyName("attachmentInfos")]
-    public List<JsonElement>? AttachmentInfos { get; init; }
+    public List<JsonElement?>? AttachmentInfos { get; init; }
 
     [JsonPropertyName("count")]
     public long? Count { get; init; }

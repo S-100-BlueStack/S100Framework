@@ -104,6 +104,14 @@ public sealed record AttachmentQuery
             throw new InvalidOperationException("ObjectIds must not be empty when provided.");
         }
 
+        if (ObjectIds?.Any(static objectId => objectId < 0) == true) {
+            throw new InvalidOperationException("ObjectIds must not contain negative values.");
+        }
+
+        if (ObjectIds is not null && ObjectIds.Distinct().Count() != ObjectIds.Count) {
+            throw new InvalidOperationException("ObjectIds must not contain duplicate values.");
+        }
+
         if (GlobalIds is { Count: 0 }) {
             throw new InvalidOperationException("GlobalIds must not be empty when provided.");
         }
@@ -112,8 +120,29 @@ public sealed record AttachmentQuery
             throw new InvalidOperationException("GlobalIds must not contain empty values.");
         }
 
+        if (GlobalIds is not null &&
+            GlobalIds.Distinct(StringComparer.OrdinalIgnoreCase).Count() != GlobalIds.Count) {
+            throw new InvalidOperationException("GlobalIds must not contain duplicate values.");
+        }
+
         if (DefinitionExpression is not null && string.IsNullOrWhiteSpace(DefinitionExpression)) {
             throw new InvalidOperationException("DefinitionExpression must not be empty when provided.");
+        }
+
+        if (AttachmentTypes is { Count: 0 }) {
+            throw new InvalidOperationException("AttachmentTypes must not be empty when provided.");
+        }
+
+        if (AttachmentTypes?.Any(string.IsNullOrWhiteSpace) == true) {
+            throw new InvalidOperationException("AttachmentTypes must not contain empty values.");
+        }
+
+        if (Keywords is { Count: 0 }) {
+            throw new InvalidOperationException("Keywords must not be empty when provided.");
+        }
+
+        if (Keywords?.Any(string.IsNullOrWhiteSpace) == true) {
+            throw new InvalidOperationException("Keywords must not contain empty values.");
         }
 
         if (ResultOffset is < 0) {
