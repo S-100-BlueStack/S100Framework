@@ -43,12 +43,23 @@ public sealed record FeatureServiceEdits
     /// contained layer edit blocks is invalid.
     /// </exception>
     public void Validate() {
-        if (Layers.Count == 0) {
+        if (Layers is not { Count: > 0 }) {
             throw new InvalidOperationException("At least one layer edit block must be provided.");
         }
 
+        var layerIds = new HashSet<int>();
+
         foreach (var layer in Layers) {
+            if (layer is null) {
+                throw new InvalidOperationException("Layers must not contain null values.");
+            }
+
             layer.Validate(UseGlobalIds);
+
+            if (!layerIds.Add(layer.LayerId)) {
+                throw new InvalidOperationException(
+                    $"Duplicate layer edit block for layer ID {layer.LayerId} is not allowed.");
+            }
         }
     }
 }
@@ -113,22 +124,19 @@ public sealed record ServiceLayerEdits
         var hasDeleteObjectIds = DeleteObjectIds is { Count: > 0 };
         var hasDeleteGlobalIds = DeleteGlobalIds is { Count: > 0 };
 
+        if (LayerId < 0) {
+            throw new InvalidOperationException("LayerId must be greater than or equal to zero.");
+        }
+
         if (!hasAdds && !hasUpdates && !hasDeleteObjectIds && !hasDeleteGlobalIds) {
             throw new InvalidOperationException(
                 $"Layer {LayerId} must contain at least one add, update, or delete operation.");
         }
 
-        if (LayerId < 0) {
-            throw new InvalidOperationException("LayerId must be greater than or equal to zero.");
-        }
-
-        if (DeleteObjectIds is { Count: 0 }) {
-            throw new InvalidOperationException("DeleteObjectIds must not be empty when provided.");
-        }
-
-        if (DeleteGlobalIds is { Count: 0 }) {
-            throw new InvalidOperationException("DeleteGlobalIds must not be empty when provided.");
-        }
+        ValidateEditableFeatures(Adds, nameof(Adds));
+        ValidateEditableFeatures(Updates, nameof(Updates));
+        ValidateDeleteObjectIds(DeleteObjectIds, nameof(DeleteObjectIds));
+        ValidateDeleteGlobalIds(DeleteGlobalIds, nameof(DeleteGlobalIds));
 
         if (hasDeleteObjectIds && hasDeleteGlobalIds) {
             throw new InvalidOperationException(
@@ -143,6 +151,72 @@ public sealed record ServiceLayerEdits
         if (!useGlobalIds && hasDeleteGlobalIds) {
             throw new InvalidOperationException(
                 "DeleteGlobalIds cannot be used when UseGlobalIds is disabled. Use DeleteObjectIds instead.");
+        }
+    }
+
+    private static void ValidateEditableFeatures(
+        IReadOnlyList<EditableFeature>? features,
+        string propertyName) {
+        if (features is null) {
+            return;
+        }
+
+        if (features.Count == 0) {
+            throw new InvalidOperationException($"{propertyName} must not be empty when provided.");
+        }
+
+        foreach (var feature in features) {
+            if (feature is null) {
+                throw new InvalidOperationException($"{propertyName} must not contain null values.");
+            }
+
+            if (feature.Attributes is null) {
+                throw new InvalidOperationException($"{propertyName}.Attributes must be provided.");
+            }
+
+            if (feature.Attributes.Keys.Any(static key => string.IsNullOrWhiteSpace(key))) {
+                throw new InvalidOperationException($"{propertyName}.Attributes must not contain empty attribute names.");
+            }
+        }
+    }
+
+    private static void ValidateDeleteObjectIds(
+        IReadOnlyList<long>? objectIds,
+        string propertyName) {
+        if (objectIds is null) {
+            return;
+        }
+
+        if (objectIds.Count == 0) {
+            throw new InvalidOperationException($"{propertyName} must not be empty when provided.");
+        }
+
+        if (objectIds.Any(static objectId => objectId <= 0)) {
+            throw new InvalidOperationException($"{propertyName} must contain only positive values.");
+        }
+
+        if (objectIds.Distinct().Count() != objectIds.Count) {
+            throw new InvalidOperationException($"{propertyName} must not contain duplicate values.");
+        }
+    }
+
+    private static void ValidateDeleteGlobalIds(
+        IReadOnlyList<string>? globalIds,
+        string propertyName) {
+        if (globalIds is null) {
+            return;
+        }
+
+        if (globalIds.Count == 0) {
+            throw new InvalidOperationException($"{propertyName} must not be empty when provided.");
+        }
+
+        if (globalIds.Any(string.IsNullOrWhiteSpace)) {
+            throw new InvalidOperationException($"{propertyName} must not contain empty values.");
+        }
+
+        if (globalIds.Distinct(StringComparer.OrdinalIgnoreCase).Count() != globalIds.Count) {
+            throw new InvalidOperationException($"{propertyName} must not contain duplicate values.");
         }
     }
 }

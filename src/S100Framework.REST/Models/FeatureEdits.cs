@@ -58,7 +58,7 @@ public sealed record FeatureEdits
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// Thrown when the request does not contain any edits, or when one of the provided
-    /// edit collections is empty.
+    /// edit collections is empty or contains invalid values.
     /// </exception>
     public void Validate() {
         var hasAdds = Adds is { Count: > 0 };
@@ -70,16 +70,54 @@ public sealed record FeatureEdits
                 "At least one of Adds, Updates, or Deletes must be provided.");
         }
 
-        if (Adds is { Count: 0 }) {
-            throw new InvalidOperationException("Adds must not be empty when provided.");
+        ValidateEditableFeatures(Adds, nameof(Adds));
+        ValidateEditableFeatures(Updates, nameof(Updates));
+        ValidateDeleteObjectIds(Deletes, nameof(Deletes));
+    }
+
+    private static void ValidateEditableFeatures(
+    IReadOnlyList<EditableFeature>? features,
+    string propertyName) {
+        if (features is null) {
+            return;
         }
 
-        if (Updates is { Count: 0 }) {
-            throw new InvalidOperationException("Updates must not be empty when provided.");
+        if (features.Count == 0) {
+            throw new InvalidOperationException($"{propertyName} must not be empty when provided.");
         }
 
-        if (Deletes is { Count: 0 }) {
-            throw new InvalidOperationException("Deletes must not be empty when provided.");
+        foreach (var feature in features) {
+            if (feature is null) {
+                throw new InvalidOperationException($"{propertyName} must not contain null values.");
+            }
+
+            if (feature.Attributes is null) {
+                throw new InvalidOperationException($"{propertyName}.Attributes must be provided.");
+            }
+
+            if (feature.Attributes.Keys.Any(static key => string.IsNullOrWhiteSpace(key))) {
+                throw new InvalidOperationException($"{propertyName}.Attributes must not contain empty attribute names.");
+            }
+        }
+    }
+
+    private static void ValidateDeleteObjectIds(
+        IReadOnlyList<long>? objectIds,
+        string propertyName) {
+        if (objectIds is null) {
+            return;
+        }
+
+        if (objectIds.Count == 0) {
+            throw new InvalidOperationException($"{propertyName} must not be empty when provided.");
+        }
+
+        if (objectIds.Any(static objectId => objectId <= 0)) {
+            throw new InvalidOperationException($"{propertyName} must contain only positive values.");
+        }
+
+        if (objectIds.Distinct().Count() != objectIds.Count) {
+            throw new InvalidOperationException($"{propertyName} must not contain duplicate values.");
         }
     }
 }
