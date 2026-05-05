@@ -33,7 +33,7 @@ internal sealed class EsriIdsResponseDto
     public string? ObjectIdFieldName { get; init; }
 
     [JsonPropertyName("objectIds")]
-    public List<long>? ObjectIds { get; init; }
+    public List<long?>? ObjectIds { get; init; }
 }
 
 internal sealed class EsriUniqueIdsResponseDto

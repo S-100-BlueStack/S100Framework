@@ -45,7 +45,11 @@ public sealed partial class FeatureLayerClient
         EnsureTopFeaturesQuerySupported(schema);
 
         var response = await _serviceClient.QueryTopFeatureIdsAsync(_layerId, query, cancellationToken);
-        return response.ObjectIds?.ToArray() ?? Array.Empty<long>();
+
+        return response.ObjectIds?
+            .Where(static objectId => objectId.HasValue)
+            .Select(static objectId => objectId!.Value)
+            .ToArray() ?? Array.Empty<long>();
     }
 
     /// <inheritdoc />

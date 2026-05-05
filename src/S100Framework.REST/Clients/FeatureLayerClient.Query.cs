@@ -82,7 +82,11 @@ public sealed partial class FeatureLayerClient
         ArgumentNullException.ThrowIfNull(query);
 
         var response = await _serviceClient.QueryIdsAsync(_layerId, query, cancellationToken);
-        return response.ObjectIds?.ToArray() ?? Array.Empty<long>();
+
+        return (response.ObjectIds ?? Enumerable.Empty<long?>())
+            .Where(static objectId => objectId.HasValue)
+            .Select(static objectId => objectId!.Value)
+            .ToArray();
     }
 
     /// <inheritdoc />
@@ -209,13 +213,13 @@ public sealed partial class FeatureLayerClient
                 uniqueIds: null,
                 cancellationToken: cancellationToken);
 
-            var features = response.Features ?? new List<EsriFeatureDto>();
+            var rawFeatures = response.Features ?? new List<EsriFeatureDto>();
 
-            if (features.Count == 0) {
+            if (rawFeatures.Count == 0) {
                 yield break;
             }
 
-            foreach (var feature in features) {
+            foreach (var feature in EnumerateQueryFeatures(rawFeatures)) {
                 yield return MapFeature(schema, feature);
 
                 yielded++;
@@ -225,9 +229,10 @@ public sealed partial class FeatureLayerClient
                 }
             }
 
-            offset += features.Count;
+            // Advance by the server-returned array length so malformed null entries cannot cause repeated pages.
+            offset += rawFeatures.Count;
 
-            if (features.Count < requestSize && response.ExceededTransferLimit != true) {
+            if (rawFeatures.Count < requestSize && response.ExceededTransferLimit != true) {
                 yield break;
             }
         }
@@ -275,9 +280,7 @@ public sealed partial class FeatureLayerClient
                 uniqueIds: null,
                 cancellationToken: cancellationToken);
 
-            var features = response.Features ?? new List<EsriFeatureDto>();
-
-            foreach (var feature in features) {
+            foreach (var feature in EnumerateQueryFeatures(response.Features)) {
                 yield return MapFeature(schema, feature);
 
                 yielded++;
@@ -328,9 +331,7 @@ public sealed partial class FeatureLayerClient
                 uniqueIds: batch,
                 cancellationToken);
 
-            var features = response.Features ?? new List<EsriFeatureDto>();
-
-            foreach (var feature in features) {
+            foreach (var feature in EnumerateQueryFeatures(response.Features)) {
                 yield return MapFeature(schema, feature);
 
                 yielded++;
@@ -339,6 +340,21 @@ public sealed partial class FeatureLayerClient
                     yield break;
                 }
             }
+        }
+    }
+
+    private static IEnumerable<EsriFeatureDto> EnumerateQueryFeatures(
+        IEnumerable<EsriFeatureDto>? features) {
+        if (features is null) {
+            yield break;
+        }
+
+        foreach (var feature in features) {
+            if (feature is null) {
+                continue;
+            }
+
+            yield return feature;
         }
     }
 

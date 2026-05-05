@@ -221,6 +221,18 @@ public sealed partial class FeatureServiceClient
         ValidateJsonObject(query.DatumTransformationJson, nameof(query.DatumTransformationJson));
         ValidateJsonObject(query.QuantizationParametersJson, nameof(query.QuantizationParametersJson));
 
+        if (query.ResultType.HasValue && !Enum.IsDefined(query.ResultType.Value)) {
+            throw new InvalidOperationException("ResultType must be a supported query result type.");
+        }
+
+        if (query.MultipatchOption.HasValue && !Enum.IsDefined(query.MultipatchOption.Value)) {
+            throw new InvalidOperationException("MultipatchOption must be a supported multipatch option.");
+        }
+
+        if (query.SqlFormat.HasValue && !Enum.IsDefined(query.SqlFormat.Value)) {
+            throw new InvalidOperationException("SqlFormat must be a supported SQL format.");
+        }
+
         if (query.MultipatchOption.HasValue && !query.ReturnGeometry) {
             throw new InvalidOperationException("MultipatchOption requires ReturnGeometry to be true.");
         }
