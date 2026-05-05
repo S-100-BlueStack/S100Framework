@@ -64,19 +64,27 @@ public sealed record FeatureStatisticsQuery
     /// Thrown when the query does not contain at least one valid statistic definition.
     /// </exception>
     public void Validate() {
-        if (Statistics.Count == 0) {
+        if (Statistics is not { Count: > 0 }) {
             throw new InvalidOperationException("At least one statistic definition must be provided.");
         }
 
         var statisticAliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var statistic in Statistics) {
+            if (statistic is null) {
+                throw new InvalidOperationException("Statistics must not contain null values.");
+            }
+
             if (string.IsNullOrWhiteSpace(statistic.OnStatisticField)) {
                 throw new InvalidOperationException("StatisticDefinition.OnStatisticField must be provided.");
             }
 
             if (string.IsNullOrWhiteSpace(statistic.OutStatisticFieldName)) {
                 throw new InvalidOperationException("StatisticDefinition.OutStatisticFieldName must be provided.");
+            }
+
+            if (!Enum.IsDefined(statistic.StatisticType)) {
+                throw new InvalidOperationException("StatisticDefinition.StatisticType must be a supported statistic type.");
             }
 
             // Statistics are returned as keyed attributes. Duplicate aliases would silently overwrite values.

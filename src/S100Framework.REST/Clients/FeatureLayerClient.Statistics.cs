@@ -45,8 +45,9 @@ public sealed partial class FeatureLayerClient
 
         var response = await _serviceClient.QueryStatisticsAsync(_layerId, query, cancellationToken);
 
-        return (response.Features ?? new List<EsriFeatureDto>())
-            .Select(feature => new StatisticRow(ReadAttributes(feature.Attributes)))
+        return (response.Features ?? Enumerable.Empty<EsriFeatureDto>())
+            .Where(static feature => feature is not null)
+            .Select(static feature => new StatisticRow(ReadAttributes(feature!.Attributes)))
             .ToArray();
     }
 }
