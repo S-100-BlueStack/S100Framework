@@ -96,8 +96,17 @@ public sealed class FeatureServiceClientOptions
             throw new InvalidOperationException("RequestTimeout must be greater than zero.");
         }
 
+        if (!Enum.IsDefined(TrueCurveHandling)) {
+            throw new InvalidOperationException("TrueCurveHandling must be a supported true-curve handling option.");
+        }
+
         if (CircularArcSegmentCount < 2) {
             throw new InvalidOperationException("CircularArcSegmentCount must be greater than or equal to 2.");
+        }
+
+        if (!Enum.IsDefined(QueryRequestMethodPreference)) {
+            throw new InvalidOperationException(
+                "QueryRequestMethodPreference must be a supported query request method preference.");
         }
 
         if (AutoPostQueryLengthThreshold <= 0) {
