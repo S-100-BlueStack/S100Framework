@@ -147,6 +147,139 @@ public sealed class FeatureLayerClientAppendTests
         Assert.Contains("upsert", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task SubmitAppendAsync_Throws_WhenUpsertMatchingFieldIsProvidedWithoutUpsert() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).SubmitAppendAsync(
+                new FeatureLayerAppendUploadRequest {
+                    AppendUploadId = "0c6b928f590f49ebac04761bab413e49",
+                    AppendUploadFormat = FeatureServiceAppendSourceFormat.FileGeodatabase,
+                    UpsertMatchingField = "GLOBALID"
+                },
+                cancellationToken));
+
+        Assert.Contains("UpsertMatchingField", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Upsert", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SubmitAppendAsync_Throws_WhenAppendFieldsContainDuplicateValues() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).SubmitAppendAsync(
+                new FeatureLayerAppendUploadRequest {
+                    AppendUploadId = "0c6b928f590f49ebac04761bab413e49",
+                    AppendUploadFormat = FeatureServiceAppendSourceFormat.FileGeodatabase,
+                    AppendFields = ["NAME", "name"]
+                },
+                cancellationToken));
+
+        Assert.Contains("AppendFields", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("duplicate", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SubmitAppendAsync_Throws_WhenFieldMappingsContainDuplicateDestinationNames() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).SubmitAppendAsync(
+                new FeatureLayerAppendUploadRequest {
+                    AppendUploadId = "0c6b928f590f49ebac04761bab413e49",
+                    AppendUploadFormat = FeatureServiceAppendSourceFormat.FileGeodatabase,
+                    FieldMappings = [
+                        new FeatureServiceAppendFieldMapping {
+                        Name = "NAME",
+                        Source = "SOURCE_NAME"
+                    },
+                    new FeatureServiceAppendFieldMapping {
+                        Name = "name",
+                        Source = "SOURCE_NAME_2"
+                    }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("FieldMappings", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("duplicate", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SubmitAppendAsync_Throws_WhenLayerMappingsContainDuplicateDestinationLayerIds() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).SubmitAppendAsync(
+                new FeatureLayerAppendUploadRequest {
+                    AppendUploadId = "0c6b928f590f49ebac04761bab413e49",
+                    AppendUploadFormat = FeatureServiceAppendSourceFormat.FileGeodatabase,
+                    LayerMappings = [
+                        new FeatureServiceAppendLayerMapping {
+                        Id = 0,
+                        SourceId = 10
+                    },
+                    new FeatureServiceAppendLayerMapping {
+                        Id = 0,
+                        SourceId = 11
+                    }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("LayerMappings", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("duplicate", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SubmitAppendAsync_Throws_WhenLayerMappingFieldMappingsContainDuplicateDestinationNames() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).SubmitAppendAsync(
+                new FeatureLayerAppendUploadRequest {
+                    AppendUploadId = "0c6b928f590f49ebac04761bab413e49",
+                    AppendUploadFormat = FeatureServiceAppendSourceFormat.FileGeodatabase,
+                    LayerMappings = [
+                        new FeatureServiceAppendLayerMapping {
+                        Id = 0,
+                        SourceId = 10,
+                        FieldMappings = [
+                            new FeatureServiceAppendFieldMapping {
+                                Name = "NAME",
+                                Source = "SOURCE_NAME"
+                            },
+                            new FeatureServiceAppendFieldMapping {
+                                Name = "name",
+                                Source = "SOURCE_NAME_2"
+                            }
+                        ]
+                    }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("FieldMappings", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("duplicate", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

@@ -126,6 +126,14 @@ public abstract record FeatureLayerAppendRequestBase
             throw new InvalidOperationException("UpdateGeometry can only be used when Upsert is true.");
         }
 
+        if (UpsertMatchingField is not null && string.IsNullOrWhiteSpace(UpsertMatchingField)) {
+            throw new InvalidOperationException("UpsertMatchingField must not be empty when provided.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(UpsertMatchingField) && !Upsert) {
+            throw new InvalidOperationException("UpsertMatchingField can only be used when Upsert is true.");
+        }
+
         if (AppendFields is { Count: 0 }) {
             throw new InvalidOperationException("AppendFields must not be empty when provided.");
         }
@@ -134,8 +142,9 @@ public abstract record FeatureLayerAppendRequestBase
             throw new InvalidOperationException("AppendFields must not contain empty field names.");
         }
 
-        if (UpsertMatchingField is not null && string.IsNullOrWhiteSpace(UpsertMatchingField)) {
-            throw new InvalidOperationException("UpsertMatchingField must not be empty when provided.");
+        if (AppendFields is not null &&
+            AppendFields.Distinct(StringComparer.OrdinalIgnoreCase).Count() != AppendFields.Count) {
+            throw new InvalidOperationException("AppendFields must not contain duplicate field names.");
         }
 
         if (GdbVersion is not null && string.IsNullOrWhiteSpace(GdbVersion)) {
@@ -165,6 +174,12 @@ public abstract record FeatureLayerAppendRequestBase
             if (string.IsNullOrWhiteSpace(fieldMapping.Source)) {
                 throw new InvalidOperationException("FieldMappings.Source must not be empty.");
             }
+        }
+
+        if (fieldMappings
+            .GroupBy(static mapping => mapping.Name, StringComparer.OrdinalIgnoreCase)
+            .Any(static group => group.Count() > 1)) {
+            throw new InvalidOperationException("FieldMappings must not contain duplicate destination field names.");
         }
     }
 
@@ -198,6 +213,12 @@ public abstract record FeatureLayerAppendRequestBase
             }
 
             ValidateFieldMappings(mapping.FieldMappings);
+        }
+
+        if (layerMappings
+            .GroupBy(static mapping => mapping.Id)
+            .Any(static group => group.Count() > 1)) {
+            throw new InvalidOperationException("LayerMappings must not contain duplicate destination layer IDs.");
         }
     }
 
