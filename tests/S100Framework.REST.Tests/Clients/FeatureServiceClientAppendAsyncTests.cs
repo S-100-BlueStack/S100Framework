@@ -63,6 +63,48 @@ public sealed class FeatureServiceClientAppendAsyncTests
         Assert.Contains("rollbackOnFailure=true", decodedRequestBody, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("completed")]
+    [InlineData("COMPLETED")]
+    [InlineData("Completed")]
+    [InlineData("completed_with_errors")]
+    [InlineData("Completed With Errors")]
+    public async Task SubmitAppendAsync_TreatsTerminalSubmissionStatusesCaseAndSeparatorInsensitively(
+    string statusValue) {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(
+                    supportsAppend: true,
+                    syncEnabled: false,
+                    supportsChangeTracking: false);
+            }
+
+            if (uri.EndsWith("/FeatureServer/append", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json($$"""
+            {
+              "status": "{{statusValue}}",
+              "editMoment": 1735689600000
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var submission = await client.SubmitAppendAsync(
+            CreateAppendRequest(),
+            cancellationToken);
+
+        Assert.True(submission.IsTerminal);
+        Assert.True(submission.IsCompleted);
+        Assert.False(submission.IsPending);
+        Assert.Equal(1735689600000, submission.EditMoment);
+    }
+
     [Fact]
     public async Task GetAppendStatusAsync_MapsCompletedStatus_WhenServerReturnsCompletedJob() {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -95,6 +137,73 @@ public sealed class FeatureServiceClientAppendAsyncTests
         Assert.Equal(2, status.RecordCount);
         Assert.Equal(1520876908117L, status.SubmissionTime);
         Assert.Equal(1520876913647L, status.LastUpdatedTime);
+    }
+
+    [Theory]
+    [InlineData("completed")]
+    [InlineData("COMPLETED")]
+    [InlineData("Completed")]
+    [InlineData("completed_with_errors")]
+    [InlineData("Completed With Errors")]
+    [InlineData("FAILED")]
+    public async Task GetAppendStatusAsync_TreatsTerminalStatusesCaseAndSeparatorInsensitively(
+    string statusValue) {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.Contains("/FeatureServer/append/jobs/", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json($$"""
+            {
+              "layerName": "CITIES",
+              "recordCount": 2,
+              "status": "{{statusValue}}"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var status = await client.GetAppendStatusAsync(
+            new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/append/jobs/b62e9db7-507c-443d-3473-8a1f7a7e9fac?f=json"),
+            cancellationToken);
+
+        Assert.True(status.IsTerminal);
+    }
+
+    [Theory]
+    [InlineData("completed")]
+    [InlineData("COMPLETED")]
+    [InlineData("Completed")]
+    [InlineData("completed_with_errors")]
+    [InlineData("Completed With Errors")]
+    public async Task GetAppendStatusAsync_TreatsCompletedStatusesCaseAndSeparatorInsensitively(
+        string statusValue) {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.Contains("/FeatureServer/append/jobs/", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json($$"""
+            {
+              "layerName": "CITIES",
+              "recordCount": 2,
+              "status": "{{statusValue}}"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var status = await client.GetAppendStatusAsync(
+            new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/append/jobs/b62e9db7-507c-443d-3473-8a1f7a7e9fac?f=json"),
+            cancellationToken);
+
+        Assert.True(status.IsCompleted);
     }
 
     [Fact]

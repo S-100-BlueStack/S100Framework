@@ -27,12 +27,17 @@ public sealed record FeatureServiceAppendJobStatus(
         HasStatus("CompletedWithErrors");
 
     private bool HasStatus(string expected) {
-        return Normalize(Status) == Normalize(expected);
+        return string.Equals(
+            Normalize(Status),
+            Normalize(expected),
+            StringComparison.Ordinal);
     }
 
-    private static string Normalize(string value) {
-        return value
+    private static string Normalize(string? value) {
+        return (value ?? string.Empty)
             .Replace(" ", string.Empty, StringComparison.Ordinal)
-            .Replace("_", string.Empty, StringComparison.Ordinal);
+            .Replace("_", string.Empty, StringComparison.Ordinal)
+            .Trim()
+            .ToUpperInvariant();
     }
 }
