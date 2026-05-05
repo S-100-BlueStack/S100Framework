@@ -96,7 +96,7 @@ internal sealed class EsriRelatedRecordsResponseDto
     public List<EsriFieldDto>? Fields { get; init; }
 
     [JsonPropertyName("relatedRecordGroups")]
-    public List<EsriRelatedRecordGroupDto>? RelatedRecordGroups { get; init; }
+    public List<EsriRelatedRecordGroupDto?>? RelatedRecordGroups { get; init; }
 }
 
 internal sealed class EsriRelatedRecordGroupDto
@@ -105,7 +105,7 @@ internal sealed class EsriRelatedRecordGroupDto
     public long ObjectId { get; init; }
 
     [JsonPropertyName("relatedRecords")]
-    public List<EsriFeatureDto>? RelatedRecords { get; init; }
+    public List<EsriFeatureDto?>? RelatedRecords { get; init; }
 
     [JsonPropertyName("count")]
     public long? Count { get; init; }

@@ -123,12 +123,28 @@ public sealed record RelatedRecordsQuery
     /// Thrown when the query configuration is invalid.
     /// </exception>
     public void Validate() {
-        if (ObjectIds.Count == 0) {
+        if (ObjectIds is not { Count: > 0 }) {
             throw new InvalidOperationException("At least one source object ID must be provided.");
+        }
+
+        if (ObjectIds.Any(static objectId => objectId < 0)) {
+            throw new InvalidOperationException("ObjectIds must not contain negative values.");
+        }
+
+        if (ObjectIds.Distinct().Count() != ObjectIds.Count) {
+            throw new InvalidOperationException("ObjectIds must not contain duplicate values.");
         }
 
         if (RelationshipId < 0) {
             throw new InvalidOperationException("RelationshipId must be greater than or equal to zero.");
+        }
+
+        if (OutFields?.Any(static field => string.IsNullOrWhiteSpace(field)) == true) {
+            throw new InvalidOperationException("OutFields must not contain null, empty, or whitespace-only values.");
+        }
+
+        if (DefinitionExpression is not null && string.IsNullOrWhiteSpace(DefinitionExpression)) {
+            throw new InvalidOperationException("DefinitionExpression must not be empty when provided.");
         }
 
         if (ResultOffset is < 0) {
@@ -137,6 +153,14 @@ public sealed record RelatedRecordsQuery
 
         if (ResultRecordCount is <= 0) {
             throw new InvalidOperationException("ResultRecordCount must be greater than zero when provided.");
+        }
+
+        if (OutSrid is <= 0) {
+            throw new InvalidOperationException("OutSrid must be greater than zero when provided.");
+        }
+
+        if (GdbVersion is not null && string.IsNullOrWhiteSpace(GdbVersion)) {
+            throw new InvalidOperationException("GdbVersion must not be empty when provided.");
         }
 
         if (GeometryPrecision is < 0) {

@@ -304,6 +304,225 @@ public sealed class FeatureLayerClientRelatedRecordsHardeningTests
         Assert.Equal("10", form["resultRecordCount"]);
     }
 
+    [Fact]
+    public async Task QueryRelatedRecordsAsync_IgnoresNullGroupAndRelatedRecordItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsRelatedRecordsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "geometryType": "esriGeometryPoint",
+              "spatialReference": {
+                "wkid": 4326,
+                "latestWkid": 4326
+              },
+              "fields": [
+                { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false },
+                { "name": "NAME", "type": "esriFieldTypeString", "nullable": true }
+              ],
+              "relatedRecordGroups": [
+                null,
+                {
+                  "objectId": 100,
+                  "relatedRecords": [
+                    null,
+                    {
+                      "attributes": {
+                        "OBJECTID": 1,
+                        "NAME": "Related A"
+                      },
+                      "geometry": {
+                        "x": 10,
+                        "y": 20
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var groups = await layerClient.QueryRelatedRecordsAsync(
+            new RelatedRecordsQuery {
+                ObjectIds = [100],
+                RelationshipId = 1,
+                OutFields = ["OBJECTID", "NAME"],
+                ReturnGeometry = true
+            },
+            cancellationToken);
+
+        var group = Assert.Single(groups);
+
+        Assert.Equal(100, group.SourceObjectId);
+
+        var record = Assert.Single(group.Records);
+
+        Assert.Equal(1, record.ObjectId);
+        Assert.Equal("Related A", record.GetRequiredString("NAME"));
+        Assert.NotNull(record.Geometry);
+    }
+
+    [Fact]
+    public async Task QueryRelatedRecordCountsAsync_IgnoresNullGroupItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (IsRelatedRecordsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "relatedRecordGroups": [
+                null,
+                {
+                  "objectId": 100,
+                  "count": 3
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var counts = await layerClient.QueryRelatedRecordCountsAsync(
+            new RelatedRecordsQuery {
+                ObjectIds = [100],
+                RelationshipId = 1
+            },
+            cancellationToken);
+
+        var group = Assert.Single(counts);
+
+        Assert.Equal(100, group.SourceObjectId);
+        Assert.Equal(3, group.Count);
+    }
+
+    [Fact]
+    public async Task QueryRelatedRecordsAsync_Throws_WhenObjectIdsContainNegativeValue() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryRelatedRecordsAsync(
+                new RelatedRecordsQuery {
+                    ObjectIds = [100, -1],
+                    RelationshipId = 1
+                },
+                cancellationToken));
+
+        Assert.Contains("ObjectIds", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryRelatedRecordsAsync_Throws_WhenObjectIdsContainDuplicates() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryRelatedRecordsAsync(
+                new RelatedRecordsQuery {
+                    ObjectIds = [100, 100],
+                    RelationshipId = 1
+                },
+                cancellationToken));
+
+        Assert.Contains("ObjectIds", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("duplicate", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryRelatedRecordsAsync_Throws_WhenOutFieldsContainBlankValue() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryRelatedRecordsAsync(
+                new RelatedRecordsQuery {
+                    ObjectIds = [100],
+                    RelationshipId = 1,
+                    OutFields = ["OBJECTID", " "]
+                },
+                cancellationToken));
+
+        Assert.Contains("OutFields", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryRelatedRecordsAsync_Throws_WhenDefinitionExpressionIsBlank() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryRelatedRecordsAsync(
+                new RelatedRecordsQuery {
+                    ObjectIds = [100],
+                    RelationshipId = 1,
+                    DefinitionExpression = " "
+                },
+                cancellationToken));
+
+        Assert.Contains("DefinitionExpression", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryRelatedRecordsAsync_Throws_WhenOutSridIsNotPositive() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryRelatedRecordsAsync(
+                new RelatedRecordsQuery {
+                    ObjectIds = [100],
+                    RelationshipId = 1,
+                    OutSrid = 0
+                },
+                cancellationToken));
+
+        Assert.Contains("OutSrid", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryRelatedRecordsAsync_Throws_WhenGdbVersionIsBlank() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryRelatedRecordsAsync(
+                new RelatedRecordsQuery {
+                    ObjectIds = [100],
+                    RelationshipId = 1,
+                    GdbVersion = " "
+                },
+                cancellationToken));
+
+        Assert.Contains("GdbVersion", exception.Message, StringComparison.Ordinal);
+    }
+
     private static IFeatureLayerClient CreateLayerClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return CreateClient(
                 QueryRequestMethodPreference.Get,

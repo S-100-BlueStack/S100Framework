@@ -34,19 +34,18 @@ public sealed partial class FeatureLayerClient
 
         var srid = ResolveSrid(response.SpatialReference);
 
-        var groups = (response.RelatedRecordGroups ?? new List<EsriRelatedRecordGroupDto>())
+        return EnumerateRelatedRecordGroups(response.RelatedRecordGroups)
             .Select(group => new RelatedRecordGroup(
                 group.ObjectId,
-                (group.RelatedRecords ?? new List<EsriFeatureDto>())
+                (group.RelatedRecords ?? Enumerable.Empty<EsriFeatureDto?>())
+                    .Where(static feature => feature is not null)
                     .Select(feature => MapRelatedRecord(
-                        feature,
+                        feature!,
                         response.GeometryType,
                         srid,
                         objectIdFieldName))
                     .ToArray()))
             .ToArray();
-
-        return groups;
     }
 
     /// <inheritdoc />
@@ -68,11 +67,18 @@ public sealed partial class FeatureLayerClient
             returnCountOnly: true,
             cancellationToken);
 
-        return (response.RelatedRecordGroups ?? new List<EsriRelatedRecordGroupDto>())
+        return EnumerateRelatedRecordGroups(response.RelatedRecordGroups)
             .Select(static group => new RelatedRecordCountGroup(
                 group.ObjectId,
                 group.Count ?? 0))
             .ToArray();
+    }
+
+    private static IEnumerable<EsriRelatedRecordGroupDto> EnumerateRelatedRecordGroups(
+        IEnumerable<EsriRelatedRecordGroupDto?>? groups) {
+        return groups?
+            .Where(static group => group is not null)
+            .Select(static group => group!) ?? Enumerable.Empty<EsriRelatedRecordGroupDto>();
     }
 
     private async Task EnsureRelatedRecordsQueryCapabilitiesAsync(
