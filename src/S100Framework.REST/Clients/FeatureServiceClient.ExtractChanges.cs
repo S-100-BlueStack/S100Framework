@@ -222,8 +222,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private async Task<ExtractChangesResult> MapExtractChangesResultAsync(
-        JsonElement root,
-        CancellationToken cancellationToken) {
+    JsonElement root,
+    CancellationToken cancellationToken) {
         var dto = JsonSerializer.Deserialize<EsriExtractChangesResponseDto>(
                       root.GetRawText(),
                       JsonOptions)
@@ -234,7 +234,11 @@ public sealed partial class FeatureServiceClient
         var schemasByLayerId = new Dictionary<int, FeatureLayerSchema>();
         var edits = new List<ExtractChangesLayerEdits>();
 
-        foreach (var editDto in dto.Edits ?? Enumerable.Empty<EsriExtractChangesLayerEditsDto>()) {
+        foreach (var editDto in dto.Edits ?? Enumerable.Empty<EsriExtractChangesLayerEditsDto?>()) {
+            if (editDto is null) {
+                continue;
+            }
+
             FeatureLayerSchema? schema = null;
 
             if (editDto.Features is not null) {
@@ -271,7 +275,10 @@ public sealed partial class FeatureServiceClient
         }
 
         return new ExtractChangesResult(
-            dto.LayerServerGens?.Select(MapLayerServerGen).ToArray() ?? Array.Empty<ExtractChangesLayerServerGen>(),
+            (dto.LayerServerGens ?? Enumerable.Empty<EsriLayerServerGenDto?>())
+                .Where(static layerServerGen => layerServerGen is not null)
+                .Select(static layerServerGen => MapLayerServerGen(layerServerGen!))
+                .ToArray(),
             edits,
             dto.TransportType,
             dto.ResponseType,
@@ -331,12 +338,15 @@ public sealed partial class FeatureServiceClient
 
     private IReadOnlyList<FeatureRecord> MapExtractChangesFeatures(
         FeatureLayerSchema schema,
-        List<EsriFeatureDto>? features) {
-        if (features is null || features.Count == 0) {
+        IEnumerable<EsriFeatureDto?>? features) {
+        if (features is null) {
             return Array.Empty<FeatureRecord>();
         }
 
-        return features.Select(feature => MapExtractChangesFeature(schema, feature)).ToArray();
+        return features
+            .Where(static feature => feature is not null)
+            .Select(feature => MapExtractChangesFeature(schema, feature!))
+            .ToArray();
     }
 
     private FeatureRecord MapExtractChangesFeature(

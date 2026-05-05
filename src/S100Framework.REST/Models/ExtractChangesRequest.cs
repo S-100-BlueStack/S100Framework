@@ -138,9 +138,23 @@ public sealed record ExtractChangesRequest
     /// <exception cref="InvalidOperationException">
     /// Thrown when the request configuration is incomplete or internally inconsistent.
     /// </exception>
+    /// <summary>
+    /// Validates the request configuration.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the request configuration is incomplete or internally inconsistent.
+    /// </exception>
     public void Validate() {
-        if (Layers.Count == 0) {
+        if (Layers is not { Count: > 0 }) {
             throw new InvalidOperationException("At least one layer ID must be provided.");
+        }
+
+        if (Layers.Any(static layerId => layerId < 0)) {
+            throw new InvalidOperationException("Layers must not contain negative values.");
+        }
+
+        if (Layers.Distinct().Count() != Layers.Count) {
+            throw new InvalidOperationException("Layers must not contain duplicate values.");
         }
 
         var hasServerGens = ServerGens is not null;
@@ -154,8 +168,24 @@ public sealed record ExtractChangesRequest
         ServerGens?.Validate();
 
         if (LayerServerGens is { Count: > 0 }) {
+            var layerServerGenIds = new HashSet<int>();
+
             foreach (var layerServerGen in LayerServerGens) {
+                if (layerServerGen is null) {
+                    throw new InvalidOperationException("LayerServerGens must not contain null values.");
+                }
+
                 layerServerGen.Validate();
+
+                if (!Layers.Contains(layerServerGen.Id)) {
+                    throw new InvalidOperationException(
+                        $"Layer server generation ID '{layerServerGen.Id}' must also be present in Layers.");
+                }
+
+                if (!layerServerGenIds.Add(layerServerGen.Id)) {
+                    throw new InvalidOperationException(
+                        $"Duplicate layer server generation for layer ID {layerServerGen.Id} is not allowed.");
+                }
             }
         }
 
@@ -164,6 +194,10 @@ public sealed record ExtractChangesRequest
                 if (!Layers.Contains(pair.Key)) {
                     throw new InvalidOperationException(
                         $"Layer query key '{pair.Key}' must also be present in Layers.");
+                }
+
+                if (pair.Value is null) {
+                    throw new InvalidOperationException("LayerQueries must not contain null values.");
                 }
 
                 pair.Value.Validate();
@@ -187,9 +221,16 @@ public sealed record ExtractChangesRequest
             }
         }
 
-        if (FieldsToCompare is { Count: > 0 } && !ReturnUpdates) {
-            throw new InvalidOperationException(
-                "FieldsToCompare requires ReturnUpdates to be true.");
+        if (FieldsToCompare is { Count: > 0 }) {
+            if (!ReturnUpdates) {
+                throw new InvalidOperationException(
+                    "FieldsToCompare requires ReturnUpdates to be true.");
+            }
+
+            if (FieldsToCompare.Any(static field => string.IsNullOrWhiteSpace(field))) {
+                throw new InvalidOperationException(
+                    "FieldsToCompare must not contain null, empty, or whitespace-only values.");
+            }
         }
 
         if (ReturnAttachmentsDataByUrl && !ReturnAttachments) {
@@ -200,6 +241,22 @@ public sealed record ExtractChangesRequest
         if (ChangesExtentGridCell != ExtractChangesExtentGridCell.None && !ReturnExtentOnly) {
             throw new InvalidOperationException(
                 "ChangesExtentGridCell requires ReturnExtentOnly to be true.");
+        }
+
+        if (!Enum.IsDefined(ChangesExtentGridCell)) {
+            throw new InvalidOperationException("ChangesExtentGridCell must be a supported grid cell option.");
+        }
+
+        if (!Enum.IsDefined(DataFormat)) {
+            throw new InvalidOperationException("DataFormat must be a supported extractChanges data format.");
+        }
+
+        if (OutSrid is <= 0) {
+            throw new InvalidOperationException("OutSrid must be greater than zero when provided.");
+        }
+
+        if (SpatialFilter?.InSrid is <= 0) {
+            throw new InvalidOperationException("SpatialFilter.InSrid must be greater than zero when provided.");
         }
     }
 }

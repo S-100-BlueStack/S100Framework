@@ -6,10 +6,10 @@ namespace S100Framework.REST.Internal.Dto;
 internal sealed class EsriExtractChangesResponseDto
 {
     [JsonPropertyName("layerServerGens")]
-    public List<EsriLayerServerGenDto>? LayerServerGens { get; init; }
+    public List<EsriLayerServerGenDto?>? LayerServerGens { get; init; }
 
     [JsonPropertyName("edits")]
-    public List<EsriExtractChangesLayerEditsDto>? Edits { get; init; }
+    public List<EsriExtractChangesLayerEditsDto?>? Edits { get; init; }
 
     [JsonPropertyName("transportType")]
     public string? TransportType { get; init; }
@@ -96,13 +96,13 @@ internal sealed class EsriExtractChangesObjectIdsDto
 internal sealed class EsriExtractChangesFeaturesDto
 {
     [JsonPropertyName("adds")]
-    public List<EsriFeatureDto>? Adds { get; init; }
+    public List<EsriFeatureDto?>? Adds { get; init; }
 
     [JsonPropertyName("updates")]
-    public List<EsriFeatureDto>? Updates { get; init; }
+    public List<EsriFeatureDto?>? Updates { get; init; }
 
     [JsonPropertyName("deletes")]
-    public List<EsriFeatureDto>? Deletes { get; init; }
+    public List<EsriFeatureDto?>? Deletes { get; init; }
 
     [JsonPropertyName("deleteIds")]
     public List<JsonElement>? DeleteIds { get; init; }
