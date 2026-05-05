@@ -148,10 +148,12 @@ public sealed partial class FeatureServiceClient
 
         if (TryParseEsriError(payload, out var esriError)) {
             throw new FeatureServiceException(
-                esriError.Message ?? "The server returned an Esri error payload.",
+                string.IsNullOrWhiteSpace(esriError.Message)
+                    ? "The server returned an Esri error payload."
+                    : esriError.Message,
                 requestUri,
                 esriError.Code,
-                esriError.Details?.ToArray(),
+                MapEsriErrorDetails(esriError.Details),
                 response.StatusCode);
         }
 
@@ -193,6 +195,14 @@ public sealed partial class FeatureServiceClient
         catch (JsonException) {
             return false;
         }
+    }
+
+    private static IReadOnlyList<string> MapEsriErrorDetails(
+    IEnumerable<string?>? details) {
+        return details?
+            .Where(static detail => !string.IsNullOrWhiteSpace(detail))
+            .Select(static detail => detail!)
+            .ToArray() ?? Array.Empty<string>();
     }
 
     private static string? GetContentDispositionFileName(HttpContentHeaders headers) {

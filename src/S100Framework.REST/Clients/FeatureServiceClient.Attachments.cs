@@ -109,7 +109,7 @@ public sealed partial class FeatureServiceClient
                     esriError.Message ?? "The server returned an Esri error payload.",
                     uri,
                     esriError.Code,
-                    esriError.Details?.ToArray(),
+                    MapEsriErrorDetails(esriError.Details),
                     response.StatusCode);
             }
 

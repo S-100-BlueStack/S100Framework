@@ -104,7 +104,10 @@ public sealed partial class FeatureServiceClient
                     esriError.Message ?? "The server returned an Esri error payload.",
                     resultUrl,
                     esriError.Code,
-                    esriError.Details?.ToArray(),
+                    esriError.Details?
+    .Where(static detail => !string.IsNullOrWhiteSpace(detail))
+    .Select(static detail => detail!)
+    .ToArray(),
                     response.StatusCode);
             }
 

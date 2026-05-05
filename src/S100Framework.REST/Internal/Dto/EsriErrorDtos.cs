@@ -17,5 +17,5 @@ internal sealed class EsriErrorDto
     public string? Message { get; init; }
 
     [JsonPropertyName("details")]
-    public List<string>? Details { get; init; }
+    public List<string?>? Details { get; init; }
 }
