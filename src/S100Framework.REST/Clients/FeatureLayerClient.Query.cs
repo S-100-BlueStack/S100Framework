@@ -104,7 +104,7 @@ public sealed partial class FeatureLayerClient
                 JsonValueKind.Array => element.EnumerateArray()
                     .Select(static item => item.ValueKind == JsonValueKind.String ? item.GetString() : null)
                     .Where(static value => !string.IsNullOrWhiteSpace(value))
-                    .Cast<string>()
+                    .Select(static value => value!)
                     .ToArray(),
                 _ => throw new InvalidOperationException(
                     "The server returned an unsupported payload for uniqueIdFieldNames.")
@@ -136,6 +136,10 @@ public sealed partial class FeatureLayerClient
             var result = new List<FeatureUniqueId>();
 
             foreach (var item in element.EnumerateArray()) {
+                if (item.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
+                    continue;
+                }
+
                 if (item.ValueKind == JsonValueKind.Array) {
                     result.Add(new FeatureUniqueId(
                         item.EnumerateArray()

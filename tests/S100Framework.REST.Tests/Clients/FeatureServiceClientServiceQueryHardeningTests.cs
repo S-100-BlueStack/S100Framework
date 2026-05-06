@@ -246,6 +246,52 @@ public sealed class FeatureServiceClientServiceQueryHardeningTests
     }
 
     [Fact]
+    public async Task QueryUniqueIdsAsync_IgnoresNullUniqueIdItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse();
+            }
+
+            if (IsServiceQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                {
+                  "id": 0,
+                  "uniqueIdFieldNames": "GLOBALID",
+                  "uniqueIds": [
+                    null,
+                    "alpha",
+                    null,
+                    "beta"
+                  ]
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.QueryUniqueIdsAsync(
+            CreateRequest(),
+            cancellationToken);
+
+        var layer = Assert.Single(result.Layers);
+
+        Assert.Equal(0, layer.LayerId);
+        Assert.Equal(["GLOBALID"], layer.UniqueIdFieldNames);
+
+        Assert.Collection(
+            layer.UniqueIds,
+            uniqueId => Assert.Equal("alpha", uniqueId.SingleValue),
+            uniqueId => Assert.Equal("beta", uniqueId.SingleValue));
+    }
+
+    [Fact]
     public async Task QueryAsync_Throws_WhenSqlFormatIsInvalid() {
         var cancellationToken = TestContext.Current.CancellationToken;
 

@@ -386,7 +386,7 @@ public sealed partial class FeatureServiceClient
     }
 
     private static IReadOnlyList<string> ReadServiceQueryUniqueIdFieldNames(
-        JsonElement element) {
+    JsonElement element) {
         return element.ValueKind switch {
             JsonValueKind.Undefined or JsonValueKind.Null => Array.Empty<string>(),
             JsonValueKind.String => element.GetString() is { Length: > 0 } value
@@ -395,7 +395,7 @@ public sealed partial class FeatureServiceClient
             JsonValueKind.Array => element.EnumerateArray()
                 .Select(static item => item.ValueKind == JsonValueKind.String ? item.GetString() : null)
                 .Where(static value => !string.IsNullOrWhiteSpace(value))
-                .Cast<string>()
+                .Select(static value => value!)
                 .ToArray(),
             _ => throw new InvalidOperationException(
                 "The server returned an unsupported payload for uniqueIdFieldNames.")
@@ -403,7 +403,7 @@ public sealed partial class FeatureServiceClient
     }
 
     private static IReadOnlyList<FeatureUniqueId> ReadServiceQueryUniqueIds(
-        JsonElement element) {
+    JsonElement element) {
         if (element.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
             return Array.Empty<FeatureUniqueId>();
         }
@@ -415,6 +415,10 @@ public sealed partial class FeatureServiceClient
         var result = new List<FeatureUniqueId>();
 
         foreach (var item in element.EnumerateArray()) {
+            if (item.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
+                continue;
+            }
+
             if (item.ValueKind == JsonValueKind.Array) {
                 result.Add(new FeatureUniqueId(
                     item.EnumerateArray()

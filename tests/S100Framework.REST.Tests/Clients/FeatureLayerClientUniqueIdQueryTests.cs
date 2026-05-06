@@ -236,6 +236,47 @@ public sealed class FeatureLayerClientUniqueIdQueryTests
     }
 
     [Fact]
+    public async Task QueryUniqueIdsAsync_IgnoresNullUniqueIdItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(includeUniqueIdInfo: true, uniqueIdType: "simple");
+            }
+
+            if (request.RequestUri!.AbsoluteUri.Contains("/FeatureServer/0/query?", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "exceededTransferLimit": false,
+              "uniqueIdFieldNames": "_id",
+              "uniqueIds": [
+                null,
+                "alpha",
+                null,
+                "beta"
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri!.AbsoluteUri}");
+        });
+
+        var result = await client.GetLayerClient(0).QueryUniqueIdsAsync(
+            new FeatureQuery(),
+            cancellationToken);
+
+        Assert.False(result.IsComposite);
+        Assert.False(result.ExceededTransferLimit);
+        Assert.Equal(["_id"], result.UniqueIdFieldNames);
+
+        Assert.Collection(
+            result.UniqueIds,
+            uniqueId => Assert.Equal("alpha", uniqueId.SingleValue),
+            uniqueId => Assert.Equal("beta", uniqueId.SingleValue));
+    }
+
+    [Fact]
     public async Task QueryUniqueIdsAsync_Throws_WhenUniqueIdFieldNamesPayloadIsUnsupported() {
         var cancellationToken = TestContext.Current.CancellationToken;
 
