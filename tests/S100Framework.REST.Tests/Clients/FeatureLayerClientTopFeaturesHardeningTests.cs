@@ -211,6 +211,58 @@ public sealed class FeatureLayerClientTopFeaturesHardeningTests
         Assert.Contains("OrderByFields", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task QueryTopFeaturesAsync_Throws_WhenWhereIsBlankAndAnotherOptionIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).QueryTopFeaturesAsync(
+                CreateQuery() with {
+                    Where = " ",
+                    OutSrid = 0
+                },
+                cancellationToken));
+
+        Assert.Contains("OutSrid", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryTopFeaturesAsync_Throws_WhenObjectIdsContainNegativeValue() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).QueryTopFeaturesAsync(
+                CreateQuery() with {
+                    ObjectIds = [1, -2]
+                },
+                cancellationToken));
+
+        Assert.Contains("ObjectIds", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryTopFeaturesAsync_Throws_WhenObjectIdsContainDuplicateValue() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).QueryTopFeaturesAsync(
+                CreateQuery() with {
+                    ObjectIds = [1, 1]
+                },
+                cancellationToken));
+
+        Assert.Contains("ObjectIds", exception.Message, StringComparison.Ordinal);
+    }
+
     private static TopFeaturesQuery CreateQuery() {
         return new TopFeaturesQuery {
             OutFields = ["OBJECTID", "PLANNAME"],

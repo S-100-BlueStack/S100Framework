@@ -79,12 +79,16 @@ public sealed record TopFeaturesQuery
 
         TopFilter.Validate();
 
-        if (Where is not null && string.IsNullOrWhiteSpace(Where)) {
-            return;
-        }
-
         if (ObjectIds is { Count: 0 }) {
             throw new InvalidOperationException("ObjectIds must not be empty when provided.");
+        }
+
+        if (ObjectIds?.Any(static objectId => objectId < 0) == true) {
+            throw new InvalidOperationException("ObjectIds must not contain negative values.");
+        }
+
+        if (ObjectIds is not null && ObjectIds.Distinct().Count() != ObjectIds.Count) {
+            throw new InvalidOperationException("ObjectIds must not contain duplicate values.");
         }
 
         if (OutFields?.Any(static field => string.IsNullOrWhiteSpace(field)) == true) {
