@@ -15,33 +15,72 @@ public sealed record FeatureServiceAppendSubmissionResult(
     /// Gets a value indicating whether the append job has reached a terminal state.
     /// </summary>
     public bool IsTerminal =>
-        HasStatus("Completed") ||
-        HasStatus("CompletedWithErrors") ||
-        HasStatus("Failed");
+        IsCompleted ||
+        IsFailed ||
+        IsCancelled ||
+        IsTimedOut;
 
     /// <summary>
     /// Gets a value indicating whether the append job completed successfully enough to be treated as finished.
     /// </summary>
     public bool IsCompleted =>
-        HasStatus("Completed") ||
-        HasStatus("CompletedWithErrors");
+        HasAnyStatus(
+            "Completed",
+            "CompletedWithErrors",
+            "Completed With Errors",
+            "Succeeded",
+            "Success",
+            "esriJobSucceeded");
+
+    /// <summary>
+    /// Gets a value indicating whether the append job failed.
+    /// </summary>
+    public bool IsFailed =>
+        HasAnyStatus(
+            "Failed",
+            "Error",
+            "esriJobFailed");
+
+    /// <summary>
+    /// Gets a value indicating whether the append job was cancelled.
+    /// </summary>
+    public bool IsCancelled =>
+        HasAnyStatus(
+            "Cancelled",
+            "Canceled",
+            "esriJobCancelled",
+            "esriJobCanceled");
+
+    /// <summary>
+    /// Gets a value indicating whether the append job timed out.
+    /// </summary>
+    public bool IsTimedOut =>
+        HasAnyStatus(
+            "TimedOut",
+            "Timed Out",
+            "Timeout",
+            "esriJobTimedOut");
 
     /// <summary>
     /// Gets a value indicating whether the append submission is pending and can be polled.
     /// </summary>
     public bool IsPending => StatusUrl is not null && !IsTerminal;
 
-    private bool HasStatus(string expected) {
-        return string.Equals(
-            Normalize(Status),
-            Normalize(expected),
-            StringComparison.Ordinal);
+    private bool HasAnyStatus(params string[] expectedValues) {
+        var normalizedStatus = Normalize(Status);
+
+        return expectedValues.Any(expected =>
+            string.Equals(
+                normalizedStatus,
+                Normalize(expected),
+                StringComparison.Ordinal));
     }
 
     private static string Normalize(string? value) {
         return (value ?? string.Empty)
             .Replace(" ", string.Empty, StringComparison.Ordinal)
             .Replace("_", string.Empty, StringComparison.Ordinal)
+            .Replace("-", string.Empty, StringComparison.Ordinal)
             .Trim()
             .ToUpperInvariant();
     }

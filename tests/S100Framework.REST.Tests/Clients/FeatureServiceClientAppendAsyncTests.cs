@@ -69,6 +69,7 @@ public sealed class FeatureServiceClientAppendAsyncTests
     [InlineData("Completed")]
     [InlineData("completed_with_errors")]
     [InlineData("Completed With Errors")]
+    [InlineData("completed-with-errors")]
     public async Task SubmitAppendAsync_TreatsTerminalSubmissionStatusesCaseAndSeparatorInsensitively(
     string statusValue) {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -146,6 +147,7 @@ public sealed class FeatureServiceClientAppendAsyncTests
     [InlineData("completed_with_errors")]
     [InlineData("Completed With Errors")]
     [InlineData("FAILED")]
+    [InlineData("completed-with-errors")]
     public async Task GetAppendStatusAsync_TreatsTerminalStatusesCaseAndSeparatorInsensitively(
     string statusValue) {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -179,6 +181,7 @@ public sealed class FeatureServiceClientAppendAsyncTests
     [InlineData("Completed")]
     [InlineData("completed_with_errors")]
     [InlineData("Completed With Errors")]
+    [InlineData("completed-with-errors")]
     public async Task GetAppendStatusAsync_TreatsCompletedStatusesCaseAndSeparatorInsensitively(
         string statusValue) {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -327,6 +330,103 @@ public sealed class FeatureServiceClientAppendAsyncTests
         Assert.Contains("upsert", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("sync", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Single(requestUris);
+    }
+
+    [Theory]
+    [InlineData("failed", true, false, false)]
+    [InlineData("FAILED", true, false, false)]
+    [InlineData("error", true, false, false)]
+    [InlineData("cancelled", false, true, false)]
+    [InlineData("canceled", false, true, false)]
+    [InlineData("esriJobCancelled", false, true, false)]
+    [InlineData("esriJobCanceled", false, true, false)]
+    [InlineData("timed-out", false, false, true)]
+    [InlineData("timeout", false, false, true)]
+    [InlineData("esriJobTimedOut", false, false, true)]
+    public async Task SubmitAppendAsync_TreatsFailedCancelledAndTimedOutStatusesAsTerminalButNotCompleted(
+    string statusValue,
+    bool isFailed,
+    bool isCancelled,
+    bool isTimedOut) {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(
+                    supportsAppend: true,
+                    syncEnabled: false,
+                    supportsChangeTracking: false);
+            }
+
+            if (uri.EndsWith("/FeatureServer/append", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json($$"""
+            {
+              "status": "{{statusValue}}",
+              "editMoment": 1735689600000
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var submission = await client.SubmitAppendAsync(
+            CreateAppendRequest(),
+            cancellationToken);
+
+        Assert.True(submission.IsTerminal);
+        Assert.False(submission.IsCompleted);
+        Assert.False(submission.IsPending);
+        Assert.Equal(isFailed, submission.IsFailed);
+        Assert.Equal(isCancelled, submission.IsCancelled);
+        Assert.Equal(isTimedOut, submission.IsTimedOut);
+    }
+
+    [Theory]
+    [InlineData("failed", true, false, false)]
+    [InlineData("FAILED", true, false, false)]
+    [InlineData("error", true, false, false)]
+    [InlineData("cancelled", false, true, false)]
+    [InlineData("canceled", false, true, false)]
+    [InlineData("esriJobCancelled", false, true, false)]
+    [InlineData("esriJobCanceled", false, true, false)]
+    [InlineData("timed-out", false, false, true)]
+    [InlineData("timeout", false, false, true)]
+    [InlineData("esriJobTimedOut", false, false, true)]
+    public async Task GetAppendStatusAsync_TreatsFailedCancelledAndTimedOutStatusesAsTerminalButNotCompleted(
+    string statusValue,
+    bool isFailed,
+    bool isCancelled,
+    bool isTimedOut) {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.Contains("/FeatureServer/append/jobs/", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json($$"""
+            {
+              "layerName": "CITIES",
+              "recordCount": 2,
+              "status": "{{statusValue}}"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var status = await client.GetAppendStatusAsync(
+            new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/append/jobs/b62e9db7-507c-443d-3473-8a1f7a7e9fac?f=json"),
+            cancellationToken);
+
+        Assert.True(status.IsTerminal);
+        Assert.False(status.IsCompleted);
+        Assert.Equal(isFailed, status.IsFailed);
+        Assert.Equal(isCancelled, status.IsCancelled);
+        Assert.Equal(isTimedOut, status.IsTimedOut);
     }
 
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
