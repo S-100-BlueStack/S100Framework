@@ -2,6 +2,7 @@
 using S100Framework.REST.Configuration;
 using S100Framework.REST.Models;
 using S100Framework.REST.Tests.TestDoubles;
+using S100Framework.REST.Exceptions;
 using Xunit;
 
 namespace S100Framework.REST.Tests.Clients;
@@ -286,6 +287,68 @@ public sealed class FeatureServiceClientExtractChangesHardeningTests
                 cancellationToken));
 
         Assert.Contains("OutSrid", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SubmitExtractChangesAsync_ThrowsFeatureServiceException_WhenStatusUrlIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json(
+                    FeatureServiceTestResponses.CreateExtractChangesSupportedMetadataResponse());
+            }
+
+            if (IsExtractChangesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "statusUrl": "not a valid absolute uri"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.SubmitExtractChangesAsync(
+                new ExtractChangesRequest {
+                    Layers = [0],
+                    LayerServerGens = [
+                        new ExtractChangesLayerServerGen(0, 1653608093000)
+                    ],
+                    DataFormat = ExtractChangesDataFormat.Sqlite
+                },
+                cancellationToken));
+
+        Assert.Contains("statusUrl", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("extractChanges", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetExtractChangesStatusAsync_ThrowsFeatureServiceException_WhenResultUrlIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (request.RequestUri!.AbsoluteUri == "https://example.test/jobs/extractChanges/status") {
+                return StubHttpMessageHandler.Json("""
+            {
+              "status": "completed",
+              "resultUrl": "not a valid absolute uri"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetExtractChangesStatusAsync(
+                new Uri("https://example.test/jobs/extractChanges/status"),
+                cancellationToken));
+
+        Assert.Contains("resultUrl", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("extractChanges", exception.Message, StringComparison.Ordinal);
     }
 
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {

@@ -64,9 +64,15 @@ public sealed partial class FeatureServiceClient
                     endpointUri);
             }
 
+            if (!Uri.TryCreate(rawStatusUrl, UriKind.Absolute, out var statusUrl)) {
+                throw new FeatureServiceException(
+                    "The server returned an invalid statusUrl for extractChanges.",
+                    endpointUri);
+            }
+
             return new ExtractChangesSubmissionResult(
                 Result: null,
-                StatusUrl: new Uri(rawStatusUrl, UriKind.Absolute));
+                StatusUrl: statusUrl);
         }
 
         var result = await MapExtractChangesResultAsync(root, cancellationToken);
@@ -132,13 +138,20 @@ public sealed partial class FeatureServiceClient
 
         var dto = await GetAsync<EsriExtractChangesJobStatusDto>(statusUrl, cancellationToken);
 
+        Uri? resultUrl = null;
+
+        if (!string.IsNullOrWhiteSpace(dto.ResultUrl) &&
+            !Uri.TryCreate(dto.ResultUrl, UriKind.Absolute, out resultUrl)) {
+            throw new FeatureServiceException(
+                "The server returned an invalid resultUrl for extractChanges.",
+                statusUrl);
+        }
+
         return new ExtractChangesJobStatus(
             Status: dto.Status ?? "Unknown",
             ResponseType: dto.ResponseType,
             TransportType: dto.TransportType,
-            ResultUrl: string.IsNullOrWhiteSpace(dto.ResultUrl)
-                ? null
-                : new Uri(dto.ResultUrl, UriKind.Absolute),
+            ResultUrl: resultUrl,
             SubmissionTime: dto.SubmissionTime,
             LastUpdatedTime: dto.LastUpdatedTime);
     }
