@@ -1,6 +1,7 @@
 ﻿using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
 using S100Framework.REST.Models;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Tests.TestDoubles;
 using Xunit;
 
@@ -307,6 +308,79 @@ public sealed class FeatureServiceClientApplyEditsHardeningTests
                 Assert.True(deleteResult.Success);
                 Assert.Equal(202, deleteResult.ObjectId);
             });
+    }
+
+    [Fact]
+    public async Task SubmitApplyEditsAsync_ThrowsFeatureServiceException_WhenStatusUrlIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.EndsWith("/FeatureServer?f=json", StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [],
+              "tables": [],
+              "capabilities": "Create,Update,Delete,Editing,Query",
+              "advancedEditingCapabilities": {
+                "supportsAsyncApplyEdits": true
+              }
+            }
+            """);
+            }
+
+            if (IsServiceApplyEditsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "statusUrl": "not a valid absolute uri"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.SubmitApplyEditsAsync(
+                new FeatureServiceEdits {
+                    Layers = [
+                        new ServiceLayerEdits {
+                        LayerId = 0,
+                        DeleteObjectIds = [202]
+                    }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("statusUrl", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("applyEdits", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetApplyEditsStatusAsync_ThrowsFeatureServiceException_WhenResultUrlIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (request.RequestUri!.AbsoluteUri == "https://example.test/jobs/applyEdits/status") {
+                return StubHttpMessageHandler.Json("""
+            {
+              "status": "completed",
+              "resultUrl": "not a valid absolute uri"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetApplyEditsStatusAsync(
+                new Uri("https://example.test/jobs/applyEdits/status"),
+                cancellationToken));
+
+        Assert.Contains("resultUrl", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("applyEdits", exception.Message, StringComparison.Ordinal);
     }
 
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
