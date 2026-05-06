@@ -3,6 +3,7 @@ using System.Text.Json;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Models;
+using S100Framework.REST.Internal.Validation;
 
 namespace S100Framework.REST.Clients;
 
@@ -18,6 +19,10 @@ public sealed partial class FeatureLayerClient
         ArgumentNullException.ThrowIfNull(query);
 
         ValidateFeatureQueryPaging(query);
+        FeatureQueryValidation.ValidateCommon(query);
+        FeatureQueryValidation.ValidateProjection(query);
+        FeatureQueryValidation.ValidateGeometryOptions(query);
+        FeatureQueryValidation.ValidateOutFields(query);
 
         if (query.ReturnEnvelope && !query.ReturnGeometry) {
             throw new InvalidOperationException("ReturnEnvelope requires ReturnGeometry to be true.");

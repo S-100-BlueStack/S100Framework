@@ -157,6 +157,66 @@ public sealed class FeatureLayerClientQueryHardeningTests
     }
 
     [Fact]
+    public async Task QueryAsync_Throws_WhenOutFieldsContainBlankValue_BeforeSchemaLookup() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."))
+            .GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => {
+            await foreach (var _ in layerClient.QueryAsync(
+                new FeatureQuery {
+                    OutFields = ["OBJECTID", " "]
+                },
+                cancellationToken)) {
+            }
+        });
+
+        Assert.Contains("OutFields", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryAsync_Throws_WhenSqlFormatIsInvalid_BeforeSchemaLookup() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."))
+            .GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => {
+            await foreach (var _ in layerClient.QueryAsync(
+                new FeatureQuery {
+                    SqlFormat = (FeatureQuerySqlFormat)999
+                },
+                cancellationToken)) {
+            }
+        });
+
+        Assert.Contains("SqlFormat", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryAsync_Throws_WhenOutSridIsInvalid_BeforeSchemaLookup() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."))
+            .GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => {
+            await foreach (var _ in layerClient.QueryAsync(
+                new FeatureQuery {
+                    OutSrid = 0
+                },
+                cancellationToken)) {
+            }
+        });
+
+        Assert.Contains("OutSrid", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task QueryAsync_Throws_WhenResultTypeIsInvalid() {
         var cancellationToken = TestContext.Current.CancellationToken;
         var requestUris = new List<Uri>();
