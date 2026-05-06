@@ -231,6 +231,84 @@ public sealed class FeatureServiceClientApplyEditsHardeningTests
         Assert.Empty(layerResult.DeleteResults);
     }
 
+    [Fact]
+    public async Task ServiceApplyEditsAsync_IgnoresNullLayerResultItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceApplyEditsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            [
+              null,
+              {
+                "id": 0,
+                "addResults": [
+                  {
+                    "success": true,
+                    "objectId": 101
+                  }
+                ],
+                "updateResults": [],
+                "deleteResults": []
+              },
+              null,
+              {
+                "id": 1,
+                "addResults": [],
+                "updateResults": [],
+                "deleteResults": [
+                  {
+                    "success": true,
+                    "objectId": 202
+                  }
+                ]
+              }
+            ]
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.ApplyEditsAsync(
+            new FeatureServiceEdits {
+                Layers = [
+                    new ServiceLayerEdits {
+                    LayerId = 0,
+                    Adds = [
+                        new EditableFeature(
+                            Geometry: null,
+                            new Dictionary<string, object?> {
+                                ["NAME"] = "Added"
+                            })
+                    ]
+                },
+                new ServiceLayerEdits {
+                    LayerId = 1,
+                    DeleteObjectIds = [202]
+                }
+                ]
+            },
+            cancellationToken);
+
+        Assert.Collection(
+            result.LayerResults,
+            firstLayer => {
+                Assert.Equal(0, firstLayer.LayerId);
+
+                var addResult = Assert.Single(firstLayer.AddResults);
+                Assert.True(addResult.Success);
+                Assert.Equal(101, addResult.ObjectId);
+            },
+            secondLayer => {
+                Assert.Equal(1, secondLayer.LayerId);
+
+                var deleteResult = Assert.Single(secondLayer.DeleteResults);
+                Assert.True(deleteResult.Success);
+                Assert.Equal(202, deleteResult.ObjectId);
+            });
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

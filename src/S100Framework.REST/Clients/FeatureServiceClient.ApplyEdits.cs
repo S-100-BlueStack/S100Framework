@@ -405,9 +405,9 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureServiceApplyEditsResult MapServiceApplyEditsResult(
-        JsonElement root,
-        Uri endpointUri) {
-        var dto = root.Deserialize<List<EsriServiceLayerEditResultsDto>>(JsonOptions)
+     JsonElement root,
+     Uri endpointUri) {
+        var dto = root.Deserialize<List<EsriServiceLayerEditResultsDto?>>(JsonOptions)
             ?? throw new FeatureServiceException(
                 "The applyEdits payload could not be deserialized.",
                 endpointUri);
@@ -416,9 +416,12 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureServiceApplyEditsResult MapServiceApplyEditsResult(
-        IReadOnlyList<EsriServiceLayerEditResultsDto>? dto) {
+     IEnumerable<EsriServiceLayerEditResultsDto?>? dto) {
         return new FeatureServiceApplyEditsResult(
-            dto?.Select(MapServiceLayerEditResults).ToArray() ?? Array.Empty<ServiceLayerEditResults>());
+            dto?
+                .Where(static layerResult => layerResult is not null)
+                .Select(static layerResult => MapServiceLayerEditResults(layerResult!))
+                .ToArray() ?? Array.Empty<ServiceLayerEditResults>());
     }
 
     private static string SerializeServiceEdits(FeatureServiceEdits edits) {
