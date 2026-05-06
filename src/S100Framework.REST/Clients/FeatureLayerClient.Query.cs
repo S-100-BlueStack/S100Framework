@@ -20,6 +20,7 @@ public sealed partial class FeatureLayerClient
 
         ValidateFeatureQueryPaging(query);
         FeatureQueryValidation.ValidateCommon(query);
+        FeatureQueryValidation.ValidateFullText(query);
         FeatureQueryValidation.ValidateProjection(query);
         FeatureQueryValidation.ValidateGeometryOptions(query);
         FeatureQueryValidation.ValidateOutFields(query);
