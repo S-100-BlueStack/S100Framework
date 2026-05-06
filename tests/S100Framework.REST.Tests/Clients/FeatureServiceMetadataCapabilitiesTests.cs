@@ -75,4 +75,50 @@ public sealed class FeatureServiceMetadataCapabilitiesTests
         Assert.True(metadata.ExtractChangesCapabilities.SupportsServerGens);
         Assert.True(metadata.ExtractChangesCapabilities.SupportsReturnHasGeometryUpdates);
     }
+
+    [Fact]
+    public async Task GetMetadataAsync_IgnoresNullLayerAndTableItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.EndsWith("/FeatureServer?f=json", StringComparison.Ordinal)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                null,
+                { "id": 0, "name": "Facilities" },
+                null
+              ],
+              "tables": [
+                null,
+                { "id": 1, "name": "Inspections" },
+                null
+              ],
+              "capabilities": "Query",
+              "maxRecordCount": 2000
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var client = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            });
+
+        var metadata = await client.GetMetadataAsync(cancellationToken);
+
+        var layer = Assert.Single(metadata.Layers);
+        var table = Assert.Single(metadata.Tables);
+
+        Assert.Equal(0, layer.Id);
+        Assert.Equal("Facilities", layer.Name);
+        Assert.Equal(1, table.Id);
+        Assert.Equal("Inspections", table.Name);
+    }
 }

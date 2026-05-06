@@ -121,9 +121,15 @@ public sealed partial class FeatureServiceClient
             dto.HasM ?? false,
             dto.MaxRecordCount,
             dto.ObjectIdField,
-            dto.Fields?.Select(MapField).ToArray() ?? Array.Empty<FeatureField>(),
-            capabilities,
-            dto.Relationships?.Select(MapRelationship).ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
+           dto.Fields?
+    .Where(static field => field is not null)
+    .Select(static field => MapField(field!))
+    .ToArray() ?? Array.Empty<FeatureField>(),
+capabilities,
+dto.Relationships?
+    .Where(static relationship => relationship is not null)
+    .Select(static relationship => MapRelationship(relationship!))
+    .ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
             UniqueIdInfo = uniqueIdInfo,
             SupportedAppendFormats = dto.SupportedAppendFormats?
                 .Where(static value => !string.IsNullOrWhiteSpace(value))

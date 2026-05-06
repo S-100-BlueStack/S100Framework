@@ -50,8 +50,14 @@ public sealed partial class FeatureServiceClient
 
         return new FeatureServiceMetadata(
             _serviceUri,
-            dto.Layers?.Select(MapDataset).ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
-            dto.Tables?.Select(MapDataset).ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
+            dto.Layers?
+    .Where(static dataset => dataset is not null)
+    .Select(static dataset => MapDataset(dataset!))
+    .ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
+dto.Tables?
+    .Where(static dataset => dataset is not null)
+    .Select(static dataset => MapDataset(dataset!))
+    .ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
             dto.Capabilities,
             dto.MaxRecordCount,
             serviceCapabilities,

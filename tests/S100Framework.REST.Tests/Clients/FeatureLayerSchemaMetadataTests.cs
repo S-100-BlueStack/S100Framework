@@ -373,6 +373,54 @@ public sealed class FeatureLayerSchemaMetadataTests
     }
 
     [Fact]
+    public async Task GetSchemaAsync_IgnoresNullFieldAndRelationshipItems() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateSchemaClient("""
+    {
+      "id": 0,
+      "name": "Facilities",
+      "geometryType": "esriGeometryPoint",
+      "objectIdField": "OBJECTID",
+      "fields": [
+        null,
+        { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false },
+        null,
+        { "name": "NAME", "type": "esriFieldTypeString", "nullable": true }
+      ],
+      "relationships": [
+        null,
+        {
+          "id": 7,
+          "name": "facility_inspections",
+          "relatedTableId": 3,
+          "cardinality": "esriRelCardinalityOneToMany",
+          "role": "esriRelRoleOrigin",
+          "keyField": "GLOBALID",
+          "composite": true
+        },
+        null
+      ],
+      "extent": {
+        "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
+      }
+    }
+    """);
+
+        var schema = await client.GetLayerClient(0).GetSchemaAsync(cancellationToken);
+
+        Assert.Collection(
+            schema.Fields,
+            field => Assert.Equal("OBJECTID", field.Name),
+            field => Assert.Equal("NAME", field.Name));
+
+        var relationship = Assert.Single(schema.Relationships);
+
+        Assert.Equal(7, relationship.Id);
+        Assert.Equal("facility_inspections", relationship.Name);
+    }
+
+    [Fact]
     public void FeatureLayerCapabilities_CanBeConstructedWithOriginalRequiredParameters() {
         var capabilities = new FeatureLayerCapabilities(
             HasAttachments: true,
