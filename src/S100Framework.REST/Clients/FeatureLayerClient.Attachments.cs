@@ -69,6 +69,14 @@ public sealed partial class FeatureLayerClient
         long objectId,
         long attachmentId,
         CancellationToken cancellationToken = default) {
+        if (objectId < 0) {
+            throw new InvalidOperationException("ObjectId must be greater than or equal to zero.");
+        }
+
+        if (attachmentId < 0) {
+            throw new InvalidOperationException("AttachmentId must be greater than or equal to zero.");
+        }
+
         var schema = await GetSchemaAsync(cancellationToken);
         EnsureAttachmentReadSupported(schema);
 
