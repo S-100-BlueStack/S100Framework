@@ -162,6 +162,69 @@ public sealed class FeatureLayerClientCalculateHardeningTests
         Assert.Contains(FeatureQuerySqlFormat.Native, schema.Capabilities.SupportedSqlFormatsInCalculate);
     }
 
+    [Fact]
+    public async Task CalculateAsync_Throws_WhenSqlFormatIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).CalculateAsync(
+                new CalculateRequest {
+                    Where = "OBJECTID = 1",
+                    Expressions = [
+                        CalculateExpression.ForSqlExpression("SCORE", "BASE_SCORE * 2")
+                    ],
+                    SqlFormat = (FeatureQuerySqlFormat)999
+                },
+                cancellationToken));
+
+        Assert.Contains("SqlFormat", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SubmitCalculateAsync_Throws_WhenSqlFormatIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).SubmitCalculateAsync(
+                new CalculateRequest {
+                    Where = "OBJECTID = 1",
+                    Expressions = [
+                        CalculateExpression.ForSqlExpression("SCORE", "BASE_SCORE * 2")
+                    ],
+                    SqlFormat = (FeatureQuerySqlFormat)999
+                },
+                cancellationToken));
+
+        Assert.Contains("SqlFormat", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_Throws_WhenExpressionKindIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).CalculateAsync(
+                new CalculateRequest {
+                    Where = "OBJECTID = 1",
+                    Expressions = [
+                        new CalculateExpression {
+                        Field = "SCORE",
+                        Kind = (CalculateExpressionKind)999,
+                        Value = 42
+                    }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("Kind", exception.Message, StringComparison.Ordinal);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

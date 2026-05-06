@@ -45,9 +45,6 @@ public sealed record CalculateRequest
     /// <summary>
     /// Validates the calculate request before it is sent.
     /// </summary>
-    /// <summary>
-    /// Validates the calculate request before it is sent.
-    /// </summary>
     public void Validate() {
         if (Where is not null && string.IsNullOrWhiteSpace(Where)) {
             throw new InvalidOperationException("Where must not be empty when provided.");
@@ -63,6 +60,10 @@ public sealed record CalculateRequest
             }
 
             expression.Validate();
+        }
+
+        if (SqlFormat.HasValue && !Enum.IsDefined(SqlFormat.Value)) {
+            throw new InvalidOperationException("SqlFormat must be a supported SQL format.");
         }
 
         if (GdbVersion is not null && string.IsNullOrWhiteSpace(GdbVersion)) {

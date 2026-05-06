@@ -90,6 +90,10 @@ public sealed record CalculateExpression
             throw new InvalidOperationException("CalculateExpression.Field must be provided.");
         }
 
+        if (!Enum.IsDefined(Kind)) {
+            throw new InvalidOperationException("CalculateExpression.Kind must be a supported calculate expression kind.");
+        }
+
         switch (Kind) {
             case CalculateExpressionKind.Value:
                 if (SqlExpression is not null) {
@@ -111,12 +115,6 @@ public sealed record CalculateExpression
                 }
 
                 break;
-
-            default:
-                throw new ArgumentOutOfRangeException(
-                    nameof(Kind),
-                    Kind,
-                    "Unsupported calculate expression kind.");
         }
     }
 
