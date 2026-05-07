@@ -102,7 +102,7 @@ internal sealed class EsriRelatedRecordsResponseDto
 internal sealed class EsriRelatedRecordGroupDto
 {
     [JsonPropertyName("objectId")]
-    public long ObjectId { get; init; }
+    public long? ObjectId { get; init; }
 
     [JsonPropertyName("relatedRecords")]
     public List<EsriFeatureDto?>? RelatedRecords { get; init; }

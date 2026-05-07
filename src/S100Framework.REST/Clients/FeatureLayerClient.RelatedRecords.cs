@@ -35,9 +35,10 @@ public sealed partial class FeatureLayerClient
         var srid = ResolveSrid(response.SpatialReference);
 
         return EnumerateRelatedRecordGroups(response.RelatedRecordGroups)
-            .Select(group => new RelatedRecordGroup(
-                group.ObjectId,
-                (group.RelatedRecords ?? Enumerable.Empty<EsriFeatureDto?>())
+           .Select(group => new RelatedRecordGroup(
+    group.ObjectId ?? throw new InvalidOperationException(
+        "The queryRelatedRecords payload was not validated before mapping."),
+    (group.RelatedRecords ?? Enumerable.Empty<EsriFeatureDto?>())
                     .Where(static feature => feature is not null)
                     .Select(feature => MapRelatedRecord(
                         feature!,
@@ -69,8 +70,9 @@ public sealed partial class FeatureLayerClient
 
         return EnumerateRelatedRecordGroups(response.RelatedRecordGroups)
             .Select(static group => new RelatedRecordCountGroup(
-                group.ObjectId,
-                group.Count ?? 0))
+    group.ObjectId ?? throw new InvalidOperationException(
+        "The queryRelatedRecords payload was not validated before mapping."),
+    group.Count ?? 0))
             .ToArray();
     }
 
