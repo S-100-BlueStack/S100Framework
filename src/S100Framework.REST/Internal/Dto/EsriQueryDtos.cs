@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace S100Framework.REST.Internal.Dto;
@@ -51,7 +52,7 @@ internal sealed class EsriUniqueIdsResponseDto
 internal sealed class EsriCountResponseDto
 {
     [JsonPropertyName("count")]
-    public long Count { get; init; }
+    public long? Count { get; init; }
 }
 
 internal sealed class EsriExtentResponseDto
@@ -102,7 +103,7 @@ internal sealed class EsriRelatedRecordsResponseDto
 internal sealed class EsriRelatedRecordGroupDto
 {
     [JsonPropertyName("objectId")]
-    public long ObjectId { get; init; }
+    public long? ObjectId { get; init; }
 
     [JsonPropertyName("relatedRecords")]
     public List<EsriFeatureDto?>? RelatedRecords { get; init; }
@@ -135,7 +136,7 @@ internal sealed class EsriAttachmentGroupDto
 internal sealed class EsriTopFeaturesCountResponseDto
 {
     [JsonPropertyName("count")]
-    public long Count { get; init; }
+    public long? Count { get; init; }
 
     [JsonPropertyName("extent")]
     public EsriQueryExtentDto? Extent { get; init; }

@@ -56,6 +56,12 @@ public sealed partial class FeatureServiceClient
         var root = document.RootElement;
 
         if (root.TryGetProperty("statusUrl", out var statusUrlElement)) {
+            if (statusUrlElement.ValueKind != JsonValueKind.String) {
+                throw new FeatureServiceException(
+                    "The server returned an invalid statusUrl for extractChanges.",
+                    endpointUri);
+            }
+
             var rawStatusUrl = statusUrlElement.GetString();
 
             if (string.IsNullOrWhiteSpace(rawStatusUrl)) {
@@ -111,9 +117,9 @@ public sealed partial class FeatureServiceClient
                     resultUrl,
                     esriError.Code,
                     esriError.Details?
-    .Where(static detail => !string.IsNullOrWhiteSpace(detail))
-    .Select(static detail => detail!)
-    .ToArray(),
+                        .Where(static detail => !string.IsNullOrWhiteSpace(detail))
+                        .Select(static detail => detail!)
+                        .ToArray(),
                     response.StatusCode);
             }
 
@@ -238,14 +244,16 @@ public sealed partial class FeatureServiceClient
     }
 
     private async Task<ExtractChangesResult> MapExtractChangesResultAsync(
-    JsonElement root,
-    CancellationToken cancellationToken) {
+        JsonElement root,
+        CancellationToken cancellationToken) {
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "extractChanges");
+
         var dto = JsonSerializer.Deserialize<EsriExtractChangesResponseDto>(
                       root.GetRawText(),
                       JsonOptions)
                   ?? throw new FeatureServiceException(
                       "The extractChanges payload could not be deserialized.",
-                      UriUtility.AppendPath(_serviceUri, "extractChanges"));
+                      endpointUri);
 
         var schemasByLayerId = new Dictionary<int, FeatureLayerSchema>();
         var edits = new List<ExtractChangesLayerEdits>();
@@ -255,17 +263,22 @@ public sealed partial class FeatureServiceClient
                 continue;
             }
 
+            var layerId = ReadRequiredExtractChangesLayerId(
+                editDto.Id,
+                endpointUri,
+                "edits");
+
             FeatureLayerSchema? schema = null;
 
             if (editDto.Features is not null) {
-                if (!schemasByLayerId.TryGetValue(editDto.Id, out schema)) {
-                    schema = await GetLayerSchemaAsync(editDto.Id, cancellationToken);
-                    schemasByLayerId[editDto.Id] = schema;
+                if (!schemasByLayerId.TryGetValue(layerId, out schema)) {
+                    schema = await GetLayerSchemaAsync(layerId, cancellationToken);
+                    schemasByLayerId[layerId] = schema;
                 }
             }
 
             edits.Add(new ExtractChangesLayerEdits(
-                editDto.Id,
+                layerId,
                 editDto.ObjectIds is null
                     ? null
                     : new ExtractChangesIdChanges(
@@ -293,7 +306,7 @@ public sealed partial class FeatureServiceClient
         return new ExtractChangesResult(
             (dto.LayerServerGens ?? Enumerable.Empty<EsriLayerServerGenDto?>())
                 .Where(static layerServerGen => layerServerGen is not null)
-                .Select(static layerServerGen => MapLayerServerGen(layerServerGen!))
+                .Select(layerServerGen => MapLayerServerGen(layerServerGen!, endpointUri))
                 .ToArray(),
             edits,
             dto.TransportType,
@@ -348,8 +361,37 @@ public sealed partial class FeatureServiceClient
         };
     }
 
-    private static ExtractChangesLayerServerGen MapLayerServerGen(EsriLayerServerGenDto dto) {
-        return new ExtractChangesLayerServerGen(dto.Id, dto.ServerGen, dto.MinServerGen);
+    private static ExtractChangesLayerServerGen MapLayerServerGen(
+        EsriLayerServerGenDto dto,
+        Uri endpointUri) {
+        var layerId = ReadRequiredExtractChangesLayerId(
+            dto.Id,
+            endpointUri,
+            "layerServerGens");
+
+        return new ExtractChangesLayerServerGen(
+            layerId,
+            dto.ServerGen,
+            dto.MinServerGen);
+    }
+
+    private static int ReadRequiredExtractChangesLayerId(
+        int? layerId,
+        Uri endpointUri,
+        string collectionName) {
+        if (!layerId.HasValue) {
+            throw new FeatureServiceException(
+                $"The extractChanges payload returned a {collectionName} item without a layer ID.",
+                endpointUri);
+        }
+
+        if (layerId.Value < 0) {
+            throw new FeatureServiceException(
+                $"The extractChanges payload returned a {collectionName} item with a negative layer ID.",
+                endpointUri);
+        }
+
+        return layerId.Value;
     }
 
     private IReadOnlyList<FeatureRecord> MapExtractChangesFeatures(

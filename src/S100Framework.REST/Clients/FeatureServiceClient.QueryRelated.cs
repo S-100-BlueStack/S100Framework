@@ -1,6 +1,8 @@
-﻿using System.Globalization;
+﻿using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
+using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
+using System.Globalization;
 
 namespace S100Framework.REST.Clients;
 
@@ -9,11 +11,11 @@ namespace S100Framework.REST.Clients;
 /// </summary>
 public sealed partial class FeatureServiceClient
 {
-    internal Task<EsriRelatedRecordsResponseDto> QueryRelatedRecordsAsync(
-        int layerId,
-        RelatedRecordsQuery query,
-        bool returnCountOnly,
-        CancellationToken cancellationToken = default) {
+    internal async Task<EsriRelatedRecordsResponseDto> QueryRelatedRecordsAsync(
+    int layerId,
+    RelatedRecordsQuery query,
+    bool returnCountOnly,
+    CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
         query.Validate();
@@ -85,9 +87,39 @@ public sealed partial class FeatureServiceClient
             parameters["datumTransformation"] = query.DatumTransformationJson;
         }
 
-        return SendLayerQueryAsync<EsriRelatedRecordsResponseDto>(
+        var endpointUri = UriUtility.AppendPath(
+            _serviceUri,
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryRelatedRecords");
+
+        var response = await SendLayerQueryAsync<EsriRelatedRecordsResponseDto>(
             $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryRelatedRecords",
             parameters,
             cancellationToken);
+
+        ValidateRelatedRecordGroups(response, endpointUri);
+
+        return response;
+    }
+
+    private static void ValidateRelatedRecordGroups(
+    EsriRelatedRecordsResponseDto response,
+    Uri requestUri) {
+        foreach (var group in response.RelatedRecordGroups ?? Enumerable.Empty<EsriRelatedRecordGroupDto?>()) {
+            if (group is null) {
+                continue;
+            }
+
+            if (!group.ObjectId.HasValue) {
+                throw new FeatureServiceException(
+                    "The queryRelatedRecords payload returned a related record group without an objectId.",
+                    requestUri);
+            }
+
+            if (group.ObjectId.Value < 0) {
+                throw new FeatureServiceException(
+                    "The queryRelatedRecords payload returned a related record group with a negative objectId.",
+                    requestUri);
+            }
+        }
     }
 }

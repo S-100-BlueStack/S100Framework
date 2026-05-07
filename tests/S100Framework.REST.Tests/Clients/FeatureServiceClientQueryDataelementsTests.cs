@@ -260,6 +260,54 @@ public sealed class FeatureServiceClientQueryDataElementsTests
         Assert.True(metadata.Capabilities.SupportsQueryDataElements);
     }
 
+    [Fact]
+    public async Task QueryDataElementsAsync_Throws_WhenReturnedDataElementHasNegativeLayerId() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse(supportsQueryDataElements: true);
+            }
+
+            if (IsQueryDataElementsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layerDataElements": [
+                {
+                  "layerId": -1,
+                  "dataElement": {
+                    "name": "Invalid layer"
+                  }
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.QueryDataElementsAsync([0], cancellationToken));
+
+        Assert.Contains("layer ID", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryDataElementsAsync_Throws_WhenLayerIdsContainNegativeValue_BeforeMetadataLookup() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.QueryDataElementsAsync([0, -1], cancellationToken));
+
+        Assert.Contains("Layer IDs", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

@@ -98,6 +98,11 @@ internal static class QueryBinRequestValidation
                     throw new InvalidOperationException(
                         "PercentileParameters.Value must be between 0 and 1.");
                 }
+
+                if (!Enum.IsDefined(statistic.PercentileParameters.OrderBy)) {
+                    throw new InvalidOperationException(
+                        "PercentileParameters.OrderBy must be a supported percentile order.");
+                }
             }
             else if (statistic.PercentileParameters is not null) {
                 throw new InvalidOperationException(

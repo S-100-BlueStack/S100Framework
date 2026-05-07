@@ -407,4 +407,92 @@ public sealed class FeatureLayerClientQueryAnalyticAsyncTests
         Assert.Equal(1000, status.SubmissionTime);
         Assert.Equal(3000, status.LastUpdatedTime);
     }
+
+    [Fact]
+    public async Task SubmitQueryAnalyticAsync_ThrowsFeatureServiceException_WhenStatusUrlIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(supportsAsyncQueryAnalytic: true);
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/queryAnalytic",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "statusUrl": "not a valid absolute uri"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).SubmitQueryAnalyticAsync(
+                CreateRequest(),
+                cancellationToken));
+
+        Assert.Contains("statusUrl", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("queryAnalytic", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SubmitQueryAnalyticAsync_ThrowsFeatureServiceException_WhenStatusUrlIsNotAString() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(supportsAsyncQueryAnalytic: true);
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/queryAnalytic",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "statusUrl": 123
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).SubmitQueryAnalyticAsync(
+                CreateRequest(),
+                cancellationToken));
+
+        Assert.Contains("statusUrl", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("queryAnalytic", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetQueryAnalyticStatusAsync_ThrowsFeatureServiceException_WhenResultUrlIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (request.RequestUri!.AbsoluteUri == "https://example.test/jobs/queryAnalytic/abc") {
+                return StubHttpMessageHandler.Json("""
+            {
+              "status": "Completed",
+              "resultUrl": "not a valid absolute uri"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).GetQueryAnalyticStatusAsync(
+                new Uri("https://example.test/jobs/queryAnalytic/abc"),
+                cancellationToken));
+
+        Assert.Contains("resultUrl", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("queryAnalytic", exception.Message, StringComparison.Ordinal);
+    }
 }

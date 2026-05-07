@@ -51,7 +51,7 @@ internal sealed class EsriExtractChangesJobStatusDto
 internal sealed class EsriLayerServerGenDto
 {
     [JsonPropertyName("id")]
-    public int Id { get; init; }
+    public int? Id { get; init; }
 
     [JsonPropertyName("serverGen")]
     public long ServerGen { get; init; }
@@ -63,7 +63,7 @@ internal sealed class EsriLayerServerGenDto
 internal sealed class EsriExtractChangesLayerEditsDto
 {
     [JsonPropertyName("id")]
-    public int Id { get; init; }
+    public int? Id { get; init; }
 
     [JsonPropertyName("objectIds")]
     public EsriExtractChangesObjectIdsDto? ObjectIds { get; init; }

@@ -56,11 +56,17 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureLayerDataElement MapFeatureLayerDataElement(
-        EsriLayerDataElementDto dto,
-        Uri requestUri) {
+     EsriLayerDataElementDto dto,
+     Uri requestUri) {
         if (!dto.LayerId.HasValue) {
             throw new FeatureServiceException(
                 "The service returned a data element without a layer ID.",
+                requestUri);
+        }
+
+        if (dto.LayerId.Value < 0) {
+            throw new FeatureServiceException(
+                "The service returned a data element with a negative layer ID.",
                 requestUri);
         }
 

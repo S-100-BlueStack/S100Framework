@@ -83,6 +83,8 @@ public sealed partial class FeatureLayerClient
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(edits);
 
+        edits.Validate();
+
         var schema = await GetSchemaAsync(cancellationToken);
 
         if (!schema.Capabilities.SupportsAsyncApplyEdits) {

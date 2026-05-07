@@ -1,8 +1,10 @@
-﻿using System.Globalization;
-using System.Text.Json;
-using NetTopologySuite.Geometries;
+﻿using NetTopologySuite.Geometries;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
+using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
+using System.Globalization;
+using System.Text.Json;
 
 namespace S100Framework.REST.Clients;
 
@@ -73,8 +75,7 @@ public sealed partial class FeatureServiceClient
             parameters,
             cancellationToken);
     }
-
-    internal Task<EsriIdsResponseDto> QueryIdsAsync(
+    internal async Task<EsriIdsResponseDto> QueryIdsAsync(
         int layerId,
         FeatureQuery query,
         CancellationToken cancellationToken = default) {
@@ -87,10 +88,29 @@ public sealed partial class FeatureServiceClient
         parameters["f"] = "json";
         parameters["returnIdsOnly"] = "true";
 
-        return SendLayerQueryAsync<EsriIdsResponseDto>(
-            $"{layerId.ToString(CultureInfo.InvariantCulture)}/query",
+        var endpointPath = $"{layerId.ToString(CultureInfo.InvariantCulture)}/query";
+        var endpointUri = UriUtility.AppendPath(_serviceUri, endpointPath);
+
+        var response = await SendLayerQueryAsync<EsriIdsResponseDto>(
+            endpointPath,
             parameters,
             cancellationToken);
+
+        ValidateLayerQueryObjectIds(response.ObjectIds, endpointUri);
+
+        return response;
+    }
+
+    private static void ValidateLayerQueryObjectIds(
+    IEnumerable<long?>? objectIds,
+    Uri requestUri) {
+        foreach (var objectId in objectIds ?? Enumerable.Empty<long?>()) {
+            if (objectId is < 0) {
+                throw new FeatureServiceException(
+                    "The query payload returned a negative objectId.",
+                    requestUri);
+            }
+        }
     }
 
     internal Task<EsriUniqueIdsResponseDto> QueryUniqueIdsAsync(
@@ -113,9 +133,9 @@ public sealed partial class FeatureServiceClient
     }
 
     internal async Task<long> QueryCountAsync(
-        int layerId,
-        FeatureQuery query,
-        CancellationToken cancellationToken = default) {
+     int layerId,
+     FeatureQuery query,
+     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
         ValidateFeatureQueryCommon(query);
@@ -125,12 +145,33 @@ public sealed partial class FeatureServiceClient
         parameters["f"] = "json";
         parameters["returnCountOnly"] = "true";
 
+        var endpointPath = $"{layerId.ToString(CultureInfo.InvariantCulture)}/query";
+        var endpointUri = UriUtility.AppendPath(_serviceUri, endpointPath);
+
         var dto = await SendLayerQueryAsync<EsriCountResponseDto>(
-            $"{layerId.ToString(CultureInfo.InvariantCulture)}/query",
+            endpointPath,
             parameters,
             cancellationToken);
 
-        return dto.Count;
+        return ReadRequiredLayerQueryCount(dto.Count, endpointUri);
+    }
+
+    private static long ReadRequiredLayerQueryCount(
+    long? count,
+    Uri requestUri) {
+        if (!count.HasValue) {
+            throw new FeatureServiceException(
+                "The query count payload did not include a count value.",
+                requestUri);
+        }
+
+        if (count.Value < 0) {
+            throw new FeatureServiceException(
+                "The query count payload returned a negative count value.",
+                requestUri);
+        }
+
+        return count.Value;
     }
 
     internal async Task<FeatureExtent?> QueryExtentAsync(
@@ -284,6 +325,12 @@ public sealed partial class FeatureServiceClient
     private static void ValidateFeatureQueryGeometryOptions(FeatureQuery query) {
         if (query.GeometryPrecision is < 0) {
             throw new InvalidOperationException("GeometryPrecision must be greater than or equal to zero when provided.");
+        }
+
+        if (query.MaxAllowableOffset.HasValue &&
+    (double.IsNaN(query.MaxAllowableOffset.Value) ||
+     double.IsInfinity(query.MaxAllowableOffset.Value))) {
+            throw new InvalidOperationException("MaxAllowableOffset must be a finite value when provided.");
         }
 
         if (query.MaxAllowableOffset is < 0) {

@@ -11,7 +11,7 @@ internal sealed class EsriServiceRelationshipsResponseDto
 internal sealed class EsriServiceRelationshipDto
 {
     [JsonPropertyName("id")]
-    public int Id { get; init; }
+    public int? Id { get; init; }
 
     [JsonPropertyName("name")]
     public string? Name { get; init; }

@@ -383,6 +383,96 @@ public sealed class FeatureServiceClientApplyEditsHardeningTests
         Assert.Contains("applyEdits", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task ServiceApplyEditsAsync_ThrowsFeatureServiceException_WhenLayerResultIdIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceApplyEditsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            [
+              {
+                "addResults": [
+                  {
+                    "success": true,
+                    "objectId": 101
+                  }
+                ],
+                "updateResults": [],
+                "deleteResults": []
+              }
+            ]
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.ApplyEditsAsync(
+                new FeatureServiceEdits {
+                    Layers = [
+                        new ServiceLayerEdits {
+                        LayerId = 0,
+                        Adds = [
+                            new EditableFeature(
+                                Geometry: null,
+                                new Dictionary<string, object?> {
+                                    ["NAME"] = "Added"
+                                })
+                        ]
+                    }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("applyEdits", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("layer result", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ID", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ServiceApplyEditsAsync_ThrowsFeatureServiceException_WhenLayerResultIdIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceApplyEditsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            [
+              {
+                "id": -1,
+                "addResults": [],
+                "updateResults": [],
+                "deleteResults": [
+                  {
+                    "success": true,
+                    "objectId": 303
+                  }
+                ]
+              }
+            ]
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.ApplyEditsAsync(
+                new FeatureServiceEdits {
+                    Layers = [
+                        new ServiceLayerEdits {
+                        LayerId = 0,
+                        DeleteObjectIds = [303]
+                    }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("applyEdits", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

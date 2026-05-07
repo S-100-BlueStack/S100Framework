@@ -3,6 +3,7 @@ using S100Framework.REST.Abstractions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
+using S100Framework.REST.Exceptions;
 
 namespace S100Framework.REST.Clients;
 
@@ -54,6 +55,8 @@ public sealed partial class FeatureServiceClient
             });
 
         var dto = await GetAsync<EsriLayerMetadataDto>(uri, cancellationToken);
+
+        var schemaLayerId = ReadRequiredLayerMetadataId(dto.Id, uri);
 
         var srid = dto.Extent?.SpatialReference is null
             ? null
@@ -113,8 +116,8 @@ public sealed partial class FeatureServiceClient
         };
 
         return new FeatureLayerSchema(
-            dto.Id,
-            dto.Name ?? $"Layer {dto.Id}",
+            schemaLayerId,
+dto.Name ?? $"Layer {schemaLayerId}",
             dto.GeometryType,
             srid,
             dto.HasZ ?? false,
@@ -128,7 +131,7 @@ public sealed partial class FeatureServiceClient
 capabilities,
 dto.Relationships?
     .Where(static relationship => relationship is not null)
-    .Select(static relationship => MapRelationship(relationship!))
+    .Select(relationship => MapRelationship(relationship!, uri))
     .ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
             UniqueIdInfo = uniqueIdInfo,
             SupportedAppendFormats = dto.SupportedAppendFormats?
@@ -140,6 +143,24 @@ dto.Relationships?
             SupportedAppendCapabilities = dto.SupportedAppendCapabilities,
             HasContingentValuesDefinition = dto.HasContingentValuesDefinition ?? false
         };
+    }
+
+    private static int ReadRequiredLayerMetadataId(
+    int? layerId,
+    Uri requestUri) {
+        if (!layerId.HasValue) {
+            throw new FeatureServiceException(
+                "The layer metadata returned a layer without an ID.",
+                requestUri);
+        }
+
+        if (layerId.Value < 0) {
+            throw new FeatureServiceException(
+                "The layer metadata returned a layer with a negative ID.",
+                requestUri);
+        }
+
+        return layerId.Value;
     }
 
     private static IReadOnlyList<FeatureQuerySqlFormat> MapSupportedCalculateSqlFormats(
@@ -182,9 +203,23 @@ dto.Relationships?
             dto.Length);
     }
 
-    private static FeatureRelationshipInfo MapRelationship(EsriRelationshipInfoDto dto) {
+    private static FeatureRelationshipInfo MapRelationship(
+    EsriRelationshipInfoDto dto,
+    Uri requestUri) {
+        if (!dto.Id.HasValue) {
+            throw new FeatureServiceException(
+                "The layer metadata returned a relationship without an ID.",
+                requestUri);
+        }
+
+        if (dto.Id.Value < 0) {
+            throw new FeatureServiceException(
+                "The layer metadata returned a relationship with a negative ID.",
+                requestUri);
+        }
+
         return new FeatureRelationshipInfo(
-            dto.Id,
+            dto.Id.Value,
             dto.Name,
             dto.RelatedTableId,
             dto.Cardinality,

@@ -90,11 +90,17 @@ public sealed partial class FeatureServiceClient
     }
 
     private FeatureLayerEstimate MapServiceLayerEstimate(
-        EsriLayerEstimateDto dto,
-        Uri requestUri) {
+     EsriLayerEstimateDto dto,
+     Uri requestUri) {
         if (!dto.LayerId.HasValue) {
             throw new FeatureServiceException(
                 "The service returned a layer estimate without a layer ID.",
+                requestUri);
+        }
+
+        if (dto.LayerId.Value < 0) {
+            throw new FeatureServiceException(
+                "The service returned a layer estimate with a negative layer ID.",
                 requestUri);
         }
 

@@ -1,8 +1,10 @@
-﻿using System.Globalization;
-using System.Text.Json;
-using NetTopologySuite.Geometries;
+﻿using NetTopologySuite.Geometries;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
+using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
+using System.Globalization;
+using System.Text.Json;
 
 namespace S100Framework.REST.Clients;
 
@@ -65,9 +67,9 @@ public sealed partial class FeatureServiceClient
     }
 
     internal async Task<TopFeaturesCountResult> QueryTopFeatureCountAsync(
-        int layerId,
-        TopFeaturesQuery query,
-        CancellationToken cancellationToken = default) {
+    int layerId,
+    TopFeaturesQuery query,
+    CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
         query.Validate();
@@ -80,8 +82,11 @@ public sealed partial class FeatureServiceClient
         parameters["f"] = "json";
         parameters["returnCountOnly"] = "true";
 
+        var endpointPath = $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryTopFeatures";
+        var endpointUri = UriUtility.AppendPath(_serviceUri, endpointPath);
+
         var dto = await SendLayerQueryAsync<EsriTopFeaturesCountResponseDto>(
-            $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryTopFeatures",
+            endpointPath,
             parameters,
             cancellationToken);
 
@@ -107,7 +112,27 @@ public sealed partial class FeatureServiceClient
                 srid);
         }
 
-        return new TopFeaturesCountResult(dto.Count, extent);
+        return new TopFeaturesCountResult(
+            ReadRequiredTopFeaturesCount(dto.Count, endpointUri),
+            extent);
+    }
+
+    private static long ReadRequiredTopFeaturesCount(
+    long? count,
+    Uri requestUri) {
+        if (!count.HasValue) {
+            throw new FeatureServiceException(
+                "The queryTopFeatures count payload did not include a count value.",
+                requestUri);
+        }
+
+        if (count.Value < 0) {
+            throw new FeatureServiceException(
+                "The queryTopFeatures count payload returned a negative count value.",
+                requestUri);
+        }
+
+        return count.Value;
     }
 
     private static Dictionary<string, string?> CreateCommonTopFeaturesParameters(

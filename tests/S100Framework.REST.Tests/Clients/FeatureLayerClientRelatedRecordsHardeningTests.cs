@@ -1,10 +1,11 @@
-﻿using System.Net.Http;
-using System.Text.Json;
-using S100Framework.REST.Abstractions;
+﻿using S100Framework.REST.Abstractions;
 using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Models;
 using S100Framework.REST.Tests.TestDoubles;
+using System.Net.Http;
+using System.Text.Json;
 using Xunit;
 
 namespace S100Framework.REST.Tests.Clients;
@@ -521,6 +522,143 @@ public sealed class FeatureLayerClientRelatedRecordsHardeningTests
                 cancellationToken));
 
         Assert.Contains("GdbVersion", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public async Task QueryRelatedRecordsAsync_Throws_WhenMaxAllowableOffsetIsNotFinite(
+    double maxAllowableOffset) {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryRelatedRecordsAsync(
+                new RelatedRecordsQuery {
+                    ObjectIds = [100],
+                    RelationshipId = 1,
+                    MaxAllowableOffset = maxAllowableOffset
+                },
+                cancellationToken));
+
+        Assert.Contains("MaxAllowableOffset", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("finite", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryRelatedRecordsAsync_ThrowsFeatureServiceException_WhenGroupObjectIdIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsRelatedRecordsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "fields": [
+                { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
+              ],
+              "relatedRecordGroups": [
+                {
+                  "relatedRecords": []
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            layerClient.QueryRelatedRecordsAsync(
+                new RelatedRecordsQuery {
+                    ObjectIds = [100],
+                    RelationshipId = 1
+                },
+                cancellationToken));
+
+        Assert.Contains("queryRelatedRecords", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("objectId", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryRelatedRecordsAsync_ThrowsFeatureServiceException_WhenGroupObjectIdIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsRelatedRecordsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "fields": [
+                { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
+              ],
+              "relatedRecordGroups": [
+                {
+                  "objectId": -1,
+                  "relatedRecords": []
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            layerClient.QueryRelatedRecordsAsync(
+                new RelatedRecordsQuery {
+                    ObjectIds = [100],
+                    RelationshipId = 1
+                },
+                cancellationToken));
+
+        Assert.Contains("queryRelatedRecords", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryRelatedRecordCountsAsync_ThrowsFeatureServiceException_WhenGroupObjectIdIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (IsRelatedRecordsRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "relatedRecordGroups": [
+                {
+                  "count": 2
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            layerClient.QueryRelatedRecordCountsAsync(
+                new RelatedRecordsQuery {
+                    ObjectIds = [100],
+                    RelationshipId = 1
+                },
+                cancellationToken));
+
+        Assert.Contains("queryRelatedRecords", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("objectId", exception.Message, StringComparison.Ordinal);
     }
 
     private static IFeatureLayerClient CreateLayerClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {

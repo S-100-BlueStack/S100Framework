@@ -1,4 +1,5 @@
-﻿using S100Framework.REST.Internal.Dto;
+﻿using S100Framework.REST.Exceptions;
+using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
 
@@ -50,13 +51,13 @@ public sealed partial class FeatureServiceClient
 
         return new FeatureServiceMetadata(
             _serviceUri,
-            dto.Layers?
+           dto.Layers?
     .Where(static dataset => dataset is not null)
-    .Select(static dataset => MapDataset(dataset!))
+    .Select(dataset => MapDataset(dataset!, uri, "layers"))
     .ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
 dto.Tables?
     .Where(static dataset => dataset is not null)
-    .Select(static dataset => MapDataset(dataset!))
+    .Select(dataset => MapDataset(dataset!, uri, "tables"))
     .ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
             dto.Capabilities,
             dto.MaxRecordCount,
@@ -115,7 +116,24 @@ dto.Tables?
             .ToArray();
     }
 
-    private static FeatureServiceDatasetInfo MapDataset(EsriDatasetDto dto) {
-        return new FeatureServiceDatasetInfo(dto.Id, dto.Name ?? $"Dataset {dto.Id}");
+    private static FeatureServiceDatasetInfo MapDataset(
+    EsriDatasetDto dto,
+    Uri requestUri,
+    string collectionName) {
+        if (!dto.Id.HasValue) {
+            throw new FeatureServiceException(
+                $"The service metadata returned a {collectionName} item without an ID.",
+                requestUri);
+        }
+
+        if (dto.Id.Value < 0) {
+            throw new FeatureServiceException(
+                $"The service metadata returned a {collectionName} item with a negative ID.",
+                requestUri);
+        }
+
+        return new FeatureServiceDatasetInfo(
+            dto.Id.Value,
+            dto.Name ?? $"Dataset {dto.Id.Value}");
     }
 }

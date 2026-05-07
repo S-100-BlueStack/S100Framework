@@ -574,6 +574,179 @@ public sealed class FeatureLayerClientAttachmentAdvancedQueryHardeningTests
         Assert.Contains("Keywords", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task QueryAttachmentsAsync_ThrowsFeatureServiceException_WhenGroupParentObjectIdIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(
+                    supportsCountOnly: false,
+                    supportsOrderByFields: false);
+            }
+
+            if (IsAttachmentQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "attachmentGroups": [
+                {
+                  "parentObjectId": -1,
+                  "attachmentInfos": []
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).QueryAttachmentsAsync(
+                new AttachmentQuery {
+                    ObjectIds = [100]
+                },
+                cancellationToken));
+
+        Assert.Contains("queryAttachments", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("parentObjectId", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryAttachmentCountsAsync_ThrowsFeatureServiceException_WhenGroupParentObjectIdIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(
+                    supportsCountOnly: true,
+                    supportsOrderByFields: false);
+            }
+
+            if (IsAttachmentQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "attachmentGroups": [
+                {
+                  "parentObjectId": -1,
+                  "count": 2
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).QueryAttachmentCountsAsync(
+                new AttachmentQuery {
+                    ObjectIds = [100]
+                },
+                cancellationToken));
+
+        Assert.Contains("queryAttachments", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("parentObjectId", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryAttachmentsAsync_ThrowsFeatureServiceException_WhenAttachmentInfoIdIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(
+                    supportsCountOnly: false,
+                    supportsOrderByFields: false);
+            }
+
+            if (IsAttachmentQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "attachmentGroups": [
+                {
+                  "parentObjectId": 100,
+                  "attachmentInfos": [
+                    {
+                      "name": "photo.jpg",
+                      "contentType": "image/jpeg",
+                      "size": 1234
+                    }
+                  ]
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).QueryAttachmentsAsync(
+                new AttachmentQuery {
+                    ObjectIds = [100]
+                },
+                cancellationToken));
+
+        Assert.Contains("queryAttachments", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("attachment ID", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryAttachmentsAsync_ThrowsFeatureServiceException_WhenAttachmentInfoIdIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(
+                    supportsCountOnly: false,
+                    supportsOrderByFields: false);
+            }
+
+            if (IsAttachmentQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "attachmentGroups": [
+                {
+                  "parentObjectId": 100,
+                  "attachmentInfos": [
+                    {
+                      "id": -1,
+                      "name": "photo.jpg"
+                    }
+                  ]
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).QueryAttachmentsAsync(
+                new AttachmentQuery {
+                    ObjectIds = [100]
+                },
+                cancellationToken));
+
+        Assert.Contains("queryAttachments", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
