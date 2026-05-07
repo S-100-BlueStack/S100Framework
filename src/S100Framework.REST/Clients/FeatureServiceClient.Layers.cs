@@ -3,6 +3,7 @@ using S100Framework.REST.Abstractions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
+using S100Framework.REST.Exceptions;
 
 namespace S100Framework.REST.Clients;
 
@@ -128,7 +129,7 @@ public sealed partial class FeatureServiceClient
 capabilities,
 dto.Relationships?
     .Where(static relationship => relationship is not null)
-    .Select(static relationship => MapRelationship(relationship!))
+    .Select(relationship => MapRelationship(relationship!, uri))
     .ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
             UniqueIdInfo = uniqueIdInfo,
             SupportedAppendFormats = dto.SupportedAppendFormats?
@@ -182,9 +183,23 @@ dto.Relationships?
             dto.Length);
     }
 
-    private static FeatureRelationshipInfo MapRelationship(EsriRelationshipInfoDto dto) {
+    private static FeatureRelationshipInfo MapRelationship(
+    EsriRelationshipInfoDto dto,
+    Uri requestUri) {
+        if (!dto.Id.HasValue) {
+            throw new FeatureServiceException(
+                "The layer metadata returned a relationship without an ID.",
+                requestUri);
+        }
+
+        if (dto.Id.Value < 0) {
+            throw new FeatureServiceException(
+                "The layer metadata returned a relationship with a negative ID.",
+                requestUri);
+        }
+
         return new FeatureRelationshipInfo(
-            dto.Id,
+            dto.Id.Value,
             dto.Name,
             dto.RelatedTableId,
             dto.Cardinality,

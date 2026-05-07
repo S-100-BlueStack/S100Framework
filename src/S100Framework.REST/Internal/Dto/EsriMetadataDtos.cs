@@ -276,7 +276,7 @@ internal sealed class EsriFieldDto
 internal sealed class EsriRelationshipInfoDto
 {
     [JsonPropertyName("id")]
-    public int Id { get; init; }
+    public int? Id { get; init; }
 
     [JsonPropertyName("name")]
     public string? Name { get; init; }
