@@ -53,7 +53,7 @@ internal sealed class EsriServiceMetadataDto
 internal sealed class EsriDatasetDto
 {
     [JsonPropertyName("id")]
-    public int Id { get; init; }
+    public int? Id { get; init; }
 
     [JsonPropertyName("name")]
     public string? Name { get; init; }

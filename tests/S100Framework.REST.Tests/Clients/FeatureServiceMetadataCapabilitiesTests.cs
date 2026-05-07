@@ -1,5 +1,6 @@
 ﻿using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Tests.TestDoubles;
 using Xunit;
 
@@ -120,5 +121,75 @@ public sealed class FeatureServiceMetadataCapabilitiesTests
         Assert.Equal("Facilities", layer.Name);
         Assert.Equal(1, table.Id);
         Assert.Equal("Inspections", table.Name);
+    }
+
+    [Fact]
+    public async Task GetMetadataAsync_ThrowsFeatureServiceException_WhenLayerIdIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.EndsWith("/FeatureServer?f=json", StringComparison.Ordinal)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                { "name": "Facilities" }
+              ],
+              "tables": [],
+              "capabilities": "Query"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var client = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetMetadataAsync(cancellationToken));
+
+        Assert.Contains("layers", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("ID", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetMetadataAsync_ThrowsFeatureServiceException_WhenTableIdIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var handler = new StubHttpMessageHandler(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri.EndsWith("/FeatureServer?f=json", StringComparison.Ordinal)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [],
+              "tables": [
+                { "id": -1, "name": "Inspections" }
+              ],
+              "capabilities": "Query"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {uri}");
+        });
+
+        var client = new FeatureServiceClient(
+            new HttpClient(handler),
+            new FeatureServiceClientOptions {
+                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
+            });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetMetadataAsync(cancellationToken));
+
+        Assert.Contains("tables", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
