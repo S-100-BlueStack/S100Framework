@@ -138,12 +138,6 @@ public sealed record ExtractChangesRequest
     /// <exception cref="InvalidOperationException">
     /// Thrown when the request configuration is incomplete or internally inconsistent.
     /// </exception>
-    /// <summary>
-    /// Validates the request configuration.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the request configuration is incomplete or internally inconsistent.
-    /// </exception>
     public void Validate() {
         if (Layers is not { Count: > 0 }) {
             throw new InvalidOperationException("At least one layer ID must be provided.");
@@ -286,7 +280,7 @@ public sealed record ExtractChangesServerGens
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// Thrown when the configuration does not define either a single starting generation
-    /// or a complete min/max range.
+    /// or a complete min/max range, or when generation values are negative.
     /// </exception>
     public void Validate() {
         var hasSince = SinceServerGen.HasValue;
@@ -297,9 +291,21 @@ public sealed record ExtractChangesServerGens
                 "Provide either SinceServerGen or both MinServerGen and MaxServerGen.");
         }
 
+        if (SinceServerGen is < 0) {
+            throw new InvalidOperationException("SinceServerGen must be greater than or equal to zero when provided.");
+        }
+
         if (hasRange && (!MinServerGen.HasValue || !MaxServerGen.HasValue)) {
             throw new InvalidOperationException(
                 "Both MinServerGen and MaxServerGen must be provided together.");
+        }
+
+        if (MinServerGen is < 0) {
+            throw new InvalidOperationException("MinServerGen must be greater than or equal to zero when provided.");
+        }
+
+        if (MaxServerGen is < 0) {
+            throw new InvalidOperationException("MaxServerGen must be greater than or equal to zero when provided.");
         }
 
         if (MinServerGen.HasValue &&
@@ -346,12 +352,22 @@ public sealed record ExtractChangesLayerServerGen(
     /// Validates the layer server generation configuration.
     /// </summary>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the layer ID is negative.
+    /// Thrown when the layer ID or generation values are negative.
     /// </exception>
     public void Validate() {
         if (Id < 0) {
             throw new InvalidOperationException(
                 "Layer server generation IDs must be greater than or equal to zero.");
+        }
+
+        if (ServerGen < 0) {
+            throw new InvalidOperationException(
+                "Layer server generation ServerGen must be greater than or equal to zero.");
+        }
+
+        if (MinServerGen is < 0) {
+            throw new InvalidOperationException(
+                "Layer server generation MinServerGen must be greater than or equal to zero when provided.");
         }
     }
 }
