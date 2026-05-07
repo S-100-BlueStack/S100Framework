@@ -103,6 +103,12 @@ public sealed record TopFeaturesQuery
             throw new InvalidOperationException("GeometryPrecision must be greater than or equal to zero when provided.");
         }
 
+        if (MaxAllowableOffset.HasValue &&
+    (double.IsNaN(MaxAllowableOffset.Value) ||
+     double.IsInfinity(MaxAllowableOffset.Value))) {
+            throw new InvalidOperationException("MaxAllowableOffset must be a finite value when provided.");
+        }
+
         if (MaxAllowableOffset is < 0) {
             throw new InvalidOperationException("MaxAllowableOffset must be greater than or equal to zero when provided.");
         }

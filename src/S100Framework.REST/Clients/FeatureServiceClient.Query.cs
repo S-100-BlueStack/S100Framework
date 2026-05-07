@@ -286,6 +286,12 @@ public sealed partial class FeatureServiceClient
             throw new InvalidOperationException("GeometryPrecision must be greater than or equal to zero when provided.");
         }
 
+        if (query.MaxAllowableOffset.HasValue &&
+    (double.IsNaN(query.MaxAllowableOffset.Value) ||
+     double.IsInfinity(query.MaxAllowableOffset.Value))) {
+            throw new InvalidOperationException("MaxAllowableOffset must be a finite value when provided.");
+        }
+
         if (query.MaxAllowableOffset is < 0) {
             throw new InvalidOperationException("MaxAllowableOffset must be greater than or equal to zero when provided.");
         }

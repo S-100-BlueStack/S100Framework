@@ -308,6 +308,28 @@ public sealed class FeatureServiceClientServiceQueryHardeningTests
         Assert.Contains("SqlFormat", exception.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public async Task QueryAsync_Throws_WhenMaxAllowableOffsetIsNotFinite(
+    double maxAllowableOffset) {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.QueryAsync(
+                CreateRequest() with {
+                    MaxAllowableOffset = maxAllowableOffset
+                },
+                cancellationToken));
+
+        Assert.Contains("MaxAllowableOffset", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("finite", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceQueryRequest CreateRequest() {
         return new FeatureServiceQueryRequest {
             LayerDefinitions = [

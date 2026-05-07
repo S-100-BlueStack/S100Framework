@@ -263,6 +263,28 @@ public sealed class FeatureLayerClientTopFeaturesHardeningTests
         Assert.Contains("ObjectIds", exception.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public async Task QueryTopFeaturesAsync_Throws_WhenMaxAllowableOffsetIsNotFinite(
+    double maxAllowableOffset) {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).QueryTopFeaturesAsync(
+                CreateQuery() with {
+                    MaxAllowableOffset = maxAllowableOffset
+                },
+                cancellationToken));
+
+        Assert.Contains("MaxAllowableOffset", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("finite", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static TopFeaturesQuery CreateQuery() {
         return new TopFeaturesQuery {
             OutFields = ["OBJECTID", "PLANNAME"],

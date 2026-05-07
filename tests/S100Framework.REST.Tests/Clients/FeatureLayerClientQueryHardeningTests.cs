@@ -276,6 +276,31 @@ public sealed class FeatureLayerClientQueryHardeningTests
             uri => uri.AbsolutePath.EndsWith("/FeatureServer/0/query", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public async Task QueryAsync_Throws_WhenMaxAllowableOffsetIsNotFinite_BeforeSchemaLookup(
+    double maxAllowableOffset) {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."))
+            .GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => {
+            await foreach (var _ in layerClient.QueryAsync(
+                new FeatureQuery {
+                    MaxAllowableOffset = maxAllowableOffset
+                },
+                cancellationToken)) {
+            }
+        });
+
+        Assert.Contains("MaxAllowableOffset", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("finite", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

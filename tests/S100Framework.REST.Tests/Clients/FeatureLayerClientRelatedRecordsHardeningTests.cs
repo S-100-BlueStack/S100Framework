@@ -523,6 +523,30 @@ public sealed class FeatureLayerClientRelatedRecordsHardeningTests
         Assert.Contains("GdbVersion", exception.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public async Task QueryRelatedRecordsAsync_Throws_WhenMaxAllowableOffsetIsNotFinite(
+    double maxAllowableOffset) {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateLayerClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.QueryRelatedRecordsAsync(
+                new RelatedRecordsQuery {
+                    ObjectIds = [100],
+                    RelationshipId = 1,
+                    MaxAllowableOffset = maxAllowableOffset
+                },
+                cancellationToken));
+
+        Assert.Contains("MaxAllowableOffset", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("finite", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static IFeatureLayerClient CreateLayerClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return CreateClient(
                 QueryRequestMethodPreference.Get,
