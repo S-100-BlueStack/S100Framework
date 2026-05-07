@@ -33,14 +33,27 @@ public sealed partial class FeatureServiceClient
         return new FeatureServiceRelationshipsResult(
             (dto.Relationships ?? Enumerable.Empty<EsriServiceRelationshipDto?>())
                 .Where(static relationship => relationship is not null)
-                .Select(static relationship => MapServiceRelationship(relationship!))
+                .Select(relationship => MapServiceRelationship(relationship!, uri))
                 .ToArray());
     }
 
     private static FeatureServiceRelationship MapServiceRelationship(
-        EsriServiceRelationshipDto dto) {
+    EsriServiceRelationshipDto dto,
+    Uri requestUri) {
+        if (!dto.Id.HasValue) {
+            throw new FeatureServiceException(
+                "The service returned a relationship without an ID.",
+                requestUri);
+        }
+
+        if (dto.Id.Value < 0) {
+            throw new FeatureServiceException(
+                "The service returned a relationship with a negative ID.",
+                requestUri);
+        }
+
         return new FeatureServiceRelationship(
-            dto.Id,
+            dto.Id.Value,
             dto.Name,
             dto.CatalogId,
             dto.BackwardPathLabel,
