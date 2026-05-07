@@ -1,8 +1,10 @@
-﻿using System.Globalization;
-using System.Text.Json;
-using NetTopologySuite.Geometries;
+﻿using NetTopologySuite.Geometries;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
+using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
+using System.Globalization;
+using System.Text.Json;
 
 namespace S100Framework.REST.Clients;
 
@@ -73,8 +75,7 @@ public sealed partial class FeatureServiceClient
             parameters,
             cancellationToken);
     }
-
-    internal Task<EsriIdsResponseDto> QueryIdsAsync(
+    internal async Task<EsriIdsResponseDto> QueryIdsAsync(
         int layerId,
         FeatureQuery query,
         CancellationToken cancellationToken = default) {
@@ -87,10 +88,29 @@ public sealed partial class FeatureServiceClient
         parameters["f"] = "json";
         parameters["returnIdsOnly"] = "true";
 
-        return SendLayerQueryAsync<EsriIdsResponseDto>(
-            $"{layerId.ToString(CultureInfo.InvariantCulture)}/query",
+        var endpointPath = $"{layerId.ToString(CultureInfo.InvariantCulture)}/query";
+        var endpointUri = UriUtility.AppendPath(_serviceUri, endpointPath);
+
+        var response = await SendLayerQueryAsync<EsriIdsResponseDto>(
+            endpointPath,
             parameters,
             cancellationToken);
+
+        ValidateLayerQueryObjectIds(response.ObjectIds, endpointUri);
+
+        return response;
+    }
+
+    private static void ValidateLayerQueryObjectIds(
+    IEnumerable<long?>? objectIds,
+    Uri requestUri) {
+        foreach (var objectId in objectIds ?? Enumerable.Empty<long?>()) {
+            if (objectId is < 0) {
+                throw new FeatureServiceException(
+                    "The query payload returned a negative objectId.",
+                    requestUri);
+            }
+        }
     }
 
     internal Task<EsriUniqueIdsResponseDto> QueryUniqueIdsAsync(
