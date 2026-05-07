@@ -325,7 +325,7 @@ public sealed partial class FeatureServiceClient
             BuildServiceApplyEditsParameters(edits, applyAsync: false),
             cancellationToken);
 
-        return MapServiceApplyEditsResult(dto);
+        return MapServiceApplyEditsResult(dto, endpointUri);
     }
 
     /// <inheritdoc />
@@ -469,15 +469,16 @@ public sealed partial class FeatureServiceClient
                 "The applyEdits payload could not be deserialized.",
                 endpointUri);
 
-        return MapServiceApplyEditsResult(dto);
+        return MapServiceApplyEditsResult(dto, endpointUri);
     }
 
     private static FeatureServiceApplyEditsResult MapServiceApplyEditsResult(
-     IEnumerable<EsriServiceLayerEditResultsDto?>? dto) {
+     IEnumerable<EsriServiceLayerEditResultsDto?>? dto,
+     Uri endpointUri) {
         return new FeatureServiceApplyEditsResult(
             dto?
                 .Where(static layerResult => layerResult is not null)
-                .Select(static layerResult => MapServiceLayerEditResults(layerResult!))
+                .Select(layerResult => MapServiceLayerEditResults(layerResult!, endpointUri))
                 .ToArray() ?? Array.Empty<ServiceLayerEditResults>());
     }
 
@@ -521,9 +522,22 @@ public sealed partial class FeatureServiceClient
     }
 
     private static ServiceLayerEditResults MapServiceLayerEditResults(
-    EsriServiceLayerEditResultsDto dto) {
+      EsriServiceLayerEditResultsDto dto,
+      Uri endpointUri) {
+        if (!dto.Id.HasValue) {
+            throw new FeatureServiceException(
+                "The service applyEdits payload returned a layer result without an ID.",
+                endpointUri);
+        }
+
+        if (dto.Id.Value < 0) {
+            throw new FeatureServiceException(
+                "The service applyEdits payload returned a layer result with a negative ID.",
+                endpointUri);
+        }
+
         return new ServiceLayerEditResults(
-            dto.Id,
+            dto.Id.Value,
             MapApplyEditsResults(dto.AddResults),
             MapApplyEditsResults(dto.UpdateResults),
             MapApplyEditsResults(dto.DeleteResults));
