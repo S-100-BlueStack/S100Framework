@@ -56,6 +56,12 @@ public sealed partial class FeatureServiceClient
         var root = document.RootElement;
 
         if (root.TryGetProperty("statusUrl", out var statusUrlElement)) {
+            if (statusUrlElement.ValueKind != JsonValueKind.String) {
+                throw new FeatureServiceException(
+                    "The server returned an invalid statusUrl for extractChanges.",
+                    endpointUri);
+            }
+
             var rawStatusUrl = statusUrlElement.GetString();
 
             if (string.IsNullOrWhiteSpace(rawStatusUrl)) {

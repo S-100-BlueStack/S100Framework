@@ -351,6 +351,42 @@ public sealed class FeatureServiceClientExtractChangesHardeningTests
         Assert.Contains("extractChanges", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task SubmitExtractChangesAsync_ThrowsFeatureServiceException_WhenStatusUrlIsNotAString() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json(
+                    FeatureServiceTestResponses.CreateExtractChangesSupportedMetadataResponse());
+            }
+
+            if (IsExtractChangesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "statusUrl": 123
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.SubmitExtractChangesAsync(
+                new ExtractChangesRequest {
+                    Layers = [0],
+                    LayerServerGens = [
+                        new ExtractChangesLayerServerGen(0, 1653608093000)
+                    ],
+                    DataFormat = ExtractChangesDataFormat.Sqlite
+                },
+                cancellationToken));
+
+        Assert.Contains("statusUrl", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("extractChanges", exception.Message, StringComparison.Ordinal);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
