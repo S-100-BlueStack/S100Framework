@@ -12,7 +12,7 @@ internal sealed class EsriServiceQueryResponseDto
 internal sealed class EsriServiceQueryLayerDto
 {
     [JsonPropertyName("id")]
-    public int Id { get; init; }
+    public int? Id { get; init; }
 
     [JsonPropertyName("objectIdFieldName")]
     public string? ObjectIdFieldName { get; init; }

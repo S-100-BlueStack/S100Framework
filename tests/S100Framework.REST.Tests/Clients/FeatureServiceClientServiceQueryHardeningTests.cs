@@ -1,5 +1,6 @@
 ﻿using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Models;
 using S100Framework.REST.Tests.TestDoubles;
 using Xunit;
@@ -328,6 +329,136 @@ public sealed class FeatureServiceClientServiceQueryHardeningTests
 
         Assert.Contains("MaxAllowableOffset", exception.Message, StringComparison.Ordinal);
         Assert.Contains("finite", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryAsync_ThrowsFeatureServiceException_WhenLayerIdIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse();
+            }
+
+            if (IsServiceQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "features": []
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.QueryAsync(CreateRequest(), cancellationToken));
+
+        Assert.Contains("service query", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("layer", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ID", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_ThrowsFeatureServiceException_WhenLayerIdIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse();
+            }
+
+            if (IsServiceQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                {
+                  "id": -1,
+                  "count": 42
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.QueryCountAsync(CreateRequest(), cancellationToken));
+
+        Assert.Contains("service query", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryObjectIdsAsync_ThrowsFeatureServiceException_WhenLayerIdIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse();
+            }
+
+            if (IsServiceQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                {
+                  "objectIdFieldName": "OBJECTID",
+                  "objectIds": [10]
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.QueryObjectIdsAsync(CreateRequest(), cancellationToken));
+
+        Assert.Contains("service query", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ID", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task QueryUniqueIdsAsync_ThrowsFeatureServiceException_WhenLayerIdIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse();
+            }
+
+            if (IsServiceQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                {
+                  "id": -1,
+                  "uniqueIdFieldNames": "GLOBALID",
+                  "uniqueIds": ["alpha"]
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.QueryUniqueIdsAsync(CreateRequest(), cancellationToken));
+
+        Assert.Contains("service query", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static FeatureServiceQueryRequest CreateRequest() {

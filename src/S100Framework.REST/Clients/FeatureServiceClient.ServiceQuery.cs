@@ -30,9 +30,11 @@ public sealed partial class FeatureServiceClient
             parameters,
             cancellationToken);
 
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "query");
+
         return new FeatureServiceQueryResult(
             EnumerateServiceQueryLayers(dto.Layers)
-                .Select(MapServiceQueryLayer)
+                .Select(layer => MapServiceQueryLayer(layer, endpointUri))
                 .ToArray());
     }
 
@@ -82,10 +84,12 @@ public sealed partial class FeatureServiceClient
             parameters,
             cancellationToken);
 
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "query");
+
         return new FeatureServiceQueryCountResult(
             EnumerateServiceQueryLayers(dto.Layers)
-                .Select(static layer => new FeatureServiceLayerCountResult(
-                    layer.Id,
+                .Select(layer => new FeatureServiceLayerCountResult(
+                    ReadRequiredServiceQueryLayerId(layer.Id, endpointUri),
                     layer.Count ?? 0))
                 .ToArray());
     }
@@ -107,10 +111,12 @@ public sealed partial class FeatureServiceClient
             parameters,
             cancellationToken);
 
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "query");
+
         return new FeatureServiceQueryObjectIdsResult(
             EnumerateServiceQueryLayers(dto.Layers)
-                .Select(static layer => new FeatureServiceLayerObjectIdsResult(
-                    layer.Id,
+                .Select(layer => new FeatureServiceLayerObjectIdsResult(
+                    ReadRequiredServiceQueryLayerId(layer.Id, endpointUri),
                     layer.ObjectIdFieldName,
                     ReadServiceQueryObjectIds(layer.ObjectIds)))
                 .ToArray());
@@ -133,10 +139,12 @@ public sealed partial class FeatureServiceClient
             parameters,
             cancellationToken);
 
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "query");
+
         return new FeatureServiceQueryUniqueIdsResult(
             EnumerateServiceQueryLayers(dto.Layers)
-                .Select(static layer => new FeatureServiceLayerUniqueIdsResult(
-                    layer.Id,
+                .Select(layer => new FeatureServiceLayerUniqueIdsResult(
+                    ReadRequiredServiceQueryLayerId(layer.Id, endpointUri),
                     ReadServiceQueryUniqueIdFieldNames(layer.UniqueIdFieldNames),
                     ReadServiceQueryUniqueIds(layer.UniqueIds),
                     layer.ExceededTransferLimit))
@@ -310,11 +318,13 @@ public sealed partial class FeatureServiceClient
     }
 
     private FeatureServiceLayerQueryResult MapServiceQueryLayer(
-        EsriServiceQueryLayerDto dto) {
+        EsriServiceQueryLayerDto dto,
+        Uri endpointUri) {
+        var layerId = ReadRequiredServiceQueryLayerId(dto.Id, endpointUri);
         var srid = ResolveServiceQueryLayerSrid(dto.SpatialReference);
 
         return new FeatureServiceLayerQueryResult(
-            dto.Id,
+            layerId,
             (dto.Features ?? Enumerable.Empty<EsriFeatureDto?>())
                 .Where(static feature => feature is not null)
                 .Select(feature => MapServiceQueryFeature(
@@ -377,6 +387,24 @@ public sealed partial class FeatureServiceClient
             .Select(static layer => layer!) ?? Enumerable.Empty<EsriServiceQueryLayerDto>();
     }
 
+    private static int ReadRequiredServiceQueryLayerId(
+        int? layerId,
+        Uri endpointUri) {
+        if (!layerId.HasValue) {
+            throw new FeatureServiceException(
+                "The service query payload returned a layer without an ID.",
+                endpointUri);
+        }
+
+        if (layerId.Value < 0) {
+            throw new FeatureServiceException(
+                "The service query payload returned a layer with a negative ID.",
+                endpointUri);
+        }
+
+        return layerId.Value;
+    }
+
     private static IReadOnlyList<long> ReadServiceQueryObjectIds(
         IEnumerable<long?>? objectIds) {
         return objectIds?
@@ -386,7 +414,7 @@ public sealed partial class FeatureServiceClient
     }
 
     private static IReadOnlyList<string> ReadServiceQueryUniqueIdFieldNames(
-    JsonElement element) {
+        JsonElement element) {
         return element.ValueKind switch {
             JsonValueKind.Undefined or JsonValueKind.Null => Array.Empty<string>(),
             JsonValueKind.String => element.GetString() is { Length: > 0 } value
@@ -403,7 +431,7 @@ public sealed partial class FeatureServiceClient
     }
 
     private static IReadOnlyList<FeatureUniqueId> ReadServiceQueryUniqueIds(
-    JsonElement element) {
+        JsonElement element) {
         if (element.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
             return Array.Empty<FeatureUniqueId>();
         }
