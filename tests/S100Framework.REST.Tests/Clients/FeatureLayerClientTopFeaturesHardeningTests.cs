@@ -1,5 +1,6 @@
 ﻿using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Models;
 using S100Framework.REST.Tests.TestDoubles;
 using Xunit;
@@ -283,6 +284,92 @@ public sealed class FeatureLayerClientTopFeaturesHardeningTests
 
         Assert.Contains("MaxAllowableOffset", exception.Message, StringComparison.Ordinal);
         Assert.Contains("finite", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryTopFeatureCountAsync_ThrowsFeatureServiceException_WhenCountIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (IsTopFeaturesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).QueryTopFeatureCountAsync(
+                CreateQuery(),
+                cancellationToken));
+
+        Assert.Contains("queryTopFeatures", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("count", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryTopFeatureCountAsync_ThrowsFeatureServiceException_WhenCountIsNull() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (IsTopFeaturesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "count": null
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).QueryTopFeatureCountAsync(
+                CreateQuery(),
+                cancellationToken));
+
+        Assert.Contains("queryTopFeatures", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("count", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryTopFeatureCountAsync_ThrowsFeatureServiceException_WhenCountIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse();
+            }
+
+            if (IsTopFeaturesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "count": -1
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).QueryTopFeatureCountAsync(
+                CreateQuery(),
+                cancellationToken));
+
+        Assert.Contains("queryTopFeatures", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static TopFeaturesQuery CreateQuery() {

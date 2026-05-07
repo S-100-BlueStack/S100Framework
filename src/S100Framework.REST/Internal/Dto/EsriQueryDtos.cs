@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace S100Framework.REST.Internal.Dto;
@@ -135,7 +136,7 @@ internal sealed class EsriAttachmentGroupDto
 internal sealed class EsriTopFeaturesCountResponseDto
 {
     [JsonPropertyName("count")]
-    public long Count { get; init; }
+    public long? Count { get; init; }
 
     [JsonPropertyName("extent")]
     public EsriQueryExtentDto? Extent { get; init; }
