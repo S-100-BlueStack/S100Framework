@@ -56,6 +56,8 @@ public sealed partial class FeatureServiceClient
 
         var dto = await GetAsync<EsriLayerMetadataDto>(uri, cancellationToken);
 
+        var schemaLayerId = ReadRequiredLayerMetadataId(dto.Id, uri);
+
         var srid = dto.Extent?.SpatialReference is null
             ? null
             : _options.PreferLatestWkid
@@ -114,8 +116,8 @@ public sealed partial class FeatureServiceClient
         };
 
         return new FeatureLayerSchema(
-            dto.Id,
-            dto.Name ?? $"Layer {dto.Id}",
+            schemaLayerId,
+dto.Name ?? $"Layer {schemaLayerId}",
             dto.GeometryType,
             srid,
             dto.HasZ ?? false,
@@ -141,6 +143,24 @@ dto.Relationships?
             SupportedAppendCapabilities = dto.SupportedAppendCapabilities,
             HasContingentValuesDefinition = dto.HasContingentValuesDefinition ?? false
         };
+    }
+
+    private static int ReadRequiredLayerMetadataId(
+    int? layerId,
+    Uri requestUri) {
+        if (!layerId.HasValue) {
+            throw new FeatureServiceException(
+                "The layer metadata returned a layer without an ID.",
+                requestUri);
+        }
+
+        if (layerId.Value < 0) {
+            throw new FeatureServiceException(
+                "The layer metadata returned a layer with a negative ID.",
+                requestUri);
+        }
+
+        return layerId.Value;
     }
 
     private static IReadOnlyList<FeatureQuerySqlFormat> MapSupportedCalculateSqlFormats(

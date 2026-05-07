@@ -537,6 +537,59 @@ public sealed class FeatureLayerSchemaMetadataTests
         Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task GetSchemaAsync_ThrowsFeatureServiceException_WhenLayerMetadataIdIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateSchemaClient("""
+    {
+      "name": "Facilities",
+      "geometryType": "esriGeometryPoint",
+      "objectIdField": "OBJECTID",
+      "fields": [
+        { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
+      ],
+      "relationships": [],
+      "extent": {
+        "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
+      }
+    }
+    """);
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).GetSchemaAsync(cancellationToken));
+
+        Assert.Contains("layer", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ID", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetSchemaAsync_ThrowsFeatureServiceException_WhenLayerMetadataIdIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateSchemaClient("""
+    {
+      "id": -1,
+      "name": "Facilities",
+      "geometryType": "esriGeometryPoint",
+      "objectIdField": "OBJECTID",
+      "fields": [
+        { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
+      ],
+      "relationships": [],
+      "extent": {
+        "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
+      }
+    }
+    """);
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetLayerClient(0).GetSchemaAsync(cancellationToken));
+
+        Assert.Contains("layer", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateSchemaClient(string layerMetadataJson) {
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;
