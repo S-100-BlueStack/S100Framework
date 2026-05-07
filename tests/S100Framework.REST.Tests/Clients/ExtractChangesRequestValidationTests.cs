@@ -122,6 +122,22 @@ public sealed class ExtractChangesRequestValidationTests
         request.Validate();
     }
 
+    [Fact]
+    public void Validate_Throws_WhenLayerQueryOptionIsInvalid() {
+        var request = CreateValidRequest() with {
+            LayerQueries = new Dictionary<int, ExtractChangesLayerQuery> {
+                [0] = new ExtractChangesLayerQuery {
+                    QueryOption = (ExtractChangesLayerQueryOption)999
+                }
+            }
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("QueryOption", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("layer query option", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static ExtractChangesRequest CreateValidRequest() {
         return new ExtractChangesRequest {
             Layers = [0],

@@ -561,6 +561,32 @@ public sealed class FeatureServiceClientExtractChangesHardeningTests
         Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task SubmitExtractChangesAsync_Throws_WhenLayerQueryOptionIsInvalid_BeforeMetadataLookup() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.SubmitExtractChangesAsync(
+                new ExtractChangesRequest {
+                    Layers = [0],
+                    ServerGens = new ExtractChangesServerGens {
+                        SinceServerGen = 1653608093000
+                    },
+                    LayerQueries = new Dictionary<int, ExtractChangesLayerQuery> {
+                        [0] = new ExtractChangesLayerQuery {
+                            QueryOption = (ExtractChangesLayerQueryOption)999
+                        }
+                    }
+                },
+                cancellationToken));
+
+        Assert.Contains("QueryOption", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("layer query option", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

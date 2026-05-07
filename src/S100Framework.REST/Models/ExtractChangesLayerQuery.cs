@@ -49,7 +49,15 @@ public sealed record ExtractChangesLayerQuery
     /// <summary>
     /// Validates the layer query configuration.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the layer query configuration contains unsupported values.
+    /// </exception>
     public void Validate() {
+        if (!Enum.IsDefined(QueryOption)) {
+            throw new InvalidOperationException(
+                "QueryOption must be a supported extractChanges layer query option.");
+        }
+
         // ArcGIS accepts combinations here and ignores some values depending on queryOption.
         // The client keeps validation intentionally light to avoid rejecting valid server-side cases.
     }
