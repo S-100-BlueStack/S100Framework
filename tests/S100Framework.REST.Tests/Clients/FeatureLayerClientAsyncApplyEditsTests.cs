@@ -93,6 +93,25 @@ public sealed class FeatureLayerClientAsyncApplyEditsTests
     }
 
     [Fact]
+    public async Task SubmitApplyEditsAsync_Throws_WhenEditsAreInvalid_BeforeSchemaLookup() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateClient(new StubHttpMessageHandler(_ =>
+            throw new InvalidOperationException("HTTP should not be called.")))
+            .GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layerClient.SubmitApplyEditsAsync(
+                new FeatureEdits {
+                    Deletes = [0]
+                },
+                cancellationToken));
+
+        Assert.Contains("Deletes", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("positive", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task GetApplyEditsStatusAsync_MapsCompletedStatus() {
         var cancellationToken = TestContext.Current.CancellationToken;
         var handler = new StubHttpMessageHandler(_ =>
