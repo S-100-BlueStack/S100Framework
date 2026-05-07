@@ -387,6 +387,180 @@ public sealed class FeatureServiceClientExtractChangesHardeningTests
         Assert.Contains("extractChanges", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task ExtractChangesAsync_ThrowsFeatureServiceException_WhenLayerServerGenIdIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json(
+                    FeatureServiceTestResponses.CreateExtractChangesSupportedMetadataResponse());
+            }
+
+            if (IsExtractChangesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layerServerGens": [
+                {
+                  "serverGen": 153025
+                }
+              ],
+              "edits": []
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.ExtractChangesAsync(
+                new ExtractChangesRequest {
+                    Layers = [0],
+                    LayerServerGens = [
+                        new ExtractChangesLayerServerGen(0, 1653608093000)
+                    ],
+                    ReturnIdsOnly = true
+                },
+                cancellationToken));
+
+        Assert.Contains("layerServerGens", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("layer ID", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ExtractChangesAsync_ThrowsFeatureServiceException_WhenLayerServerGenIdIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json(
+                    FeatureServiceTestResponses.CreateExtractChangesSupportedMetadataResponse());
+            }
+
+            if (IsExtractChangesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layerServerGens": [
+                {
+                  "id": -1,
+                  "serverGen": 153025
+                }
+              ],
+              "edits": []
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.ExtractChangesAsync(
+                new ExtractChangesRequest {
+                    Layers = [0],
+                    LayerServerGens = [
+                        new ExtractChangesLayerServerGen(0, 1653608093000)
+                    ],
+                    ReturnIdsOnly = true
+                },
+                cancellationToken));
+
+        Assert.Contains("layerServerGens", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ExtractChangesAsync_ThrowsFeatureServiceException_WhenEditLayerIdIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json(
+                    FeatureServiceTestResponses.CreateExtractChangesSupportedMetadataResponse());
+            }
+
+            if (IsExtractChangesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layerServerGens": [],
+              "edits": [
+                {
+                  "objectIds": {
+                    "adds": [100],
+                    "updates": [],
+                    "deletes": []
+                  }
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.ExtractChangesAsync(
+                new ExtractChangesRequest {
+                    Layers = [0],
+                    LayerServerGens = [
+                        new ExtractChangesLayerServerGen(0, 1653608093000)
+                    ],
+                    ReturnIdsOnly = true
+                },
+                cancellationToken));
+
+        Assert.Contains("edits", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("layer ID", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ExtractChangesAsync_ThrowsFeatureServiceException_WhenEditLayerIdIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json(
+                    FeatureServiceTestResponses.CreateExtractChangesSupportedMetadataResponse());
+            }
+
+            if (IsExtractChangesRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layerServerGens": [],
+              "edits": [
+                {
+                  "id": -1,
+                  "objectIds": {
+                    "adds": [100],
+                    "updates": [],
+                    "deletes": []
+                  }
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.ExtractChangesAsync(
+                new ExtractChangesRequest {
+                    Layers = [0],
+                    LayerServerGens = [
+                        new ExtractChangesLayerServerGen(0, 1653608093000)
+                    ],
+                    ReturnIdsOnly = true
+                },
+                cancellationToken));
+
+        Assert.Contains("edits", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
