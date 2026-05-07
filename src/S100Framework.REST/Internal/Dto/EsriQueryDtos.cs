@@ -51,7 +51,7 @@ internal sealed class EsriUniqueIdsResponseDto
 internal sealed class EsriCountResponseDto
 {
     [JsonPropertyName("count")]
-    public long Count { get; init; }
+    public long? Count { get; init; }
 }
 
 internal sealed class EsriExtentResponseDto

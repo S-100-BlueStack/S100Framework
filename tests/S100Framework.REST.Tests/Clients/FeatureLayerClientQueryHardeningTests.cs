@@ -333,6 +333,80 @@ public sealed class FeatureLayerClientQueryHardeningTests
         Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task QueryCountAsync_ThrowsFeatureServiceException_WhenCountIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateClient(request => {
+            if (IsQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        }).GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            layerClient.QueryCountAsync(
+                new FeatureQuery(),
+                cancellationToken));
+
+        Assert.Contains("query count", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("count", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_ThrowsFeatureServiceException_WhenCountIsNull() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateClient(request => {
+            if (IsQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "count": null
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        }).GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            layerClient.QueryCountAsync(
+                new FeatureQuery(),
+                cancellationToken));
+
+        Assert.Contains("query count", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("count", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_ThrowsFeatureServiceException_WhenCountIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var layerClient = CreateClient(request => {
+            if (IsQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "count": -1
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        }).GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            layerClient.QueryCountAsync(
+                new FeatureQuery(),
+                cancellationToken));
+
+        Assert.Contains("query count", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

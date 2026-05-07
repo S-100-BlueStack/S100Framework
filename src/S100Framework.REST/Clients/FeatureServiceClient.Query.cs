@@ -133,9 +133,9 @@ public sealed partial class FeatureServiceClient
     }
 
     internal async Task<long> QueryCountAsync(
-        int layerId,
-        FeatureQuery query,
-        CancellationToken cancellationToken = default) {
+     int layerId,
+     FeatureQuery query,
+     CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
         ValidateFeatureQueryCommon(query);
@@ -145,12 +145,33 @@ public sealed partial class FeatureServiceClient
         parameters["f"] = "json";
         parameters["returnCountOnly"] = "true";
 
+        var endpointPath = $"{layerId.ToString(CultureInfo.InvariantCulture)}/query";
+        var endpointUri = UriUtility.AppendPath(_serviceUri, endpointPath);
+
         var dto = await SendLayerQueryAsync<EsriCountResponseDto>(
-            $"{layerId.ToString(CultureInfo.InvariantCulture)}/query",
+            endpointPath,
             parameters,
             cancellationToken);
 
-        return dto.Count;
+        return ReadRequiredLayerQueryCount(dto.Count, endpointUri);
+    }
+
+    private static long ReadRequiredLayerQueryCount(
+    long? count,
+    Uri requestUri) {
+        if (!count.HasValue) {
+            throw new FeatureServiceException(
+                "The query count payload did not include a count value.",
+                requestUri);
+        }
+
+        if (count.Value < 0) {
+            throw new FeatureServiceException(
+                "The query count payload returned a negative count value.",
+                requestUri);
+        }
+
+        return count.Value;
     }
 
     internal async Task<FeatureExtent?> QueryExtentAsync(
