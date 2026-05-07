@@ -122,6 +122,29 @@ public sealed class FeatureLayerClientAsyncApplyEditsTests
     }
 
     [Fact]
+    public async Task GetApplyEditsStatusAsync_ThrowsFeatureServiceException_WhenResultUrlIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var handler = new StubHttpMessageHandler(_ =>
+            StubHttpMessageHandler.Json("""
+        {
+          "status": "COMPLETED",
+          "resultUrl": "not a valid absolute uri"
+        }
+        """));
+
+        var layerClient = CreateClient(handler).GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            layerClient.GetApplyEditsStatusAsync(
+                new Uri("https://example.test/jobs/apply-edits-1/status"),
+                cancellationToken));
+
+        Assert.Contains("resultUrl", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("applyEdits", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GetApplyEditsResultAsync_MapsEditResults() {
         var cancellationToken = TestContext.Current.CancellationToken;
         var handler = new StubHttpMessageHandler(_ =>
@@ -153,6 +176,76 @@ public sealed class FeatureLayerClientAsyncApplyEditsTests
         Assert.False(result.UpdateResults[0].Success);
         Assert.Equal(1000, result.UpdateResults[0].ErrorCode);
         Assert.Equal("Validation failed.", result.UpdateResults[0].ErrorDescription);
+    }
+
+    [Fact]
+    public async Task SubmitApplyEditsAsync_ThrowsFeatureServiceException_WhenStatusUrlIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var handler = new StubHttpMessageHandler(request => {
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(supportsAsyncApplyEdits: true);
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/applyEdits",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "statusUrl": "not a valid absolute uri"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var layerClient = CreateClient(handler).GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            layerClient.SubmitApplyEditsAsync(
+                new FeatureEdits {
+                    Deletes = [1]
+                },
+                cancellationToken));
+
+        Assert.Contains("statusUrl", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("applyEdits", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SubmitApplyEditsAsync_ThrowsFeatureServiceException_WhenStatusUrlIsNotAString() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var handler = new StubHttpMessageHandler(request => {
+            if (IsLayerMetadataRequest(request)) {
+                return CreateLayerMetadataResponse(supportsAsyncApplyEdits: true);
+            }
+
+            if (request.RequestUri!.AbsolutePath.EndsWith(
+                "/FeatureServer/0/applyEdits",
+                StringComparison.OrdinalIgnoreCase)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "statusUrl": 123
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var layerClient = CreateClient(handler).GetLayerClient(0);
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            layerClient.SubmitApplyEditsAsync(
+                new FeatureEdits {
+                    Deletes = [1]
+                },
+                cancellationToken));
+
+        Assert.Contains("statusUrl", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("applyEdits", exception.Message, StringComparison.Ordinal);
     }
 
     private static FeatureServiceClient CreateClient(HttpMessageHandler handler) {

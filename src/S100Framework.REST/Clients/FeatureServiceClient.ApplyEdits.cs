@@ -92,8 +92,13 @@ public sealed partial class FeatureServiceClient
             cancellationToken);
 
         var root = document.RootElement;
-
         if (root.TryGetProperty("statusUrl", out var statusUrlElement)) {
+            if (statusUrlElement.ValueKind != JsonValueKind.String) {
+                throw new FeatureServiceException(
+                    "The server returned an invalid statusUrl for applyEdits.",
+                    endpointUri);
+            }
+
             var rawStatusUrl = statusUrlElement.GetString();
 
             if (string.IsNullOrWhiteSpace(rawStatusUrl)) {
@@ -102,9 +107,15 @@ public sealed partial class FeatureServiceClient
                     endpointUri);
             }
 
+            if (!Uri.TryCreate(rawStatusUrl, UriKind.Absolute, out var statusUrl)) {
+                throw new FeatureServiceException(
+                    "The server returned an invalid statusUrl for applyEdits.",
+                    endpointUri);
+            }
+
             return new ApplyEditsSubmissionResult(
                 Result: null,
-                StatusUrl: new Uri(rawStatusUrl, UriKind.Absolute));
+                StatusUrl: statusUrl);
         }
 
         return new ApplyEditsSubmissionResult(
@@ -120,14 +131,31 @@ public sealed partial class FeatureServiceClient
         var document = await GetAsync<JsonDocument>(statusUrl, cancellationToken);
         var root = document.RootElement;
 
+        Uri? resultUrl = null;
+
+        if (root.TryGetProperty("resultUrl", out var resultUrlElement) &&
+            resultUrlElement.ValueKind != JsonValueKind.Null) {
+            if (resultUrlElement.ValueKind != JsonValueKind.String) {
+                throw new FeatureServiceException(
+                    "The server returned an invalid resultUrl for applyEdits.",
+                    statusUrl);
+            }
+
+            var rawResultUrl = resultUrlElement.GetString();
+
+            if (!string.IsNullOrWhiteSpace(rawResultUrl) &&
+                !Uri.TryCreate(rawResultUrl, UriKind.Absolute, out resultUrl)) {
+                throw new FeatureServiceException(
+                    "The server returned an invalid resultUrl for applyEdits.",
+                    statusUrl);
+            }
+        }
+
         return new ApplyEditsJobStatus(
             Status: root.TryGetProperty("status", out var statusElement)
                 ? statusElement.GetString() ?? "Unknown"
                 : "Unknown",
-            ResultUrl: root.TryGetProperty("resultUrl", out var resultUrlElement) &&
-                       !string.IsNullOrWhiteSpace(resultUrlElement.GetString())
-                ? new Uri(resultUrlElement.GetString()!, UriKind.Absolute)
-                : null,
+            ResultUrl: resultUrl,
             SubmissionTime: root.TryGetProperty("submissionTime", out var submissionTimeElement) &&
                             submissionTimeElement.TryGetInt64(out var submissionTime)
                 ? submissionTime
