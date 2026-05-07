@@ -470,6 +470,41 @@ public sealed class FeatureLayerClientQueryBinsTests
         Assert.Contains("StatisticType", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task QueryBinsAsync_Throws_WhenPercentileOrderByIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            throw new InvalidOperationException("HTTP should not be called."));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetLayerClient(0).QueryBinsAsync(
+                new QueryBinsRequest {
+                    BinJson = """
+                {
+                  "type": "autoIntervalBin",
+                  "onField": "DEPTH",
+                  "parameters": {
+                    "numberOfBins": 2
+                  }
+                }
+                """,
+                    Statistics = [
+                        new StatisticDefinition(
+                        OnStatisticField: "DEPTH",
+                        OutStatisticFieldName: "P90_DEPTH",
+                        StatisticType: StatisticType.PercentileContinuous,
+                        PercentileParameters: new StatisticPercentileParameters(
+                            0.9,
+                            (StatisticPercentileOrder)999))
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("OrderBy", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("percentile order", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),
