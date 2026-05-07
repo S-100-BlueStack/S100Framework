@@ -23,11 +23,11 @@ public sealed partial class FeatureServiceClient
             cancellationToken);
     }
 
-    internal Task<EsriAttachmentQueryResponseDto> QueryAttachmentsAsync(
-       int layerId,
-       AttachmentQuery query,
-       bool returnCountOnly,
-       CancellationToken cancellationToken = default) {
+    internal async Task<EsriAttachmentQueryResponseDto> QueryAttachmentsAsync(
+    int layerId,
+    AttachmentQuery query,
+    bool returnCountOnly,
+    CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
         query.Validate();
@@ -70,10 +70,34 @@ public sealed partial class FeatureServiceClient
             parameters["size"] = $"{min},{max}";
         }
 
-        return SendLayerQueryAsync<EsriAttachmentQueryResponseDto>(
+        var response = await SendLayerQueryAsync<EsriAttachmentQueryResponseDto>(
             $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryAttachments",
             parameters,
             cancellationToken);
+
+        var endpointUri = UriUtility.AppendPath(
+            _serviceUri,
+            $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryAttachments");
+
+        ValidateAttachmentGroups(response, endpointUri);
+
+        return response;
+    }
+
+    private static void ValidateAttachmentGroups(
+    EsriAttachmentQueryResponseDto response,
+    Uri requestUri) {
+        foreach (var group in response.AttachmentGroups ?? Enumerable.Empty<EsriAttachmentGroupDto?>()) {
+            if (group is null) {
+                continue;
+            }
+
+            if (group.ParentObjectId is < 0) {
+                throw new FeatureServiceException(
+                    "The queryAttachments payload returned an attachment group with a negative parentObjectId.",
+                    requestUri);
+            }
+        }
     }
 
     internal async Task<AttachmentContent> DownloadAttachmentAsync(
