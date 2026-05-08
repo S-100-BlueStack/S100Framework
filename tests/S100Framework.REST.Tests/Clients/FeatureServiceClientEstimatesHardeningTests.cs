@@ -182,34 +182,6 @@ public sealed class FeatureServiceClientEstimatesHardeningTests
         Assert.Null(estimate.Extent);
     }
 
-    [Fact]
-    public async Task GetEstimatesAsync_Throws_WhenLayerEstimateHasNegativeLayerId() {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var client = CreateClient(request => {
-            if (IsServiceGetEstimatesRequest(request)) {
-                return StubHttpMessageHandler.Json("""
-            {
-              "layerEstimates": [
-                {
-                  "layerId": -1,
-                  "count": 15
-                }
-              ]
-            }
-            """);
-            }
-
-            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
-        });
-
-        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
-            client.GetEstimatesAsync(cancellationToken));
-
-        Assert.Contains("layer estimate", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

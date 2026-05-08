@@ -1,11 +1,11 @@
-﻿using NetTopologySuite.Geometries;
+using System.Globalization;
+using System.Text.Json;
+using NetTopologySuite.Geometries;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.EsriGeometry;
 using S100Framework.REST.Internal.Json;
 using S100Framework.REST.Models;
-using System.Globalization;
-using System.Text.Json;
 
 namespace S100Framework.REST.Clients;
 
@@ -96,10 +96,10 @@ public sealed partial class FeatureLayerClient
     }
 
     private AttachmentInfo MapAttachmentInfo(
-    JsonElement attachmentInfoElement,
-    long? parentObjectId,
-    string? parentGlobalId,
-    Uri requestUri) {
+        JsonElement attachmentInfoElement,
+        long? parentObjectId,
+        string? parentGlobalId,
+        Uri requestUri) {
         var attributes = ReadAttributes(attachmentInfoElement);
 
         long attachmentId;
@@ -127,6 +127,12 @@ public sealed partial class FeatureLayerClient
         string? contentType = TryGetString(attributes, "contentType") ?? TryGetString(attributes, "content_type");
         long? size = TryGetNullableInt64(attributes, "size") ?? TryGetNullableInt64(attributes, "data_size");
         string? url = TryGetString(attributes, "url");
+
+        if (size is < 0) {
+            throw new FeatureServiceException(
+                "The queryAttachments payload returned an attachment info item with a negative size value.",
+                requestUri);
+        }
 
         return new AttachmentInfo(
             attachmentId,

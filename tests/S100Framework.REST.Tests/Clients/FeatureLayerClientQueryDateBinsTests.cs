@@ -447,32 +447,6 @@ public sealed class FeatureLayerClientQueryDateBinsTests
         Assert.Contains("StatisticType", exception.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task QueryDateBinsAsync_Throws_WhenPercentileOrderByIsInvalid() {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var client = CreateClient(_ =>
-            throw new InvalidOperationException("HTTP should not be called."));
-
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            client.GetLayerClient(0).QueryDateBinsAsync(
-                CreateMinimalRequest() with {
-                    Statistics = [
-                        new StatisticDefinition(
-                        OnStatisticField: "VALUE",
-                        OutStatisticFieldName: "P90_VALUE",
-                        StatisticType: StatisticType.PercentileContinuous,
-                        PercentileParameters: new StatisticPercentileParameters(
-                            0.9,
-                            (StatisticPercentileOrder)999))
-                    ]
-                },
-                cancellationToken));
-
-        Assert.Contains("OrderBy", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("percentile order", exception.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
     private static QueryDateBinsRequest CreateMinimalRequest() {
         return new QueryDateBinsRequest {
             BinField = "created_at",

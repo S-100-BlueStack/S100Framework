@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
@@ -88,9 +88,9 @@ public sealed partial class FeatureServiceClient
 
         return new FeatureServiceQueryCountResult(
             EnumerateServiceQueryLayers(dto.Layers)
-               .Select(layer => new FeatureServiceLayerCountResult(
-    ReadRequiredServiceQueryLayerId(layer.Id, endpointUri),
-    ReadRequiredServiceQueryLayerCount(layer.Count, endpointUri)))
+                .Select(layer => new FeatureServiceLayerCountResult(
+                    ReadRequiredServiceQueryLayerId(layer.Id, endpointUri),
+                    ReadRequiredServiceQueryLayerCount(layer.Count, endpointUri)))
                 .ToArray());
     }
 
@@ -118,7 +118,7 @@ public sealed partial class FeatureServiceClient
                 .Select(layer => new FeatureServiceLayerObjectIdsResult(
                     ReadRequiredServiceQueryLayerId(layer.Id, endpointUri),
                     layer.ObjectIdFieldName,
-                    ReadServiceQueryObjectIds(layer.ObjectIds)))
+                    ReadServiceQueryObjectIds(layer.ObjectIds, endpointUri)))
                 .ToArray());
     }
 
@@ -406,8 +406,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static long ReadRequiredServiceQueryLayerCount(
-    long? count,
-    Uri endpointUri) {
+        long? count,
+        Uri endpointUri) {
         if (!count.HasValue) {
             throw new FeatureServiceException(
                 "The service query count payload returned a layer without a count value.",
@@ -424,11 +424,25 @@ public sealed partial class FeatureServiceClient
     }
 
     private static IReadOnlyList<long> ReadServiceQueryObjectIds(
-        IEnumerable<long?>? objectIds) {
-        return objectIds?
-            .Where(static objectId => objectId.HasValue)
-            .Select(static objectId => objectId!.Value)
-            .ToArray() ?? Array.Empty<long>();
+        IEnumerable<long?>? objectIds,
+        Uri endpointUri) {
+        var result = new List<long>();
+
+        foreach (var objectId in objectIds ?? Enumerable.Empty<long?>()) {
+            if (!objectId.HasValue) {
+                continue;
+            }
+
+            if (objectId.Value < 0) {
+                throw new FeatureServiceException(
+                    "The service query payload returned a negative objectId.",
+                    endpointUri);
+            }
+
+            result.Add(objectId.Value);
+        }
+
+        return result;
     }
 
     private static IReadOnlyList<string> ReadServiceQueryUniqueIdFieldNames(

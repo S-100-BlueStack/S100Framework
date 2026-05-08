@@ -9,7 +9,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.15.0</Version>
+		<Version>1.14.0</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
@@ -31,12 +31,16 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			- Added broad request validation hardening across calculate, applyEdits, append, extractChanges, query, queryTopFeatures, queryBins, queryDateBins, queryAnalytic, related records, attachments, statistics, full-text query, spatial filters, service-level query, metadata operations, and async job operations.
-			- Hardened Esri response mapping for null, partial, malformed, and inconsistent payloads across metadata, relationships, applyEdits, direct edit results, uploads, attachments, related records, extractChanges, service query, object IDs, unique IDs, counts, estimates, data elements, and async job URLs.
-			- Added robust async job status normalization for append, applyEdits, extractChanges, calculate, and queryAnalytic, including separator-insensitive status parsing.
-			- Added tolerant metadata parsing for Esri append format metadata returned as either arrays or comma-separated strings.
-			- Improved fail-fast behavior so invalid requests are rejected before metadata lookup or HTTP where possible.
-			- Added additional public job status properties for applyEdits status inspection.
+			- Added FeatureQuery.TimeReferenceUnknownClient support for layer-level queries.
+			- Added FeatureQuery.GdbVersion support for layer-level queries.
+			- Forwarded GdbVersion and TimeReferenceUnknownClient through QueryAllAsync and QueryExtentsAsync.
+			- Updated queryTopFeatures to respect GET, POST, and Auto query request method selection.
+			- Updated queryAttachments to respect GET, POST, and Auto query request method selection.
+			- Added advanced attachment query support for GlobalIds, ResultOffset, ResultRecordCount, and OrderByFields.
+			- Added QueryAttachmentCountsAsync and AttachmentCountGroup for attachment count-only queries.
+			- Added attachment query capability metadata for count-only and order-by support.
+			- Hardened unknown time reference, geodatabase version, top-features transport, attachment transport, and advanced attachment query behavior with tests.
+			- Updated README documentation for layer query versioning, unknown time references, advanced attachments, attachment counts, and request method selection.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 

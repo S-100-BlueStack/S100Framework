@@ -51,14 +51,7 @@ public sealed partial class FeatureServiceClient
 
         var root = document.RootElement;
 
-        var statusUrl = ReadOptionalAbsoluteUri(
-     root,
-     endpointUri,
-     "calculate",
-     "statusUrl",
-     "statusURL");
-
-        if (statusUrl is not null) {
+        if (TryGetUri(root, "statusUrl", "statusURL", out var statusUrl)) {
             return new CalculateSubmissionResult(
                 Result: null,
                 StatusUrl: statusUrl);

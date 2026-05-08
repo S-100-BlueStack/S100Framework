@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json;
 using NetTopologySuite.Geometries;
 using S100Framework.REST.Exceptions;
@@ -90,8 +90,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private FeatureLayerEstimate MapServiceLayerEstimate(
-     EsriLayerEstimateDto dto,
-     Uri requestUri) {
+        EsriLayerEstimateDto dto,
+        Uri requestUri) {
         if (!dto.LayerId.HasValue) {
             throw new FeatureServiceException(
                 "The service returned a layer estimate without a layer ID.",

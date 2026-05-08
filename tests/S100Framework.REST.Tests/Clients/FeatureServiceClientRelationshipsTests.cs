@@ -354,69 +354,6 @@ public sealed class FeatureServiceClientRelationshipsTests
         Assert.True(metadata.Capabilities.SupportsRelationshipsResource);
     }
 
-    [Fact]
-    public async Task GetRelationshipsAsync_ThrowsFeatureServiceException_WhenRelationshipIdIsMissing() {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var client = CreateClient(request => {
-            if (IsServiceMetadataRequest(request)) {
-                return CreateServiceMetadataResponse(supportsRelationshipsResource: true);
-            }
-
-            if (IsRelationshipsRequest(request)) {
-                return StubHttpMessageHandler.Json("""
-            {
-              "relationships": [
-                {
-                  "name": "county_division"
-                }
-              ]
-            }
-            """);
-            }
-
-            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
-        });
-
-        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
-            client.GetRelationshipsAsync(cancellationToken));
-
-        Assert.Contains("relationship", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ID", exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GetRelationshipsAsync_ThrowsFeatureServiceException_WhenRelationshipIdIsNegative() {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var client = CreateClient(request => {
-            if (IsServiceMetadataRequest(request)) {
-                return CreateServiceMetadataResponse(supportsRelationshipsResource: true);
-            }
-
-            if (IsRelationshipsRequest(request)) {
-                return StubHttpMessageHandler.Json("""
-            {
-              "relationships": [
-                {
-                  "id": -1,
-                  "name": "county_division"
-                }
-              ]
-            }
-            """);
-            }
-
-            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
-        });
-
-        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
-            client.GetRelationshipsAsync(cancellationToken));
-
-        Assert.Contains("relationship", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

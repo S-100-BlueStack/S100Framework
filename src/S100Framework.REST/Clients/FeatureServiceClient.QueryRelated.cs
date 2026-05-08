@@ -1,8 +1,8 @@
-﻿using S100Framework.REST.Exceptions;
+using System.Globalization;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
-using System.Globalization;
 
 namespace S100Framework.REST.Clients;
 
@@ -12,10 +12,10 @@ namespace S100Framework.REST.Clients;
 public sealed partial class FeatureServiceClient
 {
     internal async Task<EsriRelatedRecordsResponseDto> QueryRelatedRecordsAsync(
-    int layerId,
-    RelatedRecordsQuery query,
-    bool returnCountOnly,
-    CancellationToken cancellationToken = default) {
+        int layerId,
+        RelatedRecordsQuery query,
+        bool returnCountOnly,
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
         query.Validate();
@@ -87,23 +87,23 @@ public sealed partial class FeatureServiceClient
             parameters["datumTransformation"] = query.DatumTransformationJson;
         }
 
-        var endpointUri = UriUtility.AppendPath(
-            _serviceUri,
-            $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryRelatedRecords");
+        var endpointPath = $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryRelatedRecords";
+        var endpointUri = UriUtility.AppendPath(_serviceUri, endpointPath);
 
         var response = await SendLayerQueryAsync<EsriRelatedRecordsResponseDto>(
-            $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryRelatedRecords",
+            endpointPath,
             parameters,
             cancellationToken);
 
-        ValidateRelatedRecordGroups(response, endpointUri);
+        ValidateRelatedRecordGroups(response, endpointUri, returnCountOnly);
 
         return response;
     }
 
     private static void ValidateRelatedRecordGroups(
-    EsriRelatedRecordsResponseDto response,
-    Uri requestUri) {
+     EsriRelatedRecordsResponseDto response,
+     Uri requestUri,
+     bool returnCountOnly) {
         foreach (var group in response.RelatedRecordGroups ?? Enumerable.Empty<EsriRelatedRecordGroupDto?>()) {
             if (group is null) {
                 continue;
@@ -118,6 +118,12 @@ public sealed partial class FeatureServiceClient
             if (group.ObjectId.Value < 0) {
                 throw new FeatureServiceException(
                     "The queryRelatedRecords payload returned a related record group with a negative objectId.",
+                    requestUri);
+            }
+
+            if (returnCountOnly && group.Count is < 0) {
+                throw new FeatureServiceException(
+                    "The queryRelatedRecords count payload returned a related record group with a negative count value.",
                     requestUri);
             }
         }

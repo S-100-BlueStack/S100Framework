@@ -1,4 +1,4 @@
-﻿namespace S100Framework.REST.Models;
+namespace S100Framework.REST.Models;
 
 /// <summary>
 /// Describes the metadata exposed by an ArcGIS Feature Service.
@@ -32,6 +32,12 @@ public sealed record FeatureServiceMetadata
     /// <param name="supportedAppendFormats">
     /// The append upload formats advertised by the service, when available.
     /// </param>
+    /// <param name="supportedExportFormats">
+    /// The export formats advertised by the service, when available.
+    /// </param>
+    /// <param name="syncCapabilities">
+    /// The sync and replica capabilities advertised by the service, when available.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when required constructor arguments are <see langword="null"/>.
     /// </exception>
@@ -43,7 +49,9 @@ public sealed record FeatureServiceMetadata
         int? maxRecordCount,
         FeatureServiceCapabilities capabilities,
         ExtractChangesCapabilities? extractChangesCapabilities,
-        IReadOnlyList<string>? supportedAppendFormats = null) {
+        IReadOnlyList<string>? supportedAppendFormats = null,
+        IReadOnlyList<string>? supportedExportFormats = null,
+        FeatureServiceSyncCapabilities? syncCapabilities = null) {
         ArgumentNullException.ThrowIfNull(serviceUri);
         ArgumentNullException.ThrowIfNull(layers);
         ArgumentNullException.ThrowIfNull(tables);
@@ -57,6 +65,8 @@ public sealed record FeatureServiceMetadata
         Capabilities = capabilities;
         ExtractChangesCapabilities = extractChangesCapabilities;
         SupportedAppendFormats = supportedAppendFormats ?? Array.Empty<string>();
+        SupportedExportFormats = supportedExportFormats ?? Array.Empty<string>();
+        SyncCapabilities = syncCapabilities;
     }
 
     /// <summary>
@@ -101,6 +111,19 @@ public sealed record FeatureServiceMetadata
     /// This list is empty when the service does not advertise append formats.
     /// </remarks>
     public IReadOnlyList<string> SupportedAppendFormats { get; init; }
+
+    /// <summary>
+    /// Gets the export formats advertised by the service.
+    /// </summary>
+    /// <remarks>
+    /// This list is empty when the service does not advertise export formats.
+    /// </remarks>
+    public IReadOnlyList<string> SupportedExportFormats { get; init; }
+
+    /// <summary>
+    /// Gets the sync and replica capabilities advertised by the service.
+    /// </summary>
+    public FeatureServiceSyncCapabilities? SyncCapabilities { get; init; }
 }
 
 /// <summary>

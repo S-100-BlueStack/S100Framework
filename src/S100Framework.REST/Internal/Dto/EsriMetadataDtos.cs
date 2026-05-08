@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using S100Framework.REST.Internal.Json;
 
 namespace S100Framework.REST.Internal.Dto;
@@ -6,10 +6,10 @@ namespace S100Framework.REST.Internal.Dto;
 internal sealed class EsriServiceMetadataDto
 {
     [JsonPropertyName("layers")]
-    public List<EsriDatasetDto>? Layers { get; init; }
+    public List<EsriDatasetDto?>? Layers { get; init; }
 
     [JsonPropertyName("tables")]
-    public List<EsriDatasetDto>? Tables { get; init; }
+    public List<EsriDatasetDto?>? Tables { get; init; }
 
     [JsonPropertyName("capabilities")]
     public string? Capabilities { get; init; }
@@ -26,6 +26,13 @@ internal sealed class EsriServiceMetadataDto
     [JsonPropertyName("supportedAppendFormats")]
     [JsonConverter(typeof(EsriStringListJsonConverter))]
     public List<string>? SupportedAppendFormats { get; init; }
+
+    [JsonPropertyName("supportedExportFormats")]
+    [JsonConverter(typeof(EsriStringListJsonConverter))]
+    public List<string>? SupportedExportFormats { get; init; }
+
+    [JsonPropertyName("syncCapabilities")]
+    public EsriSyncCapabilitiesDto? SyncCapabilities { get; init; }
 
     [JsonPropertyName("advancedEditingCapabilities")]
     public EsriAdvancedEditingCapabilitiesDto? AdvancedEditingCapabilities { get; init; }
@@ -97,10 +104,10 @@ internal sealed class EsriLayerMetadataDto
     public string? ObjectIdField { get; init; }
 
     [JsonPropertyName("fields")]
-    public List<EsriFieldDto>? Fields { get; init; }
+    public List<EsriFieldDto?>? Fields { get; init; }
 
     [JsonPropertyName("relationships")]
-    public List<EsriRelationshipInfoDto>? Relationships { get; init; }
+    public List<EsriRelationshipInfoDto?>? Relationships { get; init; }
 
     [JsonPropertyName("advancedQueryCapabilities")]
     public EsriAdvancedQueryCapabilitiesDto? AdvancedQueryCapabilities { get; init; }
@@ -150,7 +157,7 @@ internal sealed class EsriUniqueIdInfoDto
     public string? Type { get; init; }
 
     [JsonPropertyName("fields")]
-    public IReadOnlyList<string>? Fields { get; init; }
+    public IReadOnlyList<string?>? Fields { get; init; }
 
     [JsonPropertyName("OIDFieldContainsHashValue")]
     public bool? OidFieldContainsHashValue { get; init; }
@@ -346,4 +353,34 @@ internal sealed class EsriExtractChangesCapabilitiesDto
 
     [JsonPropertyName("supportsReturnHasGeometryUpdates")]
     public bool? SupportsReturnHasGeometryUpdates { get; init; }
+}
+
+internal sealed class EsriSyncCapabilitiesDto
+{
+    [JsonPropertyName("supportsRegisteringExistingData")]
+    public bool? SupportsRegisteringExistingData { get; init; }
+
+    [JsonPropertyName("supportsSyncDirectionControl")]
+    public bool? SupportsSyncDirectionControl { get; init; }
+
+    [JsonPropertyName("supportsPerLayerSync")]
+    public bool? SupportsPerLayerSync { get; init; }
+
+    [JsonPropertyName("supportsPerReplicaSync")]
+    public bool? SupportsPerReplicaSync { get; init; }
+
+    [JsonPropertyName("supportsSyncModelNone")]
+    public bool? SupportsSyncModelNone { get; init; }
+
+    [JsonPropertyName("supportsRollbackOnFailure")]
+    public bool? SupportsRollbackOnFailure { get; init; }
+
+    [JsonPropertyName("supportsAsync")]
+    public bool? SupportsAsync { get; init; }
+
+    [JsonPropertyName("supportsAttachmentsSyncDirection")]
+    public bool? SupportsAttachmentsSyncDirection { get; init; }
+
+    [JsonPropertyName("supportsBiDirectionalSyncForServer")]
+    public bool? SupportsBiDirectionalSyncForServer { get; init; }
 }

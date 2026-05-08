@@ -145,7 +145,7 @@ public sealed partial class FeatureLayerClient
         FeatureLayerSchema schema,
         EsriQueryResponseDto response) {
         return new QueryAnalyticResult(
-            (response.Features ?? Enumerable.Empty<EsriFeatureDto>())
+            (response.Features ?? Enumerable.Empty<EsriFeatureDto?>())
                 .Where(static feature => feature is not null)
                 .Select(feature => MapFeature(schema, feature!))
                 .ToArray(),

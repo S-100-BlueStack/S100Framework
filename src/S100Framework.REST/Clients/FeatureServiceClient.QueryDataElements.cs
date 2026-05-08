@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
@@ -56,8 +56,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureLayerDataElement MapFeatureLayerDataElement(
-     EsriLayerDataElementDto dto,
-     Uri requestUri) {
+        EsriLayerDataElementDto dto,
+        Uri requestUri) {
         if (!dto.LayerId.HasValue) {
             throw new FeatureServiceException(
                 "The service returned a data element without a layer ID.",

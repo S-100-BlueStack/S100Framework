@@ -264,32 +264,6 @@ public sealed class FeatureLayerClientStatisticsPercentileTests
         Assert.Contains("HavingClause", exception.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task QueryStatisticsAsync_Throws_WhenPercentileOrderByIsInvalid_BeforeSchemaLookup() {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var client = CreateClient(_ =>
-            throw new InvalidOperationException("HTTP should not be called."));
-
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            client.GetLayerClient(0).QueryStatisticsAsync(
-                new FeatureStatisticsQuery {
-                    Statistics = [
-                        new StatisticDefinition(
-                        "DEPTH",
-                        "P90_DEPTH",
-                        StatisticType.PercentileContinuous,
-                        new StatisticPercentileParameters(
-                            0.9,
-                            (StatisticPercentileOrder)999))
-                    ]
-                },
-                cancellationToken));
-
-        Assert.Contains("OrderBy", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("percentile order", exception.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

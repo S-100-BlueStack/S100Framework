@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Net.Http.Headers;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
@@ -24,10 +24,10 @@ public sealed partial class FeatureServiceClient
     }
 
     internal async Task<EsriAttachmentQueryResponseDto> QueryAttachmentsAsync(
-    int layerId,
-    AttachmentQuery query,
-    bool returnCountOnly,
-    CancellationToken cancellationToken = default) {
+       int layerId,
+       AttachmentQuery query,
+       bool returnCountOnly,
+       CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
         query.Validate();
@@ -70,23 +70,23 @@ public sealed partial class FeatureServiceClient
             parameters["size"] = $"{min},{max}";
         }
 
+        var endpointPath = $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryAttachments";
+        var endpointUri = UriUtility.AppendPath(_serviceUri, endpointPath);
+
         var response = await SendLayerQueryAsync<EsriAttachmentQueryResponseDto>(
-            $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryAttachments",
+            endpointPath,
             parameters,
             cancellationToken);
 
-        var endpointUri = UriUtility.AppendPath(
-            _serviceUri,
-            $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryAttachments");
-
-        ValidateAttachmentGroups(response, endpointUri);
+        ValidateAttachmentGroups(response, endpointUri, returnCountOnly);
 
         return response;
     }
 
     private static void ValidateAttachmentGroups(
-    EsriAttachmentQueryResponseDto response,
-    Uri requestUri) {
+        EsriAttachmentQueryResponseDto response,
+        Uri requestUri,
+        bool returnCountOnly) {
         foreach (var group in response.AttachmentGroups ?? Enumerable.Empty<EsriAttachmentGroupDto?>()) {
             if (group is null) {
                 continue;
@@ -95,6 +95,12 @@ public sealed partial class FeatureServiceClient
             if (group.ParentObjectId is < 0) {
                 throw new FeatureServiceException(
                     "The queryAttachments payload returned an attachment group with a negative parentObjectId.",
+                    requestUri);
+            }
+
+            if (returnCountOnly && group.Count is < 0) {
+                throw new FeatureServiceException(
+                    "The queryAttachments count payload returned an attachment group with a negative count value.",
                     requestUri);
             }
         }

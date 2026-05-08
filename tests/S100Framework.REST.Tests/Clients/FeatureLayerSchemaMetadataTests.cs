@@ -1,8 +1,7 @@
 ﻿using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
-using S100Framework.REST.Exceptions;
-using S100Framework.REST.Models;
 using S100Framework.REST.Tests.TestDoubles;
+using S100Framework.REST.Models;
 using Xunit;
 
 namespace S100Framework.REST.Tests.Clients;
@@ -374,54 +373,6 @@ public sealed class FeatureLayerSchemaMetadataTests
     }
 
     [Fact]
-    public async Task GetSchemaAsync_IgnoresNullFieldAndRelationshipItems() {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var client = CreateSchemaClient("""
-    {
-      "id": 0,
-      "name": "Facilities",
-      "geometryType": "esriGeometryPoint",
-      "objectIdField": "OBJECTID",
-      "fields": [
-        null,
-        { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false },
-        null,
-        { "name": "NAME", "type": "esriFieldTypeString", "nullable": true }
-      ],
-      "relationships": [
-        null,
-        {
-          "id": 7,
-          "name": "facility_inspections",
-          "relatedTableId": 3,
-          "cardinality": "esriRelCardinalityOneToMany",
-          "role": "esriRelRoleOrigin",
-          "keyField": "GLOBALID",
-          "composite": true
-        },
-        null
-      ],
-      "extent": {
-        "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
-      }
-    }
-    """);
-
-        var schema = await client.GetLayerClient(0).GetSchemaAsync(cancellationToken);
-
-        Assert.Collection(
-            schema.Fields,
-            field => Assert.Equal("OBJECTID", field.Name),
-            field => Assert.Equal("NAME", field.Name));
-
-        var relationship = Assert.Single(schema.Relationships);
-
-        Assert.Equal(7, relationship.Id);
-        Assert.Equal("facility_inspections", relationship.Name);
-    }
-
-    [Fact]
     public void FeatureLayerCapabilities_CanBeConstructedWithOriginalRequiredParameters() {
         var capabilities = new FeatureLayerCapabilities(
             HasAttachments: true,
@@ -470,153 +421,6 @@ public sealed class FeatureLayerSchemaMetadataTests
         Assert.False(capabilities.SupportsCoordinatesQuantization);
         Assert.False(capabilities.SupportsCurrentUserQueries);
         Assert.False(capabilities.SupportsQueryWithCacheHint);
-    }
-
-    [Fact]
-    public async Task GetSchemaAsync_ThrowsFeatureServiceException_WhenRelationshipIdIsMissing() {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var client = CreateSchemaClient("""
-    {
-      "id": 0,
-      "name": "Facilities",
-      "geometryType": "esriGeometryPoint",
-      "objectIdField": "OBJECTID",
-      "fields": [
-        { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
-      ],
-      "relationships": [
-        {
-          "name": "facility_inspections",
-          "relatedTableId": 3
-        }
-      ],
-      "extent": {
-        "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
-      }
-    }
-    """);
-
-        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
-            client.GetLayerClient(0).GetSchemaAsync(cancellationToken));
-
-        Assert.Contains("relationship", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ID", exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GetSchemaAsync_ThrowsFeatureServiceException_WhenRelationshipIdIsNegative() {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var client = CreateSchemaClient("""
-    {
-      "id": 0,
-      "name": "Facilities",
-      "geometryType": "esriGeometryPoint",
-      "objectIdField": "OBJECTID",
-      "fields": [
-        { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
-      ],
-      "relationships": [
-        {
-          "id": -1,
-          "name": "facility_inspections",
-          "relatedTableId": 3
-        }
-      ],
-      "extent": {
-        "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
-      }
-    }
-    """);
-
-        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
-            client.GetLayerClient(0).GetSchemaAsync(cancellationToken));
-
-        Assert.Contains("relationship", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public async Task GetSchemaAsync_ThrowsFeatureServiceException_WhenLayerMetadataIdIsMissing() {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var client = CreateSchemaClient("""
-    {
-      "name": "Facilities",
-      "geometryType": "esriGeometryPoint",
-      "objectIdField": "OBJECTID",
-      "fields": [
-        { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
-      ],
-      "relationships": [],
-      "extent": {
-        "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
-      }
-    }
-    """);
-
-        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
-            client.GetLayerClient(0).GetSchemaAsync(cancellationToken));
-
-        Assert.Contains("layer", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("ID", exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GetSchemaAsync_ThrowsFeatureServiceException_WhenLayerMetadataIdIsNegative() {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var client = CreateSchemaClient("""
-    {
-      "id": -1,
-      "name": "Facilities",
-      "geometryType": "esriGeometryPoint",
-      "objectIdField": "OBJECTID",
-      "fields": [
-        { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
-      ],
-      "relationships": [],
-      "extent": {
-        "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
-      }
-    }
-    """);
-
-        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
-            client.GetLayerClient(0).GetSchemaAsync(cancellationToken));
-
-        Assert.Contains("layer", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public async Task GetSchemaAsync_MapsAppendFormats_WhenServerReturnsCommaSeparatedStrings() {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var client = CreateSchemaClient("""
-    {
-      "id": 0,
-      "name": "Facilities",
-      "objectIdField": "OBJECTID",
-      "supportsAppend": true,
-      "supportedAppendFormats": "sqlite, feature Service, pbf",
-      "supportedAppendSourceFilterFormats": "sqlite, csv",
-      "fields": [
-        { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
-      ],
-      "relationships": [],
-      "extent": {
-        "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
-      }
-    }
-    """);
-
-        var schema = await client.GetLayerClient(0).GetSchemaAsync(cancellationToken);
-
-        Assert.True(schema.Capabilities.SupportsAppend);
-        Assert.Equal(["sqlite", "feature Service", "pbf"], schema.SupportedAppendFormats);
-        Assert.Equal(["sqlite", "csv"], schema.SupportedAppendSourceFilterFormats);
     }
 
     private static FeatureServiceClient CreateSchemaClient(string layerMetadataJson) {

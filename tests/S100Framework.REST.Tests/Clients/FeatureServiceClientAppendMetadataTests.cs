@@ -66,34 +66,4 @@ public sealed class FeatureServiceClientAppendMetadataTests
         Assert.False(metadata.Capabilities.SupportsAppend);
         Assert.Empty(metadata.SupportedAppendFormats);
     }
-
-    [Fact]
-    public async Task GetMetadataAsync_MapsSupportedAppendFormats_WhenServerReturnsCommaSeparatedString() {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var handler = new StubHttpMessageHandler(_ => StubHttpMessageHandler.Json("""
-    {
-      "layers": [
-        { "id": 0, "name": "DepthAreas" }
-      ],
-      "tables": [],
-      "capabilities": "Query,Uploads",
-      "maxRecordCount": 2000,
-      "syncEnabled": false,
-      "supportsAppend": true,
-      "supportedAppendFormats": "sqlite, feature Service, pbf"
-    }
-    """));
-
-        var client = new FeatureServiceClient(
-            new HttpClient(handler),
-            new FeatureServiceClientOptions {
-                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
-            });
-
-        var metadata = await client.GetMetadataAsync(cancellationToken);
-
-        Assert.True(metadata.Capabilities.SupportsAppend);
-        Assert.Equal(["sqlite", "feature Service", "pbf"], metadata.SupportedAppendFormats);
-    }
 }

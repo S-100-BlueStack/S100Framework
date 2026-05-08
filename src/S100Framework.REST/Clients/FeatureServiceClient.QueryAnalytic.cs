@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
@@ -44,25 +44,16 @@ public sealed partial class FeatureServiceClient
 
         var root = document.RootElement;
 
-        var endpointUri = new Uri(_serviceUri, $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryAnalytic");
-
-        var statusUrl = ReadOptionalAbsoluteUri(
-            root,
-            endpointUri,
-            "queryAnalytic",
-            "statusUrl",
-            "statusURL");
-
-        if (statusUrl is not null) {
+        if (TryGetUri(root, "statusUrl", "statusURL", out var statusUrl)) {
             return new QueryAnalyticSubmissionResponse(
                 Result: null,
                 StatusUrl: statusUrl);
         }
 
         var result = root.Deserialize<EsriQueryResponseDto>(JsonOptions)
-     ?? throw new FeatureServiceException(
-         "The queryAnalytic submission payload could not be deserialized.",
-         endpointUri);
+            ?? throw new FeatureServiceException(
+                "The queryAnalytic submission payload could not be deserialized.",
+                new Uri(_serviceUri, $"{layerId.ToString(CultureInfo.InvariantCulture)}/queryAnalytic"));
 
         return new QueryAnalyticSubmissionResponse(
             Result: result,
@@ -78,21 +69,18 @@ public sealed partial class FeatureServiceClient
         var root = document.RootElement;
 
         return new QueryAnalyticJobStatus(
-     Status: TryGetString(root, "status", "jobStatus", out var status)
-         ? status ?? "Unknown"
-         : "Unknown",
-     ResultUrl: ReadOptionalAbsoluteUri(
-         root,
-         statusUrl,
-         "queryAnalytic",
-         "resultUrl",
-         "resultURL"),
-     SubmissionTime: TryGetInt64(root, "submissionTime", out var submissionTime)
-         ? submissionTime
-         : null,
-     LastUpdatedTime: TryGetInt64(root, "lastUpdatedTime", out var lastUpdatedTime)
-         ? lastUpdatedTime
-         : null);
+            Status: TryGetString(root, "status", "jobStatus", out var status)
+                ? status ?? "Unknown"
+                : "Unknown",
+            ResultUrl: TryGetUri(root, "resultUrl", "resultURL", out var resultUrl)
+                ? resultUrl
+                : null,
+            SubmissionTime: TryGetInt64(root, "submissionTime", out var submissionTime)
+                ? submissionTime
+                : null,
+            LastUpdatedTime: TryGetInt64(root, "lastUpdatedTime", out var lastUpdatedTime)
+                ? lastUpdatedTime
+                : null);
     }
 
     internal Task<EsriQueryResponseDto> GetQueryAnalyticResultAsync(
@@ -177,52 +165,14 @@ public sealed partial class FeatureServiceClient
         };
     }
 
-    private static Uri? ReadOptionalAbsoluteUri(
-     JsonElement root,
-     Uri endpointUri,
-     string operationName,
-     params string[] propertyNames) {
-        foreach (var propertyName in propertyNames) {
-            if (!root.TryGetProperty(propertyName, out var element)) {
-                continue;
-            }
-
-            if (element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
-                return null;
-            }
-
-            if (element.ValueKind != JsonValueKind.String) {
-                throw new FeatureServiceException(
-                    $"The server returned an invalid {propertyName} for {operationName}.",
-                    endpointUri);
-            }
-
-            var rawUri = element.GetString();
-
-            if (string.IsNullOrWhiteSpace(rawUri)) {
-                return null;
-            }
-
-            if (!Uri.TryCreate(rawUri, UriKind.Absolute, out var uri)) {
-                throw new FeatureServiceException(
-                    $"The server returned an invalid {propertyName} for {operationName}.",
-                    endpointUri);
-            }
-
-            return uri;
-        }
-
-        return null;
-    }
-
     private static bool TryGetUri(
-    JsonElement root,
-    string propertyName,
-    string alternatePropertyName,
-    out Uri? uri) {
+        JsonElement root,
+        string primaryPropertyName,
+        string alternatePropertyName,
+        out Uri? uri) {
         uri = null;
 
-        if (!TryGetString(root, propertyName, alternatePropertyName, out var rawUri) ||
+        if (!TryGetString(root, primaryPropertyName, alternatePropertyName, out var rawUri) ||
             string.IsNullOrWhiteSpace(rawUri)) {
             return false;
         }
