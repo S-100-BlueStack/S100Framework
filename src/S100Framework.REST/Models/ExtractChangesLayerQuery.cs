@@ -1,4 +1,4 @@
-﻿namespace S100Framework.REST.Models;
+namespace S100Framework.REST.Models;
 
 /// <summary>
 /// Specifies how a layer-level query filter should be applied in <c>extractChanges</c>.
@@ -49,9 +49,6 @@ public sealed record ExtractChangesLayerQuery
     /// <summary>
     /// Validates the layer query configuration.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the layer query configuration contains unsupported values.
-    /// </exception>
     public void Validate() {
         if (!Enum.IsDefined(QueryOption)) {
             throw new InvalidOperationException(

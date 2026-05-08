@@ -1,9 +1,8 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Models;
-using S100Framework.REST.Internal.Validation;
 
 namespace S100Framework.REST.Clients;
 
@@ -19,11 +18,6 @@ public sealed partial class FeatureLayerClient
         ArgumentNullException.ThrowIfNull(query);
 
         ValidateFeatureQueryPaging(query);
-        FeatureQueryValidation.ValidateCommon(query);
-        FeatureQueryValidation.ValidateFullText(query);
-        FeatureQueryValidation.ValidateProjection(query);
-        FeatureQueryValidation.ValidateGeometryOptions(query);
-        FeatureQueryValidation.ValidateOutFields(query);
 
         if (query.ReturnEnvelope && !query.ReturnGeometry) {
             throw new InvalidOperationException("ReturnEnvelope requires ReturnGeometry to be true.");
@@ -110,7 +104,7 @@ public sealed partial class FeatureLayerClient
                 JsonValueKind.Array => element.EnumerateArray()
                     .Select(static item => item.ValueKind == JsonValueKind.String ? item.GetString() : null)
                     .Where(static value => !string.IsNullOrWhiteSpace(value))
-                    .Select(static value => value!)
+                    .Cast<string>()
                     .ToArray(),
                 _ => throw new InvalidOperationException(
                     "The server returned an unsupported payload for uniqueIdFieldNames.")
@@ -142,10 +136,6 @@ public sealed partial class FeatureLayerClient
             var result = new List<FeatureUniqueId>();
 
             foreach (var item in element.EnumerateArray()) {
-                if (item.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
-                    continue;
-                }
-
                 if (item.ValueKind == JsonValueKind.Array) {
                     result.Add(new FeatureUniqueId(
                         item.EnumerateArray()
@@ -223,7 +213,7 @@ public sealed partial class FeatureLayerClient
                 uniqueIds: null,
                 cancellationToken: cancellationToken);
 
-            var rawFeatures = response.Features ?? new List<EsriFeatureDto>();
+            var rawFeatures = response.Features ?? new List<EsriFeatureDto?>();
 
             if (rawFeatures.Count == 0) {
                 yield break;
@@ -354,7 +344,7 @@ public sealed partial class FeatureLayerClient
     }
 
     private static IEnumerable<EsriFeatureDto> EnumerateQueryFeatures(
-        IEnumerable<EsriFeatureDto>? features) {
+        IEnumerable<EsriFeatureDto?>? features) {
         if (features is null) {
             yield break;
         }

@@ -1,9 +1,9 @@
-﻿using S100Framework.REST.Exceptions;
+using System.Globalization;
+using System.Text.Json;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
-using System.Globalization;
-using System.Text.Json;
 
 namespace S100Framework.REST.Clients;
 
@@ -29,8 +29,8 @@ public sealed partial class FeatureLayerClient
             cancellationToken);
 
         var endpointUri = UriUtility.AppendPath(
-    _serviceClient.Options.ServiceUri!,
-    $"{_layerId.ToString(CultureInfo.InvariantCulture)}/queryAttachments");
+            _serviceClient.Options.ServiceUri!,
+            $"{_layerId.ToString(CultureInfo.InvariantCulture)}/queryAttachments");
 
         return EnumerateAttachmentGroups(response.AttachmentGroups)
             .Select(group => new AttachmentGroup(
@@ -39,10 +39,10 @@ public sealed partial class FeatureLayerClient
                 (group.AttachmentInfos ?? Enumerable.Empty<JsonElement?>())
                     .Where(static info => info.HasValue && info.Value.ValueKind == JsonValueKind.Object)
                     .Select(info => MapAttachmentInfo(
-    info!.Value,
-    group.ParentObjectId,
-    group.ParentGlobalId,
-    endpointUri))
+                        info!.Value,
+                        group.ParentObjectId,
+                        group.ParentGlobalId,
+                        endpointUri))
                     .ToArray()))
             .ToArray();
     }
@@ -65,9 +65,9 @@ public sealed partial class FeatureLayerClient
 
         return EnumerateAttachmentGroups(response.AttachmentGroups)
             .Select(static group => new AttachmentCountGroup(
-                group.ParentObjectId,
-                group.ParentGlobalId,
-                group.Count ?? 0))
+    group.ParentObjectId,
+    group.ParentGlobalId,
+    group.Count ?? 0))
             .ToArray();
     }
 

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json;
 using NetTopologySuite.Geometries;
 using S100Framework.REST.Exceptions;
@@ -369,9 +369,27 @@ public sealed partial class FeatureServiceClient
             endpointUri,
             "layerServerGens");
 
+        if (!dto.ServerGen.HasValue) {
+            throw new FeatureServiceException(
+                "The extractChanges payload returned a layerServerGens item without a serverGen value.",
+                endpointUri);
+        }
+
+        if (dto.ServerGen.Value < 0) {
+            throw new FeatureServiceException(
+                "The extractChanges payload returned a layerServerGens item with a negative serverGen value.",
+                endpointUri);
+        }
+
+        if (dto.MinServerGen is < 0) {
+            throw new FeatureServiceException(
+                "The extractChanges payload returned a layerServerGens item with a negative minServerGen value.",
+                endpointUri);
+        }
+
         return new ExtractChangesLayerServerGen(
             layerId,
-            dto.ServerGen,
+            dto.ServerGen.Value,
             dto.MinServerGen);
     }
 

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace S100Framework.REST.Internal.Dto;
@@ -54,7 +54,7 @@ internal sealed class EsriLayerServerGenDto
     public int? Id { get; init; }
 
     [JsonPropertyName("serverGen")]
-    public long ServerGen { get; init; }
+    public long? ServerGen { get; init; }
 
     [JsonPropertyName("minServerGen")]
     public long? MinServerGen { get; init; }

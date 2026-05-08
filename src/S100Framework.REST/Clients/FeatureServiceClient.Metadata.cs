@@ -1,4 +1,4 @@
-﻿using S100Framework.REST.Exceptions;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
@@ -45,25 +45,44 @@ public sealed partial class FeatureServiceClient
                 dto.ExtractChangesCapabilities.SupportsServerGens ?? false,
                 dto.ExtractChangesCapabilities.SupportsReturnHasGeometryUpdates ?? false);
 
+        var syncCapabilities = dto.SyncCapabilities is null
+            ? null
+            : new FeatureServiceSyncCapabilities(
+                dto.SyncCapabilities.SupportsRegisteringExistingData ?? false,
+                dto.SyncCapabilities.SupportsSyncDirectionControl ?? false,
+                dto.SyncCapabilities.SupportsPerLayerSync ?? false,
+                dto.SyncCapabilities.SupportsPerReplicaSync ?? false,
+                dto.SyncCapabilities.SupportsSyncModelNone ?? false,
+                dto.SyncCapabilities.SupportsRollbackOnFailure ?? false,
+                dto.SyncCapabilities.SupportsAsync ?? false,
+                dto.SyncCapabilities.SupportsAttachmentsSyncDirection ?? false,
+                dto.SyncCapabilities.SupportsBiDirectionalSyncForServer ?? false);
+
         var supportedAppendFormats = dto.SupportedAppendFormats?
+            .Where(static format => !string.IsNullOrWhiteSpace(format))
+            .ToArray();
+
+        var supportedExportFormats = dto.SupportedExportFormats?
             .Where(static format => !string.IsNullOrWhiteSpace(format))
             .ToArray();
 
         return new FeatureServiceMetadata(
             _serviceUri,
-           dto.Layers?
-    .Where(static dataset => dataset is not null)
-    .Select(dataset => MapDataset(dataset!, uri, "layers"))
-    .ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
-dto.Tables?
-    .Where(static dataset => dataset is not null)
-    .Select(dataset => MapDataset(dataset!, uri, "tables"))
-    .ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
+            dto.Layers?
+                .Where(static dataset => dataset is not null)
+                .Select(dataset => MapDataset(dataset!, uri, "layers"))
+                .ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
+            dto.Tables?
+                .Where(static dataset => dataset is not null)
+                .Select(dataset => MapDataset(dataset!, uri, "tables"))
+                .ToArray() ?? Array.Empty<FeatureServiceDatasetInfo>(),
             dto.Capabilities,
             dto.MaxRecordCount,
             serviceCapabilities,
             extractChangesCapabilities,
-            supportedAppendFormats);
+            supportedAppendFormats,
+            supportedExportFormats,
+            syncCapabilities);
     }
 
     private static FeatureServiceCapabilities ParseServiceCapabilities(
@@ -117,9 +136,9 @@ dto.Tables?
     }
 
     private static FeatureServiceDatasetInfo MapDataset(
-    EsriDatasetDto dto,
-    Uri requestUri,
-    string collectionName) {
+        EsriDatasetDto dto,
+        Uri requestUri,
+        string collectionName) {
         if (!dto.Id.HasValue) {
             throw new FeatureServiceException(
                 $"The service metadata returned a {collectionName} item without an ID.",

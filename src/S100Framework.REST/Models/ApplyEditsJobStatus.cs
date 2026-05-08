@@ -22,30 +22,27 @@ public sealed record ApplyEditsJobStatus(
     long? LastUpdatedTime)
 {
     /// <summary>
-    /// Gets a value indicating whether the job is still waiting, running, executing, or being cancelled.
-    /// </summary>
-    public bool IsRunning =>
-        HasAnyStatus(
-            "Submitted",
-            "Waiting",
-            "Executing",
-            "InProgress",
-            "Processing",
-            "Running",
-            "Cancelling",
-            "esriJobSubmitted",
-            "esriJobWaiting",
-            "esriJobExecuting",
-            "esriJobCancelling");
-
-    /// <summary>
     /// Gets a value indicating whether the job has reached a terminal state.
     /// </summary>
     public bool IsTerminal =>
-        IsCompleted ||
-        IsFailed ||
-        IsCancelled ||
-        IsTimedOut;
+        HasAnyStatus(
+            "Completed",
+            "CompletedWithErrors",
+            "Completed With Errors",
+            "Succeeded",
+            "Success",
+            "Failed",
+            "Error",
+            "Cancelled",
+            "Canceled",
+            "TimedOut",
+            "Timed Out",
+            "Timeout",
+            "esriJobSucceeded",
+            "esriJobFailed",
+            "esriJobCancelled",
+            "esriJobCanceled",
+            "esriJobTimedOut");
 
     /// <summary>
     /// Gets a value indicating whether the job completed and can return a result payload.
@@ -58,35 +55,6 @@ public sealed record ApplyEditsJobStatus(
             "Succeeded",
             "Success",
             "esriJobSucceeded");
-
-    /// <summary>
-    /// Gets a value indicating whether the job failed.
-    /// </summary>
-    public bool IsFailed =>
-        HasAnyStatus(
-            "Failed",
-            "Error",
-            "esriJobFailed");
-
-    /// <summary>
-    /// Gets a value indicating whether the job was cancelled.
-    /// </summary>
-    public bool IsCancelled =>
-        HasAnyStatus(
-            "Cancelled",
-            "Canceled",
-            "esriJobCancelled",
-            "esriJobCanceled");
-
-    /// <summary>
-    /// Gets a value indicating whether the job timed out.
-    /// </summary>
-    public bool IsTimedOut =>
-        HasAnyStatus(
-            "TimedOut",
-            "Timed Out",
-            "Timeout",
-            "esriJobTimedOut");
 
     private bool HasAnyStatus(params string[] expectedValues) {
         var normalizedStatus = Normalize(Status);

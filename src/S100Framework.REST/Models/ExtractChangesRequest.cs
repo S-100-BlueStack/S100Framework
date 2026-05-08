@@ -1,4 +1,4 @@
-﻿namespace S100Framework.REST.Models;
+namespace S100Framework.REST.Models;
 
 /// <summary>
 /// Defines a service-level <c>extractChanges</c> request.
@@ -132,6 +132,12 @@ public sealed record ExtractChangesRequest
     /// </summary>
     public ExtractChangesDataFormat DataFormat { get; init; } = ExtractChangesDataFormat.Json;
 
+    /// <summary>
+    /// Validates the request configuration.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the request configuration is incomplete or internally inconsistent.
+    /// </exception>
     /// <summary>
     /// Validates the request configuration.
     /// </summary>
@@ -280,7 +286,7 @@ public sealed record ExtractChangesServerGens
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// Thrown when the configuration does not define either a single starting generation
-    /// or a complete min/max range, or when generation values are negative.
+    /// or a complete min/max range.
     /// </exception>
     public void Validate() {
         var hasSince = SinceServerGen.HasValue;
@@ -352,7 +358,7 @@ public sealed record ExtractChangesLayerServerGen(
     /// Validates the layer server generation configuration.
     /// </summary>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the layer ID or generation values are negative.
+    /// Thrown when the layer ID is negative.
     /// </exception>
     public void Validate() {
         if (Id < 0) {

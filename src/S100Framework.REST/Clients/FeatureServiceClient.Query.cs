@@ -1,10 +1,10 @@
-﻿using NetTopologySuite.Geometries;
+using System.Globalization;
+using System.Text.Json;
+using NetTopologySuite.Geometries;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
-using System.Globalization;
-using System.Text.Json;
 
 namespace S100Framework.REST.Clients;
 
@@ -75,6 +75,7 @@ public sealed partial class FeatureServiceClient
             parameters,
             cancellationToken);
     }
+
     internal async Task<EsriIdsResponseDto> QueryIdsAsync(
         int layerId,
         FeatureQuery query,
@@ -102,8 +103,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static void ValidateLayerQueryObjectIds(
-    IEnumerable<long?>? objectIds,
-    Uri requestUri) {
+        IEnumerable<long?>? objectIds,
+        Uri requestUri) {
         foreach (var objectId in objectIds ?? Enumerable.Empty<long?>()) {
             if (objectId is < 0) {
                 throw new FeatureServiceException(
@@ -133,9 +134,9 @@ public sealed partial class FeatureServiceClient
     }
 
     internal async Task<long> QueryCountAsync(
-     int layerId,
-     FeatureQuery query,
-     CancellationToken cancellationToken = default) {
+        int layerId,
+        FeatureQuery query,
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(query);
 
         ValidateFeatureQueryCommon(query);
@@ -157,8 +158,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static long ReadRequiredLayerQueryCount(
-    long? count,
-    Uri requestUri) {
+        long? count,
+        Uri requestUri) {
         if (!count.HasValue) {
             throw new FeatureServiceException(
                 "The query count payload did not include a count value.",
@@ -325,12 +326,6 @@ public sealed partial class FeatureServiceClient
     private static void ValidateFeatureQueryGeometryOptions(FeatureQuery query) {
         if (query.GeometryPrecision is < 0) {
             throw new InvalidOperationException("GeometryPrecision must be greater than or equal to zero when provided.");
-        }
-
-        if (query.MaxAllowableOffset.HasValue &&
-    (double.IsNaN(query.MaxAllowableOffset.Value) ||
-     double.IsInfinity(query.MaxAllowableOffset.Value))) {
-            throw new InvalidOperationException("MaxAllowableOffset must be a finite value when provided.");
         }
 
         if (query.MaxAllowableOffset is < 0) {

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
@@ -92,6 +92,7 @@ public sealed partial class FeatureServiceClient
             cancellationToken);
 
         var root = document.RootElement;
+
         if (root.TryGetProperty("statusUrl", out var statusUrlElement)) {
             if (statusUrlElement.ValueKind != JsonValueKind.String) {
                 throw new FeatureServiceException(
@@ -320,7 +321,7 @@ public sealed partial class FeatureServiceClient
         edits.Validate();
 
         var endpointUri = UriUtility.AppendPath(_serviceUri, "applyEdits");
-        var dto = await PostFormAsync<List<EsriServiceLayerEditResultsDto>>(
+        var dto = await PostFormAsync<List<EsriServiceLayerEditResultsDto?>>(
             endpointUri,
             BuildServiceApplyEditsParameters(edits, applyAsync: false),
             cancellationToken);
@@ -462,8 +463,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureServiceApplyEditsResult MapServiceApplyEditsResult(
-     JsonElement root,
-     Uri endpointUri) {
+        JsonElement root,
+        Uri endpointUri) {
         var dto = root.Deserialize<List<EsriServiceLayerEditResultsDto?>>(JsonOptions)
             ?? throw new FeatureServiceException(
                 "The applyEdits payload could not be deserialized.",
@@ -473,8 +474,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureServiceApplyEditsResult MapServiceApplyEditsResult(
-     IEnumerable<EsriServiceLayerEditResultsDto?>? dto,
-     Uri endpointUri) {
+        IEnumerable<EsriServiceLayerEditResultsDto?>? dto,
+        Uri endpointUri) {
         return new FeatureServiceApplyEditsResult(
             dto?
                 .Where(static layerResult => layerResult is not null)
@@ -522,8 +523,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static ServiceLayerEditResults MapServiceLayerEditResults(
-      EsriServiceLayerEditResultsDto dto,
-      Uri endpointUri) {
+        EsriServiceLayerEditResultsDto dto,
+        Uri endpointUri) {
         if (!dto.Id.HasValue) {
             throw new FeatureServiceException(
                 "The service applyEdits payload returned a layer result without an ID.",

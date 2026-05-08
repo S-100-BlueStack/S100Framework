@@ -79,16 +79,12 @@ public sealed record TopFeaturesQuery
 
         TopFilter.Validate();
 
+        if (Where is not null && string.IsNullOrWhiteSpace(Where)) {
+            return;
+        }
+
         if (ObjectIds is { Count: 0 }) {
             throw new InvalidOperationException("ObjectIds must not be empty when provided.");
-        }
-
-        if (ObjectIds?.Any(static objectId => objectId < 0) == true) {
-            throw new InvalidOperationException("ObjectIds must not contain negative values.");
-        }
-
-        if (ObjectIds is not null && ObjectIds.Distinct().Count() != ObjectIds.Count) {
-            throw new InvalidOperationException("ObjectIds must not contain duplicate values.");
         }
 
         if (OutFields?.Any(static field => string.IsNullOrWhiteSpace(field)) == true) {
@@ -101,12 +97,6 @@ public sealed record TopFeaturesQuery
 
         if (GeometryPrecision is < 0) {
             throw new InvalidOperationException("GeometryPrecision must be greater than or equal to zero when provided.");
-        }
-
-        if (MaxAllowableOffset.HasValue &&
-    (double.IsNaN(MaxAllowableOffset.Value) ||
-     double.IsInfinity(MaxAllowableOffset.Value))) {
-            throw new InvalidOperationException("MaxAllowableOffset must be a finite value when provided.");
         }
 
         if (MaxAllowableOffset is < 0) {

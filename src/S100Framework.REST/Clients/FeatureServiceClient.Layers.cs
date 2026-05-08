@@ -1,9 +1,9 @@
-﻿using System.Globalization;
+using System.Globalization;
 using S100Framework.REST.Abstractions;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
-using S100Framework.REST.Exceptions;
 
 namespace S100Framework.REST.Clients;
 
@@ -55,7 +55,6 @@ public sealed partial class FeatureServiceClient
             });
 
         var dto = await GetAsync<EsriLayerMetadataDto>(uri, cancellationToken);
-
         var schemaLayerId = ReadRequiredLayerMetadataId(dto.Id, uri);
 
         var srid = dto.Extent?.SpatialReference is null
@@ -72,6 +71,7 @@ public sealed partial class FeatureServiceClient
                 dto.UniqueIdInfo.Type ?? "unknown",
                 dto.UniqueIdInfo.Fields?
                     .Where(static field => !string.IsNullOrWhiteSpace(field))
+                    .Select(static field => field!)
                     .ToArray() ?? Array.Empty<string>(),
                 dto.UniqueIdInfo.OidFieldContainsHashValue ?? false);
 
@@ -117,22 +117,22 @@ public sealed partial class FeatureServiceClient
 
         return new FeatureLayerSchema(
             schemaLayerId,
-dto.Name ?? $"Layer {schemaLayerId}",
+            dto.Name ?? $"Layer {schemaLayerId}",
             dto.GeometryType,
             srid,
             dto.HasZ ?? false,
             dto.HasM ?? false,
             dto.MaxRecordCount,
             dto.ObjectIdField,
-           dto.Fields?
-    .Where(static field => field is not null)
-    .Select(static field => MapField(field!))
-    .ToArray() ?? Array.Empty<FeatureField>(),
-capabilities,
-dto.Relationships?
-    .Where(static relationship => relationship is not null)
-    .Select(relationship => MapRelationship(relationship!, uri))
-    .ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
+            dto.Fields?
+                .Where(static field => field is not null)
+                .Select(static field => MapField(field!))
+                .ToArray() ?? Array.Empty<FeatureField>(),
+            capabilities,
+            dto.Relationships?
+                .Where(static relationship => relationship is not null)
+                .Select(relationship => MapRelationship(relationship!, uri))
+                .ToArray() ?? Array.Empty<FeatureRelationshipInfo>()) {
             UniqueIdInfo = uniqueIdInfo,
             SupportedAppendFormats = dto.SupportedAppendFormats?
                 .Where(static value => !string.IsNullOrWhiteSpace(value))
@@ -146,8 +146,8 @@ dto.Relationships?
     }
 
     private static int ReadRequiredLayerMetadataId(
-    int? layerId,
-    Uri requestUri) {
+        int? layerId,
+        Uri requestUri) {
         if (!layerId.HasValue) {
             throw new FeatureServiceException(
                 "The layer metadata returned a layer without an ID.",
@@ -204,8 +204,8 @@ dto.Relationships?
     }
 
     private static FeatureRelationshipInfo MapRelationship(
-    EsriRelationshipInfoDto dto,
-    Uri requestUri) {
+        EsriRelationshipInfoDto dto,
+        Uri requestUri) {
         if (!dto.Id.HasValue) {
             throw new FeatureServiceException(
                 "The layer metadata returned a relationship without an ID.",

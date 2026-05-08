@@ -1,4 +1,4 @@
-﻿using S100Framework.REST.Exceptions;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
@@ -38,8 +38,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static FeatureServiceRelationship MapServiceRelationship(
-    EsriServiceRelationshipDto dto,
-    Uri requestUri) {
+        EsriServiceRelationshipDto dto,
+        Uri requestUri) {
         if (!dto.Id.HasValue) {
             throw new FeatureServiceException(
                 "The service returned a relationship without an ID.",

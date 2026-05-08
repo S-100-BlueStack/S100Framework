@@ -111,11 +111,6 @@ public sealed record FeatureStatisticsQuery
                         "PercentileParameters.Value must be between 0 and 1.");
                 }
 
-                if (!Enum.IsDefined(statistic.PercentileParameters.OrderBy)) {
-                    throw new InvalidOperationException(
-                        "PercentileParameters.OrderBy must be a supported percentile order.");
-                }
-
                 if (!string.IsNullOrWhiteSpace(HavingClause)) {
                     throw new InvalidOperationException(
                         "Percentile statistics cannot be combined with HavingClause.");

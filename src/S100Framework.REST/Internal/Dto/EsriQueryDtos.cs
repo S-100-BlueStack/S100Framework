@@ -1,4 +1,3 @@
-﻿using System.Collections;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -10,7 +9,7 @@ internal sealed class EsriQueryResponseDto
     public string? ObjectIdFieldName { get; init; }
 
     [JsonPropertyName("features")]
-    public List<EsriFeatureDto>? Features { get; init; }
+    public List<EsriFeatureDto?>? Features { get; init; }
 
     [JsonPropertyName("exceededTransferLimit")]
     public bool? ExceededTransferLimit { get; init; }

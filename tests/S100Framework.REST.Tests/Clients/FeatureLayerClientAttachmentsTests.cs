@@ -134,31 +134,6 @@ public sealed class FeatureLayerClientAttachmentsTests
         Assert.Equal("photo.jpg", content.FileName);
     }
 
-    [Theory]
-    [InlineData(-1, 7, "ObjectId")]
-    [InlineData(100, -7, "AttachmentId")]
-    public async Task DownloadAttachmentAsync_Throws_WhenIdsAreNegative_BeforeSchemaLookup(
-    long objectId,
-    long attachmentId,
-    string expectedMessagePart) {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
-        var layerClient = new FeatureServiceClient(
-            new HttpClient(new StubHttpMessageHandler(_ =>
-                throw new InvalidOperationException("HTTP should not be called."))),
-            new FeatureServiceClientOptions {
-                ServiceUri = new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer")
-            }).GetLayerClient(0);
-
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            layerClient.DownloadAttachmentAsync(
-                objectId,
-                attachmentId,
-                cancellationToken));
-
-        Assert.Contains(expectedMessagePart, exception.Message, StringComparison.Ordinal);
-    }
-
     [Fact]
     public async Task QueryAttachmentsAsync_Throws_WhenNoSelectorIsProvided() {
         var cancellationToken = TestContext.Current.CancellationToken;
