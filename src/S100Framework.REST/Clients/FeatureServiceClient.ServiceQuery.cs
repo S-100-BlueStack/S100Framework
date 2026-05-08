@@ -88,9 +88,9 @@ public sealed partial class FeatureServiceClient
 
         return new FeatureServiceQueryCountResult(
             EnumerateServiceQueryLayers(dto.Layers)
-                .Select(layer => new FeatureServiceLayerCountResult(
-                    ReadRequiredServiceQueryLayerId(layer.Id, endpointUri),
-                    layer.Count ?? 0))
+               .Select(layer => new FeatureServiceLayerCountResult(
+    ReadRequiredServiceQueryLayerId(layer.Id, endpointUri),
+    ReadRequiredServiceQueryLayerCount(layer.Count, endpointUri)))
                 .ToArray());
     }
 
@@ -403,6 +403,24 @@ public sealed partial class FeatureServiceClient
         }
 
         return layerId.Value;
+    }
+
+    private static long ReadRequiredServiceQueryLayerCount(
+    long? count,
+    Uri endpointUri) {
+        if (!count.HasValue) {
+            throw new FeatureServiceException(
+                "The service query count payload returned a layer without a count value.",
+                endpointUri);
+        }
+
+        if (count.Value < 0) {
+            throw new FeatureServiceException(
+                "The service query count payload returned a layer with a negative count value.",
+                endpointUri);
+        }
+
+        return count.Value;
     }
 
     private static IReadOnlyList<long> ReadServiceQueryObjectIds(

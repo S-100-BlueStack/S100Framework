@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using S100Framework.REST.Internal.Json;
 
 namespace S100Framework.REST.Internal.Dto;
 
@@ -23,6 +24,7 @@ internal sealed class EsriServiceMetadataDto
     public bool? SupportsAppend { get; init; }
 
     [JsonPropertyName("supportedAppendFormats")]
+    [JsonConverter(typeof(EsriStringListJsonConverter))]
     public List<string>? SupportedAppendFormats { get; init; }
 
     [JsonPropertyName("advancedEditingCapabilities")]
@@ -108,6 +110,7 @@ internal sealed class EsriLayerMetadataDto
 
     [JsonPropertyName("extent")]
     public EsriExtentDto? Extent { get; init; }
+
     [JsonPropertyName("uniqueIdInfo")]
     public EsriUniqueIdInfoDto? UniqueIdInfo { get; init; }
 
@@ -115,9 +118,11 @@ internal sealed class EsriLayerMetadataDto
     public bool? SupportsAppend { get; init; }
 
     [JsonPropertyName("supportedAppendFormats")]
+    [JsonConverter(typeof(EsriStringListJsonConverter))]
     public List<string>? SupportedAppendFormats { get; init; }
 
     [JsonPropertyName("supportedAppendSourceFilterFormats")]
+    [JsonConverter(typeof(EsriStringListJsonConverter))]
     public List<string>? SupportedAppendSourceFilterFormats { get; init; }
 
     [JsonPropertyName("supportedAppendCapabilities")]
@@ -255,6 +260,7 @@ internal sealed class EsriAdvancedQueryAnalyticCapabilitiesDto
     [JsonPropertyName("supportsPercentileAnalytic")]
     public bool? SupportsPercentileAnalytic { get; init; }
 }
+
 internal sealed class EsriFieldDto
 {
     [JsonPropertyName("name")]

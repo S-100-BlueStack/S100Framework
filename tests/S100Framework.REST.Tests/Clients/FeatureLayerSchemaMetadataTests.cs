@@ -590,6 +590,35 @@ public sealed class FeatureLayerSchemaMetadataTests
         Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task GetSchemaAsync_MapsAppendFormats_WhenServerReturnsCommaSeparatedStrings() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateSchemaClient("""
+    {
+      "id": 0,
+      "name": "Facilities",
+      "objectIdField": "OBJECTID",
+      "supportsAppend": true,
+      "supportedAppendFormats": "sqlite, feature Service, pbf",
+      "supportedAppendSourceFilterFormats": "sqlite, csv",
+      "fields": [
+        { "name": "OBJECTID", "type": "esriFieldTypeOID", "nullable": false }
+      ],
+      "relationships": [],
+      "extent": {
+        "spatialReference": { "wkid": 4326, "latestWkid": 4326 }
+      }
+    }
+    """);
+
+        var schema = await client.GetLayerClient(0).GetSchemaAsync(cancellationToken);
+
+        Assert.True(schema.Capabilities.SupportsAppend);
+        Assert.Equal(["sqlite", "feature Service", "pbf"], schema.SupportedAppendFormats);
+        Assert.Equal(["sqlite", "csv"], schema.SupportedAppendSourceFilterFormats);
+    }
+
     private static FeatureServiceClient CreateSchemaClient(string layerMetadataJson) {
         var handler = new StubHttpMessageHandler(request => {
             var uri = request.RequestUri!.AbsoluteUri;

@@ -397,6 +397,101 @@ public sealed class FeatureServiceClientServiceQueryHardeningTests
     }
 
     [Fact]
+    public async Task QueryCountAsync_ThrowsFeatureServiceException_WhenLayerCountIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse();
+            }
+
+            if (IsServiceQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                {
+                  "id": 0
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.QueryCountAsync(CreateRequest(), cancellationToken));
+
+        Assert.Contains("service query count", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("count", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_ThrowsFeatureServiceException_WhenLayerCountIsNull() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse();
+            }
+
+            if (IsServiceQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                {
+                  "id": 0,
+                  "count": null
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.QueryCountAsync(CreateRequest(), cancellationToken));
+
+        Assert.Contains("service query count", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("count", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task QueryCountAsync_ThrowsFeatureServiceException_WhenLayerCountIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateServiceMetadataResponse();
+            }
+
+            if (IsServiceQueryRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                {
+                  "id": 0,
+                  "count": -1
+                }
+              ]
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.QueryCountAsync(CreateRequest(), cancellationToken));
+
+        Assert.Contains("service query count", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task QueryObjectIdsAsync_ThrowsFeatureServiceException_WhenLayerIdIsMissing() {
         var cancellationToken = TestContext.Current.CancellationToken;
 
