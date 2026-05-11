@@ -185,5 +185,13 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTimeoutTests
     FeatureServiceReplicasRequest? request = null,
     CancellationToken cancellationToken = default) =>
     throw new NotSupportedException("Replica listing operations are not used by this test double.");
+
+        public Task<UnregisterReplicaResult> UnregisterReplicaAsync(
+    UnregisterReplicaRequest request,
+    CancellationToken cancellationToken = default) =>
+    throw new NotSupportedException("Replica unregister operations are not used by this test double.");
+
+
     }
+
 }
