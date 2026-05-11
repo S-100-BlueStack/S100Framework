@@ -160,5 +160,38 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTimeoutTests
             CancellationToken cancellationToken) {
             throw new NotSupportedException("Append operations are not used by this test double.");
         }
+
+        public Task<CreateReplicaResult> CreateReplicaAsync(
+    CreateReplicaRequest request,
+    CancellationToken cancellationToken = default) =>
+    throw new NotSupportedException("CreateReplica operations are not used by this test double.");
+
+        public Task<CreateReplicaSubmissionResult> SubmitCreateReplicaAsync(
+            CreateReplicaRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("CreateReplica operations are not used by this test double.");
+
+        public Task<CreateReplicaJobStatus> GetCreateReplicaStatusAsync(
+            Uri statusUrl,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("CreateReplica operations are not used by this test double.");
+
+        public Task<CreateReplicaFileResult> DownloadCreateReplicaFileAsync(
+            Uri resultUrl,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("CreateReplica operations are not used by this test double.");
+
+        public Task<FeatureServiceReplicasResult> GetReplicasAsync(
+    FeatureServiceReplicasRequest? request = null,
+    CancellationToken cancellationToken = default) =>
+    throw new NotSupportedException("Replica listing operations are not used by this test double.");
+
+        public Task<UnregisterReplicaResult> UnregisterReplicaAsync(
+    UnregisterReplicaRequest request,
+    CancellationToken cancellationToken = default) =>
+    throw new NotSupportedException("Replica unregister operations are not used by this test double.");
+
+
     }
+
 }
