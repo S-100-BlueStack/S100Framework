@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -273,6 +274,22 @@ namespace S100FC
         public override void SetValue(string value) {
             this.value = int.Parse(value);
         }
+
+        public override bool Equals(object? obj) {
+            if (obj is int _int) {
+                return _int == this.value;
+            }
+            if (obj is string _string) {
+                if (int.TryParse(_string, out int result)) {
+                    return result == this.value;
+                }
+            }
+            return false;
+        }
+
+        public override int GetHashCode() {
+            return base.GetHashCode();
+        }
     }
 
     public class RealAttribute : SimpleAttribute
@@ -428,6 +445,22 @@ namespace S100FC
         }
 
         public virtual listedValue[] listedValues { get; init; } = [];
+
+        public override bool Equals(object? obj) {
+            if(obj is int _int) {
+                return _int == this.value;
+            }
+            if(obj is string _string) {
+                if(int.TryParse(_string, out int result)) {
+                    return result == this.value;
+                }
+            }
+            return false;
+        }
+
+        public override int GetHashCode() {
+            return base.GetHashCode();
+        }
     }
 
     public class CodeListAttribute : SimpleAttribute
@@ -448,6 +481,22 @@ namespace S100FC
         }
 
         public virtual listedValue[] listedValues { get; init; } = [];
+
+        public override bool Equals(object? obj) {
+            if (obj is int _int) {
+                return _int == this.value;
+            }
+            if (obj is string _string) {
+                if (int.TryParse(_string, out int result)) {
+                    return result == this.value;
+                }
+            }
+            return false;
+        }
+
+        public override int GetHashCode() {
+            return base.GetHashCode();
+        }
     }
 
 

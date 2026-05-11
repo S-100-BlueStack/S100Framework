@@ -12,16 +12,16 @@
 		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
 		<AssemblyVersion>3.0.0.0</AssemblyVersion>
 		<Configurations>Debug</Configurations>
-		<Version>3.7.1772</Version>
-		<PackageVersion>3.7.1772.11</PackageVersion>
+		<Version>3.7.1863</Version>
+		<PackageVersion>3.7.1863.0</PackageVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="NetTopologySuite" Version="2.6.0" />
 		<PackageReference Include="NetTopologySuite.IO.GeoJSON" Version="4.0.0" />
 		<PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
-		<PackageReference Include="System.IO.Hashing" Version="10.0.5" />
-		<PackageReference Include="YamlDotNet" Version="16.3.0" />
+		<PackageReference Include="System.IO.Hashing" Version="10.0.7" />
+		<PackageReference Include="YamlDotNet" Version="17.1.0" />
 	</ItemGroup>
 
 	<ItemGroup>
