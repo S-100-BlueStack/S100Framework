@@ -180,5 +180,10 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTimeoutTests
             Uri resultUrl,
             CancellationToken cancellationToken = default) =>
             throw new NotSupportedException("CreateReplica operations are not used by this test double.");
+
+        public Task<FeatureServiceReplicasResult> GetReplicasAsync(
+    FeatureServiceReplicasRequest? request = null,
+    CancellationToken cancellationToken = default) =>
+    throw new NotSupportedException("Replica listing operations are not used by this test double.");
     }
 }
