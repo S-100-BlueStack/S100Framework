@@ -98,4 +98,24 @@ public sealed record ReplicaJsonResultFile(
     public IEnumerable<ReplicaEditResult> GetEditErrors() {
         return GetEditResults().Where(static result => result.HasError || result.Success == false);
     }
+
+    /// <summary>
+    /// Gets all parsed edit results with layer and operation context.
+    /// </summary>
+    /// <returns>
+    /// Add, update, and delete results with layer and operation context.
+    /// </returns>
+    public IEnumerable<ReplicaLayerEditResult> GetLayerEditResults() {
+        return Layers.SelectMany(static layer => layer.GetLayerEditResults());
+    }
+
+    /// <summary>
+    /// Gets failed parsed edit results with layer and operation context.
+    /// </summary>
+    /// <returns>
+    /// Failed edit results with layer and operation context.
+    /// </returns>
+    public IEnumerable<ReplicaLayerEditResult> GetLayerEditErrors() {
+        return GetLayerEditResults().Where(static result => result.IsFailed);
+    }
 }

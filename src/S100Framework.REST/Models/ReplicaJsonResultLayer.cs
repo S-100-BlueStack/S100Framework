@@ -68,4 +68,27 @@ public sealed record ReplicaJsonResultLayer(
             .Concat(UpdateResults)
             .Concat(DeleteResults);
     }
+
+    /// <summary>
+    /// Gets all parsed edit results with operation context on the layer.
+    /// </summary>
+    /// <returns>
+    /// Add, update, and delete results with their operation type.
+    /// </returns>
+    public IEnumerable<ReplicaLayerEditResult> GetLayerEditResults() {
+        return AddResults
+            .Select(result => new ReplicaLayerEditResult(Id, ReplicaEditOperation.Add, result))
+            .Concat(UpdateResults.Select(result => new ReplicaLayerEditResult(Id, ReplicaEditOperation.Update, result)))
+            .Concat(DeleteResults.Select(result => new ReplicaLayerEditResult(Id, ReplicaEditOperation.Delete, result)));
+    }
+
+    /// <summary>
+    /// Gets failed parsed edit results with operation context on the layer.
+    /// </summary>
+    /// <returns>
+    /// Failed add, update, and delete results with their operation type.
+    /// </returns>
+    public IEnumerable<ReplicaLayerEditResult> GetLayerEditErrors() {
+        return GetLayerEditResults().Where(static result => result.IsFailed);
+    }
 }

@@ -1,5 +1,6 @@
-﻿using System.Text;
-using S100Framework.REST.Internal.Replica;
+﻿using S100Framework.REST.Internal.Replica;
+using S100Framework.REST.Models;
+using System.Text;
 using Xunit;
 
 namespace S100Framework.REST.Tests.Internal.Replica;
@@ -65,6 +66,10 @@ public sealed class ReplicaJsonResultFileReaderTests
         Assert.Equal(1, result.SuccessfulEditResultCount);
         Assert.Equal(1, result.FailedEditResultCount);
         Assert.Single(result.GetEditErrors());
+        var contextualError = Assert.Single(result.GetLayerEditErrors());
+        Assert.Equal(0, contextualError.LayerId);
+        Assert.Equal(ReplicaEditOperation.Update, contextualError.Operation);
+        Assert.Equal(102, contextualError.ObjectId);
 
         var layer = Assert.Single(result.Layers);
         Assert.Equal(0, layer.Id);
