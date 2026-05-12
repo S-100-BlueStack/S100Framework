@@ -496,8 +496,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static void EnsureSynchronizeReplicaSupported(
-     FeatureServiceMetadata metadata,
-     SynchronizeReplicaRequest request) {
+    FeatureServiceMetadata metadata,
+    SynchronizeReplicaRequest request) {
         if (!metadata.Capabilities.SupportsSync && !metadata.Capabilities.SyncEnabled) {
             throw new FeatureServiceCapabilityException(
                 "The feature service does not support sync, so synchronizeReplica is not available.");
@@ -512,6 +512,17 @@ public sealed partial class FeatureServiceClient
         if (request.IsAsync && !syncCapabilities.SupportsAsync) {
             throw new FeatureServiceCapabilityException(
                 "The feature service does not support asynchronous synchronizeReplica requests.");
+        }
+
+        if (IsSynchronizeReplicaUploadDirection(request.SyncDirection) &&
+            !syncCapabilities.SupportsSyncDirectionControl) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support upload or bidirectional synchronizeReplica requests because sync direction control is not advertised.");
+        }
+
+        if (request.RollbackOnFailure && !syncCapabilities.SupportsRollbackOnFailure) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support rollbackOnFailure for synchronizeReplica upload requests.");
         }
 
         switch (request.SyncModel) {

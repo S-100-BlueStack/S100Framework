@@ -178,6 +178,74 @@ public sealed class FeatureServiceMetadataReplicaExtensionsTests
         Assert.Contains("SyncModel", exception.Message);
     }
 
+    [Fact]
+    public void SupportsReplicaSyncDirectionControl_ReturnsTrue_WhenAdvertised() {
+        var metadata = CreateMetadata(
+            supportsSync: true,
+            syncEnabled: false,
+            syncCapabilities: CreateSyncCapabilities() with {
+                SupportsSyncDirectionControl = true
+            });
+
+        Assert.True(metadata.SupportsReplicaSyncDirectionControl());
+    }
+
+    [Fact]
+    public void SupportsReplicaSyncDirectionControl_ReturnsFalse_WhenNotAdvertised() {
+        var metadata = CreateMetadata(
+            supportsSync: true,
+            syncEnabled: false,
+            syncCapabilities: CreateSyncCapabilities() with {
+                SupportsSyncDirectionControl = false
+            });
+
+        Assert.False(metadata.SupportsReplicaSyncDirectionControl());
+    }
+
+    [Fact]
+    public void SupportsReplicaRollbackOnFailure_ReturnsTrue_WhenAdvertised() {
+        var metadata = CreateMetadata(
+            supportsSync: true,
+            syncEnabled: false,
+            syncCapabilities: CreateSyncCapabilities() with {
+                SupportsRollbackOnFailure = true
+            });
+
+        Assert.True(metadata.SupportsReplicaRollbackOnFailure());
+    }
+
+    [Fact]
+    public void SupportsReplicaRollbackOnFailure_ReturnsFalse_WhenNotAdvertised() {
+        var metadata = CreateMetadata(
+            supportsSync: true,
+            syncEnabled: false,
+            syncCapabilities: CreateSyncCapabilities() with {
+                SupportsRollbackOnFailure = false
+            });
+
+        Assert.False(metadata.SupportsReplicaRollbackOnFailure());
+    }
+
+    [Fact]
+    public void GetReplicaCapabilityIssues_ReturnsUploadWorkflowIssues_WhenUploadCapabilitiesAreMissing() {
+        var metadata = CreateMetadata(
+            supportsSync: true,
+            syncEnabled: false,
+            syncCapabilities: CreateSyncCapabilities() with {
+                SupportsSyncDirectionControl = false,
+                SupportsRollbackOnFailure = false
+            });
+
+        var issues = metadata.GetReplicaCapabilityIssues();
+
+        Assert.Contains(
+            "The feature service does not advertise sync direction control for upload or bidirectional replica workflows.",
+            issues);
+        Assert.Contains(
+            "The feature service does not advertise rollback-on-failure support for upload replica workflows.",
+            issues);
+    }
+
     private static FeatureServiceMetadata CreateMetadata(
      bool supportsSync,
      bool syncEnabled,
@@ -214,7 +282,7 @@ public sealed class FeatureServiceMetadataReplicaExtensionsTests
             SupportsPerLayerSync: true,
             SupportsPerReplicaSync: true,
             SupportsSyncModelNone: true,
-            SupportsRollbackOnFailure: false,
+            SupportsRollbackOnFailure: true,
             SupportsAsync: true,
             SupportsAttachmentsSyncDirection: false,
             SupportsBiDirectionalSyncForServer: false);

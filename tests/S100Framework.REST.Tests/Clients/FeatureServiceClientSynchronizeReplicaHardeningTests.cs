@@ -389,6 +389,187 @@ public sealed class FeatureServiceClientSynchronizeReplicaHardeningTests
         Assert.Contains("The job ID does not exist.", exception.Details);
     }
 
+    [Fact]
+    public async Task SubmitSynchronizeReplicaAsync_Throws_WhenUploadDirectionControlIsNotSupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                { "id": 0, "name": "Layer 0" }
+              ],
+              "tables": [],
+              "capabilities": "Create,Update,Delete,Query,Sync",
+              "syncEnabled": true,
+              "syncCapabilities": {
+                "supportsPerReplicaSync": true,
+                "supportsPerLayerSync": true,
+                "supportsSyncModelNone": true,
+                "supportsAsync": true,
+                "supportsSyncDirectionControl": false,
+                "supportsRollbackOnFailure": true
+              }
+            }
+            """);
+            }
+
+            throw new InvalidOperationException("The synchronizeReplica endpoint should not be called.");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
+            client.SubmitSynchronizeReplicaAsync(
+                new SynchronizeReplicaRequest {
+                    ReplicaId = "replica-1",
+                    SyncDirection = SynchronizeReplicaSyncDirection.Upload,
+                    EditsJson = """{"layers":[]}"""
+                },
+                cancellationToken));
+
+        Assert.Contains("sync direction control", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SubmitSynchronizeReplicaAsync_Throws_WhenBidirectionalDirectionControlIsNotSupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                { "id": 0, "name": "Layer 0" }
+              ],
+              "tables": [],
+              "capabilities": "Create,Update,Delete,Query,Sync",
+              "syncEnabled": true,
+              "syncCapabilities": {
+                "supportsPerReplicaSync": true,
+                "supportsPerLayerSync": true,
+                "supportsSyncModelNone": true,
+                "supportsAsync": true,
+                "supportsSyncDirectionControl": false,
+                "supportsRollbackOnFailure": true
+              }
+            }
+            """);
+            }
+
+            throw new InvalidOperationException("The synchronizeReplica endpoint should not be called.");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
+            client.SubmitSynchronizeReplicaAsync(
+                new SynchronizeReplicaRequest {
+                    ReplicaId = "replica-1",
+                    ReplicaServerGen = 1526605677436,
+                    SyncDirection = SynchronizeReplicaSyncDirection.Bidirectional,
+                    EditsJson = """{"layers":[]}"""
+                },
+                cancellationToken));
+
+        Assert.Contains("sync direction control", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SubmitSynchronizeReplicaAsync_Throws_WhenRollbackOnFailureIsNotSupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                { "id": 0, "name": "Layer 0" }
+              ],
+              "tables": [],
+              "capabilities": "Create,Update,Delete,Query,Sync",
+              "syncEnabled": true,
+              "syncCapabilities": {
+                "supportsPerReplicaSync": true,
+                "supportsPerLayerSync": true,
+                "supportsSyncModelNone": true,
+                "supportsAsync": true,
+                "supportsSyncDirectionControl": true,
+                "supportsRollbackOnFailure": false
+              }
+            }
+            """);
+            }
+
+            throw new InvalidOperationException("The synchronizeReplica endpoint should not be called.");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
+            client.SubmitSynchronizeReplicaAsync(
+                new SynchronizeReplicaRequest {
+                    ReplicaId = "replica-1",
+                    SyncDirection = SynchronizeReplicaSyncDirection.Upload,
+                    EditsJson = """{"layers":[]}""",
+                    RollbackOnFailure = true
+                },
+                cancellationToken));
+
+        Assert.Contains("rollbackOnFailure", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SubmitSynchronizeReplicaAsync_DoesNotRequireServerBidirectionalCapabilityForClientBidirectionalSync() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                { "id": 0, "name": "Layer 0" }
+              ],
+              "tables": [],
+              "capabilities": "Create,Update,Delete,Query,Sync",
+              "syncEnabled": true,
+              "syncCapabilities": {
+                "supportsPerReplicaSync": true,
+                "supportsPerLayerSync": true,
+                "supportsSyncModelNone": true,
+                "supportsAsync": true,
+                "supportsSyncDirectionControl": true,
+                "supportsRollbackOnFailure": true,
+                "supportsBiDirectionalSyncForServer": false
+              }
+            }
+            """);
+            }
+
+            if (IsSynchronizeReplicaRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "transportType": "esriTransportTypeURL",
+              "responseType": "esriReplicaResponseTypeEdits",
+              "replicaID": "replica-1",
+              "replicaName": "Replica A",
+              "replicaServerGen": 1526606896310,
+              "URL": "https://example.test/output/sync.json"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var result = await client.SubmitSynchronizeReplicaAsync(
+            new SynchronizeReplicaRequest {
+                ReplicaId = "replica-1",
+                ReplicaServerGen = 1526605677436,
+                SyncDirection = SynchronizeReplicaSyncDirection.Bidirectional,
+                EditsJson = """{"layers":[]}"""
+            },
+            cancellationToken);
+
+        Assert.NotNull(result.Result);
+        Assert.Equal(1526606896310, result.Result!.ReplicaServerGen);
+    }
+
     private static SynchronizeReplicaRequest CreateValidRequest() {
         return new SynchronizeReplicaRequest {
             ReplicaId = "replica-1",

@@ -373,7 +373,9 @@ public sealed class FeatureServiceClientReplicaUploadStateExtensionsTests
             "supportsPerReplicaSync": true,
             "supportsPerLayerSync": true,
             "supportsSyncModelNone": true,
-            "supportsAsync": true
+            "supportsAsync": true,
+            "supportsSyncDirectionControl": true,
+            "supportsRollbackOnFailure": true
           }
         }
         """);
