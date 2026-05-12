@@ -1,7 +1,6 @@
-﻿using System.Globalization;
-using System.Text.Json;
-using S100Framework.REST.Abstractions;
+﻿using S100Framework.REST.Abstractions;
 using S100Framework.REST.Models;
+using S100Framework.REST.Internal.Replica;
 
 namespace S100Framework.REST.Extensions;
 
@@ -154,179 +153,27 @@ public static class FeatureServiceClientCreateReplicaStateExtensions
     private static CreateReplicaResult ReadCreateReplicaResultFromJsonFile(
         CreateReplicaFileResult file,
         CreateReplicaResult fallbackResult) {
-        if (file.Content.Length == 0) {
-            throw new InvalidOperationException(
-                "The downloaded createReplica JSON file is empty.");
-        }
-
-        using var document = ParseCreateReplicaJsonFile(file);
-        var root = document.RootElement;
-
-        if (root.ValueKind != JsonValueKind.Object) {
-            throw new InvalidOperationException(
-                "The downloaded createReplica JSON file must contain a JSON object.");
-        }
-
-        var layerServerGens = ReadLayerServerGens(root, file.ResultUrl);
+        var parsed = ReplicaGenerationJsonReader.Read(
+            file.Content,
+            file.ResultUrl,
+            "createReplica");
 
         return new CreateReplicaResult(
-            ReplicaName: ReadOptionalString(root, "replicaName") ?? fallbackResult.ReplicaName,
-            ReplicaId: ReadOptionalString(root, "replicaID") ?? fallbackResult.ReplicaId,
-            TransportType: ReadOptionalString(root, "transportType") ?? fallbackResult.TransportType,
-            ResponseType: ReadOptionalString(root, "responseType") ?? fallbackResult.ResponseType,
-            SyncModel: ReadOptionalString(root, "syncModel") ?? fallbackResult.SyncModel,
-            TargetType: ReadOptionalString(root, "targetType") ?? fallbackResult.TargetType,
-            ReplicaServerGen: ReadOptionalInt64(root, "replicaServerGen", file.ResultUrl) ??
-                              fallbackResult.ReplicaServerGen,
-            LayerServerGens: layerServerGens.Count > 0
-                ? layerServerGens
+            ReplicaName: parsed.ReplicaName ?? fallbackResult.ReplicaName,
+            ReplicaId: parsed.ReplicaId ?? fallbackResult.ReplicaId,
+            TransportType: parsed.TransportType ?? fallbackResult.TransportType,
+            ResponseType: parsed.ResponseType ?? fallbackResult.ResponseType,
+            SyncModel: parsed.SyncModel ?? fallbackResult.SyncModel,
+            TargetType: parsed.TargetType ?? fallbackResult.TargetType,
+            ReplicaServerGen: parsed.ReplicaServerGen ?? fallbackResult.ReplicaServerGen,
+            LayerServerGens: parsed.LayerServerGens.Count > 0
+                ? parsed.LayerServerGens
+                    .Select(static value => new CreateReplicaLayerServerGen(value.Id, value.ServerGen))
+                    .ToArray()
                 : fallbackResult.LayerServerGens,
             ResultUrl: fallbackResult.ResultUrl,
             Status: fallbackResult.Status,
             SubmissionTime: fallbackResult.SubmissionTime,
             LastUpdatedTime: fallbackResult.LastUpdatedTime);
-    }
-
-    private static JsonDocument ParseCreateReplicaJsonFile(
-        CreateReplicaFileResult file) {
-        try {
-            return JsonDocument.Parse(file.Content);
-        }
-        catch (JsonException exception) {
-            throw new InvalidOperationException(
-                "The downloaded createReplica JSON file could not be parsed.",
-                exception);
-        }
-    }
-
-    private static string? ReadOptionalString(
-        JsonElement root,
-        string propertyName) {
-        if (!root.TryGetProperty(propertyName, out var property) ||
-            property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
-            return null;
-        }
-
-        if (property.ValueKind != JsonValueKind.String) {
-            return null;
-        }
-
-        var value = property.GetString();
-
-        return string.IsNullOrWhiteSpace(value)
-            ? null
-            : value;
-    }
-
-    private static long? ReadOptionalInt64(
-        JsonElement root,
-        string propertyName,
-        Uri resultUrl) {
-        if (!root.TryGetProperty(propertyName, out var property) ||
-            property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
-            return null;
-        }
-
-        if (!TryReadInt64(property, out var value)) {
-            throw new InvalidOperationException(
-                $"The downloaded createReplica JSON file contains an invalid {propertyName} value. Result URL: {resultUrl}");
-        }
-
-        if (value < 0) {
-            throw new InvalidOperationException(
-                $"The downloaded createReplica JSON file contains a negative {propertyName} value. Result URL: {resultUrl}");
-        }
-
-        return value;
-    }
-
-    private static IReadOnlyList<CreateReplicaLayerServerGen> ReadLayerServerGens(
-        JsonElement root,
-        Uri resultUrl) {
-        if (!root.TryGetProperty("layerServerGens", out var property) ||
-            property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
-            return Array.Empty<CreateReplicaLayerServerGen>();
-        }
-
-        if (property.ValueKind != JsonValueKind.Array) {
-            throw new InvalidOperationException(
-                $"The downloaded createReplica JSON file contains an invalid layerServerGens value. Result URL: {resultUrl}");
-        }
-
-        var values = new List<CreateReplicaLayerServerGen>();
-
-        foreach (var item in property.EnumerateArray()) {
-            if (item.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
-                continue;
-            }
-
-            if (item.ValueKind != JsonValueKind.Object) {
-                throw new InvalidOperationException(
-                    $"The downloaded createReplica JSON file contains an invalid layerServerGens item. Result URL: {resultUrl}");
-            }
-
-            var id = ReadRequiredInt32(item, "id", "layerServerGens", resultUrl);
-            var serverGen = ReadRequiredInt64(item, "serverGen", "layerServerGens", resultUrl);
-
-            if (id < 0) {
-                throw new InvalidOperationException(
-                    $"The downloaded createReplica JSON file contains a negative layer ID. Result URL: {resultUrl}");
-            }
-
-            if (serverGen < 0) {
-                throw new InvalidOperationException(
-                    $"The downloaded createReplica JSON file contains a negative serverGen value. Result URL: {resultUrl}");
-            }
-
-            values.Add(new CreateReplicaLayerServerGen(id, serverGen));
-        }
-
-        return values;
-    }
-
-    private static int ReadRequiredInt32(
-        JsonElement root,
-        string propertyName,
-        string containerName,
-        Uri resultUrl) {
-        var value = ReadRequiredInt64(root, propertyName, containerName, resultUrl);
-
-        if (value < int.MinValue || value > int.MaxValue) {
-            throw new InvalidOperationException(
-                $"The downloaded createReplica JSON file contains an out-of-range {propertyName} value in {containerName}. Result URL: {resultUrl}");
-        }
-
-        return (int)value;
-    }
-
-    private static long ReadRequiredInt64(
-        JsonElement root,
-        string propertyName,
-        string containerName,
-        Uri resultUrl) {
-        if (!root.TryGetProperty(propertyName, out var property) ||
-            property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ||
-            !TryReadInt64(property, out var value)) {
-            throw new InvalidOperationException(
-                $"The downloaded createReplica JSON file contains a {containerName} item without a valid {propertyName} value. Result URL: {resultUrl}");
-        }
-
-        return value;
-    }
-
-    private static bool TryReadInt64(
-        JsonElement element,
-        out long value) {
-        value = 0;
-
-        return element.ValueKind switch {
-            JsonValueKind.Number => element.TryGetInt64(out value),
-            JsonValueKind.String => long.TryParse(
-                element.GetString(),
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out value),
-            _ => false
-        };
     }
 }

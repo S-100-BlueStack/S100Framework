@@ -1,6 +1,5 @@
-﻿using System.Globalization;
-using System.Text.Json;
-using S100Framework.REST.Abstractions;
+﻿using S100Framework.REST.Abstractions;
+using S100Framework.REST.Internal.Replica;
 using S100Framework.REST.Models;
 
 namespace S100Framework.REST.Extensions;
@@ -175,177 +174,25 @@ public static class FeatureServiceClientReplicaStateExtensions
     private static SynchronizeReplicaResult ReadSynchronizationResultFromJsonFile(
         SynchronizeReplicaFileResult file,
         SynchronizeReplicaResult fallbackResult) {
-        if (file.Content.Length == 0) {
-            throw new InvalidOperationException(
-                "The downloaded synchronizeReplica JSON file is empty.");
-        }
-
-        using var document = ParseSynchronizationJsonFile(file);
-        var root = document.RootElement;
-
-        if (root.ValueKind != JsonValueKind.Object) {
-            throw new InvalidOperationException(
-                "The downloaded synchronizeReplica JSON file must contain a JSON object.");
-        }
-
-        var layerServerGens = ReadLayerServerGens(root, file.ResultUrl);
+        var parsed = ReplicaGenerationJsonReader.Read(
+            file.Content,
+            file.ResultUrl,
+            "synchronizeReplica");
 
         return new SynchronizeReplicaResult(
-            ReplicaId: ReadOptionalString(root, "replicaID") ?? fallbackResult.ReplicaId,
-            ReplicaName: ReadOptionalString(root, "replicaName") ?? fallbackResult.ReplicaName,
-            TransportType: ReadOptionalString(root, "transportType") ?? fallbackResult.TransportType,
-            ResponseType: ReadOptionalString(root, "responseType") ?? fallbackResult.ResponseType,
-            ReplicaServerGen: ReadOptionalInt64(root, "replicaServerGen", file.ResultUrl) ??
-                              fallbackResult.ReplicaServerGen,
-            LayerServerGens: layerServerGens.Count > 0
-                ? layerServerGens
+            ReplicaId: parsed.ReplicaId ?? fallbackResult.ReplicaId,
+            ReplicaName: parsed.ReplicaName ?? fallbackResult.ReplicaName,
+            TransportType: parsed.TransportType ?? fallbackResult.TransportType,
+            ResponseType: parsed.ResponseType ?? fallbackResult.ResponseType,
+            ReplicaServerGen: parsed.ReplicaServerGen ?? fallbackResult.ReplicaServerGen,
+            LayerServerGens: parsed.LayerServerGens.Count > 0
+                ? parsed.LayerServerGens
+                    .Select(static value => new SynchronizeReplicaLayerServerGen(value.Id, value.ServerGen))
+                    .ToArray()
                 : fallbackResult.LayerServerGens,
             ResultUrl: fallbackResult.ResultUrl,
             Status: fallbackResult.Status,
             SubmissionTime: fallbackResult.SubmissionTime,
             LastUpdatedTime: fallbackResult.LastUpdatedTime);
-    }
-
-    private static JsonDocument ParseSynchronizationJsonFile(
-        SynchronizeReplicaFileResult file) {
-        try {
-            return JsonDocument.Parse(file.Content);
-        }
-        catch (JsonException exception) {
-            throw new InvalidOperationException(
-                "The downloaded synchronizeReplica JSON file could not be parsed.",
-                exception);
-        }
-    }
-
-    private static string? ReadOptionalString(
-        JsonElement root,
-        string propertyName) {
-        if (!root.TryGetProperty(propertyName, out var property) ||
-            property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
-            return null;
-        }
-
-        if (property.ValueKind != JsonValueKind.String) {
-            return null;
-        }
-
-        var value = property.GetString();
-
-        return string.IsNullOrWhiteSpace(value)
-            ? null
-            : value;
-    }
-
-    private static long? ReadOptionalInt64(
-        JsonElement root,
-        string propertyName,
-        Uri resultUrl) {
-        if (!root.TryGetProperty(propertyName, out var property) ||
-            property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
-            return null;
-        }
-
-        if (!TryReadInt64(property, out var value)) {
-            throw new InvalidOperationException(
-                $"The downloaded synchronizeReplica JSON file contains an invalid {propertyName} value. Result URL: {resultUrl}");
-        }
-
-        if (value < 0) {
-            throw new InvalidOperationException(
-                $"The downloaded synchronizeReplica JSON file contains a negative {propertyName} value. Result URL: {resultUrl}");
-        }
-
-        return value;
-    }
-
-    private static IReadOnlyList<SynchronizeReplicaLayerServerGen> ReadLayerServerGens(
-        JsonElement root,
-        Uri resultUrl) {
-        if (!root.TryGetProperty("layerServerGens", out var property) ||
-            property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
-            return Array.Empty<SynchronizeReplicaLayerServerGen>();
-        }
-
-        if (property.ValueKind != JsonValueKind.Array) {
-            throw new InvalidOperationException(
-                $"The downloaded synchronizeReplica JSON file contains an invalid layerServerGens value. Result URL: {resultUrl}");
-        }
-
-        var values = new List<SynchronizeReplicaLayerServerGen>();
-
-        foreach (var item in property.EnumerateArray()) {
-            if (item.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
-                continue;
-            }
-
-            if (item.ValueKind != JsonValueKind.Object) {
-                throw new InvalidOperationException(
-                    $"The downloaded synchronizeReplica JSON file contains an invalid layerServerGens item. Result URL: {resultUrl}");
-            }
-
-            var id = ReadRequiredInt32(item, "id", "layerServerGens", resultUrl);
-            var serverGen = ReadRequiredInt64(item, "serverGen", "layerServerGens", resultUrl);
-
-            if (id < 0) {
-                throw new InvalidOperationException(
-                    $"The downloaded synchronizeReplica JSON file contains a negative layer ID. Result URL: {resultUrl}");
-            }
-
-            if (serverGen < 0) {
-                throw new InvalidOperationException(
-                    $"The downloaded synchronizeReplica JSON file contains a negative serverGen value. Result URL: {resultUrl}");
-            }
-
-            values.Add(new SynchronizeReplicaLayerServerGen(id, serverGen));
-        }
-
-        return values;
-    }
-
-    private static int ReadRequiredInt32(
-        JsonElement root,
-        string propertyName,
-        string containerName,
-        Uri resultUrl) {
-        var value = ReadRequiredInt64(root, propertyName, containerName, resultUrl);
-
-        if (value < int.MinValue || value > int.MaxValue) {
-            throw new InvalidOperationException(
-                $"The downloaded synchronizeReplica JSON file contains an out-of-range {propertyName} value in {containerName}. Result URL: {resultUrl}");
-        }
-
-        return (int)value;
-    }
-
-    private static long ReadRequiredInt64(
-        JsonElement root,
-        string propertyName,
-        string containerName,
-        Uri resultUrl) {
-        if (!root.TryGetProperty(propertyName, out var property) ||
-            property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ||
-            !TryReadInt64(property, out var value)) {
-            throw new InvalidOperationException(
-                $"The downloaded synchronizeReplica JSON file contains a {containerName} item without a valid {propertyName} value. Result URL: {resultUrl}");
-        }
-
-        return value;
-    }
-
-    private static bool TryReadInt64(
-        JsonElement element,
-        out long value) {
-        value = 0;
-
-        return element.ValueKind switch {
-            JsonValueKind.Number => element.TryGetInt64(out value),
-            JsonValueKind.String => long.TryParse(
-                element.GetString(),
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out value),
-            _ => false
-        };
     }
 }
