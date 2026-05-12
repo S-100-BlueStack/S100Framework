@@ -60,10 +60,19 @@ public sealed class ReplicaJsonResultFileReaderTests
         Assert.Equal("perReplica", result.SyncModel);
         Assert.Equal(25, result.ReplicaServerGen);
         Assert.True(result.HasEditResults);
+        Assert.True(result.HasEditErrors);
+        Assert.Equal(2, result.EditResultCount);
+        Assert.Equal(1, result.SuccessfulEditResultCount);
+        Assert.Equal(1, result.FailedEditResultCount);
+        Assert.Single(result.GetEditErrors());
 
         var layer = Assert.Single(result.Layers);
         Assert.Equal(0, layer.Id);
         Assert.True(layer.HasEditResults);
+        Assert.True(layer.HasEditErrors);
+        Assert.Equal(2, layer.EditResultCount);
+        Assert.Equal(1, layer.SuccessfulEditResultCount);
+        Assert.Equal(1, layer.FailedEditResultCount);
 
         var addResult = Assert.Single(layer.AddResults);
         Assert.Equal(101, addResult.ObjectId);

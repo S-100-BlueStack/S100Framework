@@ -54,4 +54,48 @@ public sealed record ReplicaJsonResultFile(
     /// </summary>
     public bool HasEditResults =>
         Layers.Any(static layer => layer.HasEditResults);
+
+    /// <summary>
+    /// Gets a value indicating whether any parsed edit result contains an error.
+    /// </summary>
+    public bool HasEditErrors =>
+        Layers.Any(static layer => layer.HasEditErrors);
+
+    /// <summary>
+    /// Gets the total number of parsed edit results across all layers.
+    /// </summary>
+    public int EditResultCount =>
+        Layers.Sum(static layer => layer.EditResultCount);
+
+    /// <summary>
+    /// Gets the number of parsed successful edit results across all layers.
+    /// </summary>
+    public int SuccessfulEditResultCount =>
+        Layers.Sum(static layer => layer.SuccessfulEditResultCount);
+
+    /// <summary>
+    /// Gets the number of parsed failed edit results across all layers.
+    /// </summary>
+    public int FailedEditResultCount =>
+        Layers.Sum(static layer => layer.FailedEditResultCount);
+
+    /// <summary>
+    /// Gets all parsed edit results across all layers.
+    /// </summary>
+    /// <returns>
+    /// All parsed add, update, and delete results.
+    /// </returns>
+    public IEnumerable<ReplicaEditResult> GetEditResults() {
+        return Layers.SelectMany(static layer => layer.GetEditResults());
+    }
+
+    /// <summary>
+    /// Gets parsed edit results that contain an error.
+    /// </summary>
+    /// <returns>
+    /// Failed edit results across all layers.
+    /// </returns>
+    public IEnumerable<ReplicaEditResult> GetEditErrors() {
+        return GetEditResults().Where(static result => result.HasError || result.Success == false);
+    }
 }

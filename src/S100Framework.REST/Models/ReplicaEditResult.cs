@@ -40,4 +40,16 @@ public sealed record ReplicaEditResult(
         ErrorCode.HasValue ||
         !string.IsNullOrWhiteSpace(ErrorDescription) ||
         ErrorDetails.Count > 0;
+
+    /// <summary>
+    /// Gets a value indicating whether the edit result explicitly succeeded.
+    /// </summary>
+    public bool IsSuccessful =>
+        Success == true && !HasError;
+
+    /// <summary>
+    /// Gets a value indicating whether the edit result explicitly failed or contains an error object.
+    /// </summary>
+    public bool IsFailed =>
+        Success == false || HasError;
 }

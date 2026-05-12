@@ -32,4 +32,40 @@ public sealed record ReplicaJsonResultLayer(
         AddResults.Count > 0 ||
         UpdateResults.Count > 0 ||
         DeleteResults.Count > 0;
+
+    /// <summary>
+    /// Gets a value indicating whether any edit result on the layer contains an error.
+    /// </summary>
+    public bool HasEditErrors =>
+        GetEditResults().Any(static result => result.HasError || result.Success == false);
+
+    /// <summary>
+    /// Gets the total number of parsed edit results on the layer.
+    /// </summary>
+    public int EditResultCount =>
+        AddResults.Count + UpdateResults.Count + DeleteResults.Count;
+
+    /// <summary>
+    /// Gets the number of parsed successful edit results on the layer.
+    /// </summary>
+    public int SuccessfulEditResultCount =>
+        GetEditResults().Count(static result => result.IsSuccessful);
+
+    /// <summary>
+    /// Gets the number of parsed failed edit results on the layer.
+    /// </summary>
+    public int FailedEditResultCount =>
+        GetEditResults().Count(static result => result.IsFailed);
+
+    /// <summary>
+    /// Gets all parsed edit results on the layer.
+    /// </summary>
+    /// <returns>
+    /// All parsed add, update, and delete results.
+    /// </returns>
+    public IEnumerable<ReplicaEditResult> GetEditResults() {
+        return AddResults
+            .Concat(UpdateResults)
+            .Concat(DeleteResults);
+    }
 }
