@@ -1,5 +1,6 @@
 ﻿using S100Framework.REST.Abstractions;
 using S100Framework.REST.Models;
+using S100Framework.REST.Exceptions;
 
 namespace S100Framework.REST.Extensions;
 
@@ -32,6 +33,9 @@ public static class FeatureServiceClientReplicaBidirectionalStateExtensions
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// Thrown when the state or request is invalid, when the job fails, or when the JSON result file cannot update state.
+    /// </exception>
+    /// <exception cref="ReplicaEditResultsException">
+    /// Thrown when <see cref="SynchronizeReplicaStateBidirectionalRequest.ThrowOnEditErrors" /> is enabled and the JSON result file contains failed edit results.
     /// </exception>
     /// <exception cref="TimeoutException">
     /// Thrown when an asynchronous job does not complete within the configured timeout.
@@ -103,6 +107,11 @@ public static class FeatureServiceClientReplicaBidirectionalStateExtensions
             cancellationToken);
 
         var jsonResult = file.ReadJsonResultFile();
+
+        if (request.ThrowOnEditErrors) {
+            jsonResult.ThrowIfEditErrors();
+        }
+
         var stateUpdateResult = MergeSynchronizationResult(
             synchronizationResult,
             jsonResult);

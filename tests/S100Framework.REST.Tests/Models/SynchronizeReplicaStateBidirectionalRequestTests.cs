@@ -79,6 +79,16 @@ public sealed class SynchronizeReplicaStateBidirectionalRequestTests
         Assert.Contains("PollInterval", exception.Message);
     }
 
+    [Fact]
+    public void Validate_DoesNotRequireThrowOnEditErrorsSpecificConfiguration() {
+        var request = new SynchronizeReplicaStateBidirectionalRequest {
+            EditsJson = """{"layers":[]}""",
+            ThrowOnEditErrors = true
+        };
+
+        request.Validate();
+    }
+
     private static ReplicaEdits CreateEdits() {
         return new ReplicaEdits {
             Layers = [

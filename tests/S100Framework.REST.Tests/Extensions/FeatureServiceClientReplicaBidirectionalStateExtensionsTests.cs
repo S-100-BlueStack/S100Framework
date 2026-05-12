@@ -1,10 +1,11 @@
-﻿using System.Net;
-using System.Text;
-using S100Framework.REST.Clients;
+﻿using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
+using S100Framework.REST.Exceptions;
 using S100Framework.REST.Extensions;
 using S100Framework.REST.Models;
 using S100Framework.REST.Tests.TestDoubles;
+using System.Net;
+using System.Text;
 using Xunit;
 
 namespace S100Framework.REST.Tests.Extensions;
@@ -351,6 +352,165 @@ public sealed class FeatureServiceClientReplicaBidirectionalStateExtensionsTests
 
         Assert.Contains("ReplicaServerGen", exception.Message);
     }
+
+    [Fact]
+    public async Task SynchronizeReplicaStateBidirectionalAsync_ThrowsReplicaEditResultsException_WhenThrowOnEditErrorsIsEnabled() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        const string resultUrl = "https://example.test/output/sync.json";
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer?f=json") {
+                return CreateSyncMetadataResponse();
+            }
+
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer/synchronizeReplica") {
+                return StubHttpMessageHandler.Json($$"""
+            {
+              "transportType": "esriTransportTypeURL",
+              "responseType": "esriReplicaResponseTypeEdits",
+              "URL": "{{resultUrl}}"
+            }
+            """);
+            }
+
+            if (uri == resultUrl) {
+                return new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(Encoding.UTF8.GetBytes("""
+                {
+                  "replicaID": "replica-1",
+                  "replicaName": "Replica A",
+                  "responseType": "esriReplicaResponseTypeEdits",
+                  "replicaServerGen": 25,
+                  "edits": [
+                    {
+                      "id": 0,
+                      "updateResults": [
+                        {
+                          "objectId": 102,
+                          "globalId": "{22222222-2222-2222-2222-222222222222}",
+                          "success": false,
+                          "error": {
+                            "code": 400,
+                            "description": "Update failed.",
+                            "details": [
+                              "Missing required field."
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """))
+                };
+            }
+
+            throw new InvalidOperationException($"Unexpected request URI: {uri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<ReplicaEditResultsException>(() =>
+            client.SynchronizeReplicaStateBidirectionalAsync(
+                new ReplicaSynchronizationState {
+                    ReplicaId = "replica-1",
+                    ReplicaName = "Replica A",
+                    SyncModel = SynchronizeReplicaSyncModel.PerReplica,
+                    ReplicaServerGen = 10
+                },
+                new SynchronizeReplicaStateBidirectionalRequest {
+                    EditsJson = """{"layers":[]}""",
+                    ThrowOnEditErrors = true
+                },
+                cancellationToken));
+
+        var error = Assert.Single(exception.Errors);
+
+        Assert.Equal(0, error.LayerId);
+        Assert.Equal(ReplicaEditOperation.Update, error.Operation);
+        Assert.Equal(102, error.ObjectId);
+        Assert.Equal("{22222222-2222-2222-2222-222222222222}", error.GlobalId);
+        Assert.Equal(400, error.ErrorCode);
+        Assert.Equal("Update failed.", error.ErrorDescription);
+        Assert.Equal(["Missing required field."], error.ErrorDetails);
+    }
+
+    [Fact]
+    public async Task SynchronizeReplicaStateBidirectionalAsync_ReturnsResultWithEditErrors_WhenThrowOnEditErrorsIsDisabled() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        const string resultUrl = "https://example.test/output/sync.json";
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer?f=json") {
+                return CreateSyncMetadataResponse();
+            }
+
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer/synchronizeReplica") {
+                return StubHttpMessageHandler.Json($$"""
+            {
+              "transportType": "esriTransportTypeURL",
+              "responseType": "esriReplicaResponseTypeEdits",
+              "URL": "{{resultUrl}}"
+            }
+            """);
+            }
+
+            if (uri == resultUrl) {
+                return new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(Encoding.UTF8.GetBytes("""
+                {
+                  "replicaID": "replica-1",
+                  "replicaName": "Replica A",
+                  "responseType": "esriReplicaResponseTypeEdits",
+                  "replicaServerGen": 25,
+                  "edits": [
+                    {
+                      "id": 0,
+                      "updateResults": [
+                        {
+                          "objectId": 102,
+                          "success": false,
+                          "error": {
+                            "code": 400,
+                            "description": "Update failed."
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """))
+                };
+            }
+
+            throw new InvalidOperationException($"Unexpected request URI: {uri}");
+        });
+
+        var result = await client.SynchronizeReplicaStateBidirectionalAsync(
+            new ReplicaSynchronizationState {
+                ReplicaId = "replica-1",
+                ReplicaName = "Replica A",
+                SyncModel = SynchronizeReplicaSyncModel.PerReplica,
+                ReplicaServerGen = 10
+            },
+            new SynchronizeReplicaStateBidirectionalRequest {
+                EditsJson = """{"layers":[]}""",
+                ThrowOnEditErrors = false
+            },
+            cancellationToken);
+
+        Assert.Equal(25, result.UpdatedState.ReplicaServerGen);
+        Assert.True(result.JsonResult.HasEditErrors);
+
+        var error = Assert.Single(result.JsonResult.GetLayerEditErrors());
+
+        Assert.Equal(0, error.LayerId);
+        Assert.Equal(ReplicaEditOperation.Update, error.Operation);
+        Assert.Equal(102, error.ObjectId);
+    }
+
 
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(

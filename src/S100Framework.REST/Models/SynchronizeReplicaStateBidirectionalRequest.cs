@@ -57,6 +57,15 @@ public sealed record SynchronizeReplicaStateBidirectionalRequest
     public bool ReturnIdsForAdds { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the workflow should throw when the downloaded JSON result file contains failed edit results.
+    /// </summary>
+    /// <remarks>
+    /// When enabled, <c>SynchronizeReplicaStateBidirectionalAsync</c> throws <see cref="S100Framework.REST.Exceptions.ReplicaEditResultsException" />
+    /// after parsing the result file and before returning updated synchronization state.
+    /// </remarks>
+    public bool ThrowOnEditErrors { get; init; }
+
+    /// <summary>
     /// Gets polling options used when <see cref="IsAsync" /> is <see langword="true" />.
     /// </summary>
     public ReplicaPollingOptions? PollingOptions { get; init; }
