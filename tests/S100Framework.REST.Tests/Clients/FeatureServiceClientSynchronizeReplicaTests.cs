@@ -1,5 +1,6 @@
 ﻿using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
+using S100Framework.REST.Extensions;
 using S100Framework.REST.Models;
 using S100Framework.REST.Tests.TestDoubles;
 using System.Net;
@@ -416,6 +417,70 @@ public sealed class FeatureServiceClientSynchronizeReplicaTests
         Assert.Contains("syncLayers=", decodedBody);
         Assert.Contains("\"syncDirection\":\"bidirectional\"", decodedBody);
         Assert.Contains("edits={\"layers\":[]}", decodedBody);
+    }
+
+    [Fact]
+    public async Task SubmitSynchronizeReplicaAsync_SendsExpectedUploadRequestWithStructuredEdits() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        string? requestBody = null;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateSyncMetadataResponse();
+            }
+
+            if (IsSynchronizeReplicaRequest(request)) {
+                requestBody = request.Content?.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult();
+
+                return StubHttpMessageHandler.Json("""
+            {
+              "transportType": "esriTransportTypeURL",
+              "responseType": "esriReplicaResponseTypeEdits",
+              "replicaID": "replica-1",
+              "replicaName": "Replica A",
+              "replicaServerGen": 1526606896310,
+              "URL": "https://example.test/output/sync.json"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var edits = new ReplicaEdits {
+            Layers = [
+                new ReplicaLayerEdits {
+                Id = 0,
+                AddsJson = """
+                [
+                  {
+                    "attributes": {
+                      "globalID": "{11111111-1111-1111-1111-111111111111}",
+                      "name": "New feature"
+                    }
+                  }
+                ]
+                """
+            }
+            ]
+        };
+
+        var request = new SynchronizeReplicaRequest {
+            ReplicaId = "replica-1",
+            SyncDirection = SynchronizeReplicaSyncDirection.Upload,
+            RollbackOnFailure = true
+        }.WithEdits(edits);
+
+        await client.SubmitSynchronizeReplicaAsync(request, cancellationToken);
+
+        Assert.NotNull(requestBody);
+
+        var decodedBody = System.Net.WebUtility.UrlDecode(requestBody!);
+
+        Assert.Contains("syncDirection=upload", decodedBody);
+        Assert.Contains("rollbackOnFailure=true", decodedBody);
+        Assert.Contains("edits=[{\"id\":0,\"adds\":[", decodedBody);
+        Assert.Contains("\"globalID\":\"{11111111-1111-1111-1111-111111111111}\"", decodedBody);
     }
 
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
