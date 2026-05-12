@@ -1,0 +1,92 @@
+﻿using S100Framework.REST.Models;
+using Xunit;
+
+namespace S100Framework.REST.Tests.Models;
+
+public sealed class SynchronizeReplicaStateUploadRequestTests
+{
+    [Fact]
+    public void Validate_DoesNotThrow_WhenStructuredEditsAreProvided() {
+        var request = new SynchronizeReplicaStateUploadRequest {
+            Edits = CreateEdits()
+        };
+
+        request.Validate();
+    }
+
+    [Fact]
+    public void Validate_DoesNotThrow_WhenRawEditsJsonIsProvided() {
+        var request = new SynchronizeReplicaStateUploadRequest {
+            EditsJson = """{"layers":[]}"""
+        };
+
+        request.Validate();
+    }
+
+    [Fact]
+    public void Validate_DoesNotThrow_WhenEditsUploadIdIsProvided() {
+        var request = new SynchronizeReplicaStateUploadRequest {
+            EditsUploadId = "upload-1"
+        };
+
+        request.Validate();
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenNoPayloadIsProvided() {
+        var request = new SynchronizeReplicaStateUploadRequest();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("requires Edits, EditsJson, or EditsUploadId", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenMultiplePayloadsAreProvided() {
+        var request = new SynchronizeReplicaStateUploadRequest {
+            Edits = CreateEdits(),
+            EditsUploadId = "upload-1"
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("Only one", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenRawEditsJsonIsInvalid() {
+        var request = new SynchronizeReplicaStateUploadRequest {
+            EditsJson = "{"
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("valid JSON", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenPollingOptionsAreInvalid() {
+        var request = new SynchronizeReplicaStateUploadRequest {
+            EditsJson = """{"layers":[]}""",
+            PollingOptions = new ReplicaPollingOptions {
+                PollInterval = TimeSpan.FromSeconds(1),
+                Timeout = TimeSpan.FromSeconds(1)
+            }
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("PollInterval", exception.Message);
+    }
+
+    private static ReplicaEdits CreateEdits() {
+        return new ReplicaEdits {
+            Layers = [
+                new ReplicaLayerEdits {
+                    Id = 0,
+                    AddsJson = "[]"
+                }
+            ]
+        };
+    }
+}

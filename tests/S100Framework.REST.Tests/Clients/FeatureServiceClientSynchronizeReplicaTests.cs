@@ -417,6 +417,7 @@ public sealed class FeatureServiceClientSynchronizeReplicaTests
         Assert.Contains("syncLayers=", decodedBody);
         Assert.Contains("\"syncDirection\":\"bidirectional\"", decodedBody);
         Assert.Contains("edits={\"layers\":[]}", decodedBody);
+        Assert.Contains("\"serverGen\":1526605677436", decodedBody);
     }
 
     [Fact]

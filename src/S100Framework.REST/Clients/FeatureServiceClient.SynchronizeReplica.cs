@@ -284,10 +284,17 @@ public sealed partial class FeatureServiceClient
 
         if (request.SyncLayers is { Count: > 0 }) {
             parameters["syncLayers"] = JsonSerializer.Serialize(
-                request.SyncLayers.Select(static layer => new Dictionary<string, object?> {
-                    ["id"] = layer.Id,
-                    ["serverGen"] = layer.ServerGen,
-                    ["syncDirection"] = MapSynchronizeReplicaSyncDirection(layer.SyncDirection)
+                request.SyncLayers.Select(static layer => {
+                    var values = new Dictionary<string, object?> {
+                        ["id"] = layer.Id,
+                        ["syncDirection"] = MapSynchronizeReplicaSyncDirection(layer.SyncDirection)
+                    };
+
+                    if (layer.ServerGen.HasValue) {
+                        values["serverGen"] = layer.ServerGen.Value;
+                    }
+
+                    return values;
                 }));
         }
 
