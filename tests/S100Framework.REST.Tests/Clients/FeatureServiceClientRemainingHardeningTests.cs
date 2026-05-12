@@ -15,20 +15,22 @@ public sealed class FeatureServiceClientRemainingHardeningTests
         var client = CreateClient(request => {
             if (IsServiceMetadataRequest(request)) {
                 return StubHttpMessageHandler.Json("""
-                {
-                  "layers": [{ "id": 0, "name": "Layer 0" }],
-                  "tables": [],
-                  "capabilities": "Query,Sync",
-                  "supportedAppendFormats": "sqlite, feature Service",
-                  "supportedExportFormats": "sqlite, pbf",
-                  "syncCapabilities": {
-                    "supportsPerLayerSync": true,
-                    "supportsPerReplicaSync": true,
-                    "supportsSyncModelNone": true,
-                    "supportsAsync": true
-                  }
-                }
-                """);
+            {
+              "layers": [{ "id": 0, "name": "Layer 0" }],
+              "tables": [],
+              "capabilities": "Query,Sync",
+              "supportedAppendFormats": "sqlite, feature Service",
+              "supportedExportFormats": "sqlite, pbf",
+              "syncCapabilities": {
+                "supportsPerLayerSync": true,
+                "supportsPerReplicaSync": true,
+                "supportsSyncModelNone": true,
+                "supportsAsync": true,
+                "supportedSyncDataOptions": "3",
+                "supportsQueryWithDatumTransformatiom": true
+              }
+            }
+            """);
             }
 
             throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
@@ -44,6 +46,8 @@ public sealed class FeatureServiceClientRemainingHardeningTests
         Assert.True(metadata.SyncCapabilities.SupportsPerReplicaSync);
         Assert.True(metadata.SyncCapabilities.SupportsSyncModelNone);
         Assert.True(metadata.SyncCapabilities.SupportsAsync);
+        Assert.Equal(3, metadata.SyncCapabilities.SupportedSyncDataOptions);
+        Assert.True(metadata.SyncCapabilities.SupportsQueryWithDatumTransformation);
     }
 
     [Fact]
@@ -243,6 +247,62 @@ public sealed class FeatureServiceClientRemainingHardeningTests
 
         Assert.Contains("SinceServerGen", exception.Message, StringComparison.Ordinal);
         Assert.Contains("greater than or equal to zero", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task GetMetadataAsync_ThrowsFeatureServiceException_WhenSupportedSyncDataOptionsIsNegative() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [{ "id": 0, "name": "Layer 0" }],
+              "tables": [],
+              "capabilities": "Query,Sync",
+              "syncCapabilities": {
+                "supportsPerLayerSync": true,
+                "supportedSyncDataOptions": -1
+              }
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetMetadataAsync(cancellationToken));
+
+        Assert.Contains("supportedSyncDataOptions", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("negative", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task GetMetadataAsync_ThrowsFeatureServiceException_WhenSupportedSyncDataOptionsIsInvalid() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [{ "id": 0, "name": "Layer 0" }],
+              "tables": [],
+              "capabilities": "Query,Sync",
+              "syncCapabilities": {
+                "supportsPerLayerSync": true,
+                "supportedSyncDataOptions": "not a number"
+              }
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetMetadataAsync(cancellationToken));
+
+        Assert.Contains("supportedSyncDataOptions", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("invalid", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {

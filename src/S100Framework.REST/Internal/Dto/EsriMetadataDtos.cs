@@ -1,5 +1,6 @@
-using System.Text.Json.Serialization;
 using S100Framework.REST.Internal.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace S100Framework.REST.Internal.Dto;
 
@@ -383,4 +384,13 @@ internal sealed class EsriSyncCapabilitiesDto
 
     [JsonPropertyName("supportsBiDirectionalSyncForServer")]
     public bool? SupportsBiDirectionalSyncForServer { get; init; }
+
+    [JsonPropertyName("supportedSyncDataOptions")]
+    public JsonElement? SupportedSyncDataOptions { get; init; }
+
+    [JsonPropertyName("supportsQueryWithDatumTransformation")]
+    public bool? SupportsQueryWithDatumTransformation { get; init; }
+
+    [JsonPropertyName("supportsQueryWithDatumTransformatiom")]
+    public bool? SupportsQueryWithDatumTransformatiom { get; init; }
 }
