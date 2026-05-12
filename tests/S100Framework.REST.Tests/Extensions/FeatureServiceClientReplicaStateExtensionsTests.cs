@@ -1,10 +1,11 @@
-﻿using System.Net;
-using System.Net.Http.Headers;
-using S100Framework.REST.Clients;
+﻿using S100Framework.REST.Clients;
 using S100Framework.REST.Configuration;
 using S100Framework.REST.Extensions;
 using S100Framework.REST.Models;
 using S100Framework.REST.Tests.TestDoubles;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Text;
 using Xunit;
 
 namespace S100Framework.REST.Tests.Extensions;
@@ -247,7 +248,10 @@ public sealed class FeatureServiceClientReplicaStateExtensionsTests
 
             if (uri == resultUrl) {
                 return new HttpResponseMessage(HttpStatusCode.OK) {
-                    Content = new ByteArrayContent([1, 2, 3, 4])
+                    Content = new ByteArrayContent(Encoding.UTF8.GetBytes("""
+    {
+    }
+    """))
                 };
             }
 
@@ -266,6 +270,216 @@ public sealed class FeatureServiceClientReplicaStateExtensionsTests
                 cancellationToken: cancellationToken));
 
         Assert.Contains("ReplicaServerGen", exception.Message);
+    }
+
+    [Fact]
+    public async Task SynchronizeReplicaStateAsync_UpdatesPerReplicaStateFromAsyncJsonResultFile() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        const string statusUrl = "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/sync-1/status";
+        const string resultUrl = "https://example.test/output/sync.json";
+        string? requestBody = null;
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer?f=json") {
+                return CreateSyncMetadataResponse();
+            }
+
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer/synchronizeReplica") {
+                requestBody = request.Content?.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult();
+
+                return StubHttpMessageHandler.Json($$"""
+            {
+              "statusUrl": "{{statusUrl}}"
+            }
+            """);
+            }
+
+            if (uri == statusUrl) {
+                return StubHttpMessageHandler.Json($$"""
+            {
+              "status": "Completed",
+              "responseType": "esriReplicaResponseTypeEdits",
+              "transportType": "esriTransportTypeURL",
+              "resultUrl": "{{resultUrl}}"
+            }
+            """);
+            }
+
+            if (uri == resultUrl) {
+                return new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(Encoding.UTF8.GetBytes("""
+                {
+                  "replicaID": "replica-1",
+                  "replicaName": "Replica A",
+                  "responseType": "esriReplicaResponseTypeEdits",
+                  "replicaServerGen": 25
+                }
+                """))
+                };
+            }
+
+            throw new InvalidOperationException($"Unexpected request URI: {uri}");
+        });
+
+        var state = new ReplicaSynchronizationState {
+            ReplicaId = "replica-1",
+            ReplicaName = "Replica A",
+            SyncModel = SynchronizeReplicaSyncModel.PerReplica,
+            ReplicaServerGen = 10
+        };
+
+        var result = await client.SynchronizeReplicaStateAsync(
+            state,
+            isAsync: true,
+            pollingOptions: new ReplicaPollingOptions {
+                PollInterval = TimeSpan.FromMilliseconds(1),
+                Timeout = TimeSpan.FromSeconds(1)
+            },
+            cancellationToken: cancellationToken);
+
+        Assert.Equal(new Uri(resultUrl), result.File.ResultUrl);
+        Assert.Equal("replica-1", result.UpdatedState.ReplicaId);
+        Assert.Equal("Replica A", result.UpdatedState.ReplicaName);
+        Assert.Equal(SynchronizeReplicaSyncModel.PerReplica, result.UpdatedState.SyncModel);
+        Assert.Equal(25, result.UpdatedState.ReplicaServerGen);
+        Assert.Empty(result.UpdatedState.LayerServerGens);
+        Assert.Equal(25, result.SynchronizationResult.ReplicaServerGen);
+
+        Assert.NotNull(requestBody);
+        Assert.Contains("async=true", requestBody);
+        Assert.Contains("dataFormat=json", requestBody);
+    }
+
+    [Fact]
+    public async Task SynchronizeReplicaStateAsync_UpdatesPerLayerStateFromImmediateJsonResultFile() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        const string resultUrl = "https://example.test/output/sync.json";
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer?f=json") {
+                return CreateSyncMetadataResponse();
+            }
+
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer/synchronizeReplica") {
+                return StubHttpMessageHandler.Json($$"""
+            {
+              "transportType": "esriTransportTypeURL",
+              "responseType": "esriReplicaResponseTypeEdits",
+              "URL": "{{resultUrl}}"
+            }
+            """);
+            }
+
+            if (uri == resultUrl) {
+                return new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(Encoding.UTF8.GetBytes("""
+                {
+                  "replicaID": "replica-1",
+                  "replicaName": "Replica A",
+                  "responseType": "esriReplicaResponseTypeEdits",
+                  "layerServerGens": [
+                    null,
+                    { "id": "0", "serverGen": "30" },
+                    { "id": 1, "serverGen": 31 }
+                  ]
+                }
+                """))
+                };
+            }
+
+            throw new InvalidOperationException($"Unexpected request URI: {uri}");
+        });
+
+        var state = new ReplicaSynchronizationState {
+            ReplicaId = "replica-1",
+            ReplicaName = "Replica A",
+            SyncModel = SynchronizeReplicaSyncModel.PerLayer,
+            LayerServerGens = [
+                new ReplicaLayerServerGeneration(0, 20),
+            new ReplicaLayerServerGeneration(1, 21)
+            ]
+        };
+
+        var result = await client.SynchronizeReplicaStateAsync(
+            state,
+            cancellationToken: cancellationToken);
+
+        Assert.Equal(SynchronizeReplicaSyncModel.PerLayer, result.UpdatedState.SyncModel);
+        Assert.Null(result.UpdatedState.ReplicaServerGen);
+
+        Assert.Collection(
+            result.UpdatedState.LayerServerGens,
+            first => {
+                Assert.Equal(0, first.Id);
+                Assert.Equal(30, first.ServerGen);
+            },
+            second => {
+                Assert.Equal(1, second.Id);
+                Assert.Equal(31, second.ServerGen);
+            });
+
+        Assert.Collection(
+            result.SynchronizationResult.LayerServerGens,
+            first => {
+                Assert.Equal(0, first.Id);
+                Assert.Equal(30, first.ServerGen);
+            },
+            second => {
+                Assert.Equal(1, second.Id);
+                Assert.Equal(31, second.ServerGen);
+            });
+    }
+
+    [Fact]
+    public async Task SynchronizeReplicaStateAsync_Throws_WhenSqliteResultDoesNotExposeGenerationValues() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        const string resultUrl = "https://example.test/output/sync.geodatabase";
+
+        var client = CreateClient(request => {
+            var uri = request.RequestUri!.AbsoluteUri;
+
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer?f=json") {
+                return CreateSyncMetadataResponse();
+            }
+
+            if (uri == "https://example.test/arcgis/rest/services/Test/FeatureServer/synchronizeReplica") {
+                return StubHttpMessageHandler.Json($$"""
+            {
+              "transportType": "esriTransportTypeURL",
+              "responseType": "esriReplicaResponseTypeEdits",
+              "URL": "{{resultUrl}}"
+            }
+            """);
+            }
+
+            if (uri == resultUrl) {
+                return new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent([1, 2, 3, 4])
+                };
+            }
+
+            throw new InvalidOperationException($"Unexpected request URI: {uri}");
+        });
+
+        var state = new ReplicaSynchronizationState {
+            ReplicaId = "replica-1",
+            ReplicaName = "Replica A",
+            SyncModel = SynchronizeReplicaSyncModel.PerReplica,
+            ReplicaServerGen = 10
+        };
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.SynchronizeReplicaStateAsync(
+                state,
+                dataFormat: SynchronizeReplicaDataFormat.Sqlite,
+                cancellationToken: cancellationToken));
+
+        Assert.Contains("generation values", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("non-JSON", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
