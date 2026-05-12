@@ -9,15 +9,15 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<PackageId>S100Framework.REST</PackageId>
-		<Version>1.15.0</Version>
+		<Version>1.16.0-preview.1</Version>
 
 		<Authors>S-100 BlueStack</Authors>
 		<Company>S-100 BlueStack</Company>
 		<Product>S100Framework</Product>
 
-		<Description>.NET library for reading, editing, bulk-loading, calculating, and analyzing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite, without ArcGIS SDK dependencies.</Description>
+		<Description>.NET library for reading, editing, synchronizing, bulk-loading, calculating, and analyzing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite, without ArcGIS SDK dependencies.</Description>
 
-		<PackageTags>ArcGIS;Esri;FeatureService;REST;NetTopologySuite;Geometry;S-100</PackageTags>
+		<PackageTags>ArcGIS;Esri;FeatureService;REST;NetTopologySuite;Geometry;S-100;Replica;Sync;Offline</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT-0</PackageLicenseExpression>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
@@ -31,18 +31,20 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
 		<PackageReleaseNotes>
-			- Added broad request validation hardening across calculate, applyEdits, append, extractChanges, query, queryTopFeatures, queryBins, queryDateBins, queryAnalytic, related records, attachments, statistics, full-text query, spatial filters, service-level query, metadata operations, and async job operations.
-			- Hardened Esri response mapping for null, partial, malformed, and inconsistent payloads across metadata, relationships, applyEdits, direct edit results, uploads, attachments, related records, extractChanges, service query, object IDs, unique IDs, counts, estimates, data elements, and async job URLs.
-			- Added robust async job status normalization for append, applyEdits, extractChanges, calculate, and queryAnalytic, including separator-insensitive status parsing.
-			- Added tolerant metadata parsing for Esri append format metadata returned as either arrays or comma-separated strings.
-			- Improved fail-fast behavior so invalid requests are rejected before metadata lookup or HTTP where possible.
-			- Added additional public job status properties for applyEdits status inspection.
+			- Added foundational ArcGIS Feature Service replica support, including createReplica, replicas, unRegisterReplica, and synchronizeReplica operations.
+			- Added state-aware replica workflows for create, download-only sync, upload-only sync, bidirectional sync, and unregister operations through persisted ReplicaSynchronizationState.
+			- Added async replica job polling, status mapping, result URL handling, and result file download helpers for createReplica and synchronizeReplica.
+			- Added schema-agnostic upload and bidirectional synchronization support through raw edits JSON, structured ReplicaEdits builders, editsUploadId, and editsUploadFormat=sqlite.
+			- Added JSON replica result file inspection helpers, edit result summaries, contextual edit diagnostics, and fail-fast ReplicaEditResultsException handling.
+			- Added replica metadata and capability helpers for sync models, async support, sync direction control, rollback-on-failure support, supported export formats, and replica readiness diagnostics.
+			- Added serialization hardening for persisted replica synchronization state.
+			- Documented replica workflows, support boundaries, JSON versus SQLite limitations, and recommended consumer usage patterns.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
-		<PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.5" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
 		<PackageReference Include="NetTopologySuite" Version="2.6.0" />
 	</ItemGroup>
 
