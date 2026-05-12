@@ -231,6 +231,40 @@ public sealed class FeatureServiceClientSynchronizeReplicaTests
         Assert.Equal("https://example.test/output/sync.geodatabase", result.ResultUrl.AbsoluteUri);
     }
 
+    [Fact]
+    public async Task GetSynchronizeReplicaStatusAsync_MapsUrlFallbackAndErrorPayload() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            StubHttpMessageHandler.Json("""
+        {
+          "status": "Failed",
+          "URL": "https://example.test/output/sync.json",
+          "error": {
+            "code": 400,
+            "message": "Synchronization failed.",
+            "details": [
+              null,
+              "",
+              "Replica generation is too old."
+            ]
+          }
+        }
+        """));
+
+        var status = await client.GetSynchronizeReplicaStatusAsync(
+            new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/j123"),
+            cancellationToken);
+
+        Assert.True(status.IsFailed);
+        Assert.True(status.IsTerminal);
+        Assert.Equal("https://example.test/output/sync.json", status.ResultUrl!.AbsoluteUri);
+        Assert.True(status.HasError);
+        Assert.Equal(400, status.ErrorCode);
+        Assert.Equal("Synchronization failed.", status.ErrorMessage);
+        Assert.Equal(["Replica generation is too old."], status.ErrorDetails);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

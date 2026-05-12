@@ -362,6 +362,33 @@ public sealed class FeatureServiceClientSynchronizeReplicaHardeningTests
         Assert.Contains("perLayer", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task GetSynchronizeReplicaStatusAsync_ThrowsMappedEsriErrorPayload_WhenStatusIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            StubHttpMessageHandler.Json("""
+        {
+          "error": {
+            "code": 400,
+            "message": "Synchronize job status is not available.",
+            "details": [
+              "The job ID does not exist."
+            ]
+          }
+        }
+        """));
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetSynchronizeReplicaStatusAsync(
+                new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/missing"),
+                cancellationToken));
+
+        Assert.Equal(400, exception.ErrorCode);
+        Assert.Contains("Synchronize job status is not available", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("The job ID does not exist.", exception.Details);
+    }
+
     private static SynchronizeReplicaRequest CreateValidRequest() {
         return new SynchronizeReplicaRequest {
             ReplicaId = "replica-1",

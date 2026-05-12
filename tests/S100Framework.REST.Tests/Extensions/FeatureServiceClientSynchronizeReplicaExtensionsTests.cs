@@ -228,12 +228,16 @@ public sealed class FeatureServiceClientSynchronizeReplicaExtensionsTests
 
             if (uri == statusUrl) {
                 return StubHttpMessageHandler.Json("""
-                {
-                  "status": "Failed",
-                  "responseType": "esriReplicaResponseTypeEdits",
-                  "transportType": "esriTransportTypeURL"
-                }
-                """);
+{
+  "status": "Failed",
+  "responseType": "esriReplicaResponseTypeEdits",
+  "transportType": "esriTransportTypeURL",
+  "error": {
+    "code": 400,
+    "message": "Synchronization failed."
+  }
+}
+""");
             }
 
             throw new InvalidOperationException($"Unexpected request URI: {uri}");
@@ -253,6 +257,7 @@ public sealed class FeatureServiceClientSynchronizeReplicaExtensionsTests
                 cancellationToken));
 
         Assert.Contains("ended with status 'Failed'", exception.Message);
+        Assert.Contains("Synchronization failed.", exception.Message);
     }
 
     private static SynchronizeReplicaRequest CreateValidSynchronizeReplicaRequest() {

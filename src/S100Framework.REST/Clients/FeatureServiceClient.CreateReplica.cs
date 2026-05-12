@@ -53,7 +53,8 @@ public sealed partial class FeatureServiceClient
         var document = await PostFormAsync<JsonDocument>(endpointUri, parameters, cancellationToken);
         var root = document.RootElement;
 
-        if (root.TryGetProperty("statusUrl", out var statusUrlElement)) {
+        if (root.TryGetProperty("statusUrl", out var statusUrlElement) ||
+    root.TryGetProperty("statusURL", out statusUrlElement)) {
             if (statusUrlElement.ValueKind != JsonValueKind.String) {
                 throw new FeatureServiceException(
                     "The server returned an invalid statusUrl for createReplica.",
@@ -90,12 +91,20 @@ public sealed partial class FeatureServiceClient
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(statusUrl);
 
-        var dto = await GetAsync<EsriCreateReplicaJobStatusDto>(statusUrl, cancellationToken);
+        using var document = await GetCreateReplicaStatusDocumentAsync(statusUrl, cancellationToken);
+
+        var dto = JsonSerializer.Deserialize<EsriCreateReplicaJobStatusDto>(
+                      document.RootElement.GetRawText(),
+                      JsonOptions)
+                  ?? throw new FeatureServiceException(
+                      "The createReplica status payload could not be deserialized.",
+                      statusUrl);
 
         Uri? resultUrl = null;
+        var rawResultUrl = dto.ResultUrl ?? dto.Url;
 
-        if (!string.IsNullOrWhiteSpace(dto.ResultUrl) &&
-            !Uri.TryCreate(dto.ResultUrl, UriKind.Absolute, out resultUrl)) {
+        if (!string.IsNullOrWhiteSpace(rawResultUrl) &&
+            !Uri.TryCreate(rawResultUrl, UriKind.Absolute, out resultUrl)) {
             throw new FeatureServiceException(
                 "The server returned an invalid resultUrl for createReplica.",
                 statusUrl);
@@ -110,7 +119,98 @@ public sealed partial class FeatureServiceClient
             TargetType: dto.TargetType,
             ResultUrl: resultUrl,
             SubmissionTime: ReadOptionalCreateReplicaInt64(dto.SubmissionTime, statusUrl, "submissionTime"),
-            LastUpdatedTime: ReadOptionalCreateReplicaInt64(dto.LastUpdatedTime, statusUrl, "lastUpdatedTime"));
+            LastUpdatedTime: ReadOptionalCreateReplicaInt64(dto.LastUpdatedTime, statusUrl, "lastUpdatedTime")) {
+            ErrorCode = dto.Error?.Code,
+            ErrorMessage = string.IsNullOrWhiteSpace(dto.Error?.Message) ? null : dto.Error.Message,
+            ErrorDetails = dto.Error?.Details?
+                               .Where(static detail => !string.IsNullOrWhiteSpace(detail))
+                               .Select(static detail => detail!)
+                               .ToArray()
+                           ?? Array.Empty<string>()
+        };
+    }
+
+    private async Task<JsonDocument> GetCreateReplicaStatusDocumentAsync(
+    Uri statusUrl,
+    CancellationToken cancellationToken) {
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(_options.RequestTimeout);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, statusUrl);
+
+        if (_authorizer is not null) {
+            await _authorizer.ApplyAsync(request, timeoutCts.Token);
+        }
+
+        using var response = await _httpClient.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            timeoutCts.Token);
+
+        var payload = await response.Content.ReadAsStringAsync(timeoutCts.Token);
+
+        if (!response.IsSuccessStatusCode) {
+            if (!string.IsNullOrWhiteSpace(payload) && TryParseEsriError(payload, out var esriError)) {
+                throw new FeatureServiceException(
+                    esriError.Message ?? "The server returned an Esri error payload.",
+                    statusUrl,
+                    esriError.Code,
+                    esriError.Details?
+                        .Where(static detail => !string.IsNullOrWhiteSpace(detail))
+                        .Select(static detail => detail!)
+                        .ToArray(),
+                    response.StatusCode);
+            }
+
+            throw new FeatureServiceException(
+                $"The server returned HTTP {(int)response.StatusCode} ({response.StatusCode}).",
+                statusUrl,
+                statusCode: response.StatusCode);
+        }
+
+        if (string.IsNullOrWhiteSpace(payload)) {
+            throw new FeatureServiceException(
+                "The server returned an empty createReplica status payload.",
+                statusUrl,
+                statusCode: response.StatusCode);
+        }
+
+        JsonDocument document;
+
+        try {
+            document = JsonDocument.Parse(payload);
+        }
+        catch (JsonException) {
+            throw new FeatureServiceException(
+                "The server returned an invalid createReplica status JSON payload.",
+                statusUrl,
+                statusCode: response.StatusCode);
+        }
+
+        if (document.RootElement.ValueKind == JsonValueKind.Object &&
+            document.RootElement.TryGetProperty("error", out _) &&
+            !document.RootElement.TryGetProperty("status", out _)) {
+            document.Dispose();
+
+            if (TryParseEsriError(payload, out var esriError)) {
+                throw new FeatureServiceException(
+                    esriError.Message ?? "The server returned an Esri error payload.",
+                    statusUrl,
+                    esriError.Code,
+                    esriError.Details?
+                        .Where(static detail => !string.IsNullOrWhiteSpace(detail))
+                        .Select(static detail => detail!)
+                        .ToArray(),
+                    response.StatusCode);
+            }
+
+            throw new FeatureServiceException(
+                "The server returned an Esri error payload.",
+                statusUrl,
+                statusCode: response.StatusCode);
+        }
+
+        return document;
     }
 
     /// <inheritdoc />

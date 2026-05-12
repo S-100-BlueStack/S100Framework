@@ -61,6 +61,12 @@ internal sealed class EsriSynchronizeReplicaJobStatusDto
 
     [JsonPropertyName("lastUpdatedTime")]
     public JsonElement? LastUpdatedTime { get; init; }
+
+    [JsonPropertyName("URL")]
+    public string? Url { get; init; }
+
+    [JsonPropertyName("error")]
+    public EsriReplicaStatusErrorDto? Error { get; init; }
 }
 
 internal sealed class EsriSynchronizeReplicaLayerServerGenDto

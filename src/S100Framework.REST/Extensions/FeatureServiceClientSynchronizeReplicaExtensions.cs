@@ -123,8 +123,11 @@ public static class FeatureServiceClientSynchronizeReplicaExtensions
                 cancellationToken);
 
             if (!status.IsCompleted) {
-                throw new InvalidOperationException(
-                    $"The synchronizeReplica job ended with status '{status.Status}'.");
+                var message = string.IsNullOrWhiteSpace(status.ErrorMessage)
+                    ? $"The synchronizeReplica job ended with status '{status.Status}'."
+                    : $"The synchronizeReplica job ended with status '{status.Status}': {status.ErrorMessage}";
+
+                throw new InvalidOperationException(message);
             }
 
             if (status.ResultUrl is null) {

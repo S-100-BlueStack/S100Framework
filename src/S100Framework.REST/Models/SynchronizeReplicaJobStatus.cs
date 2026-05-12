@@ -107,6 +107,29 @@ public sealed record SynchronizeReplicaJobStatus(
         IsCancelled ||
         IsTimedOut;
 
+    /// <summary>
+    /// Gets the Esri error code returned by the status resource, when available.
+    /// </summary>
+    public int? ErrorCode { get; init; }
+
+    /// <summary>
+    /// Gets the Esri error message returned by the status resource, when available.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// Gets the Esri error details returned by the status resource.
+    /// </summary>
+    public IReadOnlyList<string> ErrorDetails { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Gets a value indicating whether the status payload included an Esri error object.
+    /// </summary>
+    public bool HasError =>
+        ErrorCode.HasValue ||
+        !string.IsNullOrWhiteSpace(ErrorMessage) ||
+        ErrorDetails.Count > 0;
+
     private bool HasAnyStatus(params string[] expectedValues) {
         var normalizedStatus = Normalize(Status);
 

@@ -318,6 +318,33 @@ public sealed class FeatureServiceClientCreateReplicaHardeningTests
         Assert.Contains("resultUrl", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task GetCreateReplicaStatusAsync_ThrowsMappedEsriErrorPayload_WhenStatusIsMissing() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            StubHttpMessageHandler.Json("""
+        {
+          "error": {
+            "code": 400,
+            "message": "Replica job status is not available.",
+            "details": [
+              "The job ID does not exist."
+            ]
+          }
+        }
+        """));
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceException>(() =>
+            client.GetCreateReplicaStatusAsync(
+                new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/missing"),
+                cancellationToken));
+
+        Assert.Equal(400, exception.ErrorCode);
+        Assert.Contains("Replica job status is not available", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("The job ID does not exist.", exception.Details);
+    }
+
     private static CreateReplicaRequest CreateValidRequest() {
         return new CreateReplicaRequest {
             Layers = [0],

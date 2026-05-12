@@ -229,12 +229,16 @@ public sealed class FeatureServiceClientCreateReplicaExtensionsTests
 
             if (uri == statusUrl) {
                 return StubHttpMessageHandler.Json("""
-                {
-                  "status": "Failed",
-                  "responseType": "esriReplicaResponseTypeData",
-                  "transportType": "esriTransportTypeURL"
-                }
-                """);
+{
+  "status": "Failed",
+  "responseType": "esriReplicaResponseTypeData",
+  "transportType": "esriTransportTypeURL",
+  "error": {
+    "code": 400,
+    "message": "Replica creation failed."
+  }
+}
+""");
             }
 
             throw new InvalidOperationException($"Unexpected request URI: {uri}");
@@ -254,6 +258,7 @@ public sealed class FeatureServiceClientCreateReplicaExtensionsTests
                 cancellationToken));
 
         Assert.Contains("ended with status 'Failed'", exception.Message);
+        Assert.Contains("Replica creation failed.", exception.Message);
     }
 
     private static CreateReplicaRequest CreateValidCreateReplicaRequest() {

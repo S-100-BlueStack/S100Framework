@@ -123,8 +123,11 @@ public static class FeatureServiceClientCreateReplicaExtensions
                 cancellationToken);
 
             if (!status.IsCompleted) {
-                throw new InvalidOperationException(
-                    $"The createReplica job ended with status '{status.Status}'.");
+                var message = string.IsNullOrWhiteSpace(status.ErrorMessage)
+                    ? $"The createReplica job ended with status '{status.Status}'."
+                    : $"The createReplica job ended with status '{status.Status}': {status.ErrorMessage}";
+
+                throw new InvalidOperationException(message);
             }
 
             if (status.ResultUrl is null) {

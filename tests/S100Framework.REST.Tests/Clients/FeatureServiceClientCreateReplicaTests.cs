@@ -207,6 +207,77 @@ public sealed class FeatureServiceClientCreateReplicaTests
         Assert.Equal("https://example.test/output/replica.geodatabase", result.ResultUrl.AbsoluteUri);
     }
 
+    [Fact]
+    public async Task SubmitCreateReplicaAsync_ReturnsStatusUrl_WhenServerUsesStatusUrlUppercaseSuffix() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateSyncMetadataResponse();
+            }
+
+            if (IsCreateReplicaRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "statusURL": "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/j123"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        var submission = await client.SubmitCreateReplicaAsync(
+            new CreateReplicaRequest {
+                Layers = [0],
+                SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+                    new Envelope(10, 20, 30, 40),
+                    inSrid: 4326),
+                IsAsync = true
+            },
+            cancellationToken);
+
+        Assert.True(submission.IsPending);
+        Assert.Null(submission.Result);
+        Assert.Equal(
+            "https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/j123",
+            submission.StatusUrl!.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task GetCreateReplicaStatusAsync_MapsUrlFallbackAndErrorPayload() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(_ =>
+            StubHttpMessageHandler.Json("""
+        {
+          "status": "Failed",
+          "URL": "https://example.test/output/replica.json",
+          "error": {
+            "code": 400,
+            "message": "Replica creation failed.",
+            "details": [
+              null,
+              "",
+              "Layer 0 failed."
+            ]
+          }
+        }
+        """));
+
+        var status = await client.GetCreateReplicaStatusAsync(
+            new Uri("https://example.test/arcgis/rest/services/Test/FeatureServer/jobs/j123"),
+            cancellationToken);
+
+        Assert.True(status.IsFailed);
+        Assert.True(status.IsTerminal);
+        Assert.Equal("https://example.test/output/replica.json", status.ResultUrl!.AbsoluteUri);
+        Assert.True(status.HasError);
+        Assert.Equal(400, status.ErrorCode);
+        Assert.Equal("Replica creation failed.", status.ErrorMessage);
+        Assert.Equal(["Layer 0 failed."], status.ErrorDetails);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler)
     {
         return new FeatureServiceClient(
