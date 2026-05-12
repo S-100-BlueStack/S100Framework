@@ -120,46 +120,8 @@ public static class FeatureServiceClientReplicaUploadStateExtensions
     }
 
     private static SynchronizeReplicaRequest BuildSynchronizeRequest(
-        ReplicaSynchronizationState state,
-        SynchronizeReplicaStateUploadRequest request) {
-        var editsJson = request.Edits is null
-            ? request.EditsJson
-            : request.Edits.ToJson(request.EditsJsonOptions);
-
-        return state.SyncModel switch {
-            SynchronizeReplicaSyncModel.PerReplica => new SynchronizeReplicaRequest {
-                ReplicaId = state.ReplicaId,
-                SyncModel = SynchronizeReplicaSyncModel.PerReplica,
-                SyncDirection = SynchronizeReplicaSyncDirection.Upload,
-                TransportType = SynchronizeReplicaTransportType.Url,
-                DataFormat = SynchronizeReplicaDataFormat.Json,
-                IsAsync = request.IsAsync,
-                ReturnAttachmentsDataByUrl = request.ReturnAttachmentsDataByUrl,
-                RollbackOnFailure = request.RollbackOnFailure,
-                ReturnIdsForAdds = request.ReturnIdsForAdds,
-                EditsJson = editsJson,
-                EditsUploadId = request.EditsUploadId
-            },
-            SynchronizeReplicaSyncModel.PerLayer => new SynchronizeReplicaRequest {
-                ReplicaId = state.ReplicaId,
-                SyncModel = SynchronizeReplicaSyncModel.PerLayer,
-                SyncLayers = state.LayerServerGens
-                    .Select(static value => new SynchronizeReplicaSyncLayer {
-                        Id = value.Id,
-                        SyncDirection = SynchronizeReplicaSyncDirection.Upload
-                    })
-                    .ToArray(),
-                SyncDirection = SynchronizeReplicaSyncDirection.Upload,
-                TransportType = SynchronizeReplicaTransportType.Url,
-                DataFormat = SynchronizeReplicaDataFormat.Json,
-                IsAsync = request.IsAsync,
-                ReturnAttachmentsDataByUrl = request.ReturnAttachmentsDataByUrl,
-                RollbackOnFailure = request.RollbackOnFailure,
-                ReturnIdsForAdds = request.ReturnIdsForAdds,
-                EditsJson = editsJson,
-                EditsUploadId = request.EditsUploadId
-            },
-            _ => throw new ArgumentOutOfRangeException(nameof(state), state.SyncModel, null)
-        };
+    ReplicaSynchronizationState state,
+    SynchronizeReplicaStateUploadRequest request) {
+        return state.ToUploadRequest(request);
     }
 }

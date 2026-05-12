@@ -128,47 +128,7 @@ public static class FeatureServiceClientReplicaBidirectionalStateExtensions
     private static SynchronizeReplicaRequest BuildSynchronizeRequest(
         ReplicaSynchronizationState state,
         SynchronizeReplicaStateBidirectionalRequest request) {
-        var editsJson = request.Edits is null
-            ? request.EditsJson
-            : request.Edits.ToJson(request.EditsJsonOptions);
-
-        return state.SyncModel switch {
-            SynchronizeReplicaSyncModel.PerReplica => new SynchronizeReplicaRequest {
-                ReplicaId = state.ReplicaId,
-                SyncModel = SynchronizeReplicaSyncModel.PerReplica,
-                ReplicaServerGen = state.ReplicaServerGen,
-                SyncDirection = SynchronizeReplicaSyncDirection.Bidirectional,
-                TransportType = SynchronizeReplicaTransportType.Url,
-                DataFormat = SynchronizeReplicaDataFormat.Json,
-                IsAsync = request.IsAsync,
-                ReturnAttachmentsDataByUrl = request.ReturnAttachmentsDataByUrl,
-                RollbackOnFailure = request.RollbackOnFailure,
-                ReturnIdsForAdds = request.ReturnIdsForAdds,
-                EditsJson = editsJson,
-                EditsUploadId = request.EditsUploadId
-            },
-            SynchronizeReplicaSyncModel.PerLayer => new SynchronizeReplicaRequest {
-                ReplicaId = state.ReplicaId,
-                SyncModel = SynchronizeReplicaSyncModel.PerLayer,
-                SyncLayers = state.LayerServerGens
-                    .Select(static value => new SynchronizeReplicaSyncLayer {
-                        Id = value.Id,
-                        ServerGen = value.ServerGen,
-                        SyncDirection = SynchronizeReplicaSyncDirection.Bidirectional
-                    })
-                    .ToArray(),
-                SyncDirection = SynchronizeReplicaSyncDirection.Bidirectional,
-                TransportType = SynchronizeReplicaTransportType.Url,
-                DataFormat = SynchronizeReplicaDataFormat.Json,
-                IsAsync = request.IsAsync,
-                ReturnAttachmentsDataByUrl = request.ReturnAttachmentsDataByUrl,
-                RollbackOnFailure = request.RollbackOnFailure,
-                ReturnIdsForAdds = request.ReturnIdsForAdds,
-                EditsJson = editsJson,
-                EditsUploadId = request.EditsUploadId
-            },
-            _ => throw new ArgumentOutOfRangeException(nameof(state), state.SyncModel, null)
-        };
+        return state.ToBidirectionalRequest(request);
     }
 
     private static SynchronizeReplicaResult MergeSynchronizationResult(
