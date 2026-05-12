@@ -3,13 +3,13 @@ using System.Text.Json.Serialization;
 
 namespace S100Framework.REST.Internal.Dto;
 
-internal sealed class EsriCreateReplicaResponseDto
+internal sealed class EsriSynchronizeReplicaResponseDto
 {
-    [JsonPropertyName("replicaName")]
-    public string? ReplicaName { get; init; }
-
     [JsonPropertyName("replicaID")]
     public string? ReplicaId { get; init; }
+
+    [JsonPropertyName("replicaName")]
+    public string? ReplicaName { get; init; }
 
     [JsonPropertyName("transportType")]
     public string? TransportType { get; init; }
@@ -17,17 +17,11 @@ internal sealed class EsriCreateReplicaResponseDto
     [JsonPropertyName("responseType")]
     public string? ResponseType { get; init; }
 
-    [JsonPropertyName("syncModel")]
-    public string? SyncModel { get; init; }
-
-    [JsonPropertyName("targetType")]
-    public string? TargetType { get; init; }
-
     [JsonPropertyName("replicaServerGen")]
     public JsonElement? ReplicaServerGen { get; init; }
 
     [JsonPropertyName("layerServerGens")]
-    public List<EsriCreateReplicaLayerServerGenDto?>? LayerServerGens { get; init; }
+    public List<EsriSynchronizeReplicaLayerServerGenDto?>? LayerServerGens { get; init; }
 
     [JsonPropertyName("resultUrl")]
     public string? ResultUrl { get; init; }
@@ -45,7 +39,7 @@ internal sealed class EsriCreateReplicaResponseDto
     public JsonElement? LastUpdatedTime { get; init; }
 }
 
-internal sealed class EsriCreateReplicaJobStatusDto
+internal sealed class EsriSynchronizeReplicaJobStatusDto
 {
     [JsonPropertyName("status")]
     public string? Status { get; init; }
@@ -53,17 +47,11 @@ internal sealed class EsriCreateReplicaJobStatusDto
     [JsonPropertyName("replicaName")]
     public string? ReplicaName { get; init; }
 
-    [JsonPropertyName("replicaID")]
-    public string? ReplicaId { get; init; }
-
     [JsonPropertyName("responseType")]
     public string? ResponseType { get; init; }
 
     [JsonPropertyName("transportType")]
     public string? TransportType { get; init; }
-
-    [JsonPropertyName("targetType")]
-    public string? TargetType { get; init; }
 
     [JsonPropertyName("resultUrl")]
     public string? ResultUrl { get; init; }
@@ -81,7 +69,7 @@ internal sealed class EsriCreateReplicaJobStatusDto
     public EsriReplicaStatusErrorDto? Error { get; init; }
 }
 
-internal sealed class EsriCreateReplicaLayerServerGenDto
+internal sealed class EsriSynchronizeReplicaLayerServerGenDto
 {
     [JsonPropertyName("id")]
     public JsonElement? Id { get; init; }

@@ -39,4 +39,23 @@ public sealed record FeatureServiceSyncCapabilities(
     bool SupportsRollbackOnFailure,
     bool SupportsAsync,
     bool SupportsAttachmentsSyncDirection,
-    bool SupportsBiDirectionalSyncForServer);
+    bool SupportsBiDirectionalSyncForServer)
+{
+    /// <summary>
+    /// Gets the raw <c>supportedSyncDataOptions</c> value advertised by the service, when available.
+    /// </summary>
+    /// <remarks>
+    /// The value is intentionally exposed as the raw ArcGIS bitmask so future option meanings can be supported
+    /// without changing the public model shape.
+    /// </remarks>
+    public int? SupportedSyncDataOptions { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether sync operations advertise datum transformation support for queries.
+    /// </summary>
+    /// <remarks>
+    /// ArcGIS documentation and real services have used both <c>supportsQueryWithDatumTransformation</c>
+    /// and the misspelled <c>supportsQueryWithDatumTransformatiom</c>; both are mapped to this property.
+    /// </remarks>
+    public bool SupportsQueryWithDatumTransformation { get; init; }
+}

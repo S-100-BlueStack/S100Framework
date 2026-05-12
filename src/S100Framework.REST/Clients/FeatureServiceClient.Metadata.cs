@@ -2,6 +2,8 @@ using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
 using S100Framework.REST.Models;
+using System.Globalization;
+using System.Text.Json;
 
 namespace S100Framework.REST.Clients;
 
@@ -46,17 +48,25 @@ public sealed partial class FeatureServiceClient
                 dto.ExtractChangesCapabilities.SupportsReturnHasGeometryUpdates ?? false);
 
         var syncCapabilities = dto.SyncCapabilities is null
-            ? null
-            : new FeatureServiceSyncCapabilities(
-                dto.SyncCapabilities.SupportsRegisteringExistingData ?? false,
-                dto.SyncCapabilities.SupportsSyncDirectionControl ?? false,
-                dto.SyncCapabilities.SupportsPerLayerSync ?? false,
-                dto.SyncCapabilities.SupportsPerReplicaSync ?? false,
-                dto.SyncCapabilities.SupportsSyncModelNone ?? false,
-                dto.SyncCapabilities.SupportsRollbackOnFailure ?? false,
-                dto.SyncCapabilities.SupportsAsync ?? false,
-                dto.SyncCapabilities.SupportsAttachmentsSyncDirection ?? false,
-                dto.SyncCapabilities.SupportsBiDirectionalSyncForServer ?? false);
+    ? null
+    : new FeatureServiceSyncCapabilities(
+        dto.SyncCapabilities.SupportsRegisteringExistingData ?? false,
+        dto.SyncCapabilities.SupportsSyncDirectionControl ?? false,
+        dto.SyncCapabilities.SupportsPerLayerSync ?? false,
+        dto.SyncCapabilities.SupportsPerReplicaSync ?? false,
+        dto.SyncCapabilities.SupportsSyncModelNone ?? false,
+        dto.SyncCapabilities.SupportsRollbackOnFailure ?? false,
+        dto.SyncCapabilities.SupportsAsync ?? false,
+        dto.SyncCapabilities.SupportsAttachmentsSyncDirection ?? false,
+        dto.SyncCapabilities.SupportsBiDirectionalSyncForServer ?? false) {
+        SupportedSyncDataOptions = ReadOptionalSyncDataOptionsValue(
+            dto.SyncCapabilities.SupportedSyncDataOptions,
+            uri),
+        SupportsQueryWithDatumTransformation =
+            dto.SyncCapabilities.SupportsQueryWithDatumTransformation ??
+            dto.SyncCapabilities.SupportsQueryWithDatumTransformatiom ??
+            false
+    };
 
         var supportedAppendFormats = dto.SupportedAppendFormats?
             .Where(static format => !string.IsNullOrWhiteSpace(format))
@@ -83,6 +93,47 @@ public sealed partial class FeatureServiceClient
             supportedAppendFormats,
             supportedExportFormats,
             syncCapabilities);
+    }
+
+    private static int? ReadOptionalSyncDataOptionsValue(
+    JsonElement? element,
+    Uri requestUri) {
+        if (!element.HasValue ||
+            element.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
+            return null;
+        }
+
+        var jsonElement = element.Value;
+        int value;
+
+        var isValid = jsonElement.ValueKind switch {
+            JsonValueKind.Number => jsonElement.TryGetInt32(out value),
+            JsonValueKind.String => int.TryParse(
+                jsonElement.GetString(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out value),
+            _ => TrySetDefaultSyncDataOptionsValue(out value)
+        };
+
+        if (!isValid) {
+            throw new FeatureServiceException(
+                "The server returned an invalid supportedSyncDataOptions value.",
+                requestUri);
+        }
+
+        if (value < 0) {
+            throw new FeatureServiceException(
+                "The server returned a negative supportedSyncDataOptions value.",
+                requestUri);
+        }
+
+        return value;
+    }
+
+    private static bool TrySetDefaultSyncDataOptionsValue(out int value) {
+        value = 0;
+        return false;
     }
 
     private static FeatureServiceCapabilities ParseServiceCapabilities(

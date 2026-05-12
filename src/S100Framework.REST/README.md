@@ -1,6 +1,6 @@
 # S100Framework.REST
 
-`S100Framework.REST` is a .NET library for reading, editing, calculating, bulk-loading, and analyzing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite.
+`S100Framework.REST` is a .NET library for reading, editing, calculating, bulk-loading, synchronizing replicas, and analyzing Esri Feature Services through the ArcGIS REST API and exposing geometry data through NetTopologySuite.
 
 It does **not** depend on ArcGIS SDKs, ArcGIS Runtime, or ArcGIS licensing. It talks directly to Feature Service REST endpoints.
 
@@ -24,6 +24,10 @@ Use this library when you want to:
 - delete temporary server-side upload items after append workflows
 - bulk-load data with service-level or layer-level `append`
 - get change sets from `extractChanges`
+- create, synchronize, inspect, and unregister Feature Service replicas
+- run download-only, upload-only, and bidirectional replica synchronization workflows
+- persist replica synchronization state outside the package
+- inspect replica JSON result files and fail fast on returned edit errors
 - convert between NTS geometries / feature records and Esri JSON
 
 ## What most consumers need
@@ -36,6 +40,7 @@ Most consumers only need these steps:
 4. Run queries or edits
 
 If you do **not** need incremental sync or delta tracking, you can ignore the `extractChanges` section.
+If you do **not** need offline or replica synchronization, you can ignore the `replicas and synchronization` section.
 If you do **not** need bulk loading, you can ignore the `append` section.
 If you do **not** need aggregated analysis, you can ignore `queryBins`, `queryDateBins`, and `queryAnalytic`.
 If you do **not** build dynamic editing forms, you can ignore `queryDataElements`, `fieldGroups`, and `queryContingentValues`.
@@ -87,6 +92,8 @@ Use the service client for service-level operations:
 - run `extractChanges`
 - poll async `extractChanges` jobs
 - download async `extractChanges` result files
+- create, list, synchronize, and unregister replicas
+- run state-aware replica workflows for download-only, upload-only, and bidirectional synchronization
 - submit and poll service-level `append` jobs
 
 ### `IFeatureLayerClient`
@@ -342,14 +349,18 @@ Console.WriteLine($"Supports editing: {metadata.Capabilities.SupportsEditing}");
 Console.WriteLine($"Supports uploads: {metadata.Capabilities.SupportsUploads}");
 Console.WriteLine($"Supports change tracking: {metadata.Capabilities.SupportsChangeTracking}");
 Console.WriteLine($"Supports append: {metadata.Capabilities.SupportsAppend}");
+Console.WriteLine($"Supports replica resource: {metadata.SupportsReplicaResource()}");
+Console.WriteLine($"Supports replica sync direction control: {metadata.SupportsReplicaSyncDirectionControl()}");
+Console.WriteLine($"Supports replica rollback-on-failure: {metadata.SupportsReplicaRollbackOnFailure()}");
 Console.WriteLine($"Supports query domains: {metadata.Capabilities.SupportsQueryDomains}");
 Console.WriteLine($"Supports query data elements: {metadata.Capabilities.SupportsQueryDataElements}");
 Console.WriteLine($"Supports query contingent values: {metadata.Capabilities.SupportsQueryContingentValues}");
 Console.WriteLine($"Supports relationships resource: {metadata.Capabilities.SupportsRelationshipsResource}");
 Console.WriteLine($"Append formats: {string.Join(", ", metadata.SupportedAppendFormats)}");
+Console.WriteLine($"Export formats: {string.Join(", ", metadata.SupportedExportFormats)}");
 ```
 
-This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits, `extractChanges`, `append`, uploads, `queryDomains`, service-level `relationships`, service-level `query`, `queryDataElements`, or `queryContingentValues`.
+This is mostly useful when you want to know what the service supports before doing advanced operations such as attachment edits, `extractChanges`, replica synchronization, `append`, uploads, `queryDomains`, service-level `relationships`, service-level `query`, `queryDataElements`, or `queryContingentValues`.
 
 ---
 
@@ -2122,7 +2133,7 @@ var result = await client.WaitForApplyEditsCompletionAsync(
 
 ## Uploads
 
-Use uploads when you want the service to temporarily store a file that another operation can consume. The common use case in this package is upload-backed `append`.
+Use uploads when you want the service to temporarily store a file that another operation can consume. Common use cases in this package are upload-backed `append` and upload-backed replica synchronization through `editsUploadId`.
 
 ```csharp
 using S100Framework.REST.Models;
@@ -2172,6 +2183,7 @@ if (!metadata.Capabilities.SupportsAppend) {
 }
 
 Console.WriteLine(string.Join(", ", metadata.SupportedAppendFormats));
+Console.WriteLine(string.Join(", ", metadata.SupportedExportFormats));
 ```
 
 Layer-level append:
@@ -2601,6 +2613,355 @@ That spelling comes from the REST API itself. The library handles that mapping i
 
 ---
 
+
+## Replicas and synchronization
+
+Use replica operations when you want a syncable offline or local workflow backed by ArcGIS Feature Service replica generations.
+
+The package supports these service-level replica operations:
+
+- `createReplica`
+- `replicas`
+- `synchronizeReplica`
+- `unRegisterReplica`
+
+It also provides state-aware helpers that keep the ArcGIS generation bookkeeping out of consumer code:
+
+- `CreateReplicaStateAsync(...)`
+- `SynchronizeReplicaStateAsync(...)` for download-only sync
+- `SynchronizeReplicaStateUploadAsync(...)` for upload-only sync
+- `SynchronizeReplicaStateBidirectionalAsync(...)` for upload + download sync
+- `UnregisterReplicaStateAsync(...)`
+
+### Important idea: persist `ReplicaSynchronizationState`
+
+`ReplicaSynchronizationState` is the bookmark for future replica sync calls. Persist it in your application storage after `createReplica`, and replace it with the returned updated state after successful download-only or bidirectional sync.
+
+The package intentionally does **not** include a database, file store, or application-specific persistence provider. Store the state in the consuming application, for example as JSON.
+
+```csharp
+using System.Text.Json;
+using S100Framework.REST.Models;
+
+var json = JsonSerializer.Serialize(state);
+var restoredState = JsonSerializer.Deserialize<ReplicaSynchronizationState>(json);
+
+restoredState!.Validate();
+```
+
+### Check replica capabilities
+
+```csharp
+using S100Framework.REST.Extensions;
+
+var metadata = await client.GetMetadataAsync();
+
+if (!metadata.SupportsReplicaResource()) {
+    foreach (var issue in metadata.GetReplicaCapabilityIssues()) {
+        Console.WriteLine(issue);
+    }
+
+    throw new InvalidOperationException("The service does not expose replica support.");
+}
+
+Console.WriteLine($"Supports async replica jobs: {metadata.SupportsAsyncReplicaJobs()}");
+Console.WriteLine($"Supports upload/bidirectional sync direction control: {metadata.SupportsReplicaSyncDirectionControl()}");
+Console.WriteLine($"Supports rollback on failure: {metadata.SupportsReplicaRollbackOnFailure()}");
+Console.WriteLine($"Supported export formats: {string.Join(", ", metadata.SupportedExportFormats)}");
+```
+
+`GetReplicaCapabilityIssues()` returns user-readable capability issues. Some issues are hard blockers for core replica support, while others explain why upload-oriented options such as sync direction control or rollback-on-failure may not be available.
+
+### Create a syncable replica and initial state
+
+Use `CreateReplicaStateAsync(...)` when you want the package to submit `createReplica`, poll if needed, download the result file, and create the initial persisted state.
+
+```csharp
+using NetTopologySuite.Geometries;
+using S100Framework.REST.Extensions;
+using S100Framework.REST.Models;
+
+var createResult = await client.CreateReplicaStateAsync(
+    new CreateReplicaRequest {
+        ReplicaName = "my-offline-replica",
+        Layers = [0],
+        SpatialFilter = FeatureSpatialFilter.FromEnvelope(
+            new Envelope(10, 20, 55, 56),
+            inSrid: 4326),
+        SyncModel = CreateReplicaSyncModel.PerReplica,
+        DataFormat = CreateReplicaDataFormat.Json,
+        TransportType = CreateReplicaTransportType.Url,
+        IsAsync = true
+    },
+    new ReplicaPollingOptions {
+        PollInterval = TimeSpan.FromSeconds(2),
+        Timeout = TimeSpan.FromMinutes(2)
+    });
+
+ReplicaSynchronizationState state = createResult.InitialState;
+
+// Persist this in your application storage before the next sync.
+Console.WriteLine(state.ReplicaId);
+Console.WriteLine(state.ReplicaServerGen);
+```
+
+`CreateReplicaStateAsync(...)` requires URL transport because it downloads the result file. It also requires a syncable replica, so `CreateReplicaSyncModel.None` is intentionally rejected by this helper.
+
+### Download-only sync from state
+
+Use `SynchronizeReplicaStateAsync(...)` when you only want server-side changes since the persisted generation.
+
+```csharp
+using S100Framework.REST.Extensions;
+using S100Framework.REST.Models;
+
+var syncResult = await client.SynchronizeReplicaStateAsync(
+    state,
+    dataFormat: SynchronizeReplicaDataFormat.Json,
+    isAsync: true,
+    pollingOptions: new ReplicaPollingOptions {
+        PollInterval = TimeSpan.FromSeconds(2),
+        Timeout = TimeSpan.FromMinutes(2)
+    });
+
+state = syncResult.UpdatedState;
+
+// Persist the updated state after the result has been processed successfully.
+Console.WriteLine(syncResult.File.FileName);
+Console.WriteLine(syncResult.File.ContentType);
+```
+
+For JSON result files, the helper can update state from generation values returned in either the operation response, async status response, or downloaded JSON result file. For SQLite result files, the helper can only update state automatically when the generation values are returned outside the SQLite file.
+
+`SynchronizeReplicaStateAsync(...)` does not allow `closeReplica = true`, because it returns state intended for future use. Use `SubmitSynchronizeReplicaAsync(...)` directly when closing a replica as part of a custom workflow.
+
+### Build a download request without submitting it
+
+Use `ToDownloadRequest(...)` when you want to inspect, log, or submit the low-level request yourself.
+
+```csharp
+var request = state.ToDownloadRequest(
+    dataFormat: SynchronizeReplicaDataFormat.Json,
+    transportType: SynchronizeReplicaTransportType.Url,
+    isAsync: true);
+
+request.Validate();
+```
+
+### Upload-only sync
+
+Use upload-only sync when you want to send local edits to the service without downloading server-side changes in the same call. The returned state is intentionally unchanged.
+
+```csharp
+using S100Framework.REST.Extensions;
+using S100Framework.REST.Models;
+
+var uploadResult = await client.SynchronizeReplicaStateUploadAsync(
+    state,
+    new SynchronizeReplicaStateUploadRequest {
+        Edits = new ReplicaEdits {
+            Layers = [
+                new ReplicaLayerEdits {
+                    Id = 0,
+                    AddsJson = """
+                    [
+                      {
+                        "attributes": {
+                          "globalID": "{11111111-1111-1111-1111-111111111111}",
+                          "name": "New feature"
+                        }
+                      }
+                    ]
+                    """
+                }
+            ]
+        },
+        RollbackOnFailure = true,
+        ReturnIdsForAdds = true,
+        ThrowOnEditErrors = true
+    });
+
+state = uploadResult.State;
+```
+
+`ReplicaEdits` is schema-agnostic. The package validates that raw JSON is syntactically valid and has the expected high-level shape, but it does not validate your layer-specific field names, geometry shape, or business rules.
+
+### Bidirectional sync
+
+Use bidirectional sync when you want to upload local edits and download server-side changes in one operation. The helper downloads the JSON result file, parses upload edit results, and updates the persisted state from returned generation values.
+
+```csharp
+using S100Framework.REST.Extensions;
+using S100Framework.REST.Models;
+
+var bidirectionalResult = await client.SynchronizeReplicaStateBidirectionalAsync(
+    state,
+    new SynchronizeReplicaStateBidirectionalRequest {
+        EditsJson = """
+        {
+          "layers": []
+        }
+        """,
+        RollbackOnFailure = true,
+        ReturnIdsForAdds = true,
+        ThrowOnEditErrors = true,
+        IsAsync = true,
+        PollingOptions = new ReplicaPollingOptions {
+            PollInterval = TimeSpan.FromSeconds(2),
+            Timeout = TimeSpan.FromMinutes(2)
+        }
+    });
+
+state = bidirectionalResult.UpdatedState;
+
+Console.WriteLine($"Edit results: {bidirectionalResult.JsonResult.EditResultCount}");
+Console.WriteLine($"Edit errors: {bidirectionalResult.JsonResult.FailedEditResultCount}");
+```
+
+### Upload large edit payloads by upload ID
+
+For large edit payloads, upload a file first and pass the server-side upload item ID as `EditsUploadId`. The package sends `editsUploadFormat=sqlite` for uploaded edit payloads.
+
+```csharp
+using S100Framework.REST.Models;
+
+await using var stream = File.OpenRead("replica-edits.geodatabase");
+
+var upload = await client.UploadItemAsync(new FeatureServiceUploadRequest {
+    Content = stream,
+    FileName = "replica-edits.geodatabase",
+    ContentType = "application/octet-stream"
+});
+
+try {
+    var result = await client.SynchronizeReplicaStateBidirectionalAsync(
+        state,
+        new SynchronizeReplicaStateBidirectionalRequest {
+            EditsUploadId = upload.ItemId,
+            RollbackOnFailure = true,
+            ThrowOnEditErrors = true
+        });
+
+    state = result.UpdatedState;
+}
+finally {
+    await client.DeleteUploadItemAsync(upload.ItemId);
+}
+```
+
+### Build upload or bidirectional requests without submitting them
+
+Use these helpers when you want custom orchestration but still want the package to build a validated REST request from persisted state.
+
+```csharp
+var uploadRequest = state.ToUploadRequest(
+    new SynchronizeReplicaStateUploadRequest {
+        EditsJson = """{"layers": []}"""
+    });
+
+var bidirectionalRequest = state.ToBidirectionalRequest(
+    new SynchronizeReplicaStateBidirectionalRequest {
+        EditsJson = """{"layers": []}"""
+    });
+
+uploadRequest.Validate();
+bidirectionalRequest.Validate();
+```
+
+### Inspect replica JSON result files
+
+Use `ReadJsonResultFile()` when you want to inspect a downloaded JSON result file from `createReplica` or `synchronizeReplica`.
+
+```csharp
+using S100Framework.REST.Extensions;
+
+ReplicaJsonResultFile jsonResult = syncResult.File.ReadJsonResultFile();
+
+foreach (var editError in jsonResult.GetLayerEditErrors()) {
+    Console.WriteLine(
+        $"Layer {editError.LayerId} {editError.Operation} failed for objectId {editError.ObjectId}: {editError.ErrorDescription}");
+}
+
+jsonResult.ThrowIfEditErrors();
+```
+
+`ThrowIfEditErrors()` throws `ReplicaEditResultsException`, which exposes the failed edit results through the `Errors` property.
+
+### List and unregister replicas
+
+```csharp
+using S100Framework.REST.Extensions;
+using S100Framework.REST.Models;
+
+var replicas = await client.GetReplicasAsync(new FeatureServiceReplicasRequest {
+    ReturnVersion = true,
+    ReturnLastSyncDate = true
+});
+
+foreach (var replica in replicas.Replicas) {
+    Console.WriteLine($"{replica.ReplicaId}: {replica.ReplicaName}");
+}
+
+var unregisterResult = await client.UnregisterReplicaStateAsync(state);
+
+if (!unregisterResult.Success) {
+    Console.WriteLine($"Replica {unregisterResult.ReplicaId} was not unregistered.");
+}
+```
+
+`UnregisterReplicaStateAsync(...)` requires a concrete replica ID and rejects the wildcard `*`. Use `UnregisterReplicaAsync(...)` directly if you intentionally want to unregister all replicas supported by the service.
+
+### Low-level replica APIs
+
+The state-aware helpers are convenience APIs. Use the lower-level service methods when you need custom behavior:
+
+```csharp
+var submission = await client.SubmitSynchronizeReplicaAsync(new SynchronizeReplicaRequest {
+    ReplicaId = state.ReplicaId,
+    ReplicaServerGen = state.ReplicaServerGen,
+    SyncDirection = SynchronizeReplicaSyncDirection.Download,
+    DataFormat = SynchronizeReplicaDataFormat.Json,
+    TransportType = SynchronizeReplicaTransportType.Url
+});
+
+if (submission.IsPending) {
+    var status = await client.WaitForSynchronizeReplicaCompletionAsync(
+        submission.StatusUrl!,
+        new ReplicaPollingOptions());
+
+    if (status.ResultUrl is not null) {
+        var file = await client.DownloadSynchronizeReplicaFileAsync(status.ResultUrl);
+    }
+}
+```
+
+### Replica support boundaries
+
+Supported:
+
+- client target replicas
+- `perReplica` and `perLayer` sync models
+- `createReplica` with JSON or SQLite result files
+- download-only `synchronizeReplica`
+- upload-only `synchronizeReplica`
+- bidirectional `synchronizeReplica`
+- raw JSON edit payloads through `EditsJson`
+- schema-agnostic edit payload building through `ReplicaEdits`
+- uploaded SQLite edit payloads through `EditsUploadId`
+- JSON result file inspection and edit result diagnostics
+- state-aware helper workflows for create, download, upload, bidirectional sync, and unregister
+
+Not currently provided by the package:
+
+- internal persistence or offline database storage
+- SQLite result file parsing
+- strongly typed schema-specific offline feature models
+- automatic conflict resolution
+- interactive authentication or environment-specific login flows
+- server-to-server replica workflows
+
+---
+
 ## Public Esri JSON converters
 
 The package includes public converters for Esri JSON geometry and feature payloads.
@@ -2702,11 +3063,16 @@ Console.WriteLine(metadata.Capabilities.SupportsUploads);
 Console.WriteLine(metadata.Capabilities.SupportsChangeTracking);
 Console.WriteLine(metadata.Capabilities.SupportsAsyncApplyEdits);
 Console.WriteLine(metadata.Capabilities.SupportsAppend);
+Console.WriteLine(metadata.SupportsReplicaResource());
+Console.WriteLine(metadata.SupportsAsyncReplicaJobs());
+Console.WriteLine(metadata.SupportsReplicaSyncDirectionControl());
+Console.WriteLine(metadata.SupportsReplicaRollbackOnFailure());
 Console.WriteLine(metadata.Capabilities.SupportsQueryDomains);
 Console.WriteLine(metadata.Capabilities.SupportsQueryDataElements);
 Console.WriteLine(metadata.Capabilities.SupportsQueryContingentValues);
 Console.WriteLine(metadata.Capabilities.SupportsRelationshipsResource);
 Console.WriteLine(string.Join(", ", metadata.SupportedAppendFormats));
+Console.WriteLine(string.Join(", ", metadata.SupportedExportFormats));
 ```
 
 ### `extractChanges` capabilities
@@ -2729,7 +3095,7 @@ if (metadata.ExtractChangesCapabilities is not null) {
 ### Rule of thumb
 
 - For ordinary queries, you usually do not need to think much about capabilities.
-- For attachments, attachment count queries, attachment query ordering, top features, advanced related queries, service-level relationships, service-level query, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, synchronous/asynchronous `calculate`, direct feature edit endpoints, `extractChanges`, `append`, uploads, and bin queries, check capabilities first.
+- For attachments, attachment count queries, attachment query ordering, top features, advanced related queries, service-level relationships, service-level query, statistics pagination, percentile statistics, `queryDomains`, `queryDataElements`, `queryContingentValues`, `queryAnalytic`, synchronous/asynchronous `calculate`, direct feature edit endpoints, `extractChanges`, replica workflows, `append`, uploads, and bin queries, check capabilities first.
 - Even if you skip the manual check, the client will still fail fast for important unsupported operations.
 
 ---
@@ -2773,6 +3139,10 @@ When `ReturnTrueCurves` is disabled, the server is expected to return densified 
 - It does not use ArcGIS SDK licensing.
 - Advanced Feature Service capabilities vary between services.
 - `extractChanges` is mainly for incremental sync scenarios.
+- Replica workflows are for Feature Services that advertise sync support and expose sync capabilities.
+- State-aware replica helpers require consumers to persist `ReplicaSynchronizationState` outside the package.
+- Upload-only replica sync returns the original state unchanged; download-only and bidirectional sync return an updated state when generation values are available.
+- JSON replica result files can be inspected for generation values and edit result errors. SQLite replica result files are downloaded as files but are not parsed by this package.
 - Async `extractChanges` SQLite results are downloaded as files.
 - The ArcGIS REST API uses the literal `sqllite` for the SQLite data format parameter. The library hides that detail behind `ExtractChangesDataFormat.Sqlite`.
 - `append` support covers service-level append and layer-level append with `edits`, `appendItemId`, and `appendUploadId` sources.
@@ -2821,10 +3191,11 @@ If this is your first time using the package, read the sections in this order:
 25. Uploads
 26. `append`
 27. `extractChanges`
-28. Public Esri JSON converters
-29. Capability checks
-30. Query request method selection
-31. Curve handling
-32. Notes and limitations
+28. Replicas and synchronization
+29. Public Esri JSON converters
+30. Capability checks
+31. Query request method selection
+32. Curve handling
+33. Notes and limitations
 
 That gets the common read/query/edit cases out of the way before the more specialized bulk-load, sync, metadata, and analysis scenarios.

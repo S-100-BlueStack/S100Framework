@@ -3,61 +3,60 @@ using System.Text.Json;
 using S100Framework.REST.Exceptions;
 using S100Framework.REST.Internal.Dto;
 using S100Framework.REST.Internal.Http;
-using S100Framework.REST.Internal.Json;
 using S100Framework.REST.Models;
 
 namespace S100Framework.REST.Clients;
 
 /// <summary>
-/// Provides <c>createReplica</c> operations for feature service endpoints.
+/// Provides service-level <c>synchronizeReplica</c> operations for feature service endpoints.
 /// </summary>
 public sealed partial class FeatureServiceClient
 {
     /// <inheritdoc />
-    public async Task<CreateReplicaResult> CreateReplicaAsync(
-        CreateReplicaRequest request,
+    public async Task<SynchronizeReplicaResult> SynchronizeReplicaAsync(
+        SynchronizeReplicaRequest request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
         request.Validate();
 
         var metadata = await GetMetadataAsync(cancellationToken);
-        EnsureCreateReplicaSupported(metadata, request);
+        EnsureSynchronizeReplicaSupported(metadata, request);
 
-        var submission = await SubmitCreateReplicaAsync(request, cancellationToken);
+        var submission = await SubmitSynchronizeReplicaAsync(request, cancellationToken);
 
         if (submission.StatusUrl is not null) {
             throw new InvalidOperationException(
-                "The server returned an asynchronous createReplica response. Use GetCreateReplicaStatusAsync to poll the job.");
+                "The server returned an asynchronous synchronizeReplica response. Use GetSynchronizeReplicaStatusAsync to poll the job.");
         }
 
         return submission.Result
             ?? throw new InvalidOperationException(
-                "The createReplica request did not return an embedded result.");
+                "The synchronizeReplica request did not return an embedded result.");
     }
 
     /// <inheritdoc />
-    public async Task<CreateReplicaSubmissionResult> SubmitCreateReplicaAsync(
-        CreateReplicaRequest request,
+    public async Task<SynchronizeReplicaSubmissionResult> SubmitSynchronizeReplicaAsync(
+        SynchronizeReplicaRequest request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
         request.Validate();
 
         var metadata = await GetMetadataAsync(cancellationToken);
-        EnsureCreateReplicaSupported(metadata, request);
+        EnsureSynchronizeReplicaSupported(metadata, request);
 
-        var parameters = BuildCreateReplicaParameters(request);
-        var endpointUri = UriUtility.AppendPath(_serviceUri, "createReplica");
+        var endpointUri = UriUtility.AppendPath(_serviceUri, "synchronizeReplica");
+        var parameters = BuildSynchronizeReplicaParameters(request);
 
         var document = await PostFormAsync<JsonDocument>(endpointUri, parameters, cancellationToken);
         var root = document.RootElement;
 
         if (root.TryGetProperty("statusUrl", out var statusUrlElement) ||
-    root.TryGetProperty("statusURL", out statusUrlElement)) {
+            root.TryGetProperty("statusURL", out statusUrlElement)) {
             if (statusUrlElement.ValueKind != JsonValueKind.String) {
                 throw new FeatureServiceException(
-                    "The server returned an invalid statusUrl for createReplica.",
+                    "The server returned an invalid statusUrl for synchronizeReplica.",
                     endpointUri);
             }
 
@@ -65,39 +64,39 @@ public sealed partial class FeatureServiceClient
 
             if (string.IsNullOrWhiteSpace(rawStatusUrl)) {
                 throw new FeatureServiceException(
-                    "The server returned an empty statusUrl for createReplica.",
+                    "The server returned an empty statusUrl for synchronizeReplica.",
                     endpointUri);
             }
 
             if (!Uri.TryCreate(rawStatusUrl, UriKind.Absolute, out var statusUrl)) {
                 throw new FeatureServiceException(
-                    "The server returned an invalid statusUrl for createReplica.",
+                    "The server returned an invalid statusUrl for synchronizeReplica.",
                     endpointUri);
             }
 
-            return new CreateReplicaSubmissionResult(
+            return new SynchronizeReplicaSubmissionResult(
                 Result: null,
                 StatusUrl: statusUrl);
         }
 
-        return new CreateReplicaSubmissionResult(
-            MapCreateReplicaResult(root, endpointUri),
+        return new SynchronizeReplicaSubmissionResult(
+            MapSynchronizeReplicaResult(root, endpointUri),
             StatusUrl: null);
     }
 
     /// <inheritdoc />
-    public async Task<CreateReplicaJobStatus> GetCreateReplicaStatusAsync(
+    public async Task<SynchronizeReplicaJobStatus> GetSynchronizeReplicaStatusAsync(
         Uri statusUrl,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(statusUrl);
 
-        using var document = await GetCreateReplicaStatusDocumentAsync(statusUrl, cancellationToken);
+        using var document = await GetSynchronizeReplicaStatusDocumentAsync(statusUrl, cancellationToken);
 
-        var dto = JsonSerializer.Deserialize<EsriCreateReplicaJobStatusDto>(
+        var dto = JsonSerializer.Deserialize<EsriSynchronizeReplicaJobStatusDto>(
                       document.RootElement.GetRawText(),
                       JsonOptions)
                   ?? throw new FeatureServiceException(
-                      "The createReplica status payload could not be deserialized.",
+                      "The synchronizeReplica status payload could not be deserialized.",
                       statusUrl);
 
         Uri? resultUrl = null;
@@ -106,20 +105,18 @@ public sealed partial class FeatureServiceClient
         if (!string.IsNullOrWhiteSpace(rawResultUrl) &&
             !Uri.TryCreate(rawResultUrl, UriKind.Absolute, out resultUrl)) {
             throw new FeatureServiceException(
-                "The server returned an invalid resultUrl for createReplica.",
+                "The server returned an invalid resultUrl for synchronizeReplica.",
                 statusUrl);
         }
 
-        return new CreateReplicaJobStatus(
+        return new SynchronizeReplicaJobStatus(
             Status: dto.Status ?? "Unknown",
             ReplicaName: dto.ReplicaName,
-            ReplicaId: dto.ReplicaId,
             ResponseType: dto.ResponseType,
             TransportType: dto.TransportType,
-            TargetType: dto.TargetType,
             ResultUrl: resultUrl,
-            SubmissionTime: ReadOptionalCreateReplicaInt64(dto.SubmissionTime, statusUrl, "submissionTime"),
-            LastUpdatedTime: ReadOptionalCreateReplicaInt64(dto.LastUpdatedTime, statusUrl, "lastUpdatedTime")) {
+            SubmissionTime: ReadOptionalSynchronizeReplicaInt64(dto.SubmissionTime, statusUrl, "submissionTime"),
+            LastUpdatedTime: ReadOptionalSynchronizeReplicaInt64(dto.LastUpdatedTime, statusUrl, "lastUpdatedTime")) {
             ErrorCode = dto.Error?.Code,
             ErrorMessage = string.IsNullOrWhiteSpace(dto.Error?.Message) ? null : dto.Error.Message,
             ErrorDetails = dto.Error?.Details?
@@ -130,7 +127,7 @@ public sealed partial class FeatureServiceClient
         };
     }
 
-    private async Task<JsonDocument> GetCreateReplicaStatusDocumentAsync(
+    private async Task<JsonDocument> GetSynchronizeReplicaStatusDocumentAsync(
     Uri statusUrl,
     CancellationToken cancellationToken) {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -170,7 +167,7 @@ public sealed partial class FeatureServiceClient
 
         if (string.IsNullOrWhiteSpace(payload)) {
             throw new FeatureServiceException(
-                "The server returned an empty createReplica status payload.",
+                "The server returned an empty synchronizeReplica status payload.",
                 statusUrl,
                 statusCode: response.StatusCode);
         }
@@ -182,7 +179,7 @@ public sealed partial class FeatureServiceClient
         }
         catch (JsonException) {
             throw new FeatureServiceException(
-                "The server returned an invalid createReplica status JSON payload.",
+                "The server returned an invalid synchronizeReplica status JSON payload.",
                 statusUrl,
                 statusCode: response.StatusCode);
         }
@@ -214,7 +211,7 @@ public sealed partial class FeatureServiceClient
     }
 
     /// <inheritdoc />
-    public async Task<CreateReplicaFileResult> DownloadCreateReplicaFileAsync(
+    public async Task<SynchronizeReplicaFileResult> DownloadSynchronizeReplicaFileAsync(
         Uri resultUrl,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(resultUrl);
@@ -258,158 +255,142 @@ public sealed partial class FeatureServiceClient
         var contentType = response.Content.Headers.ContentType?.MediaType;
         var fileName = GetContentDispositionFileName(response.Content.Headers);
 
-        return new CreateReplicaFileResult(bytes, contentType, fileName, resultUrl);
+        return new SynchronizeReplicaFileResult(bytes, contentType, fileName, resultUrl);
     }
 
-    private Dictionary<string, string?> BuildCreateReplicaParameters(CreateReplicaRequest request) {
-        var parameters = new Dictionary<string, string?> {
-            ["f"] = "json",
-            ["replicaName"] = request.ReplicaName,
-            ["layers"] = JsonSerializer.Serialize(request.Layers),
-            ["transportType"] = MapCreateReplicaTransportType(request.TransportType),
-            ["returnAttachments"] = request.ReturnAttachments ? "true" : "false",
-            ["returnAttachmentsDataByUrl"] = request.ReturnAttachmentsDataByUrl ? "true" : "false",
-            ["async"] = request.IsAsync ? "true" : "false",
-            ["syncModel"] = MapCreateReplicaSyncModel(request.SyncModel),
-            ["dataFormat"] = MapCreateReplicaDataFormat(request.DataFormat),
-            ["targetType"] = MapCreateReplicaTargetType(request.TargetType)
+    private static Dictionary<string, string?> BuildSynchronizeReplicaParameters(
+    SynchronizeReplicaRequest request) {
+        var syncModel = request.SyncModel switch {
+            SynchronizeReplicaSyncModel.PerReplica => "perReplica",
+            SynchronizeReplicaSyncModel.PerLayer => "perLayer",
+            _ => throw new ArgumentOutOfRangeException(nameof(request), request.SyncModel, null)
         };
 
-        if (request.LayerQueries is { Count: > 0 }) {
-            parameters["layerQueries"] = SerializeCreateReplicaLayerQueries(request.LayerQueries);
+        var parameters = new Dictionary<string, string?> {
+            ["f"] = "json",
+            ["replicaID"] = request.ReplicaId,
+            ["syncModel"] = syncModel,
+            ["transportType"] = MapSynchronizeReplicaTransportType(request.TransportType),
+            ["closeReplica"] = request.CloseReplica ? "true" : "false",
+            ["returnAttachmentsDataByUrl"] = request.ReturnAttachmentsDataByUrl ? "true" : "false",
+            ["async"] = request.IsAsync ? "true" : "false",
+            ["syncDirection"] = MapSynchronizeReplicaSyncDirection(request.SyncDirection),
+            ["dataFormat"] = MapSynchronizeReplicaDataFormat(request.DataFormat)
+        };
+
+        if (request.ReplicaServerGen.HasValue) {
+            parameters["replicaServerGen"] = request.ReplicaServerGen.Value.ToString(CultureInfo.InvariantCulture);
         }
 
-        if (request.SpatialFilter is not null) {
-            parameters["geometry"] = request.SpatialFilter.GeometryJson;
-            parameters["geometryType"] = request.SpatialFilter.GeometryType;
+        if (request.SyncLayers is { Count: > 0 }) {
+            parameters["syncLayers"] = JsonSerializer.Serialize(
+                request.SyncLayers.Select(static layer => {
+                    var values = new Dictionary<string, object?> {
+                        ["id"] = layer.Id,
+                        ["syncDirection"] = MapSynchronizeReplicaSyncDirection(layer.SyncDirection)
+                    };
 
-            if (request.SpatialFilter.InSrid.HasValue) {
-                parameters["inSR"] = request.SpatialFilter.InSrid.Value.ToString(CultureInfo.InvariantCulture);
+                    if (layer.ServerGen.HasValue) {
+                        values["serverGen"] = layer.ServerGen.Value;
+                    }
+
+                    return values;
+                }));
+        }
+
+        if (IsSynchronizeReplicaUploadDirection(request.SyncDirection)) {
+            parameters["rollbackOnFailure"] = request.RollbackOnFailure ? "true" : "false";
+            parameters["returnIdsForAdds"] = request.ReturnIdsForAdds ? "true" : "false";
+
+            if (!string.IsNullOrWhiteSpace(request.EditsJson)) {
+                parameters["edits"] = request.EditsJson;
             }
-        }
 
-        if (request.ReplicaSrid.HasValue) {
-            parameters["replicaSR"] = request.ReplicaSrid.Value.ToString(CultureInfo.InvariantCulture);
+            if (!string.IsNullOrWhiteSpace(request.EditsUploadId)) {
+                parameters["editsUploadId"] = request.EditsUploadId;
+                parameters["editsUploadFormat"] = MapSynchronizeReplicaEditsUploadFormat(request.EditsUploadFormat);
+            }
         }
 
         return parameters;
     }
 
-    private static string SerializeCreateReplicaLayerQueries(
-        IReadOnlyDictionary<int, CreateReplicaLayerQuery> layerQueries) {
-        var payload = new Dictionary<string, Dictionary<string, object?>>();
-
-        foreach (var pair in layerQueries) {
-            var value = pair.Value;
-            var item = new Dictionary<string, object?>();
-
-            if (value.QueryOption != CreateReplicaLayerQueryOption.Default) {
-                item["queryOption"] = MapCreateReplicaLayerQueryOption(value.QueryOption);
-            }
-
-            if (!string.IsNullOrWhiteSpace(value.Where)) {
-                item["where"] = value.Where;
-            }
-
-            if (value.UseGeometry.HasValue) {
-                item["useGeometry"] = value.UseGeometry.Value;
-            }
-
-            if (value.IncludeRelated.HasValue) {
-                item["includeRelated"] = value.IncludeRelated.Value;
-            }
-
-            payload[pair.Key.ToString(CultureInfo.InvariantCulture)] = item;
-        }
-
-        return JsonSerializer.Serialize(payload);
+    private static bool IsSynchronizeReplicaUploadDirection(SynchronizeReplicaSyncDirection value) {
+        return value is
+            SynchronizeReplicaSyncDirection.Upload or
+            SynchronizeReplicaSyncDirection.Bidirectional;
     }
 
-    private static string MapCreateReplicaLayerQueryOption(CreateReplicaLayerQueryOption value) {
+    private static string MapSynchronizeReplicaEditsUploadFormat(
+    SynchronizeReplicaEditsUploadFormat value) {
         return value switch {
-            CreateReplicaLayerQueryOption.None => "none",
-            CreateReplicaLayerQueryOption.UseFilter => "useFilter",
-            CreateReplicaLayerQueryOption.All => "all",
-            CreateReplicaLayerQueryOption.Default => throw new ArgumentOutOfRangeException(
-                nameof(value),
-                value,
-                "The default createReplica query option should not be serialized."),
+            SynchronizeReplicaEditsUploadFormat.Sqlite => "sqlite",
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
         };
     }
 
-    private static string MapCreateReplicaDataFormat(CreateReplicaDataFormat value) {
+    private static string MapSynchronizeReplicaDataFormat(SynchronizeReplicaDataFormat value) {
         return value switch {
-            CreateReplicaDataFormat.Json => "json",
-            CreateReplicaDataFormat.Sqlite => "sqlite",
+            SynchronizeReplicaDataFormat.Json => "json",
+            SynchronizeReplicaDataFormat.Sqlite => "sqlite",
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
         };
     }
 
-    private static string MapCreateReplicaSyncModel(CreateReplicaSyncModel value) {
+    private static string MapSynchronizeReplicaSyncDirection(SynchronizeReplicaSyncDirection value) {
         return value switch {
-            CreateReplicaSyncModel.PerReplica => "perReplica",
-            CreateReplicaSyncModel.PerLayer => "perLayer",
-            CreateReplicaSyncModel.None => "none",
+            SynchronizeReplicaSyncDirection.Download => "download",
+            SynchronizeReplicaSyncDirection.Snapshot => "snapshot",
+            SynchronizeReplicaSyncDirection.Upload => "upload",
+            SynchronizeReplicaSyncDirection.Bidirectional => "bidirectional",
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
         };
     }
 
-    private static string MapCreateReplicaTransportType(CreateReplicaTransportType value) {
+    private static string MapSynchronizeReplicaTransportType(SynchronizeReplicaTransportType value) {
         return value switch {
-            CreateReplicaTransportType.Url => "esriTransportTypeURL",
-            CreateReplicaTransportType.Embedded => "esriTransportTypeEmbedded",
+            SynchronizeReplicaTransportType.Url => "esriTransportTypeURL",
+            SynchronizeReplicaTransportType.Embedded => "esriTransportTypeEmbedded",
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
         };
     }
 
-    private static string MapCreateReplicaTargetType(CreateReplicaTargetType value) {
-        return value switch {
-            CreateReplicaTargetType.Client => "client",
-            _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
-        };
-    }
-
-    private static CreateReplicaResult MapCreateReplicaResult(
+    private static SynchronizeReplicaResult MapSynchronizeReplicaResult(
         JsonElement root,
         Uri endpointUri) {
-        var dto = JsonSerializer.Deserialize<EsriCreateReplicaResponseDto>(
+        var dto = JsonSerializer.Deserialize<EsriSynchronizeReplicaResponseDto>(
                       root.GetRawText(),
                       JsonOptions)
                   ?? throw new FeatureServiceException(
-                      "The createReplica payload could not be deserialized.",
+                      "The synchronizeReplica payload could not be deserialized.",
                       endpointUri);
 
-        var resultUrl = ReadOptionalCreateReplicaUri(dto.ResultUrl ?? dto.Url, endpointUri, "resultUrl");
-
-        return new CreateReplicaResult(
-            ReplicaName: dto.ReplicaName,
+        return new SynchronizeReplicaResult(
             ReplicaId: dto.ReplicaId,
+            ReplicaName: dto.ReplicaName,
             TransportType: dto.TransportType,
             ResponseType: dto.ResponseType,
-            SyncModel: dto.SyncModel,
-            TargetType: dto.TargetType,
-            ReplicaServerGen: ReadOptionalCreateReplicaInt64(dto.ReplicaServerGen, endpointUri, "replicaServerGen"),
-            LayerServerGens: (dto.LayerServerGens ?? Enumerable.Empty<EsriCreateReplicaLayerServerGenDto?>())
+            ReplicaServerGen: ReadOptionalSynchronizeReplicaInt64(dto.ReplicaServerGen, endpointUri, "replicaServerGen"),
+            LayerServerGens: (dto.LayerServerGens ?? Enumerable.Empty<EsriSynchronizeReplicaLayerServerGenDto?>())
                 .Where(static layerServerGen => layerServerGen is not null)
-                .Select(layerServerGen => MapCreateReplicaLayerServerGen(layerServerGen!, endpointUri))
+                .Select(layerServerGen => MapSynchronizeReplicaLayerServerGen(layerServerGen!, endpointUri))
                 .ToArray(),
-            ResultUrl: resultUrl,
+            ResultUrl: ReadOptionalSynchronizeReplicaUri(dto.ResultUrl ?? dto.Url, endpointUri, "resultUrl"),
             Status: dto.Status,
-            SubmissionTime: ReadOptionalCreateReplicaInt64(dto.SubmissionTime, endpointUri, "submissionTime"),
-            LastUpdatedTime: ReadOptionalCreateReplicaInt64(dto.LastUpdatedTime, endpointUri, "lastUpdatedTime"));
+            SubmissionTime: ReadOptionalSynchronizeReplicaInt64(dto.SubmissionTime, endpointUri, "submissionTime"),
+            LastUpdatedTime: ReadOptionalSynchronizeReplicaInt64(dto.LastUpdatedTime, endpointUri, "lastUpdatedTime"));
     }
 
-    private static CreateReplicaLayerServerGen MapCreateReplicaLayerServerGen(
-        EsriCreateReplicaLayerServerGenDto dto,
+    private static SynchronizeReplicaLayerServerGen MapSynchronizeReplicaLayerServerGen(
+        EsriSynchronizeReplicaLayerServerGenDto dto,
         Uri endpointUri) {
-        var layerId = ReadRequiredCreateReplicaInt32(
+        var layerId = ReadRequiredSynchronizeReplicaInt32(
             dto.Id,
             endpointUri,
             "layerServerGens",
             "layer ID");
 
-        var serverGen = ReadRequiredCreateReplicaInt64(
+        var serverGen = ReadRequiredSynchronizeReplicaInt64(
             dto.ServerGen,
             endpointUri,
             "layerServerGens",
@@ -417,20 +398,20 @@ public sealed partial class FeatureServiceClient
 
         if (layerId < 0) {
             throw new FeatureServiceException(
-                "The createReplica payload returned a layerServerGens item with a negative layer ID.",
+                "The synchronizeReplica payload returned a layerServerGens item with a negative layer ID.",
                 endpointUri);
         }
 
         if (serverGen < 0) {
             throw new FeatureServiceException(
-                "The createReplica payload returned a layerServerGens item with a negative serverGen value.",
+                "The synchronizeReplica payload returned a layerServerGens item with a negative serverGen value.",
                 endpointUri);
         }
 
-        return new CreateReplicaLayerServerGen(layerId, serverGen);
+        return new SynchronizeReplicaLayerServerGen(layerId, serverGen);
     }
 
-    private static Uri? ReadOptionalCreateReplicaUri(
+    private static Uri? ReadOptionalSynchronizeReplicaUri(
         string? rawUrl,
         Uri endpointUri,
         string propertyName) {
@@ -440,44 +421,44 @@ public sealed partial class FeatureServiceClient
 
         if (!Uri.TryCreate(rawUrl, UriKind.Absolute, out var uri)) {
             throw new FeatureServiceException(
-                $"The server returned an invalid {propertyName} for createReplica.",
+                $"The server returned an invalid {propertyName} for synchronizeReplica.",
                 endpointUri);
         }
 
         return uri;
     }
 
-    private static int ReadRequiredCreateReplicaInt32(
+    private static int ReadRequiredSynchronizeReplicaInt32(
         JsonElement? element,
         Uri endpointUri,
         string collectionName,
         string propertyName) {
-        if (!TryReadCreateReplicaInt64(element, out var value) ||
+        if (!TryReadSynchronizeReplicaInt64(element, out var value) ||
             value < int.MinValue ||
             value > int.MaxValue) {
             throw new FeatureServiceException(
-                $"The createReplica payload returned a {collectionName} item without a valid {propertyName} value.",
+                $"The synchronizeReplica payload returned a {collectionName} item without a valid {propertyName} value.",
                 endpointUri);
         }
 
         return (int)value;
     }
 
-    private static long ReadRequiredCreateReplicaInt64(
+    private static long ReadRequiredSynchronizeReplicaInt64(
         JsonElement? element,
         Uri endpointUri,
         string collectionName,
         string propertyName) {
-        if (!TryReadCreateReplicaInt64(element, out var value)) {
+        if (!TryReadSynchronizeReplicaInt64(element, out var value)) {
             throw new FeatureServiceException(
-                $"The createReplica payload returned a {collectionName} item without a valid {propertyName} value.",
+                $"The synchronizeReplica payload returned a {collectionName} item without a valid {propertyName} value.",
                 endpointUri);
         }
 
         return value;
     }
 
-    private static long? ReadOptionalCreateReplicaInt64(
+    private static long? ReadOptionalSynchronizeReplicaInt64(
         JsonElement? element,
         Uri endpointUri,
         string propertyName) {
@@ -486,22 +467,22 @@ public sealed partial class FeatureServiceClient
             return null;
         }
 
-        if (!TryReadCreateReplicaInt64(element, out var value)) {
+        if (!TryReadSynchronizeReplicaInt64(element, out var value)) {
             throw new FeatureServiceException(
-                $"The server returned an invalid {propertyName} value for createReplica.",
+                $"The server returned an invalid {propertyName} value for synchronizeReplica.",
                 endpointUri);
         }
 
         if (value < 0) {
             throw new FeatureServiceException(
-                $"The server returned a negative {propertyName} value for createReplica.",
+                $"The server returned a negative {propertyName} value for synchronizeReplica.",
                 endpointUri);
         }
 
         return value;
     }
 
-    private static bool TryReadCreateReplicaInt64(
+    private static bool TryReadSynchronizeReplicaInt64(
         JsonElement? element,
         out long value) {
         value = 0;
@@ -523,12 +504,12 @@ public sealed partial class FeatureServiceClient
         };
     }
 
-    private static void EnsureCreateReplicaSupported(
-        FeatureServiceMetadata metadata,
-        CreateReplicaRequest request) {
+    private static void EnsureSynchronizeReplicaSupported(
+    FeatureServiceMetadata metadata,
+    SynchronizeReplicaRequest request) {
         if (!metadata.Capabilities.SupportsSync && !metadata.Capabilities.SyncEnabled) {
             throw new FeatureServiceCapabilityException(
-                "The feature service does not support sync, so createReplica is not available.");
+                "The feature service does not support sync, so synchronizeReplica is not available.");
         }
 
         var syncCapabilities = metadata.SyncCapabilities;
@@ -539,28 +520,27 @@ public sealed partial class FeatureServiceClient
 
         if (request.IsAsync && !syncCapabilities.SupportsAsync) {
             throw new FeatureServiceCapabilityException(
-                "The feature service does not support asynchronous createReplica requests.");
+                "The feature service does not support asynchronous synchronizeReplica requests.");
+        }
+
+        if (IsSynchronizeReplicaUploadDirection(request.SyncDirection) &&
+            !syncCapabilities.SupportsSyncDirectionControl) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support upload or bidirectional synchronizeReplica requests because sync direction control is not advertised.");
+        }
+
+        if (request.RollbackOnFailure && !syncCapabilities.SupportsRollbackOnFailure) {
+            throw new FeatureServiceCapabilityException(
+                "The feature service does not support rollbackOnFailure for synchronizeReplica upload requests.");
         }
 
         switch (request.SyncModel) {
-            case CreateReplicaSyncModel.PerReplica when !syncCapabilities.SupportsPerReplicaSync:
+            case SynchronizeReplicaSyncModel.PerReplica when !syncCapabilities.SupportsPerReplicaSync:
                 throw new FeatureServiceCapabilityException(
-                    "The feature service does not support createReplica with the perReplica sync model.");
-            case CreateReplicaSyncModel.PerLayer when !syncCapabilities.SupportsPerLayerSync:
+                    "The feature service does not support synchronizeReplica with the perReplica sync model.");
+            case SynchronizeReplicaSyncModel.PerLayer when !syncCapabilities.SupportsPerLayerSync:
                 throw new FeatureServiceCapabilityException(
-                    "The feature service does not support createReplica with the perLayer sync model.");
-            case CreateReplicaSyncModel.None when !syncCapabilities.SupportsSyncModelNone:
-                throw new FeatureServiceCapabilityException(
-                    "The feature service does not support createReplica with syncModel none.");
-        }
-
-        if (request.SyncModel == CreateReplicaSyncModel.None &&
-            metadata.SupportedExportFormats.Count > 0 &&
-            !metadata.SupportedExportFormats.Contains(
-                MapCreateReplicaDataFormat(request.DataFormat),
-                StringComparer.OrdinalIgnoreCase)) {
-            throw new FeatureServiceCapabilityException(
-                $"The feature service does not advertise support for createReplica data format '{MapCreateReplicaDataFormat(request.DataFormat)}'.");
+                    "The feature service does not support synchronizeReplica with the perLayer sync model.");
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿namespace S100Framework.REST.Models;
 
 /// <summary>
-/// Represents the current state of an asynchronous <c>createReplica</c> job.
+/// Represents the current state of an asynchronous <c>synchronizeReplica</c> job.
 /// </summary>
 /// <param name="Status">
 /// The raw job status returned by the feature service.
@@ -9,17 +9,11 @@
 /// <param name="ReplicaName">
 /// The replica name returned by the job, when available.
 /// </param>
-/// <param name="ReplicaId">
-/// The replica ID returned by the job, when available.
-/// </param>
 /// <param name="ResponseType">
 /// The response type returned by the job, when available.
 /// </param>
 /// <param name="TransportType">
 /// The transport type returned by the job, when available.
-/// </param>
-/// <param name="TargetType">
-/// The target type returned by the job, when available.
 /// </param>
 /// <param name="ResultUrl">
 /// The result URL for a completed job, when available.
@@ -30,13 +24,11 @@
 /// <param name="LastUpdatedTime">
 /// The server last-updated timestamp, when available.
 /// </param>
-public sealed record CreateReplicaJobStatus(
+public sealed record SynchronizeReplicaJobStatus(
     string Status,
     string? ReplicaName,
-    string? ReplicaId,
     string? ResponseType,
     string? TransportType,
-    string? TargetType,
     Uri? ResultUrl,
     long? SubmissionTime,
     long? LastUpdatedTime)

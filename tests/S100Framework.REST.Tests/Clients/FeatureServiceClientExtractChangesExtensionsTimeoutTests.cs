@@ -191,7 +191,25 @@ public sealed class FeatureServiceClientExtractChangesExtensionsTimeoutTests
     CancellationToken cancellationToken = default) =>
     throw new NotSupportedException("Replica unregister operations are not used by this test double.");
 
+        public Task<SynchronizeReplicaResult> SynchronizeReplicaAsync(
+    SynchronizeReplicaRequest request,
+    CancellationToken cancellationToken = default) =>
+    throw new NotSupportedException("Synchronize replica operations are not used by this test double.");
 
+        public Task<SynchronizeReplicaSubmissionResult> SubmitSynchronizeReplicaAsync(
+            SynchronizeReplicaRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("Synchronize replica operations are not used by this test double.");
+
+        public Task<SynchronizeReplicaJobStatus> GetSynchronizeReplicaStatusAsync(
+            Uri statusUrl,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("Synchronize replica operations are not used by this test double.");
+
+        public Task<SynchronizeReplicaFileResult> DownloadSynchronizeReplicaFileAsync(
+            Uri resultUrl,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("Synchronize replica operations are not used by this test double.");
     }
 
 }
