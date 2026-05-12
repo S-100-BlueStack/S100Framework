@@ -482,6 +482,33 @@ public sealed class FeatureServiceClientReplicaStateExtensionsTests
         Assert.Contains("non-JSON", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task SynchronizeReplicaStateAsync_ThrowsBeforeHttp_WhenCloseReplicaIsTrue() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var wasCalled = false;
+
+        var client = CreateClient(_ => {
+            wasCalled = true;
+            return StubHttpMessageHandler.Json("{}");
+        });
+
+        var state = new ReplicaSynchronizationState {
+            ReplicaId = "replica-1",
+            SyncModel = SynchronizeReplicaSyncModel.PerReplica,
+            ReplicaServerGen = 10
+        };
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.SynchronizeReplicaStateAsync(
+                state,
+                closeReplica: true,
+                cancellationToken: cancellationToken));
+
+        Assert.Contains("cannot close the replica", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("future use", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(wasCalled);
+    }
+
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {
         return new FeatureServiceClient(
             new HttpClient(new StubHttpMessageHandler(handler)),

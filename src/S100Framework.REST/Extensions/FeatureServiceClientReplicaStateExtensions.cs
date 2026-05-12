@@ -73,6 +73,11 @@ public static class FeatureServiceClientReplicaStateExtensions
                 "SynchronizeReplicaStateAsync requires TransportType.Url because it downloads the synchronization result file.");
         }
 
+        if (closeReplica) {
+            throw new InvalidOperationException(
+                "SynchronizeReplicaStateAsync cannot close the replica because it returns synchronization state intended for future use. Use SubmitSynchronizeReplicaAsync directly when closing a replica.");
+        }
+
         var request = state.ToDownloadRequest(
             dataFormat,
             transportType,
