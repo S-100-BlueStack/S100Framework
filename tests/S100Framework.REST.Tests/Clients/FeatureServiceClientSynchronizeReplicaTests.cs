@@ -362,6 +362,7 @@ public sealed class FeatureServiceClientSynchronizeReplicaTests
         Assert.Contains("replicaServerGen=1526605677436", decodedBody);
         Assert.Contains("rollbackOnFailure=false", decodedBody);
         Assert.Contains("returnIdsForAdds=false", decodedBody);
+        Assert.Contains("editsUploadFormat=sqlite", decodedBody);
     }
 
     [Fact]

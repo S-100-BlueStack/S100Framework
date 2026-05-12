@@ -343,4 +343,18 @@ public sealed class SynchronizeReplicaRequestValidationTests
 
         request.Validate();
     }
+
+    [Fact]
+    public void Validate_Throws_WhenEditsUploadFormatIsInvalid() {
+        var request = new SynchronizeReplicaRequest {
+            ReplicaId = "replica-1",
+            SyncDirection = SynchronizeReplicaSyncDirection.Upload,
+            EditsUploadId = "upload-1",
+            EditsUploadFormat = (SynchronizeReplicaEditsUploadFormat)999
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("EditsUploadFormat", exception.Message);
+    }
 }

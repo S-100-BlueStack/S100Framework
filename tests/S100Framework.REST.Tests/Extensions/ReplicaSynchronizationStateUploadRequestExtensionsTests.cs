@@ -62,6 +62,7 @@ public sealed class ReplicaSynchronizationStateUploadRequestExtensionsTests
         Assert.Null(request.ReplicaServerGen);
         Assert.Equal("upload-1", request.EditsUploadId);
         Assert.Null(request.EditsJson);
+        Assert.Equal(SynchronizeReplicaEditsUploadFormat.Sqlite, request.EditsUploadFormat);
 
         Assert.Collection(
             request.SyncLayers,
@@ -135,6 +136,7 @@ public sealed class ReplicaSynchronizationStateUploadRequestExtensionsTests
         Assert.Null(request.ReplicaServerGen);
         Assert.Equal("upload-1", request.EditsUploadId);
         Assert.Null(request.EditsJson);
+        Assert.Equal(SynchronizeReplicaEditsUploadFormat.Sqlite, request.EditsUploadFormat);
 
         Assert.Collection(
             request.SyncLayers,

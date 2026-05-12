@@ -79,6 +79,18 @@ public sealed class SynchronizeReplicaStateUploadRequestTests
         Assert.Contains("PollInterval", exception.Message);
     }
 
+    [Fact]
+    public void Validate_Throws_WhenEditsUploadFormatIsInvalid() {
+        var request = new SynchronizeReplicaStateUploadRequest {
+            EditsUploadId = "upload-1",
+            EditsUploadFormat = (SynchronizeReplicaEditsUploadFormat)999
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("EditsUploadFormat", exception.Message);
+    }
+
     private static ReplicaEdits CreateEdits() {
         return new ReplicaEdits {
             Layers = [

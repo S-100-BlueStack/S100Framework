@@ -32,6 +32,12 @@ public sealed record SynchronizeReplicaStateBidirectionalRequest
     public string? EditsUploadId { get; init; }
 
     /// <summary>
+    /// Gets the uploaded edits payload format used when <see cref="EditsUploadId" /> is provided.
+    /// </summary>
+    public SynchronizeReplicaEditsUploadFormat EditsUploadFormat { get; init; } =
+        SynchronizeReplicaEditsUploadFormat.Sqlite;
+
+    /// <summary>
     /// Gets JSON output options used when <see cref="Edits" /> is provided.
     /// </summary>
     public ReplicaEditsJsonOptions? EditsJsonOptions { get; init; }
@@ -99,6 +105,11 @@ public sealed record SynchronizeReplicaStateBidirectionalRequest
 
             if (string.IsNullOrWhiteSpace(EditsUploadId)) {
                 throw new InvalidOperationException("EditsUploadId must not be empty or whitespace when provided.");
+            }
+
+            if (!Enum.IsDefined(EditsUploadFormat)) {
+                throw new InvalidOperationException(
+                    "EditsUploadFormat must be a supported synchronizeReplica edits upload format.");
             }
         }
 

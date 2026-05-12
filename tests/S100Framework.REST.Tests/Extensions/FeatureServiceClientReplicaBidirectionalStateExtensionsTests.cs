@@ -202,6 +202,7 @@ public sealed class FeatureServiceClientReplicaBidirectionalStateExtensionsTests
         Assert.Contains("editsUploadId=upload-1", decodedBody);
         Assert.Contains("syncLayers=", decodedBody);
         Assert.Contains("\"syncDirection\":\"bidirectional\"", decodedBody);
+        Assert.Contains("editsUploadFormat=sqlite", decodedBody);
     }
 
     [Fact]

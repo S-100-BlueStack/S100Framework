@@ -308,6 +308,7 @@ public sealed partial class FeatureServiceClient
 
             if (!string.IsNullOrWhiteSpace(request.EditsUploadId)) {
                 parameters["editsUploadId"] = request.EditsUploadId;
+                parameters["editsUploadFormat"] = MapSynchronizeReplicaEditsUploadFormat(request.EditsUploadFormat);
             }
         }
 
@@ -318,6 +319,14 @@ public sealed partial class FeatureServiceClient
         return value is
             SynchronizeReplicaSyncDirection.Upload or
             SynchronizeReplicaSyncDirection.Bidirectional;
+    }
+
+    private static string MapSynchronizeReplicaEditsUploadFormat(
+    SynchronizeReplicaEditsUploadFormat value) {
+        return value switch {
+            SynchronizeReplicaEditsUploadFormat.Sqlite => "sqlite",
+            _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+        };
     }
 
     private static string MapSynchronizeReplicaDataFormat(SynchronizeReplicaDataFormat value) {

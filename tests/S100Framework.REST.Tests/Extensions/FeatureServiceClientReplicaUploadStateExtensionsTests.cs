@@ -180,6 +180,7 @@ public sealed class FeatureServiceClientReplicaUploadStateExtensionsTests
         Assert.Contains("syncLayers=", decodedBody);
         Assert.Contains("\"syncDirection\":\"upload\"", decodedBody);
         Assert.DoesNotContain("\"serverGen\"", decodedBody);
+        Assert.Contains("editsUploadFormat=sqlite", decodedBody);
     }
 
     [Fact]

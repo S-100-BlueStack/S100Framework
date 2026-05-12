@@ -86,6 +86,15 @@ public sealed record SynchronizeReplicaRequest
     public string? EditsUploadId { get; init; }
 
     /// <summary>
+    /// Gets the data format of the uploaded edits payload referenced by <see cref="EditsUploadId" />.
+    /// </summary>
+    /// <remarks>
+    /// This value is only serialized when <see cref="EditsUploadId" /> is provided.
+    /// </remarks>
+    public SynchronizeReplicaEditsUploadFormat EditsUploadFormat { get; init; } =
+        SynchronizeReplicaEditsUploadFormat.Sqlite;
+
+    /// <summary>
     /// Gets a value indicating whether uploaded edits should be rolled back if any edit fails.
     /// </summary>
     /// <remarks>
@@ -195,6 +204,11 @@ public sealed record SynchronizeReplicaRequest
 
         if (hasEditsUploadId && string.IsNullOrWhiteSpace(EditsUploadId)) {
             throw new InvalidOperationException("EditsUploadId must not be empty or whitespace when provided.");
+        }
+
+        if (hasEditsUploadId && !Enum.IsDefined(EditsUploadFormat)) {
+            throw new InvalidOperationException(
+                "EditsUploadFormat must be a supported synchronizeReplica edits upload format.");
         }
 
         if (hasEditsJson && hasEditsUploadId) {

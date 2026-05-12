@@ -69,7 +69,8 @@ public static class ReplicaSynchronizationStateUploadRequestExtensions
                 RollbackOnFailure = request.RollbackOnFailure,
                 ReturnIdsForAdds = request.ReturnIdsForAdds,
                 EditsJson = editsJson,
-                EditsUploadId = request.EditsUploadId
+                EditsUploadId = request.EditsUploadId,
+                EditsUploadFormat = request.EditsUploadFormat
             },
             _ => throw new ArgumentOutOfRangeException(nameof(state), state.SyncModel, null)
         };
@@ -139,7 +140,8 @@ public static class ReplicaSynchronizationStateUploadRequestExtensions
                 RollbackOnFailure = request.RollbackOnFailure,
                 ReturnIdsForAdds = request.ReturnIdsForAdds,
                 EditsJson = editsJson,
-                EditsUploadId = request.EditsUploadId
+                EditsUploadId = request.EditsUploadId,
+                EditsUploadFormat = request.EditsUploadFormat
             },
             _ => throw new ArgumentOutOfRangeException(nameof(state), state.SyncModel, null)
         };

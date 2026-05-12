@@ -89,6 +89,18 @@ public sealed class SynchronizeReplicaStateBidirectionalRequestTests
         request.Validate();
     }
 
+    [Fact]
+    public void Validate_Throws_WhenEditsUploadFormatIsInvalid() {
+        var request = new SynchronizeReplicaStateBidirectionalRequest {
+            EditsUploadId = "upload-1",
+            EditsUploadFormat = (SynchronizeReplicaEditsUploadFormat)999
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("EditsUploadFormat", exception.Message);
+    }
+
     private static ReplicaEdits CreateEdits() {
         return new ReplicaEdits {
             Layers = [
