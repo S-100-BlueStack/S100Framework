@@ -283,6 +283,85 @@ public sealed class FeatureServiceClientSynchronizeReplicaHardeningTests
         Assert.Contains("resultUrl", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task SubmitSynchronizeReplicaAsync_Throws_WhenPerReplicaSyncIsNotSupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                { "id": 0, "name": "Layer 0" }
+              ],
+              "tables": [],
+              "capabilities": "Create,Update,Delete,Query,Sync",
+              "syncEnabled": true,
+              "syncCapabilities": {
+                "supportsPerReplicaSync": false,
+                "supportsPerLayerSync": true,
+                "supportsSyncModelNone": true,
+                "supportsAsync": true
+              }
+            }
+            """);
+            }
+
+            throw new InvalidOperationException("The synchronizeReplica endpoint should not be called.");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
+            client.SubmitSynchronizeReplicaAsync(
+                CreateValidRequest(),
+                cancellationToken));
+
+        Assert.Contains("perReplica", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SubmitSynchronizeReplicaAsync_Throws_WhenPerLayerSyncIsNotSupported() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return StubHttpMessageHandler.Json("""
+            {
+              "layers": [
+                { "id": 0, "name": "Layer 0" }
+              ],
+              "tables": [],
+              "capabilities": "Create,Update,Delete,Query,Sync",
+              "syncEnabled": true,
+              "syncCapabilities": {
+                "supportsPerReplicaSync": true,
+                "supportsPerLayerSync": false,
+                "supportsSyncModelNone": true,
+                "supportsAsync": true
+              }
+            }
+            """);
+            }
+
+            throw new InvalidOperationException("The synchronizeReplica endpoint should not be called.");
+        });
+
+        var exception = await Assert.ThrowsAsync<FeatureServiceCapabilityException>(() =>
+            client.SubmitSynchronizeReplicaAsync(
+                new SynchronizeReplicaRequest {
+                    ReplicaId = "replica-1",
+                    SyncModel = SynchronizeReplicaSyncModel.PerLayer,
+                    SyncLayers = [
+                        new SynchronizeReplicaSyncLayer {
+                        Id = 0,
+                        ServerGen = 1526605677436
+                    }
+                    ]
+                },
+                cancellationToken));
+
+        Assert.Contains("perLayer", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static SynchronizeReplicaRequest CreateValidRequest() {
         return new SynchronizeReplicaRequest {
             ReplicaId = "replica-1",

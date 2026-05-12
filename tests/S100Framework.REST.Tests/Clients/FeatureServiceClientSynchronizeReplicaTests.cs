@@ -65,6 +65,7 @@ public sealed class FeatureServiceClientSynchronizeReplicaTests
         Assert.Contains("async=false", requestBody);
         Assert.Contains("syncDirection=download", requestBody);
         Assert.Contains("dataFormat=json", requestBody);
+        Assert.Contains("syncModel=perReplica", requestBody);
     }
 
     [Fact]
@@ -132,6 +133,7 @@ public sealed class FeatureServiceClientSynchronizeReplicaTests
         Assert.NotNull(requestBody);
         Assert.Contains("syncLayers=", requestBody);
         Assert.Contains("dataFormat=sqlite", requestBody);
+        Assert.Contains("syncModel=perLayer", requestBody);
     }
 
     [Fact]

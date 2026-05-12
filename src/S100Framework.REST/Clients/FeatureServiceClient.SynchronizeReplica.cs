@@ -160,10 +160,17 @@ public sealed partial class FeatureServiceClient
     }
 
     private static Dictionary<string, string?> BuildSynchronizeReplicaParameters(
-        SynchronizeReplicaRequest request) {
+    SynchronizeReplicaRequest request) {
+        var syncModel = request.SyncModel switch {
+            SynchronizeReplicaSyncModel.PerReplica => "perReplica",
+            SynchronizeReplicaSyncModel.PerLayer => "perLayer",
+            _ => throw new ArgumentOutOfRangeException(nameof(request), request.SyncModel, null)
+        };
+
         var parameters = new Dictionary<string, string?> {
             ["f"] = "json",
             ["replicaID"] = request.ReplicaId,
+            ["syncModel"] = syncModel,
             ["transportType"] = MapSynchronizeReplicaTransportType(request.TransportType),
             ["closeReplica"] = request.CloseReplica ? "true" : "false",
             ["returnAttachmentsDataByUrl"] = request.ReturnAttachmentsDataByUrl ? "true" : "false",
@@ -362,8 +369,8 @@ public sealed partial class FeatureServiceClient
     }
 
     private static void EnsureSynchronizeReplicaSupported(
-        FeatureServiceMetadata metadata,
-        SynchronizeReplicaRequest request) {
+     FeatureServiceMetadata metadata,
+     SynchronizeReplicaRequest request) {
         if (!metadata.Capabilities.SupportsSync && !metadata.Capabilities.SyncEnabled) {
             throw new FeatureServiceCapabilityException(
                 "The feature service does not support sync, so synchronizeReplica is not available.");
@@ -378,6 +385,15 @@ public sealed partial class FeatureServiceClient
         if (request.IsAsync && !syncCapabilities.SupportsAsync) {
             throw new FeatureServiceCapabilityException(
                 "The feature service does not support asynchronous synchronizeReplica requests.");
+        }
+
+        switch (request.SyncModel) {
+            case SynchronizeReplicaSyncModel.PerReplica when !syncCapabilities.SupportsPerReplicaSync:
+                throw new FeatureServiceCapabilityException(
+                    "The feature service does not support synchronizeReplica with the perReplica sync model.");
+            case SynchronizeReplicaSyncModel.PerLayer when !syncCapabilities.SupportsPerLayerSync:
+                throw new FeatureServiceCapabilityException(
+                    "The feature service does not support synchronizeReplica with the perLayer sync model.");
         }
     }
 }
