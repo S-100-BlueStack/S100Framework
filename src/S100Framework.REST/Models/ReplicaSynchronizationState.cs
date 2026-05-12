@@ -1,4 +1,6 @@
-﻿namespace S100Framework.REST.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace S100Framework.REST.Models;
 
 /// <summary>
 /// Represents persisted state required to continue synchronizing a feature service replica.
@@ -23,6 +25,7 @@ public sealed record ReplicaSynchronizationState
     /// <summary>
     /// Gets the sync model used by the replica.
     /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter<SynchronizeReplicaSyncModel>))]
     public SynchronizeReplicaSyncModel SyncModel { get; init; } = SynchronizeReplicaSyncModel.PerReplica;
 
     /// <summary>
