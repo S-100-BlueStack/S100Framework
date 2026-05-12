@@ -101,6 +101,7 @@ public sealed class FeatureServiceClientReplicaBidirectionalStateExtensionsTests
         Assert.Equal(25, result.SynchronizationResult.ReplicaServerGen);
 
         Assert.True(result.JsonResult.HasEditResults);
+        result.JsonResult.ThrowIfEditErrors();
         var layer = Assert.Single(result.JsonResult.Layers);
         var addResult = Assert.Single(layer.AddResults);
         Assert.Equal(101, addResult.ObjectId);
