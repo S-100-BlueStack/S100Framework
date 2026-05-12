@@ -2,6 +2,7 @@
 using S100Framework.REST.Configuration;
 using S100Framework.REST.Models;
 using S100Framework.REST.Tests.TestDoubles;
+using System.Net;
 using Xunit;
 
 namespace S100Framework.REST.Tests.Clients;
@@ -263,6 +264,158 @@ public sealed class FeatureServiceClientSynchronizeReplicaTests
         Assert.Equal(400, status.ErrorCode);
         Assert.Equal("Synchronization failed.", status.ErrorMessage);
         Assert.Equal(["Replica generation is too old."], status.ErrorDetails);
+    }
+
+    [Fact]
+    public async Task SubmitSynchronizeReplicaAsync_SendsExpectedUploadRequestWithRawEditsJson() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        string? requestBody = null;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateSyncMetadataResponse();
+            }
+
+            if (IsSynchronizeReplicaRequest(request)) {
+                requestBody = request.Content?.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult();
+
+                return StubHttpMessageHandler.Json("""
+            {
+              "transportType": "esriTransportTypeURL",
+              "responseType": "esriReplicaResponseTypeEdits",
+              "replicaID": "replica-1",
+              "replicaName": "Replica A",
+              "replicaServerGen": 1526606896310,
+              "URL": "https://example.test/output/sync.json"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        await client.SubmitSynchronizeReplicaAsync(
+            new SynchronizeReplicaRequest {
+                ReplicaId = "replica-1",
+                SyncDirection = SynchronizeReplicaSyncDirection.Upload,
+                EditsJson = """{"layers":[]}""",
+                RollbackOnFailure = true,
+                ReturnIdsForAdds = true
+            },
+            cancellationToken);
+
+        Assert.NotNull(requestBody);
+
+        var decodedBody = WebUtility.UrlDecode(requestBody!);
+
+        Assert.Contains("syncDirection=upload", decodedBody);
+        Assert.Contains("edits={\"layers\":[]}", decodedBody);
+        Assert.Contains("rollbackOnFailure=true", decodedBody);
+        Assert.Contains("returnIdsForAdds=true", decodedBody);
+        Assert.DoesNotContain("replicaServerGen=", decodedBody);
+    }
+
+    [Fact]
+    public async Task SubmitSynchronizeReplicaAsync_SendsExpectedBidirectionalRequestWithEditsUploadId() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        string? requestBody = null;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateSyncMetadataResponse();
+            }
+
+            if (IsSynchronizeReplicaRequest(request)) {
+                requestBody = request.Content?.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult();
+
+                return StubHttpMessageHandler.Json("""
+            {
+              "transportType": "esriTransportTypeURL",
+              "responseType": "esriReplicaResponseTypeEdits",
+              "replicaID": "replica-1",
+              "replicaName": "Replica A",
+              "replicaServerGen": 1526606896310,
+              "URL": "https://example.test/output/sync.json"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        await client.SubmitSynchronizeReplicaAsync(
+            new SynchronizeReplicaRequest {
+                ReplicaId = "replica-1",
+                ReplicaServerGen = 1526605677436,
+                SyncDirection = SynchronizeReplicaSyncDirection.Bidirectional,
+                EditsUploadId = "upload-1"
+            },
+            cancellationToken);
+
+        Assert.NotNull(requestBody);
+
+        var decodedBody = WebUtility.UrlDecode(requestBody!);
+
+        Assert.Contains("syncDirection=bidirectional", decodedBody);
+        Assert.Contains("editsUploadId=upload-1", decodedBody);
+        Assert.Contains("replicaServerGen=1526605677436", decodedBody);
+        Assert.Contains("rollbackOnFailure=false", decodedBody);
+        Assert.Contains("returnIdsForAdds=false", decodedBody);
+    }
+
+    [Fact]
+    public async Task SubmitSynchronizeReplicaAsync_SendsExpectedPerLayerBidirectionalRequest() {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        string? requestBody = null;
+
+        var client = CreateClient(request => {
+            if (IsServiceMetadataRequest(request)) {
+                return CreateSyncMetadataResponse();
+            }
+
+            if (IsSynchronizeReplicaRequest(request)) {
+                requestBody = request.Content?.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult();
+
+                return StubHttpMessageHandler.Json("""
+            {
+              "transportType": "esriTransportTypeURL",
+              "responseType": "esriReplicaResponseTypeEdits",
+              "layerServerGens": [
+                { "id": 0, "serverGen": 1526606896310 }
+              ],
+              "URL": "https://example.test/output/sync.json"
+            }
+            """);
+            }
+
+            throw new InvalidOperationException($"Unexpected request: {request.RequestUri}");
+        });
+
+        await client.SubmitSynchronizeReplicaAsync(
+            new SynchronizeReplicaRequest {
+                ReplicaId = "replica-1",
+                SyncModel = SynchronizeReplicaSyncModel.PerLayer,
+                SyncDirection = SynchronizeReplicaSyncDirection.Bidirectional,
+                EditsJson = """{"layers":[]}""",
+                SyncLayers = [
+                    new SynchronizeReplicaSyncLayer {
+                    Id = 0,
+                    ServerGen = 1526605677436,
+                    SyncDirection = SynchronizeReplicaSyncDirection.Bidirectional
+                }
+                ]
+            },
+            cancellationToken);
+
+        Assert.NotNull(requestBody);
+
+        var decodedBody = WebUtility.UrlDecode(requestBody!);
+
+        Assert.Contains("syncModel=perLayer", decodedBody);
+        Assert.Contains("syncDirection=bidirectional", decodedBody);
+        Assert.Contains("syncLayers=", decodedBody);
+        Assert.Contains("\"syncDirection\":\"bidirectional\"", decodedBody);
+        Assert.Contains("edits={\"layers\":[]}", decodedBody);
     }
 
     private static FeatureServiceClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) {

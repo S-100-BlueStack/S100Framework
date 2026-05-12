@@ -192,4 +192,155 @@ public sealed class SynchronizeReplicaRequestValidationTests
             ReplicaServerGen = 1
         };
     }
+
+    [Fact]
+    public void Validate_Throws_WhenUploadHasNoEditsPayload() {
+        var request = new SynchronizeReplicaRequest {
+            ReplicaId = "replica-1",
+            SyncDirection = SynchronizeReplicaSyncDirection.Upload
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("EditsJson", exception.Message);
+        Assert.Contains("EditsUploadId", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenBidirectionalHasNoEditsPayload() {
+        var request = new SynchronizeReplicaRequest {
+            ReplicaId = "replica-1",
+            ReplicaServerGen = 1,
+            SyncDirection = SynchronizeReplicaSyncDirection.Bidirectional
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("EditsJson", exception.Message);
+        Assert.Contains("EditsUploadId", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenEditsJsonAndEditsUploadIdAreBothProvided() {
+        var request = new SynchronizeReplicaRequest {
+            ReplicaId = "replica-1",
+            SyncDirection = SynchronizeReplicaSyncDirection.Upload,
+            EditsJson = """{"layers":[]}""",
+            EditsUploadId = "upload-1"
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("cannot both be provided", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenEditsJsonIsInvalid() {
+        var request = new SynchronizeReplicaRequest {
+            ReplicaId = "replica-1",
+            SyncDirection = SynchronizeReplicaSyncDirection.Upload,
+            EditsJson = "{"
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("valid JSON", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenEditsJsonIsScalar() {
+        var request = new SynchronizeReplicaRequest {
+            ReplicaId = "replica-1",
+            SyncDirection = SynchronizeReplicaSyncDirection.Upload,
+            EditsJson = "\"not an object\""
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("JSON object or array", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenRollbackOnFailureIsUsedWithDownload() {
+        var request = CreateValidPerReplicaRequest() with {
+            RollbackOnFailure = true
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("RollbackOnFailure", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenReturnIdsForAddsIsUsedWithDownload() {
+        var request = CreateValidPerReplicaRequest() with {
+            ReturnIdsForAdds = true
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("ReturnIdsForAdds", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenBidirectionalPerReplicaHasNoReplicaServerGen() {
+        var request = new SynchronizeReplicaRequest {
+            ReplicaId = "replica-1",
+            SyncDirection = SynchronizeReplicaSyncDirection.Bidirectional,
+            EditsJson = """{"layers":[]}"""
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("ReplicaServerGen", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_AllowsUploadWithoutReplicaServerGen() {
+        var request = new SynchronizeReplicaRequest {
+            ReplicaId = "replica-1",
+            SyncDirection = SynchronizeReplicaSyncDirection.Upload,
+            EditsJson = """{"layers":[]}"""
+        };
+
+        request.Validate();
+    }
+
+    [Fact]
+    public void Validate_Throws_WhenBidirectionalSyncLayerHasNoServerGen() {
+        var request = new SynchronizeReplicaRequest {
+            ReplicaId = "replica-1",
+            SyncModel = SynchronizeReplicaSyncModel.PerLayer,
+            SyncDirection = SynchronizeReplicaSyncDirection.Bidirectional,
+            EditsJson = """{"layers":[]}""",
+            SyncLayers = [
+                new SynchronizeReplicaSyncLayer {
+                Id = 0,
+                SyncDirection = SynchronizeReplicaSyncDirection.Bidirectional
+            }
+            ]
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => request.Validate());
+
+        Assert.Contains("ServerGen", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_AllowsUploadSyncLayerWithoutServerGen() {
+        var request = new SynchronizeReplicaRequest {
+            ReplicaId = "replica-1",
+            SyncModel = SynchronizeReplicaSyncModel.PerLayer,
+            SyncDirection = SynchronizeReplicaSyncDirection.Upload,
+            EditsJson = """{"layers":[]}""",
+            SyncLayers = [
+                new SynchronizeReplicaSyncLayer {
+                Id = 0,
+                SyncDirection = SynchronizeReplicaSyncDirection.Upload
+            }
+            ]
+        };
+
+        request.Validate();
+    }
 }

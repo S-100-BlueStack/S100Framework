@@ -291,7 +291,26 @@ public sealed partial class FeatureServiceClient
                 }));
         }
 
+        if (IsSynchronizeReplicaUploadDirection(request.SyncDirection)) {
+            parameters["rollbackOnFailure"] = request.RollbackOnFailure ? "true" : "false";
+            parameters["returnIdsForAdds"] = request.ReturnIdsForAdds ? "true" : "false";
+
+            if (!string.IsNullOrWhiteSpace(request.EditsJson)) {
+                parameters["edits"] = request.EditsJson;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.EditsUploadId)) {
+                parameters["editsUploadId"] = request.EditsUploadId;
+            }
+        }
+
         return parameters;
+    }
+
+    private static bool IsSynchronizeReplicaUploadDirection(SynchronizeReplicaSyncDirection value) {
+        return value is
+            SynchronizeReplicaSyncDirection.Upload or
+            SynchronizeReplicaSyncDirection.Bidirectional;
     }
 
     private static string MapSynchronizeReplicaDataFormat(SynchronizeReplicaDataFormat value) {
@@ -306,6 +325,8 @@ public sealed partial class FeatureServiceClient
         return value switch {
             SynchronizeReplicaSyncDirection.Download => "download",
             SynchronizeReplicaSyncDirection.Snapshot => "snapshot",
+            SynchronizeReplicaSyncDirection.Upload => "upload",
+            SynchronizeReplicaSyncDirection.Bidirectional => "bidirectional",
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
         };
     }

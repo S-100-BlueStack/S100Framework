@@ -1,11 +1,13 @@
-﻿namespace S100Framework.REST.Models;
+﻿using System.Text.Json;
+
+namespace S100Framework.REST.Models;
 
 /// <summary>
 /// Defines a service-level <c>synchronizeReplica</c> request.
 /// </summary>
 /// <remarks>
-/// This initial model intentionally supports download and snapshot scenarios only. Upload, bidirectional sync,
-/// edit payloads, edit upload IDs, and rollback behavior should be added as separate API slices.
+/// This model supports download, snapshot, raw upload, and raw bidirectional synchronization.
+/// Typed edit payload builders can be layered on top without changing the underlying REST request shape.
 /// </remarks>
 public sealed record SynchronizeReplicaRequest
 {
@@ -23,7 +25,7 @@ public sealed record SynchronizeReplicaRequest
     /// Gets the replica-level server generation.
     /// </summary>
     /// <remarks>
-    /// This value is used for <see cref="SynchronizeReplicaSyncModel.PerReplica" /> download requests.
+    /// This value is required for per-replica directions that download server changes.
     /// </remarks>
     public long? ReplicaServerGen { get; init; }
 
@@ -33,7 +35,8 @@ public sealed record SynchronizeReplicaRequest
     /// <remarks>
     /// This value is used for <see cref="SynchronizeReplicaSyncModel.PerLayer" /> requests.
     /// </remarks>
-    public IReadOnlyList<SynchronizeReplicaSyncLayer> SyncLayers { get; init; } = Array.Empty<SynchronizeReplicaSyncLayer>();
+    public IReadOnlyList<SynchronizeReplicaSyncLayer> SyncLayers { get; init; } =
+        Array.Empty<SynchronizeReplicaSyncLayer>();
 
     /// <summary>
     /// Gets the response transport type requested from the service.
@@ -58,12 +61,45 @@ public sealed record SynchronizeReplicaRequest
     /// <summary>
     /// Gets the replica-level synchronization direction.
     /// </summary>
-    public SynchronizeReplicaSyncDirection SyncDirection { get; init; } = SynchronizeReplicaSyncDirection.Download;
+    public SynchronizeReplicaSyncDirection SyncDirection { get; init; } =
+        SynchronizeReplicaSyncDirection.Download;
 
     /// <summary>
     /// Gets the requested synchronization data format.
     /// </summary>
     public SynchronizeReplicaDataFormat DataFormat { get; init; } = SynchronizeReplicaDataFormat.Json;
+
+    /// <summary>
+    /// Gets the raw Esri <c>edits</c> JSON payload used for upload and bidirectional synchronization.
+    /// </summary>
+    /// <remarks>
+    /// The payload is accepted as raw JSON to keep the core package schema-agnostic. Typed builders can be added later.
+    /// </remarks>
+    public string? EditsJson { get; init; }
+
+    /// <summary>
+    /// Gets the uploaded edit payload ID used for upload and bidirectional synchronization.
+    /// </summary>
+    /// <remarks>
+    /// Use this when a large edits payload has already been uploaded through the service uploads workflow.
+    /// </remarks>
+    public string? EditsUploadId { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether uploaded edits should be rolled back if any edit fails.
+    /// </summary>
+    /// <remarks>
+    /// This option is only valid for upload and bidirectional synchronization.
+    /// </remarks>
+    public bool RollbackOnFailure { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the service should return object IDs for added features.
+    /// </summary>
+    /// <remarks>
+    /// This option is only valid for upload and bidirectional synchronization.
+    /// </remarks>
+    public bool ReturnIdsForAdds { get; init; }
 
     /// <summary>
     /// Validates the request configuration.
@@ -96,11 +132,13 @@ public sealed record SynchronizeReplicaRequest
             throw new InvalidOperationException("ReplicaServerGen must not be negative when provided.");
         }
 
+        ValidateUploadOptions();
+
         if (SyncModel == SynchronizeReplicaSyncModel.PerReplica &&
-            SyncDirection == SynchronizeReplicaSyncDirection.Download &&
+            RequiresReplicaServerGeneration(SyncDirection) &&
             !ReplicaServerGen.HasValue) {
             throw new InvalidOperationException(
-                "ReplicaServerGen is required when SyncModel is PerReplica and SyncDirection is Download.");
+                "ReplicaServerGen is required when SyncModel is PerReplica and SyncDirection downloads server changes.");
         }
 
         if (SyncModel == SynchronizeReplicaSyncModel.PerLayer && SyncLayers is not { Count: > 0 }) {
@@ -144,5 +182,76 @@ public sealed record SynchronizeReplicaRequest
                 }
             }
         }
+    }
+
+    private void ValidateUploadOptions() {
+        var hasEditsJson = EditsJson is not null;
+        var hasEditsUploadId = EditsUploadId is not null;
+        var isUploadDirection = IsUploadDirection(SyncDirection);
+
+        if (hasEditsJson && string.IsNullOrWhiteSpace(EditsJson)) {
+            throw new InvalidOperationException("EditsJson must not be empty or whitespace when provided.");
+        }
+
+        if (hasEditsUploadId && string.IsNullOrWhiteSpace(EditsUploadId)) {
+            throw new InvalidOperationException("EditsUploadId must not be empty or whitespace when provided.");
+        }
+
+        if (hasEditsJson && hasEditsUploadId) {
+            throw new InvalidOperationException(
+                "EditsJson and EditsUploadId cannot both be provided.");
+        }
+
+        if (isUploadDirection && !hasEditsJson && !hasEditsUploadId) {
+            throw new InvalidOperationException(
+                "Upload and bidirectional synchronizeReplica requests require either EditsJson or EditsUploadId.");
+        }
+
+        if (!isUploadDirection && (hasEditsJson || hasEditsUploadId)) {
+            throw new InvalidOperationException(
+                "EditsJson and EditsUploadId can only be used with Upload or Bidirectional sync directions.");
+        }
+
+        if (!isUploadDirection && RollbackOnFailure) {
+            throw new InvalidOperationException(
+                "RollbackOnFailure can only be used with Upload or Bidirectional sync directions.");
+        }
+
+        if (!isUploadDirection && ReturnIdsForAdds) {
+            throw new InvalidOperationException(
+                "ReturnIdsForAdds can only be used with Upload or Bidirectional sync directions.");
+        }
+
+        if (hasEditsJson) {
+            ValidateEditsJson();
+        }
+    }
+
+    private void ValidateEditsJson() {
+        try {
+            using var document = JsonDocument.Parse(EditsJson!);
+
+            if (document.RootElement.ValueKind is not JsonValueKind.Object and not JsonValueKind.Array) {
+                throw new InvalidOperationException(
+                    "EditsJson must contain a JSON object or array.");
+            }
+        }
+        catch (JsonException exception) {
+            throw new InvalidOperationException(
+                "EditsJson must contain valid JSON.",
+                exception);
+        }
+    }
+
+    private static bool RequiresReplicaServerGeneration(SynchronizeReplicaSyncDirection syncDirection) {
+        return syncDirection is
+            SynchronizeReplicaSyncDirection.Download or
+            SynchronizeReplicaSyncDirection.Bidirectional;
+    }
+
+    private static bool IsUploadDirection(SynchronizeReplicaSyncDirection syncDirection) {
+        return syncDirection is
+            SynchronizeReplicaSyncDirection.Upload or
+            SynchronizeReplicaSyncDirection.Bidirectional;
     }
 }

@@ -14,7 +14,7 @@ public sealed record SynchronizeReplicaSyncLayer
     /// Gets the server generation for the layer.
     /// </summary>
     /// <remarks>
-    /// This value is required when <see cref="SyncDirection" /> is <see cref="SynchronizeReplicaSyncDirection.Download" />.
+    /// This value is required for directions that download server changes.
     /// </remarks>
     public long? ServerGen { get; init; }
 
@@ -42,9 +42,15 @@ public sealed record SynchronizeReplicaSyncLayer
             throw new InvalidOperationException("Sync layer ServerGen must not be negative when provided.");
         }
 
-        if (SyncDirection == SynchronizeReplicaSyncDirection.Download && !ServerGen.HasValue) {
+        if (RequiresServerGeneration(SyncDirection) && !ServerGen.HasValue) {
             throw new InvalidOperationException(
-                "Sync layer ServerGen is required when SyncDirection is Download.");
+                "Sync layer ServerGen is required when SyncDirection downloads server changes.");
         }
+    }
+
+    private static bool RequiresServerGeneration(SynchronizeReplicaSyncDirection syncDirection) {
+        return syncDirection is
+            SynchronizeReplicaSyncDirection.Download or
+            SynchronizeReplicaSyncDirection.Bidirectional;
     }
 }
