@@ -161,14 +161,19 @@ public static class FeatureServiceMetadataReplicaExtensions
     }
 
     /// <summary>
-    /// Gets user-readable capability issues that explain why replica operations may not be available.
+    /// Gets user-readable capability issues for core replica support and upload-oriented replica workflows.
     /// </summary>
     /// <param name="metadata">
     /// The feature service metadata.
     /// </param>
     /// <returns>
-    /// Capability issues. An empty collection means the core replica resource is available.
+    /// Capability issues for the currently validated replica workflows. An empty collection means the service advertises
+    /// the core replica resource requirements and the upload-oriented capabilities checked by this helper.
     /// </returns>
+    /// <remarks>
+    /// Use <see cref="SupportsReplicaResource(FeatureServiceMetadata)" /> when only the base replica resource availability
+    /// needs to be checked.
+    /// </remarks>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="metadata" /> is <see langword="null" />.
     /// </exception>
@@ -193,7 +198,7 @@ public static class FeatureServiceMetadataReplicaExtensions
         }
 
         if (metadata.SyncCapabilities is not null &&
-    !metadata.SyncCapabilities.SupportsSyncDirectionControl) {
+            !metadata.SyncCapabilities.SupportsSyncDirectionControl) {
             issues.Add("The feature service does not advertise sync direction control for upload or bidirectional replica workflows.");
         }
 
