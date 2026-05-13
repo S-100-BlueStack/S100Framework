@@ -6,9 +6,9 @@ namespace S100Framework.REST.Internal.Replica;
 internal static class ReplicaGenerationJsonReader
 {
     public static ReplicaGenerationJsonResult Read(
-        byte[] content,
-        Uri resultUrl,
-        string operationName) {
+    byte[] content,
+    Uri resultUrl,
+    string operationName) {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(resultUrl);
 
@@ -30,7 +30,7 @@ internal static class ReplicaGenerationJsonReader
         }
 
         return new ReplicaGenerationJsonResult(
-            ReplicaId: ReadOptionalString(root, "replicaID"),
+            ReplicaId: ReadOptionalString(root, "replicaID") ?? ReadOptionalString(root, "replicaId"),
             ReplicaName: ReadOptionalString(root, "replicaName"),
             TransportType: ReadOptionalString(root, "transportType"),
             ResponseType: ReadOptionalString(root, "responseType"),
@@ -39,6 +39,7 @@ internal static class ReplicaGenerationJsonReader
             ReplicaServerGen: ReadOptionalInt64(root, "replicaServerGen", resultUrl, operationName),
             LayerServerGens: ReadLayerServerGens(root, resultUrl, operationName));
     }
+
 
     private static JsonDocument ParseJsonFile(
         byte[] content,
