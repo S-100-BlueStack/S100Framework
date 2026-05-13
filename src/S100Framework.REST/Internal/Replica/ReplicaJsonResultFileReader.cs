@@ -8,9 +8,9 @@ namespace S100Framework.REST.Internal.Replica;
 internal static class ReplicaJsonResultFileReader
 {
     public static ReplicaJsonResultFile Read(
-        byte[] content,
-        Uri resultUrl,
-        string operationName) {
+    byte[] content,
+    Uri resultUrl,
+    string operationName) {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(resultUrl);
 
@@ -21,6 +21,8 @@ internal static class ReplicaJsonResultFileReader
 
         using var document = ParseJson(content, operationName);
         var root = document.RootElement;
+
+        ThrowIfTopLevelEsriError(root, resultUrl, operationName);
 
         return new ReplicaJsonResultFile(
             ReplicaId: generationResult.ReplicaId,
@@ -49,6 +51,38 @@ internal static class ReplicaJsonResultFileReader
                 $"The downloaded {operationName} JSON file could not be parsed.",
                 exception);
         }
+    }
+
+    private static void ThrowIfTopLevelEsriError(
+    JsonElement root,
+    Uri resultUrl,
+    string operationName) {
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("error", out var errorElement) ||
+            errorElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
+            return;
+        }
+
+        if (errorElement.ValueKind != JsonValueKind.Object) {
+            throw new InvalidOperationException(
+                $"The downloaded {operationName} JSON file contains an invalid top-level Esri error payload. Result URL: {resultUrl}");
+        }
+
+        var code = ReadOptionalInt32(errorElement, "code", resultUrl, operationName);
+        var message = ReadOptionalString(errorElement, "message") ??
+                      ReadOptionalString(errorElement, "description") ??
+                      $"The downloaded {operationName} JSON file contains an Esri error payload.";
+
+        var details = ReadOptionalStringArray(errorElement, "details", resultUrl, operationName);
+        var codeText = code.HasValue
+            ? $" Error code: {code.Value}."
+            : string.Empty;
+        var detailsText = details.Count > 0
+            ? $" Details: {string.Join(" ", details)}"
+            : string.Empty;
+
+        throw new InvalidOperationException(
+            $"{message}{codeText}{detailsText} Result URL: {resultUrl}");
     }
 
     private static IReadOnlyList<ReplicaJsonResultLayer> ReadLayers(
