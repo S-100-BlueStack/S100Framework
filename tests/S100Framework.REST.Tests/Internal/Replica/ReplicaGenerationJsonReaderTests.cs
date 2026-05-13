@@ -131,4 +131,20 @@ public sealed class ReplicaGenerationJsonReaderTests
 
         Assert.Contains("negative serverGen", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void Read_MapsLowerCamelReplicaIdAlias() {
+        var result = ReplicaGenerationJsonReader.Read(
+            Encoding.UTF8.GetBytes("""
+        {
+          "replicaId": "replica-1",
+          "replicaName": "Replica A"
+        }
+        """),
+            new Uri("https://example.test/output/sync.json"),
+            "synchronizeReplica");
+
+        Assert.Equal("replica-1", result.ReplicaId);
+        Assert.Equal("Replica A", result.ReplicaName);
+    }
 }

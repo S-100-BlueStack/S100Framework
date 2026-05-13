@@ -151,6 +151,32 @@ public sealed class ReplicaJsonResultFileReaderTests
     }
 
     [Fact]
+    public void Read_Throws_WhenDownloadedJsonContainsTopLevelEsriError() {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            ReplicaJsonResultFileReader.Read(
+                Encoding.UTF8.GetBytes("""
+            {
+              "error": {
+                "code": 500,
+                "message": "Replica generation failed.",
+                "details": [
+                  null,
+                  "",
+                  "Layer 0 failed."
+                ]
+              }
+            }
+            """),
+                new Uri("https://example.test/output/sync.json"),
+                "synchronizeReplica"));
+
+        Assert.Contains("Replica generation failed.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("500", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Layer 0 failed.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("https://example.test/output/sync.json", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Read_Throws_WhenEditsValueIsNotArray() {
         var exception = Assert.Throws<InvalidOperationException>(() =>
             ReplicaJsonResultFileReader.Read(
