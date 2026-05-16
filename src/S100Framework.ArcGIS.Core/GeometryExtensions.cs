@@ -94,6 +94,8 @@ namespace ArcGIS.Core.Geometry
 
 
         public static S100FC.Topology.IMatrix? BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<ICollection<LineString>>? interceptor = default) {
+            var syntax = geodatabase.GetSQLSyntax();
+
             queryFilter = queryFilter switch {
                 SpatialQueryFilter spatial => new SpatialQueryFilter {
                     FilterGeometry = spatial.FilterGeometry,
@@ -140,7 +142,7 @@ namespace ArcGIS.Core.Geometry
             {
                 var polygons = new List<S100FC.Topology.Polygon>();
 
-                using (var surface = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => e.GetAliasName().Equals("surface")).GetName())) {
+                using (var surface = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("topo_surface")).GetName())) {
                     queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA'))";
 
                     using var cursor = surface.Search(queryFilter);
@@ -181,7 +183,7 @@ namespace ArcGIS.Core.Geometry
 
                 var curves = new List<S100FC.Topology.Polyline>();
 
-                using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => e.GetAliasName().Equals("curve")).GetName())) {
+                using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("topo_curve")).GetName())) {
                     queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'))";
 
                     using (var cursor = curve.Search(queryFilter)) {
@@ -212,7 +214,7 @@ namespace ArcGIS.Core.Geometry
             {
                 var polygons = new List<S100FC.Topology.Polygon>();
 
-                using (var surface = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => e.GetAliasName().Equals("surface")).GetName())) {
+                using (var surface = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("surface")).GetName())) {
                     queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA'))";
 
                     using (var cursor = surface.Search(queryFilter)) {
@@ -258,7 +260,7 @@ namespace ArcGIS.Core.Geometry
 
                 var singletonsFeatures = "''";// "'ROAD','RAILWAY'";  //'NAVIGATIONLINE','RECOMMENDEDTRACK'
 
-                using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => e.GetAliasName().Equals("curve")).GetName())) {
+                using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("curve")).GetName())) {
                     queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION')) AND (upper(code) NOT IN ({singletonsFeatures}))"; //,'NAVIGATIONLINE','RECOMMENDEDTRACK'
                     using (var cursor = curve.Search(queryFilter)) {
                         while (cursor.MoveNext()) {

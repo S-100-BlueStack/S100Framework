@@ -12,8 +12,8 @@
 		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
 		<AssemblyVersion>3.0.0.0</AssemblyVersion>
 		<Configurations>Debug</Configurations>
-		<Version>3.7.1863</Version>
-		<PackageVersion>3.7.1863.0</PackageVersion>
+		<Version>3.7.1901</Version>
+		<PackageVersion>3.7.1901.0</PackageVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
