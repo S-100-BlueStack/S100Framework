@@ -447,11 +447,11 @@ namespace S100FC
         public virtual listedValue[] listedValues { get; init; } = [];
 
         public override bool Equals(object? obj) {
-            if(obj is int _int) {
+            if (obj is int _int) {
                 return _int == this.value;
             }
-            if(obj is string _string) {
-                if(int.TryParse(_string, out int result)) {
+            if (obj is string _string) {
+                if (int.TryParse(_string, out int result)) {
                     return result == this.value;
                 }
             }
@@ -766,13 +766,12 @@ namespace S100FC
             if (attribute == null) return;
             var binding = attributeBindingsCatalogue!.Single(e => e.attribute.Equals(attribute.S100FC_code));
             if (binding.upper == 1) {
-                var value = this.attributeBindings.SingleOrDefault(e => e.S100FC_code.Equals(attribute.S100FC_code));
-                if (value == default) {
+                var index = Array.FindIndex(this.attributeBindings, e => e.S100FC_code.Equals(attribute.S100FC_code));
+                if (index < 0) {
                     //if (attribute.HasValue) //TODO:  NULL ???
                     this.attributeBindings = [.. this.attributeBindings, attribute];
                 }
                 else {
-                    var index = Array.IndexOf(this.attributeBindings, value);
                     this.attributeBindings[index] = attribute;
                 }
             }
