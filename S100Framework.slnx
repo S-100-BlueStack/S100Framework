@@ -19,4 +19,5 @@
 		<Build Project="false" />
 	</Project>	
 	<Project Path="tests/TestCatalogueBuilder/TestCatalogueBuilder.csproj" />
+	<Project Path="tests/TestS100Framework/TestS100Framework.csproj" Id="3c50fda0-af6d-431f-8586-52dde9bbd923" />
 </Solution>
