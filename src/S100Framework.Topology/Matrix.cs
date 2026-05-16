@@ -184,6 +184,11 @@ namespace S100FC.Topology
 
         public const string DE9IM = "T*****FF*";
 
+        public const string DE9IM_Contains = "T*****FF*";
+
+        public const string DE9IM_Crosses = "T*T***T**";
+
+
         protected Matrix() {
             //  Default protected constructor            
         }

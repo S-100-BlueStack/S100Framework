@@ -547,12 +547,11 @@ namespace S100FC
             if (attribute == null) return;
             var binding = attributeBindingsCatalogue!.Single(e => e.attribute.Equals(attribute.S100FC_code));
             if (binding.upper == 1) {
-                var value = this.attributeBindings.SingleOrDefault(e => e.S100FC_code.Equals(attribute.S100FC_code));
-                if (value == default) {
+                var index = Array.FindIndex(this.attributeBindings, e => e.S100FC_code.Equals(attribute.S100FC_code));
+                if (index < 0) {
                     this.attributeBindings = [.. this.attributeBindings, attribute];
                 }
                 else {
-                    var index = Array.IndexOf(this.attributeBindings, value);
                     this.attributeBindings[index] = attribute;
                 }
             }
@@ -654,12 +653,11 @@ namespace S100FC
             if (attribute == null) return;
             var binding = attributeBindingsCatalogue!.Single(e => e.attribute.Equals(attribute.S100FC_code));
             if (binding.upper == 1) {
-                var value = this.attributeBindings.SingleOrDefault(e => e.S100FC_code.Equals(attribute.S100FC_code));
-                if (value == default) {
+                var index = Array.FindIndex(this.attributeBindings, e => e.S100FC_code.Equals(attribute.S100FC_code));
+                if (index < 0) {
                     this.attributeBindings = [.. this.attributeBindings, attribute];
                 }
                 else {
-                    var index = Array.IndexOf(this.attributeBindings, value);
                     this.attributeBindings[index] = attribute;
                 }
             }
@@ -768,7 +766,6 @@ namespace S100FC
             if (binding.upper == 1) {
                 var index = Array.FindIndex(this.attributeBindings, e => e.S100FC_code.Equals(attribute.S100FC_code));
                 if (index < 0) {
-                    //if (attribute.HasValue) //TODO:  NULL ???
                     this.attributeBindings = [.. this.attributeBindings, attribute];
                 }
                 else {

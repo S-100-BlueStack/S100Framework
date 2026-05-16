@@ -1,4 +1,5 @@
 ﻿using ArcGIS.Core.Data;
+using ArcGIS.Core.Data.UtilityNetwork.Trace;
 using ArcGIS.Core.Internal.Geometry;
 using ArcGIS.Core.SystemCore;
 using GeoAPI.Geometries;
@@ -96,8 +97,40 @@ namespace ArcGIS.Core.Geometry
         public static S100FC.Topology.IMatrix? BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<ICollection<LineString>>? interceptor = default) {
             var syntax = geodatabase.GetSQLSyntax();
 
-            queryFilter = queryFilter switch {
-                SpatialQueryFilter spatial => new SpatialQueryFilter {
+            //queryFilter = queryFilter switch {
+            //    SpatialQueryFilter spatial => new SpatialQueryFilter {
+            //        FilterGeometry = spatial.FilterGeometry,
+            //        ObjectIDs = spatial.ObjectIDs,
+            //        Offset = spatial.Offset,
+            //        OutputSpatialReference = spatial.OutputSpatialReference,
+            //        PostfixClause = spatial.PostfixClause,
+            //        PrefixClause = spatial.PrefixClause,
+            //        RowCount = spatial.RowCount,
+            //        SearchOrder = spatial.SearchOrder,
+            //        SpatialRelationship = spatial.SpatialRelationship,
+            //        SpatialRelationshipDescription = spatial.SpatialRelationshipDescription,
+            //        SubFields = spatial.SubFields,
+            //        WhereClause = $"({spatial.WhereClause})",
+            //    },
+            //    QueryFilter filter => new QueryFilter {
+            //        ObjectIDs = filter.ObjectIDs,
+            //        Offset = filter.Offset,
+            //        OutputSpatialReference = filter.OutputSpatialReference,
+            //        PostfixClause = filter.PostfixClause,
+            //        PrefixClause = filter.PrefixClause,
+            //        RowCount = filter.RowCount,
+            //        SubFields = filter.SubFields,
+            //        WhereClause = filter.WhereClause,
+            //    },
+            //    _ => new QueryFilter {
+            //        WhereClause = "upper(ps) = 'S-101'",
+            //    },
+            //};
+
+            QueryFilter[] filters = [];
+
+            if (queryFilter is SpatialQueryFilter spatial) {
+                var contains = new SpatialQueryFilter {
                     FilterGeometry = spatial.FilterGeometry,
                     ObjectIDs = spatial.ObjectIDs,
                     Offset = spatial.Offset,
@@ -107,24 +140,37 @@ namespace ArcGIS.Core.Geometry
                     RowCount = spatial.RowCount,
                     SearchOrder = spatial.SearchOrder,
                     SpatialRelationship = spatial.SpatialRelationship,
-                    SpatialRelationshipDescription = spatial.SpatialRelationshipDescription,
+                    SpatialRelationshipDescription = S100FC.Topology.Matrix.DE9IM_Contains,
                     SubFields = spatial.SubFields,
                     WhereClause = $"({spatial.WhereClause})",
-                },
-                QueryFilter filter => new QueryFilter {
-                    ObjectIDs = filter.ObjectIDs,
-                    Offset = filter.Offset,
-                    OutputSpatialReference = filter.OutputSpatialReference,
-                    PostfixClause = filter.PostfixClause,
-                    PrefixClause = filter.PrefixClause,
-                    RowCount = filter.RowCount,
-                    SubFields = filter.SubFields,
-                    WhereClause = filter.WhereClause,
-                },
-                _ => new QueryFilter {
+                };
+
+                var crosses = new SpatialQueryFilter {
+                    FilterGeometry = spatial.FilterGeometry,
+                    ObjectIDs = spatial.ObjectIDs,
+                    Offset = spatial.Offset,
+                    OutputSpatialReference = spatial.OutputSpatialReference,
+                    PostfixClause = spatial.PostfixClause,
+                    PrefixClause = spatial.PrefixClause,
+                    RowCount = spatial.RowCount,
+                    SearchOrder = spatial.SearchOrder,
+                    SpatialRelationship = spatial.SpatialRelationship,
+                    SpatialRelationshipDescription = S100FC.Topology.Matrix.DE9IM_Crosses,
+                    SubFields = spatial.SubFields,
+                    WhereClause = $"({spatial.WhereClause})",
+                };
+
+                filters = [contains, crosses];
+            }
+            else if (queryFilter is not null) {
+                filters = [queryFilter];
+            }
+            else {
+                queryFilter = new QueryFilter {
                     WhereClause = "upper(ps) = 'S-101'",
-                },
-            };
+                };
+                filters = [queryFilter];
+            }
 
             var whereClause = queryFilter.WhereClause;
             var prefix = queryFilter.PrefixClause;
@@ -143,40 +189,48 @@ namespace ArcGIS.Core.Geometry
                 var polygons = new List<S100FC.Topology.Polygon>();
 
                 using (var surface = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("topo_surface")).GetName())) {
-                    queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA'))";
+                    //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA'))";
 
-                    using var cursor = surface.Search(queryFilter);
+                    foreach (var filter in filters) {
+                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA'))";
 
-                    while (cursor.MoveNext()) {
-                        var f = (Feature)cursor.Current;
+                        using var cursor = surface.Search(filter);
 
-                        var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();
+                        var lookup = polygons.ToLookup(e => e.ObjectId, e => e);
 
-                        var name = Convert.ToString(f["UID"]);// f.Crc32(); UID
-                        if (string.IsNullOrEmpty(name))
-                            name = string.Empty;
+                        while (cursor.MoveNext()) {
+                            var f = (Feature)cursor.Current;
 
-                        var exteriorRing = shape.GetExteriorRing(0);
-                        var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
+                            if (lookup.Contains(f.GetObjectID())) continue;
 
-                        var ex = (LineString)factory.CreateLineString([.. coordinates, coordinates[0]]);
-                        ex = ex.RemoveRepeatedVertices();
+                            var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();
 
-                        if (shape.PartCount > 1) {
-                            var interiorRings = new List<LineString>();
+                            var name = Convert.ToString(f["UID"]);// f.Crc32(); UID
+                            if (string.IsNullOrEmpty(name))
+                                name = string.Empty;
 
-                            foreach (var interiorRing in shape.Parts.Skip(1)) {
-                                coordinates = interiorRing.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
+                            var exteriorRing = shape.GetExteriorRing(0);
+                            var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
-                                var linestring = (LineString)factory.CreateLineString([.. coordinates, coordinates[0]]);
-                                linestring = linestring.RemoveRepeatedVertices();
-                                interiorRings.Add(linestring);
+                            var ex = (LineString)factory.CreateLineString([.. coordinates, coordinates[0]]);
+                            ex = ex.RemoveRepeatedVertices();
+
+                            if (shape.PartCount > 1) {
+                                var interiorRings = new List<LineString>();
+
+                                foreach (var interiorRing in shape.Parts.Skip(1)) {
+                                    coordinates = interiorRing.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
+
+                                    var linestring = (LineString)factory.CreateLineString([.. coordinates, coordinates[0]]);
+                                    linestring = linestring.RemoveRepeatedVertices();
+                                    interiorRings.Add(linestring);
+                                }
+
+                                polygons.Add(new S100FC.Topology.Polygon(f.GetObjectID(), name, Convert.ToString(f["code"])!, ex, interiorRings.ToArray()));
                             }
-
-                            polygons.Add(new S100FC.Topology.Polygon(f.GetObjectID(), name, Convert.ToString(f["code"])!, ex, interiorRings.ToArray()));
-                        }
-                        else {
-                            polygons.Add(new S100FC.Topology.Polygon(f.GetObjectID(), name, Convert.ToString(f["code"])!, ex, []));
+                            else {
+                                polygons.Add(new S100FC.Topology.Polygon(f.GetObjectID(), name, Convert.ToString(f["code"])!, ex, []));
+                            }
                         }
                     }
                 }
@@ -184,11 +238,19 @@ namespace ArcGIS.Core.Geometry
                 var curves = new List<S100FC.Topology.Polyline>();
 
                 using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("topo_curve")).GetName())) {
-                    queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'))";
+                    //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'))";
 
-                    using (var cursor = curve.Search(queryFilter)) {
+                    foreach (var filter in filters) {
+                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'))";
+
+                        using var cursor = curve.Search(filter);
+
+                        var lookup = curves.ToLookup(e => e.ObjectId, e => e);
+
                         while (cursor.MoveNext()) {
                             var f = (Feature)cursor.Current;
+
+                            if (lookup.Contains(f.GetObjectID())) continue;
 
                             var shape = (ArcGIS.Core.Geometry.Polyline)f.GetShape();
 
@@ -215,11 +277,19 @@ namespace ArcGIS.Core.Geometry
                 var polygons = new List<S100FC.Topology.Polygon>();
 
                 using (var surface = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("surface")).GetName())) {
-                    queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA'))";
+                    //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA'))";
 
-                    using (var cursor = surface.Search(queryFilter)) {
+                    foreach (var filter in filters) {
+                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA'))";
+
+                        using var cursor = surface.Search(filter);
+
+                        var lookup = polygons.ToLookup(e => e.ObjectId, e => e);
+
                         while (cursor.MoveNext()) {
                             var f = (Feature)cursor.Current;
+
+                            if (lookup.Contains(f.GetObjectID())) continue;
 
                             var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();
 
@@ -261,10 +331,19 @@ namespace ArcGIS.Core.Geometry
                 var singletonsFeatures = "''";// "'ROAD','RAILWAY'";  //'NAVIGATIONLINE','RECOMMENDEDTRACK'
 
                 using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("curve")).GetName())) {
-                    queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION')) AND (upper(code) NOT IN ({singletonsFeatures}))"; //,'NAVIGATIONLINE','RECOMMENDEDTRACK'
-                    using (var cursor = curve.Search(queryFilter)) {
+                    //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION')) AND (upper(code) NOT IN ({singletonsFeatures}))"; //,'NAVIGATIONLINE','RECOMMENDEDTRACK'
+
+                    foreach (var filter in filters) {
+                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION')) AND (upper(code) NOT IN ({singletonsFeatures}))"; //,'NAVIGATIONLINE','RECOMMENDEDTRACK'
+
+                        using var cursor = curve.Search(filter);
+
+                        var lookup = curves.ToLookup(e => e.ObjectId, e => e);
+
                         while (cursor.MoveNext()) {
                             var f = (Feature)cursor.Current;
+
+                            if (lookup.Contains(f.GetObjectID())) continue;
 
                             var shape = (ArcGIS.Core.Geometry.Polyline)f.GetShape();
 
@@ -283,10 +362,19 @@ namespace ArcGIS.Core.Geometry
                         }
                     }
 
-                    queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ({singletonsFeatures}))";
-                    using (var cursor = curve.Search(queryFilter)) {
+                    //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ({singletonsFeatures}))";
+
+                    foreach (var filter in filters) {
+                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ({singletonsFeatures}))";
+
+                        using var cursor = curve.Search(filter);
+
+                        var lookup = singletons.ToLookup(e => e.ObjectId, e => e);
+
                         while (cursor.MoveNext()) {
                             var f = (Feature)cursor.Current;
+
+                            if (lookup.Contains(f.GetObjectID())) continue;
 
                             //if (f.GetObjectID() == 44) System.Diagnostics.Debugger.Break();
 
