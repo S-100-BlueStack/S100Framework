@@ -12,7 +12,7 @@
 		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
 		<AssemblyVersion>3.0.0.0</AssemblyVersion>
 		<Version>3.7.1901</Version>
-		<PackageVersion>3.7.1901.2</PackageVersion>
+		<PackageVersion>3.7.1901.3</PackageVersion>
 		<Configurations>Debug</Configurations>		
 	</PropertyGroup>
 

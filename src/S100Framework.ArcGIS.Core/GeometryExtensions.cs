@@ -4,7 +4,9 @@ using ArcGIS.Core.Internal.Geometry;
 using ArcGIS.Core.SystemCore;
 using GeoAPI.Geometries;
 using NetTopologySuite.Geometries;
+using NetTopologySuite.Utilities;
 using System.Globalization;
+using Windows.Storage.Streams;
 
 namespace ArcGIS.Core.Data
 {
@@ -128,8 +130,11 @@ namespace ArcGIS.Core.Geometry
             //};
 
             QueryFilter[] filters = [];
+            Geometry? filterGeometry = default;
 
             if (queryFilter is SpatialQueryFilter spatial) {
+                filterGeometry = spatial.FilterGeometry;
+
                 var contains = new SpatialQueryFilter {
                     FilterGeometry = spatial.FilterGeometry,
                     ObjectIDs = spatial.ObjectIDs,
@@ -184,6 +189,51 @@ namespace ArcGIS.Core.Geometry
 
             S100FC.Topology.ITopologyBuilder? builder = default;
 
+            var clipGeometry = (Geometry g) => {
+                return g;
+            };
+
+            if(filterGeometry is not null) {
+                clipGeometry = (Geometry g) => {
+                    if (g is Polyline polyline) return polyline;
+
+                    if (GeometryEngine.Instance.Disjoint(g, filterGeometry)) return g;
+
+                    if(!GeometryEngine.Instance.Relate(g, filterGeometry, S100FC.Topology.Matrix.DE9IM_Crosses)) return g;
+
+                    var difference = GeometryEngine.Instance.Difference(filterGeometry, g);
+
+                    if (difference is Polygon polygon) {
+                        if (polygon.ExteriorRingCount > 1) {
+                            Polygon[] polygons = [];
+                            ReadOnlySegmentCollection[] segments = [polygon.Parts[0]];
+                            for (int i = 1; i < polygon.PartCount; i++) {
+                                var p = PolygonBuilderEx.CreatePolygon(polygon.Parts[i]);
+                                if (p.Area < 0)
+                                    segments = [.. segments, polygon.Parts[i]];
+                                else {
+                                    var _ = PolygonBuilderEx.CreatePolygon(segments);
+                                    polygons = [.. polygons, _];
+                                    segments = [polygon.Parts[i]];
+                                }
+                            }
+                            if (segments.Any()) {
+                                var _ = PolygonBuilderEx.CreatePolygon(segments);
+                                polygons = [.. polygons, _];
+                            }
+                            return g = PolygonBuilderEx.CreatePolygon(polygons);
+                        }
+                        else {
+                            return polygon;
+                        }
+                    }
+                    else
+                        System.Diagnostics.Debugger.Break();
+
+                    return g;
+                };
+            }
+
             //  Skin of the Earth
             {
                 var polygons = new List<S100FC.Topology.Polygon>();
@@ -203,11 +253,15 @@ namespace ArcGIS.Core.Geometry
 
                             if (lookup.Contains(f.GetObjectID())) continue;
 
-                            var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();
+                            var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();                            
 
                             var name = Convert.ToString(f["UID"]);// f.Crc32(); UID
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
+
+                            //if (name.Equals("F10400001035")) System.Diagnostics.Debugger.Break();
+
+                            shape = (Polygon)clipGeometry(shape);
 
                             var exteriorRing = shape.GetExteriorRing(0);
                             var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
@@ -252,7 +306,9 @@ namespace ArcGIS.Core.Geometry
 
                             if (lookup.Contains(f.GetObjectID())) continue;
 
-                            var shape = (ArcGIS.Core.Geometry.Polyline)f.GetShape();
+                            var shape = (Polyline)f.GetShape();
+
+                            shape = (Polyline)clipGeometry(shape);
 
                             var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
@@ -291,12 +347,15 @@ namespace ArcGIS.Core.Geometry
 
                             if (lookup.Contains(f.GetObjectID())) continue;
 
-                            var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();
+                            var shape = (Polygon)f.GetShape();
+
+                            shape = (Polygon)clipGeometry(shape);
 
                             var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
+                            //if (name.Equals("F10400001035")) System.Diagnostics.Debugger.Break();                            
                             //if (name.Equals("S1799633")) System.Diagnostics.Debugger.Break();
 
                             var exteriorRing = shape.GetExteriorRing(0);
@@ -345,7 +404,9 @@ namespace ArcGIS.Core.Geometry
 
                             if (lookup.Contains(f.GetObjectID())) continue;
 
-                            var shape = (ArcGIS.Core.Geometry.Polyline)f.GetShape();
+                            var shape = (Polyline)f.GetShape();
+
+                            shape = (Polyline)clipGeometry(shape);
 
                             var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
@@ -378,7 +439,9 @@ namespace ArcGIS.Core.Geometry
 
                             //if (f.GetObjectID() == 44) System.Diagnostics.Debugger.Break();
 
-                            var shape = (ArcGIS.Core.Geometry.Polyline)f.GetShape();
+                            var shape = (Polyline)f.GetShape();
+
+                            shape = (Polyline)clipGeometry(shape);
 
                             var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
