@@ -182,7 +182,8 @@ namespace S100FC.Topology
 
         public static string[] Mask1FeatureTypes { get; set; } = ["DataCoverage"];
 
-        public const string DE9IM = "T*****FF*";
+        [Obsolete("Use DE9IM_Contains")]
+        public const string DE9IM = DE9IM_Contains;
 
         public const string DE9IM_Contains = "T*****FF*";
 
