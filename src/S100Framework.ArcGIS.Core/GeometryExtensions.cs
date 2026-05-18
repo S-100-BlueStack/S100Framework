@@ -201,7 +201,7 @@ namespace ArcGIS.Core.Geometry
 
                     if(!GeometryEngine.Instance.Relate(g, filterGeometry, S100FC.Topology.Matrix.DE9IM_Crosses)) return g;
 
-                    var difference = GeometryEngine.Instance.Difference(filterGeometry, g);
+                    var difference = GeometryEngine.Instance.Intersection(g, filterGeometry);
 
                     if (difference is Polygon polygon) {
                         if (polygon.ExteriorRingCount > 1) {
