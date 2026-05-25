@@ -255,20 +255,20 @@ namespace S100FC.Topology
             this._surfacesTopology = MakePrecise(surfaces);
             this._curvesTopology = MakePrecise(curves);
 
-            return (ITopologyBuilder)this;
+            return this;
         }
 
         ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(ICollection<Polygon> surfaces, ICollection<S100FC.Topology.Polyline> curves) {
             this._surfacesNavigational = MakePrecise(surfaces);
             this._curvesNavigational = MakePrecise(curves);
 
-            return (ITopologyBuilder)this;
+            return this;
         }
 
         ITopologyBuilder ITopologyBuilder.AddSingletonFeatures(ICollection<Polyline> curves) {
             this._curvesSingleton = MakePrecise(curves);
 
-            return (ITopologyBuilder)this;
+            return this;
         }
 
         IMatrix ITopologyBuilder.BuildTopology() {
@@ -517,10 +517,9 @@ namespace S100FC.Topology
                             lineStringText = merged.ToText();
                         }
                         else {
-                            if (mergedLineStrings.Count > 1) 
-                            {
+                            if (mergedLineStrings.Count > 1) {
                                 this._interceptor?.Invoke(lineStrings.ToArray());
-                                this._interceptor?.Invoke(mergedLineStrings.Select(e=>(LineString)e).ToArray());
+                                this._interceptor?.Invoke(mergedLineStrings.Select(e => (LineString)e).ToArray());
                             }
 
                             Debug.Assert(mergedLineStrings.Count == 1);

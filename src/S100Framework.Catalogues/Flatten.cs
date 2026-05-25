@@ -101,7 +101,8 @@ namespace S100FC
         }
     }
 
-    public class JsonFlattener {
+    public class JsonFlattener
+    {
         public static string Flatten(attributeBinding[] attributeBindings, attributeBindingDefinition[] attributeBindingDefinitions) {
             return AttributeFlattenExtensions.FlattenAttributes(attributeBindings, attributeBindingDefinitions);
         }
@@ -128,7 +129,7 @@ namespace S100FC
 
         public static string Flatten(this FeatureType feature) => FlattenAttributes(feature.attributeBindings, feature.attributeBindingsCatalogue);
         public static string Flatten(this InformationType information) => FlattenAttributes(information.attributeBindings, information.attributeBindingsCatalogue);
-        
+
         /// <summary> 
         /// Creates and populates an instance of the specified type, FeatureType or InformationType, using the provided JSON attribute data and type code. 
         /// </summary> 

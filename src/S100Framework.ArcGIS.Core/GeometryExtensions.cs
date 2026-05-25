@@ -1,15 +1,12 @@
 ﻿using ArcGIS.Core.Data;
 using ArcGIS.Core.SystemCore;
 using GeoAPI.Geometries;
-using NetTopologySuite.Algorithm;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Noding;
 using NetTopologySuite.Noding.Snapround;
 using NetTopologySuite.Operation.Linemerge;
 using NetTopologySuite.Operation.Valid;
-using NetTopologySuite.Utilities;
 using System.Globalization;
-using Windows.Storage.Streams;
 
 namespace ArcGIS.Core.Data
 {
@@ -269,7 +266,7 @@ namespace ArcGIS.Core.Geometry
                             var exteriorRing = shape.GetExteriorRing(0);
                             var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
-                            var ex = (LineString)factory.CreateLineString([.. coordinates, coordinates[0]]);
+                            var ex = factory.CreateLineString([.. coordinates, coordinates[0]]);
                             ex = ex.RemoveRepeatedVertices();
 
                             if (shape.PartCount > 1) {
@@ -278,7 +275,7 @@ namespace ArcGIS.Core.Geometry
                                 foreach (var interiorRing in shape.Parts.Skip(1)) {
                                     coordinates = interiorRing.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
-                                    var linestring = (LineString)factory.CreateLineString([.. coordinates, coordinates[0]]);
+                                    var linestring = factory.CreateLineString([.. coordinates, coordinates[0]]);
                                     linestring = linestring.RemoveRepeatedVertices();
 
                                     if (!linestring.IsSelfIntersections())
@@ -325,7 +322,7 @@ namespace ArcGIS.Core.Geometry
 
                             var coordinates = shape.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
 
-                            var linestring = (LineString)factory.CreateLineString([.. coordinates]);
+                            var linestring = factory.CreateLineString([.. coordinates]);
                             linestring = linestring.RemoveRepeatedVertices();
 
                             curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, linestring));
@@ -370,7 +367,7 @@ namespace ArcGIS.Core.Geometry
                             var exteriorRing = shape.GetExteriorRing(0);
                             var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
-                            var ex = (LineString)factory.CreateLineString([.. coordinates, coordinates[0]]);
+                            var ex = factory.CreateLineString([.. coordinates, coordinates[0]]);
                             ex = ex.RemoveRepeatedVertices();
 
                             if (shape.PartCount > 1) {
@@ -379,7 +376,7 @@ namespace ArcGIS.Core.Geometry
                                 foreach (var interiorRing in shape.Parts.Skip(1)) {
                                     coordinates = interiorRing.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
-                                    var linestring = (LineString)factory.CreateLineString([.. coordinates, coordinates[0]]);
+                                    var linestring = factory.CreateLineString([.. coordinates, coordinates[0]]);
                                     linestring = linestring.RemoveRepeatedVertices();
                                     interiorRings.Add(linestring);
                                 }
@@ -423,7 +420,7 @@ namespace ArcGIS.Core.Geometry
 
                             var coordinates = shape.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
 
-                            var linestring = (LineString)factory.CreateLineString([.. coordinates]);
+                            var linestring = factory.CreateLineString([.. coordinates]);
                             linestring = linestring.RemoveRepeatedVertices();
 
                             //linestring.Normalize();
@@ -458,7 +455,7 @@ namespace ArcGIS.Core.Geometry
 
                             var coordinates = shape.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
 
-                            var linestring = (LineString)factory.CreateLineString([.. coordinates]);
+                            var linestring = factory.CreateLineString([.. coordinates]);
                             linestring = linestring.RemoveRepeatedVertices();
 
                             singletons.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, linestring));

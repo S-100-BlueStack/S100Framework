@@ -7,7 +7,7 @@
         public static LineString RemoveRepeatedVertices(this LineString lineString) {
             var coordinates = lineString.Coordinates.RemoveRepeatedVertices();
             if (coordinates.Length != lineString.Count)
-                return (LineString)lineString.Factory.CreateLineString(coordinates.ToArray());
+                return lineString.Factory.CreateLineString(coordinates.ToArray());
             return lineString;
         }
 
