@@ -1,9 +1,12 @@
 ﻿using ArcGIS.Core.Data;
-using ArcGIS.Core.Data.UtilityNetwork.Trace;
-using ArcGIS.Core.Internal.Geometry;
 using ArcGIS.Core.SystemCore;
 using GeoAPI.Geometries;
+using NetTopologySuite.Algorithm;
 using NetTopologySuite.Geometries;
+using NetTopologySuite.Noding;
+using NetTopologySuite.Noding.Snapround;
+using NetTopologySuite.Operation.Linemerge;
+using NetTopologySuite.Operation.Valid;
 using NetTopologySuite.Utilities;
 using System.Globalization;
 using Windows.Storage.Streams;
@@ -193,13 +196,13 @@ namespace ArcGIS.Core.Geometry
                 return g;
             };
 
-            if(filterGeometry is not null) {
+            if (filterGeometry is not null) {
                 clipGeometry = (Geometry g) => {
                     if (g is Polyline polyline) return polyline;
 
                     if (GeometryEngine.Instance.Disjoint(g, filterGeometry)) return g;
 
-                    if(!GeometryEngine.Instance.Relate(g, filterGeometry, S100FC.Topology.Matrix.DE9IM_Crosses)) return g;
+                    if (!GeometryEngine.Instance.Relate(g, filterGeometry, S100FC.Topology.Matrix.DE9IM_Crosses)) return g;
 
                     var difference = GeometryEngine.Instance.Intersection(g, filterGeometry);
 
@@ -253,7 +256,7 @@ namespace ArcGIS.Core.Geometry
 
                             if (lookup.Contains(f.GetObjectID())) continue;
 
-                            var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();                            
+                            var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();
 
                             var name = Convert.ToString(f["UID"]);// f.Crc32(); UID
                             if (string.IsNullOrEmpty(name))
@@ -277,7 +280,13 @@ namespace ArcGIS.Core.Geometry
 
                                     var linestring = (LineString)factory.CreateLineString([.. coordinates, coordinates[0]]);
                                     linestring = linestring.RemoveRepeatedVertices();
-                                    interiorRings.Add(linestring);
+
+                                    if (!linestring.IsSelfIntersections())
+                                        interiorRings.Add(linestring);
+                                    else {
+                                        foreach (var l in SplitAtSelfIntersections(linestring))
+                                            interiorRings.Add(l);
+                                    }
                                 }
 
                                 polygons.Add(new S100FC.Topology.Polygon(f.GetObjectID(), name, Convert.ToString(f["code"])!, ex, interiorRings.ToArray()));
@@ -465,8 +474,6 @@ namespace ArcGIS.Core.Geometry
             return result;
         }
 
-
-
         private static Polyline CreateLinearRing(string[] coords, SpatialReference spatialReference) {
             var points = new MapPoint[coords.Length / 2];
             for (int i = 0; i < coords.Length; i += 2) {
@@ -478,5 +485,191 @@ namespace ArcGIS.Core.Geometry
             }
             return PolylineBuilderEx.CreatePolyline(points, spatialReference);
         }
+
+
+        public static bool IsSelfIntersections(this LineString lineString) {
+            var locations = new List<Coordinate>();
+
+            // Use IsValidOp which reports exact error locations
+            var validOp = new IsValidOp(lineString);
+
+            if (!validOp.IsValid) {
+                var error = validOp.ValidationError;
+                if (error != null)
+                    locations.Add(error.Coordinate);
+            }
+
+            // Also check IsSimple for non-simple (self-touching) cases
+            bool isSelfIntersecting = !lineString.IsSimple || locations.Any();
+
+            return isSelfIntersecting;
+            //return (isSelfIntersecting, locations);
+        }
+
+        public static List<LineString> SplitAtSelfIntersections(LineString lineString) {
+            var pm = lineString.Factory.PrecisionModel;
+
+            // 1. Node the linestring — inserts split points at every intersection
+            var noder = new SnapRoundingNoder(pm);
+            var nodedSegments = NodeLineString(lineString, noder);
+
+            // 2. Reassemble noded segments into a geometry
+            var lines = nodedSegments
+                .Cast<NodedSegmentString>()
+                .Select(s => lineString.Factory.CreateLineString(s.Coordinates))
+                .ToArray();
+
+            // 3. Use LineMerger to produce clean, non-overlapping LineStrings
+            var merger = new LineMerger();
+            merger.Add(lines);
+
+            return merger.GetMergedLineStrings()
+                .Cast<LineString>()
+                .ToList();
+        }
+
+        private static IList<ISegmentString> NodeLineString(
+            LineString lineString,
+            INoder noder) {
+            var segmentString = new NodedSegmentString(
+                lineString.Coordinates, null);
+
+            var segments = new List<ISegmentString> { segmentString };
+            noder.ComputeNodes(segments);
+
+            return noder.GetNodedSubstrings();
+        }
+
+
+
+
+#if null
+        public static class LineStringSplitter
+        {
+            /// <summary>
+            /// Splits a self-intersecting LineString into non-self-intersecting parts.
+            /// </summary>
+            public static List<LineString> Split(LineString lineString) {
+                var intersections = GetSelfIntersections(lineString);
+
+                if (intersections.Count == 0)
+                    return new List<LineString> { lineString };
+
+                // Insert intersection points into the coordinate sequence
+                var densifiedCoords = InsertSplitPoints(
+                    lineString.Coordinates, intersections);
+
+                // Split the coordinate array at the intersection points
+                return SplitCoordinatesAtPoints(
+                    densifiedCoords, intersections, lineString.Factory);
+            }
+
+            // -------------------------------------------------------------------------
+            // Step 1: Find all self-intersection coordinates
+            // -------------------------------------------------------------------------
+            private static List<NetTopologySuite.Geometries.Coordinate> GetSelfIntersections(LineString lineString) {
+                var intersections = new List<NetTopologySuite.Geometries.Coordinate>();
+                var coords = lineString.Coordinates;
+                var intersector = new RobustLineIntersector();
+
+                for (int i = 0; i < coords.Length - 1; i++) {
+                    for (int j = i + 2; j < coords.Length - 1; j++) {
+                        if (lineString.IsClosed && i == 0 && j == coords.Length - 2)
+                            continue;
+
+                        intersector.ComputeIntersection(
+                            coords[i], coords[i + 1],
+                            coords[j], coords[j + 1]);
+
+                        if (intersector.HasIntersection) {
+                            for (int k = 0; k < intersector.IntersectionNum; k++)
+                                intersections.Add(intersector.GetIntersection(k));
+                        }
+                    }
+                }
+
+                return intersections
+                    .Distinct(new CoordinateEqualityComparer())
+                    .ToList();
+            }
+
+            // -------------------------------------------------------------------------
+            // Step 2: Walk the coordinate sequence and insert split points where
+            //         an intersection falls along a segment
+            // -------------------------------------------------------------------------
+            private static List<NetTopologySuite.Geometries.Coordinate> InsertSplitPoints(
+                NetTopologySuite.Geometries.Coordinate[] original,
+                List<NetTopologySuite.Geometries.Coordinate> splitPoints) {
+                var result = new List<NetTopologySuite.Geometries.Coordinate>();
+
+                for (int i = 0; i < original.Length - 1; i++) {
+                    result.Add(original[i]);
+
+                    var segStart = original[i];
+                    var segEnd = original[i + 1];
+
+                    // Find any split points that lie on this segment
+                    var onSegment = splitPoints
+                        .Where(p => LiesOnSegment(p, segStart, segEnd)
+                                 && !p.Equals2D(segStart)
+                                 && !p.Equals2D(segEnd))
+                        .OrderBy(p => segStart.Distance(p)) // insert in order along segment
+                        .ToList();
+
+                    result.AddRange(onSegment);
+                }
+
+                result.Add(original[^1]); // add final coordinate
+                return result;
+            }
+
+            // -------------------------------------------------------------------------
+            // Step 3: Walk the densified sequence and cut at each split point
+            // -------------------------------------------------------------------------
+            private static List<LineString> SplitCoordinatesAtPoints(
+                List<NetTopologySuite.Geometries.Coordinate> coords,
+                List<NetTopologySuite.Geometries.Coordinate> splitPoints,
+                GeometryFactory factory) {
+                var result = new List<LineString>();
+                var current = new List<NetTopologySuite.Geometries.Coordinate>();
+
+                foreach (var coord in coords) {
+                    current.Add(coord);
+
+                    // If this coord is a split point (and we have enough for a segment),
+                    // close off the current part and start a new one
+                    bool isSplitPoint = splitPoints.Any(p => p.Equals2D(coord));
+
+                    if (isSplitPoint && current.Count >= 2) {
+                        result.Add(factory.CreateLineString(current.ToArray()));
+                        current = new List<NetTopologySuite.Geometries.Coordinate> { coord }; // carry forward as new start
+                    }
+                }
+
+                // Add any remaining coordinates as the final segment
+                if (current.Count >= 2)
+                    result.Add(factory.CreateLineString(current.ToArray()));
+
+                return result;
+            }
+
+            // -------------------------------------------------------------------------
+            // Helpers
+            // -------------------------------------------------------------------------
+            private static bool LiesOnSegment(NetTopologySuite.Geometries.Coordinate p, NetTopologySuite.Geometries.Coordinate a, NetTopologySuite.Geometries.Coordinate b) {
+                // Check collinearity and that p is within the bounding box of a→b
+                return CGAlgorithms.IsOnLine(p, new[] { a, b });
+            }
+        }
+
+        public class CoordinateEqualityComparer : IEqualityComparer<NetTopologySuite.Geometries.Coordinate>
+        {
+            public bool Equals(NetTopologySuite.Geometries.Coordinate x, NetTopologySuite.Geometries.Coordinate y) =>
+                x.X == y.X && x.Y == y.Y;
+
+            public int GetHashCode(NetTopologySuite.Geometries.Coordinate c) =>
+                HashCode.Combine(c.X, c.Y);
+        }
+#endif
     }
 }

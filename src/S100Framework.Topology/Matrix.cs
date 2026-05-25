@@ -517,6 +517,12 @@ namespace S100FC.Topology
                             lineStringText = merged.ToText();
                         }
                         else {
+                            if (mergedLineStrings.Count > 1) 
+                            {
+                                this._interceptor?.Invoke(lineStrings.ToArray());
+                                this._interceptor?.Invoke(mergedLineStrings.Select(e=>(LineString)e).ToArray());
+                            }
+
                             Debug.Assert(mergedLineStrings.Count == 1);
 
                             var merged = (LineString)mergedLineStrings[0];
