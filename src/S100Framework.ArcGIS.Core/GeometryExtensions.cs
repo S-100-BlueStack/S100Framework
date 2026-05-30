@@ -262,6 +262,7 @@ namespace ArcGIS.Core.Geometry
                             //if (name.Equals("F10400001035")) System.Diagnostics.Debugger.Break();
 
                             shape = (Polygon)clipGeometry(shape);
+                            if (shape.IsEmpty) continue;
 
                             var exteriorRing = shape.GetExteriorRing(0);
                             var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
@@ -315,6 +316,7 @@ namespace ArcGIS.Core.Geometry
                             var shape = (Polyline)f.GetShape();
 
                             shape = (Polyline)clipGeometry(shape);
+                            if (shape.IsEmpty) continue;
 
                             var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
@@ -355,7 +357,10 @@ namespace ArcGIS.Core.Geometry
 
                             var shape = (Polygon)f.GetShape();
 
+                            //if (f.GetObjectID() == 91) System.Diagnostics.Debugger.Break();
+
                             shape = (Polygon)clipGeometry(shape);
+                            if (shape.IsEmpty) continue;
 
                             var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
@@ -413,6 +418,7 @@ namespace ArcGIS.Core.Geometry
                             var shape = (Polyline)f.GetShape();
 
                             shape = (Polyline)clipGeometry(shape);
+                            if (shape.IsEmpty) continue;
 
                             var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
