@@ -506,7 +506,7 @@ namespace S100FC.Topology
                     var lineMerger = new LineMerger();
                     lineMerger.Add(lineStrings);
 
-                    var mergedLineStrings = lineMerger.GetMergedLineStrings();
+                    var mergedLineStrings = lineMerger.GetMergedLineStrings();                    
 
                     string lineStringText = lineString();// string.Empty;
 
@@ -538,6 +538,13 @@ namespace S100FC.Topology
                             lineStringText = merged.ToText();
                         }
                     }
+                    else if(allowMultiLineString && mergedLineStrings.Count > 1) {
+                        var merged = Matrix.Factory.CreateMultiLineString([.. mergedLineStrings.OfType<LineString>()]);
+
+                        lineStringText = merged.ToText();
+
+                        this._interceptor?.Invoke([.. lineStrings]);
+                    }                    
 
                     var sortedList = new SortedList<int, FeatureRef>();
 
@@ -565,7 +572,7 @@ namespace S100FC.Topology
                             var hash = this._hashing[IO.Hashing.XxHash3.HashToUInt64(reverse.AsBinary())];
 
                             if (mask1Hashes.Contains(hash.curve.Id))
-                                masks1.Add(hash.curve);
+                                masks1.Add(hash.curve);                            
 
                             var index = Matrix.IndexOfSegment(lineStringText, text);
                             Debug.Assert(index >= 0);
