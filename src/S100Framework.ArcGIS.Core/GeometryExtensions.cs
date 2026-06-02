@@ -96,7 +96,7 @@ namespace ArcGIS.Core.Geometry
         static readonly GeometryFactory factory = new GeometryFactory(new PrecisionModel(10000000), srid: 4326); // Or PrecisionModels.Floating
 
 
-        public static S100FC.Topology.IMatrix BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<int,ICollection<LineString>>? interceptor = default) {
+        public static S100FC.Topology.IMatrix BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<int, ICollection<LineString>>? interceptor = default) {
             var syntax = geodatabase.GetSQLSyntax();
 
             QueryFilter[] filters = [];
@@ -325,7 +325,7 @@ namespace ArcGIS.Core.Geometry
                 }
 
                 builder = matrix.AddTopologyFeatures(polygons, curves);
-            }            
+            }
 
             //  Navigational features
             {

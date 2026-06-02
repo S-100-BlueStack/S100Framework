@@ -1,7 +1,5 @@
 ﻿using GeoAPI.Geometries;
-using NetTopologySuite.Algorithm;
 using NetTopologySuite.Geometries;
-using NetTopologySuite.LinearReferencing;
 using NetTopologySuite.Operation.Linemerge;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -519,7 +517,7 @@ namespace S100FC.Topology
                     var lineMerger = new LineMerger();
                     lineMerger.Add(lineStrings);
 
-                    var mergedLineStrings = lineMerger.GetMergedLineStrings();                    
+                    var mergedLineStrings = lineMerger.GetMergedLineStrings();
 
                     string lineStringText = lineString();// string.Empty;
 
