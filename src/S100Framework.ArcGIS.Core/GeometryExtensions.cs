@@ -272,6 +272,7 @@ namespace ArcGIS.Core.Geometry
                     //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'))";
 
                     foreach (var filter in filters) {
+                        continue;
                         filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'))";
 
                         using var cursor = curve.Search(filter);

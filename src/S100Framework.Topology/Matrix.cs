@@ -386,6 +386,7 @@ namespace S100FC.Topology
 #endif
             var mask1Hashes = new List<UInt64>();
 
+            //  Masking
             foreach (var polygon in this._bagPolygons.Where(e => mask1Objects.Contains(e.Name))) {
                 foreach (var lineString in polygon.ExteriorRing) {
                     var hash = System.IO.Hashing.XxHash3.HashToUInt64(lineString.AsBinary());
@@ -459,6 +460,8 @@ namespace S100FC.Topology
                     }
                 }
             });
+
+            this._interceptor?.Invoke(9002, [.. this._hashing.Where(e => !e.Value.fetureRef.Reverse).Select(e => e.Value.curve.LineString)]);
 
             Parallel.ForEach(this._bagPolylines, ParallelOptions, (Polyline) => {
                 foreach (var lineString in Polyline.LineStrings) {
@@ -731,6 +734,8 @@ namespace S100FC.Topology
                 AddLineString(curve.Name, curve.LineString);
             }
 
+            //this._interceptor?.Invoke(9002, [.. edgeToFeatureMap.Select(e =>e.Key.LineString)]);
+
             this._featureToEdges = new Dictionary<string, List<LineString>>();
 
             foreach (var e in edgeToFeatureMap.GroupBy(e => string.Join(',', e.Value))) {
@@ -750,6 +755,8 @@ namespace S100FC.Topology
                     this._featureToEdges[p].AddRange(mergedLineStrings);
                 }
             }
+
+            this._interceptor?.Invoke(9003, [.. this._featureToEdges.SelectMany(e => e.Value)]);
 
             //LineString[] array = [.. featureToEdges.SelectMany(e => e.Value)];
             //this._interceptor?.Invoke(array);
