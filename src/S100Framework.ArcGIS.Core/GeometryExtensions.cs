@@ -7,6 +7,7 @@ using NetTopologySuite.Noding.Snapround;
 using NetTopologySuite.Operation.Linemerge;
 using NetTopologySuite.Operation.Valid;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace ArcGIS.Core.Data
 {
@@ -96,7 +97,7 @@ namespace ArcGIS.Core.Geometry
         static readonly GeometryFactory factory = new GeometryFactory(new PrecisionModel(10000000), srid: 4326); // Or PrecisionModels.Floating
 
 
-        public static S100FC.Topology.IMatrix BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<int, ICollection<LineString>>? interceptor = default) {
+        public static S100FC.Topology.IMatrix BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default) {
             var syntax = geodatabase.GetSQLSyntax();
 
             QueryFilter[] filters = [];
@@ -499,6 +500,10 @@ namespace ArcGIS.Core.Geometry
             }
 
             var result = builder.BuildTopology();
+
+
+            interceptor?.Invoke(6001, result.Curves.Select(e => (e.LineString, $"{e.Id}")).ToArray());
+
 
             return result;
         }

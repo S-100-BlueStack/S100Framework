@@ -197,7 +197,7 @@ namespace S100FC.Topology
             //  Default protected constructor            
         }
 
-        private Action<int, ICollection<LineString>>? _interceptor = default;
+        private Action<int, ICollection<(LineString lineString, string message)>>? _interceptor = default;
 
         private readonly ConcurrentBag<(string Name, IEnumerable<LineString> ExteriorRing, List<IEnumerable<LineString>> InteriorRings)> _bagPolygons = [];
 
@@ -223,7 +223,7 @@ namespace S100FC.Topology
         //private CurveContainer _curveContainer = new CurveContainer();
         private readonly CompositeCurveContainer _compositeCurveContainer = new CompositeCurveContainer();
 
-        public static ITopologyBuilder CreateMatrix(Action<int, ICollection<LineString>>? interceptor = default) {
+        public static ITopologyBuilder CreateMatrix(Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default) {
             return new Matrix() {
                 _interceptor = interceptor,
             };
@@ -280,6 +280,7 @@ namespace S100FC.Topology
             IEnumerable<S100FC.Topology.Polyline> curves = Enumerable.Empty<S100FC.Topology.Polyline>();
 
             {
+#if null
                 string[] borderFeatures = ["DataCoverage"];
 
                 var features = this._surfacesNavigational.Where(e => borderFeatures.Contains(e.Code)).ToArray();
@@ -300,7 +301,7 @@ namespace S100FC.Topology
                     foreach(var _ in features) {
                         if (_.ExteriorRing.Disjoint(f.ExteriorRing)) continue;
 
-                        var result = f.ExteriorRing.LineStringOverlapAnalyzer(_.ExteriorRing);
+                        var result = _.ExteriorRing.LineStringOverlapAnalyzer(f.ExteriorRing);
 
                         var x = _.ExteriorRing.Factory.CreateLineString(result.UpdatedACoordinates);
 
@@ -308,11 +309,12 @@ namespace S100FC.Topology
                             ;
 
                         if ("F10400000019".Equals(f.UID)) {
-                            this._interceptor?.Invoke(6000, [f.ExteriorRing, _.ExteriorRing, x]);
+                            this._interceptor?.Invoke(6000, [f.ExteriorRing, x]);
                         }
 
                     }
                 }
+#endif
             }
 
 
@@ -498,7 +500,7 @@ namespace S100FC.Topology
                 }
             });
 
-            this._interceptor?.Invoke(9002, [.. this._hashing.Where(e => !e.Value.fetureRef.Reverse).Select(e => e.Value.curve.LineString)]);
+            //this._interceptor?.Invoke(6001, [.. this._hashing.Where(e => !e.Value.fetureRef.Reverse).Select(e => (e.Value.curve.LineString, ""))]);
 
             Parallel.ForEach(this._bagPolylines, ParallelOptions, (Polyline) => {
                 foreach (var lineString in Polyline.LineStrings) {
@@ -517,7 +519,7 @@ namespace S100FC.Topology
                 }
             });
 
-            this._interceptor?.Invoke(9000, [.. this._hashing.Select(e => e.Value.curve.LineString)]);
+            this._interceptor?.Invoke(9000, [.. this._hashing.Select(e => (e.Value.curve.LineString, ""))]);
 
             //_interceptor?.Invoke(this._hashing.Where(e => !e.Value.fetureRef.Reverse).Select(e => e.Value.curve.LineString).ToList());
 
@@ -570,8 +572,8 @@ namespace S100FC.Topology
                         }
                         else {
                             if (mergedLineStrings.Count > 1) {
-                                this._interceptor?.Invoke(8001, lineStrings.ToArray());
-                                this._interceptor?.Invoke(8002, mergedLineStrings.Select(e => (LineString)e).ToArray());
+                                this._interceptor?.Invoke(8001, lineStrings.Select(e=>(e,"")).ToArray());
+                                this._interceptor?.Invoke(8002, mergedLineStrings.Select(e => ((LineString)e,"")).ToArray());
                             }
 
                             Debug.Assert(mergedLineStrings.Count == 1);
@@ -591,7 +593,7 @@ namespace S100FC.Topology
                         }
                     }
                     else if (allowMultiLineString && mergedLineStrings.Count > 1) {
-                        this._interceptor?.Invoke(8001, [.. lineStrings]);
+                        this._interceptor?.Invoke(8001, [.. lineStrings.Select(e=>(e,""))]);
 
                         for (int i = 0; i < lineStrings.Count(); i++) {
                             var text = lineStrings.ElementAt(i).ToText().Substring("LINESTRING (".Length).TrimEnd(')');
@@ -771,6 +773,9 @@ namespace S100FC.Topology
                 AddLineString(curve.Name, curve.LineString);
             }
 
+            //this._interceptor?.Invoke(6001, [.. edgeToFeatureMap.Where(e => e.Value.Contains("F10400000002")).Select(e => (e.Key.LineString, string.Join(',',e.Value)))]);
+            
+
             //this._interceptor?.Invoke(9002, [.. edgeToFeatureMap.Select(e =>e.Key.LineString)]);
 
             this._featureToEdges = new Dictionary<string, List<LineString>>();
@@ -793,11 +798,6 @@ namespace S100FC.Topology
                 }
             }
 
-            this._interceptor?.Invoke(9003, [.. this._featureToEdges.SelectMany(e => e.Value)]);
-
-            //LineString[] array = [.. featureToEdges.SelectMany(e => e.Value)];
-            //this._interceptor?.Invoke(array);
-
             Parallel.For(0, surfaces.Count, Matrix.ParallelOptions, (p) => {
                 var surface = surfaces.ElementAt(p);
                 IEnumerable<LineString> exteriorRing = this._featureToEdges[surface.Name];
@@ -807,6 +807,8 @@ namespace S100FC.Topology
                 }
                 this._bagPolygons.Add((surface.Name, exteriorRing, interiorRings));
             });
+
+            //this._interceptor?.Invoke(6001, [.. this._bagPolygons.Where(e=>e.Name.Equals("F10400000002")).SelectMany(e => e.ExteriorRing.Select(f=>(f, e.Name)))]);
 
             Parallel.For(0, curves.Count, Matrix.ParallelOptions, (c) => {
                 var curve = curves.ElementAt(c);
