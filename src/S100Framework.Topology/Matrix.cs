@@ -279,6 +279,43 @@ namespace S100FC.Topology
             IEnumerable<S100FC.Topology.Polygon> surfaces = Enumerable.Empty<S100FC.Topology.Polygon>();
             IEnumerable<S100FC.Topology.Polyline> curves = Enumerable.Empty<S100FC.Topology.Polyline>();
 
+            {
+                string[] borderFeatures = ["DataCoverage"];
+
+                var features = this._surfacesNavigational.Where(e => borderFeatures.Contains(e.Code)).ToArray();
+                foreach (var f in this._surfacesTopology) {
+                    if (borderFeatures.Contains(f.Code)) continue;
+
+                    foreach (var _ in features) {
+                        if (_.ExteriorRing.Disjoint(f.ExteriorRing)) continue;
+
+                        //var x = _.ExteriorRing.InsertMissingVertices(f.ExteriorRing);
+                    }
+                }
+                foreach (var f in this._surfacesNavigational) {
+                    if (borderFeatures.Contains(f.Code)) continue;
+
+                    if ("F10400000019".Equals(f.UID)) System.Diagnostics.Debugger.Break();
+
+                    foreach(var _ in features) {
+                        if (_.ExteriorRing.Disjoint(f.ExteriorRing)) continue;
+
+                        var result = f.ExteriorRing.LineStringOverlapAnalyzer(_.ExteriorRing);
+
+                        var x = _.ExteriorRing.Factory.CreateLineString(result.UpdatedACoordinates);
+
+                        if (!_.ExteriorRing.ToText().Equals(x.ToText())) //System.Diagnostics.Debugger.Break();
+                            ;
+
+                        if ("F10400000019".Equals(f.UID)) {
+                            this._interceptor?.Invoke(6000, [f.ExteriorRing, _.ExteriorRing, x]);
+                        }
+
+                    }
+                }
+            }
+
+
             if (this._surfacesTopology.Any() || this._curvesTopology.Any()) {
                 surfaces = surfaces.UnionBy(this._surfacesTopology, e => e.Name);
                 curves = curves.Union(this._curvesTopology);    //    curves.UnionBy(this._curvesTopology, e => e.Name);
