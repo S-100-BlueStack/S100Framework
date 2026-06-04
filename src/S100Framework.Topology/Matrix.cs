@@ -519,7 +519,7 @@ namespace S100FC.Topology
                 }
             });
 
-            this._interceptor?.Invoke(9000, [.. this._hashing.Select(e => (e.Value.curve.LineString, ""))]);
+            //this._interceptor?.Invoke(9000, [.. this._hashing.Select(e => (e.Value.curve.LineString, ""))]);
 
             //_interceptor?.Invoke(this._hashing.Where(e => !e.Value.fetureRef.Reverse).Select(e => e.Value.curve.LineString).ToList());
 
@@ -593,7 +593,7 @@ namespace S100FC.Topology
                         }
                     }
                     else if (allowMultiLineString && mergedLineStrings.Count > 1) {
-                        this._interceptor?.Invoke(8001, [.. lineStrings.Select(e=>(e,""))]);
+                        //this._interceptor?.Invoke(8001, [.. lineStrings.Select(e=>(e,""))]);
 
                         for (int i = 0; i < lineStrings.Count(); i++) {
                             var text = lineStrings.ElementAt(i).ToText().Substring("LINESTRING (".Length).TrimEnd(')');
