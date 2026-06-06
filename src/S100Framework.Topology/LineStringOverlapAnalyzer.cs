@@ -69,7 +69,7 @@ namespace S100FC.Topology
             double dot = px * dx + py * dy;
             double lenSq = dx * dx + dy * dy;
             return dot >= -tol && dot <= lenSq + tol;   // within segment bounds
-        }
+        }        
     }
 
     public class TolerantComparer : IEqualityComparer<Coordinate>

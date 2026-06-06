@@ -1,4 +1,6 @@
-﻿using ArcGIS.Core.Data;
+﻿//#define SKIN_OF_THE_EARTH_ONLY
+
+using ArcGIS.Core.Data;
 using ArcGIS.Core.SystemCore;
 using GeoAPI.Geometries;
 using NetTopologySuite.Geometries;
@@ -7,7 +9,7 @@ using NetTopologySuite.Noding.Snapround;
 using NetTopologySuite.Operation.Linemerge;
 using NetTopologySuite.Operation.Valid;
 using System.Globalization;
-using System.Runtime.CompilerServices;
+
 
 namespace ArcGIS.Core.Data
 {
@@ -330,6 +332,9 @@ namespace ArcGIS.Core.Geometry
 
             //  Navigational features
             {
+                //string[] testFeatures = ["DataCoverage", "SoundingDatum", "VerticalDatum", "NavigationalSystemOfMarks"];
+                string[] testFeatures = ["DataCoverage"];
+
                 var polygons = new List<S100FC.Topology.Polygon>();
 
                 using (var surface = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("surface")).GetName())) {
@@ -347,6 +352,10 @@ namespace ArcGIS.Core.Geometry
 
                             if (lookup.Contains(f.GetObjectID())) continue;
 
+
+#if SKIN_OF_THE_EARTH_ONLY
+                            if (!testFeatures.Contains(Convert.ToString(f["code"]))) continue;
+#endif
                             var shape = (Polygon)f.GetShape();
 
                             //if (f.GetObjectID() == 91) System.Diagnostics.Debugger.Break();
@@ -501,7 +510,7 @@ namespace ArcGIS.Core.Geometry
             var result = builder.BuildTopology();
 
 
-            interceptor?.Invoke(6001, result.Curves.Select(e => (e.LineString, $"{e.Id}")).ToArray());
+            //interceptor?.Invoke(6001, result.Curves.Select(e => (e.LineString, $"{e.Id}")).ToArray());
 
 
             return result;

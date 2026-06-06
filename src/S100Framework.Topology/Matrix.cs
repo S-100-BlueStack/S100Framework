@@ -1,6 +1,7 @@
 ﻿using GeoAPI.Geometries;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Operation.Linemerge;
+using NetTopologySuite.Operation.Overlay.Snap;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
@@ -154,8 +155,8 @@ namespace S100FC.Topology
 
     public interface ITopologyBuilder
     {
-        ITopologyBuilder AddTopologyFeatures(ICollection<S100FC.Topology.Polygon> surfaces, ICollection<S100FC.Topology.Polyline> curves);
-        ITopologyBuilder AddNavigationalFeatures(ICollection<S100FC.Topology.Polygon> surfaces, ICollection<S100FC.Topology.Polyline> curves);
+        ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<S100FC.Topology.Polyline> curves);
+        ITopologyBuilder AddNavigationalFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<S100FC.Topology.Polyline> curves);
 
 #if Singletons
         ITopologyBuilder AddSingletonFeatures(ICollection<S100FC.Topology.Polyline> curves);
@@ -209,11 +210,11 @@ namespace S100FC.Topology
 
         private IDictionary<string, List<LineString>>? _featureToEdges = new Dictionary<string, List<LineString>>();
 
-        private ICollection<S100FC.Topology.Polygon> _surfacesTopology = [];
-        private ICollection<S100FC.Topology.Polyline> _curvesTopology = [];
+        private IList<S100FC.Topology.Polygon> _surfacesTopology = [];
+        private IList<S100FC.Topology.Polyline> _curvesTopology = [];
 
-        private ICollection<S100FC.Topology.Polygon> _surfacesNavigational = [];
-        private ICollection<S100FC.Topology.Polyline> _curvesNavigational = [];
+        private IList<S100FC.Topology.Polygon> _surfacesNavigational = [];
+        private IList<S100FC.Topology.Polyline> _curvesNavigational = [];
 
 #if Singletons
         private ICollection<S100FC.Topology.Polyline> _curvesSingleton = [];
@@ -236,7 +237,7 @@ namespace S100FC.Topology
             return lineString;
         }
 
-        private static ICollection<S100FC.Topology.Polygon> MakePrecise(ICollection<S100FC.Topology.Polygon> surfaces) {
+        private static IList<S100FC.Topology.Polygon> MakePrecise(IList<S100FC.Topology.Polygon> surfaces) {
             foreach (var p in surfaces) {
                 MakePrecise(p.ExteriorRing);
 
@@ -246,21 +247,21 @@ namespace S100FC.Topology
             return surfaces;
         }
 
-        private static ICollection<S100FC.Topology.Polyline> MakePrecise(ICollection<S100FC.Topology.Polyline> curves) {
+        private static IList<S100FC.Topology.Polyline> MakePrecise(IList<S100FC.Topology.Polyline> curves) {
             foreach (var c in curves) {
                 MakePrecise(c.LineString);
             }
             return curves;
         }
 
-        ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(ICollection<S100FC.Topology.Polygon> surfaces, ICollection<S100FC.Topology.Polyline> curves) {
+        ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<S100FC.Topology.Polyline> curves) {
             this._surfacesTopology = MakePrecise(surfaces);
             this._curvesTopology = MakePrecise(curves);
 
             return this;
         }
 
-        ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(ICollection<Polygon> surfaces, ICollection<S100FC.Topology.Polyline> curves) {
+        ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(IList<Polygon> surfaces, IList<S100FC.Topology.Polyline> curves) {
             this._surfacesNavigational = MakePrecise(surfaces);
             this._curvesNavigational = MakePrecise(curves);
 
@@ -268,7 +269,7 @@ namespace S100FC.Topology
         }
 
 #if Singletons
-        ITopologyBuilder ITopologyBuilder.AddSingletonFeatures(ICollection<Polyline> curves) {
+        ITopologyBuilder ITopologyBuilder.AddSingletonFeatures(IList<Polyline> curves) {
             this._curvesSingleton = MakePrecise(curves);
 
             return this;
@@ -280,40 +281,291 @@ namespace S100FC.Topology
             IEnumerable<S100FC.Topology.Polyline> curves = Enumerable.Empty<S100FC.Topology.Polyline>();
 
             {
-#if null
-                string[] borderFeatures = ["DataCoverage"];
+#if true
+                string[] edgeFeatureNames = ["DataCoverage"];
 
-                var features = this._surfacesNavigational.Where(e => borderFeatures.Contains(e.Code)).ToArray();
-                foreach (var f in this._surfacesTopology) {
-                    if (borderFeatures.Contains(f.Code)) continue;
+                var edgeFeatures = this._surfacesNavigational.Where(e => edgeFeatureNames.Contains(e.Code)).Select(e => this._surfacesNavigational.IndexOf(e)).ToArray();
 
-                    foreach (var _ in features) {
-                        if (_.ExteriorRing.Disjoint(f.ExteriorRing)) continue;
+                //foreach (var f in this._surfacesTopology) {
+                //    if (borderFeatures.Contains(f.Code)) continue;
 
-                        //var x = _.ExteriorRing.InsertMissingVertices(f.ExteriorRing);
+                //    foreach (var _ in features) {
+                //        if (_.ExteriorRing.Disjoint(f.ExteriorRing)) continue;
+
+                //        //var x = _.ExteriorRing.InsertMissingVertices(f.ExteriorRing);
+                //    }
+                //}
+
+                LineString InsertMissingVertices(LineString exteriorRing, LineString lineString) {
+                    if (exteriorRing.Disjoint(lineString)) return exteriorRing;
+                    return exteriorRing.InsertMissingVertices(lineString);
+
+                    if (exteriorRing.Disjoint(lineString)) return exteriorRing;
+
+                    //var result = exteriorRing.LineStringOverlapAnalyzer(lineString);
+
+                    //if (!result.InsertedVertices.Any()) return exteriorRing;
+
+                    //return exteriorRing.Factory.CreateLineString(result.UpdatedACoordinates);
+                }
+
+               // this._interceptor?.Invoke(6000, [(before, "F10400000382")]);
+
+                //  Insert vertices on border features
+                for (int p = 0; p < this._surfacesTopology.Count; p++) {
+                    var feature = this._surfacesTopology[p];
+                    if (edgeFeatureNames.Contains(feature.Code)) continue;
+
+                    //if(!"DepthArea".Equals(feature.Code)) continue;
+
+                    for (int i = 0; i < edgeFeatures.Length; i++) {
+                        var edgeFeature = this._surfacesNavigational[edgeFeatures[i]];
+
+                        //this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                        //    ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, feature.ExteriorRing),
+                        //};
+
+
+                        var line2UniquePart = SnapIfNeededOverlayOp.Intersection(feature.ExteriorRing, edgeFeature.ExteriorRing);
+
+                        if (line2UniquePart.IsEmpty) continue;
+
+                        if (line2UniquePart is LineString lineString) {
+                            //this._interceptor?.Invoke(9001, [(lineString, feature.Name), (edgeFeature.ExteriorRing, edgeFeature.UID)]);
+
+                            this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                                ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, lineString),
+                            };
+                        }
+                        else if (line2UniquePart is MultiLineString multiLine) {
+                            //this._interceptor?.Invoke(9001, [.. multiLine.Cast<LineString>().Select(e => (e, feature.Name)), (edgeFeature.ExteriorRing, edgeFeature.UID)]);
+
+                            foreach (var sub in multiLine.Cast<LineString>()) {
+                                this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                                    ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, sub),
+                                };
+                                edgeFeature = this._surfacesNavigational[edgeFeatures[i]];
+                            }
+                        }
+                        else
+                            System.Diagnostics.Debugger.Break();
+
+
                     }
                 }
-                foreach (var f in this._surfacesNavigational) {
-                    if (borderFeatures.Contains(f.Code)) continue;
+                for (int p = 0; p < this._surfacesNavigational.Count; p++) {
+                    //var feature = this._surfacesNavigational[p];
+                    //if (edgeFeatureNames.Contains(feature.Code)) continue;
 
-                    if ("F10400000019".Equals(f.UID)) System.Diagnostics.Debugger.Break();
+                    //for (int i = 0; i < edgeFeatures.Length; i++) {
+                    //    var edgeFeature = this._surfacesNavigational[edgeFeatures[i]];
 
-                    foreach(var _ in features) {
+                    //    //this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                    //    //    ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, feature.ExteriorRing),
+                    //    //};
+
+                    //    var line2UniquePart = SnapIfNeededOverlayOp.Intersection(feature.ExteriorRing, edgeFeature.ExteriorRing);
+
+                    //    if (line2UniquePart.IsEmpty) continue;
+
+                    //    if (line2UniquePart is LineString lineString) {
+                    //        this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                    //            ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, lineString),
+                    //        };
+                    //    }
+                    //    else if (line2UniquePart is MultiLineString multiLine) {
+                    //        foreach (var sub in multiLine.Cast<LineString>()) {
+                    //            this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                    //                ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, sub),
+                    //            };
+                    //        }
+                    //    }
+                    //    else
+                    //        System.Diagnostics.Debugger.Break();
+
+                    //}
+                }
+
+
+                for (int p = 0; p < this._curvesTopology.Count; p++) {
+                    continue;
+                    var feature = this._curvesTopology[p];
+                    if (edgeFeatureNames.Contains(feature.Code)) continue;
+
+                    for (int i = 0; i < edgeFeatures.Length; i++) {
+                        var edgeFeature = this._surfacesNavigational[edgeFeatures[i]];
+
+                        this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                            ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, feature.LineString),
+                        };
+
+                        //try {
+                        //    var line2UniquePart = SnapIfNeededOverlayOp.Difference(feature.LineString, edgeFeature.ExteriorRing);
+
+                        //    if (line2UniquePart.IsEmpty) continue;
+
+                        //    if (line2UniquePart is LineString lineString) {
+                        //        this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                        //            ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, lineString),
+                        //        };
+                        //    }
+                        //    else if (line2UniquePart is MultiLineString multiLine) {
+                        //        foreach (var sub in multiLine.Cast<LineString>()) {
+                        //            this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                        //                ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, sub),
+                        //            };
+                        //        }
+                        //    }
+                        //    else
+                        //        System.Diagnostics.Debugger.Break();
+
+                        //}
+                        //catch (NetTopologySuite.Geometries.TopologyException) {
+                        //    continue;
+                        //}
+                    }
+                }
+                for (int p = 0; p < this._curvesNavigational.Count; p++) {
+                    continue;
+                    var feature = this._curvesNavigational[p];
+                    if (edgeFeatureNames.Contains(feature.Code)) continue;
+
+                    for (int i = 0; i < edgeFeatures.Length; i++) {
+                        var edgeFeature = this._surfacesNavigational[edgeFeatures[i]];
+
+                        this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                            ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, feature.LineString),
+                        };
+
+                        //try {
+                        //    var line2UniquePart = SnapIfNeededOverlayOp.Difference(feature.LineString, edgeFeature.ExteriorRing);
+
+                        //    if (line2UniquePart.IsEmpty) continue;
+
+                        //    if (line2UniquePart is LineString lineString) {
+                        //        this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                        //            ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, lineString),
+                        //        };
+                        //    }
+                        //    else if (line2UniquePart is MultiLineString multiLine) {
+                        //        foreach (var sub in multiLine.Cast<LineString>()) {
+                        //            this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                        //                ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, sub),
+                        //            };
+                        //        }
+                        //    }
+                        //    else
+                        //        System.Diagnostics.Debugger.Break();
+
+                        //}
+                        //catch (NetTopologySuite.Geometries.TopologyException) {
+                        //    continue;
+                        //}
+                    }
+                }
+
+#if null
+                //  Update thouching border features
+                foreach (var f in features) {
+                    for (int i = 0; i < this._surfacesTopology.Count; i++) {
+                        var _ = this._surfacesTopology[i];
+                        if (borderFeatures.Contains(_.Code)) continue;
                         if (_.ExteriorRing.Disjoint(f.ExteriorRing)) continue;
+                        if (!_.ExteriorRing.Intersects(f.ExteriorRing)) continue;
+                        try {
+                            // 1. Use snapped difference to get only line2's unique part
+                            var line2UniquePart = SnapIfNeededOverlayOp.Difference(f.ExteriorRing, _.ExteriorRing);
 
-                        var result = _.ExteriorRing.LineStringOverlapAnalyzer(f.ExteriorRing);
+                            // 2. Also get line1's full extent (snapped union handles the noding)
+                            var merged = SnapIfNeededOverlayOp.Union(_.ExteriorRing, line2UniquePart);
 
-                        var x = _.ExteriorRing.Factory.CreateLineString(result.UpdatedACoordinates);
+                            // 3. LineMerger stitches the noded segments together
+                            var merger = new LineMerger();
+                            merger.Add(merged);
 
-                        if (!_.ExteriorRing.ToText().Equals(x.ToText())) //System.Diagnostics.Debugger.Break();
-                            ;
 
-                        if ("F10400000019".Equals(f.UID)) {
-                            this._interceptor?.Invoke(6000, [f.ExteriorRing, x]);
+                            //var lineString = InsertMissingVertices(_.ExteriorRing, f.ExteriorRing);
+
+                            //var merger = new LineMerger();
+                            //merger.Add(_.ExteriorRing);
+                            //merger.Add(_.ExteriorRing.Intersection(f.ExteriorRing));
+
+                            var lineString = merger.GetMergedLineStrings();
+
+                            Debug.Assert(lineString.Count == 1);
+
+                            this._surfacesTopology[i] = this._surfacesTopology[i] with {
+                                ExteriorRing = (LineString)lineString[0],
+                            };
+                        }
+                        catch (NetTopologySuite.Geometries.TopologyException) {
+                            continue;
+                        }
+                    }
+                    for (int i = 0; i < this._surfacesNavigational.Count; i++) {
+                        var _ = this._surfacesNavigational[i];
+                        if (borderFeatures.Contains(_.Code)) continue;
+                        if (_.ExteriorRing.Disjoint(f.ExteriorRing)) continue;
+                        if (!_.ExteriorRing.Intersects(f.ExteriorRing)) continue;
+
+                        //if (!_.UID.Equals("F10400040314")) {
+                        //    continue;
+                        //    //    this._interceptor?.Invoke(6000, [(this._surfacesNavigational[i].ExteriorRing, this._surfacesNavigational[i].UID), (InsertMissingVertices(_.ExteriorRing, f.ExteriorRing), "")]);
+                        //    System.Diagnostics.Debugger.Break();
+                        //}
+                        //if (_.UID.Equals("F10400038124")) {
+                        //    System.Diagnostics.Debugger.Break();
+                        //}
+                        try {
+                            // 1. Use snapped difference to get only line2's unique part
+                            var line2UniquePart = SnapIfNeededOverlayOp.Difference(f.ExteriorRing, _.ExteriorRing);
+
+                            // 2. Also get line1's full extent (snapped union handles the noding)
+                            var merged = SnapIfNeededOverlayOp.Union(_.ExteriorRing, line2UniquePart);
+
+                            // 3. LineMerger stitches the noded segments together
+                            var merger = new LineMerger();
+                            merger.Add(merged);
+
+
+                            //var lineString = InsertMissingVertices(_.ExteriorRing, f.ExteriorRing);
+
+                            //var merger = new LineMerger();
+                            //merger.Add(_.ExteriorRing);
+                            //merger.Add(_.ExteriorRing.Intersection(f.ExteriorRing));
+
+                            var lineString = merger.GetMergedLineStrings();
+
+                            Debug.Assert(lineString.Count == 1);
+
+                            this._surfacesNavigational[i] = this._surfacesNavigational[i] with {
+                                ExteriorRing = (LineString)lineString[0],
+                            };
+                        }
+                        catch (NetTopologySuite.Geometries.TopologyException) {
+                            continue;
                         }
 
+                        //var lineString = InsertMissingVertices(_.ExteriorRing, f.ExteriorRing);
+
+                        //var merger = new LineMerger();
+                        //merger.Add(_.ExteriorRing);
+                        //merger.Add(_.ExteriorRing.Intersection(f.ExteriorRing));
+
+                        //var merged = merger.GetMergedLineStrings();
+
+                        //Debug.Assert(merged.Count == 1);
+
+                        ////this._interceptor?.Invoke(7000, [(f.ExteriorRing, f.Code),(this._surfacesNavigational[i].ExteriorRing, this._surfacesNavigational[i].UID), (InsertMissingVertices(_.ExteriorRing, f.ExteriorRing), "InsertMissingVertices")]);
+
+                        //this._surfacesNavigational[i] = this._surfacesNavigational[i] with {
+                        //    ExteriorRing = (LineString)merged[0],
+                        //};
                     }
                 }
+#endif                
+                ;
+
 #endif
             }
 
@@ -331,6 +583,8 @@ namespace S100FC.Topology
             var mask1Objects = surfaces.Where(e => Matrix.Mask1FeatureTypes.Contains(e.Code)).Select(e => e.Name).Distinct();
 
             this.BuildSharedEdges([.. surfaces], [.. curves]);
+
+
 
 #if Singletons
             if (null != this._curvesSingleton) {
@@ -500,7 +754,7 @@ namespace S100FC.Topology
                 }
             });
 
-            //this._interceptor?.Invoke(6001, [.. this._hashing.Where(e => !e.Value.fetureRef.Reverse).Select(e => (e.Value.curve.LineString, ""))]);
+            //this._interceptor?.Invoke(7000, [.. this._hashing.Where(e => !e.Value.fetureRef.Reverse).Select(e => (e.Value.curve.LineString, $"{e.Key}"))]);
 
             Parallel.ForEach(this._bagPolylines, ParallelOptions, (Polyline) => {
                 foreach (var lineString in Polyline.LineStrings) {
@@ -525,7 +779,7 @@ namespace S100FC.Topology
 
             //Func<IEnumerable<LineString>, LinearRingOrientation, bool, Func<string>, (FeatureRef featureRef, ICollection<CurveFeature> masks1)> action = (lineStrings, orientation, allowMultiLineString, lineString) => 
 
-            (FeatureRef featureRef, ICollection<CurveFeature> masks1) action(IEnumerable<LineString> lineStrings, LinearRingOrientation orientation, bool allowMultiLineString, Func<string> lineString) {
+            (FeatureRef featureRef, ICollection<CurveFeature> masks1) action(IEnumerable<LineString> lineStrings, LinearRingOrientation orientation, bool allowMultiLineString, Func<string> lineString, bool debug) {
                 lineStrings = lineStrings.Distinct();
 
                 FeatureRef featureRef;
@@ -564,6 +818,7 @@ namespace S100FC.Topology
                     string lineStringText = lineString();// string.Empty;
 
                     var sortedList = new SortedList<int, FeatureRef>();
+                    var sortedLineStrings = new SortedList<int, LineString>();
 
                     if (string.IsNullOrEmpty(lineStringText)) {
                         if (allowMultiLineString && mergedLineStrings.Count > 1) {
@@ -572,8 +827,8 @@ namespace S100FC.Topology
                         }
                         else {
                             if (mergedLineStrings.Count > 1) {
-                                this._interceptor?.Invoke(8001, lineStrings.Select(e=>(e,"")).ToArray());
-                                this._interceptor?.Invoke(8002, mergedLineStrings.Select(e => ((LineString)e,"")).ToArray());
+                                this._interceptor?.Invoke(8001, lineStrings.Select(e => (e, "lineStrings")).ToArray());
+                                this._interceptor?.Invoke(8002, mergedLineStrings.Select(e => ((LineString)e, "mergedLineStrings")).ToArray());
                             }
 
                             Debug.Assert(mergedLineStrings.Count == 1);
@@ -636,6 +891,8 @@ namespace S100FC.Topology
                                 Debug.Assert(index >= 0);
                                 //sortedList.Add(lineStringText.IndexOf(text), hash.fetureRef);
                                 sortedList.Add(index, hash.fetureRef);
+
+                                sortedLineStrings.Add(index, lineStrings.ElementAt(i));
                             }
                             else {
                                 var reverse = lineStrings.ElementAt(i).Reverse();
@@ -650,6 +907,8 @@ namespace S100FC.Topology
                                 Debug.Assert(index >= 0);
                                 //sortedList.Add(lineStringText.IndexOf(text), hash.fetureRef);
                                 sortedList.Add(index, hash.fetureRef);
+
+                                sortedLineStrings.Add(index, (LineString)lineStrings.ElementAt(i).Reverse());
                             }
                         }
                     }
@@ -659,18 +918,24 @@ namespace S100FC.Topology
                         Id = compositeExterior.Id,
                         Reverse = compositeExterior.Reverse,
                     };
+
+                    if (debug) {
+                        this._interceptor?.Invoke(1000, [.. sortedLineStrings.OrderBy(e => e.Key).Select(e => (e.Value, $"{e.Key}"))]);
+                    }
                 }
 
                 return (featureRef, masks1);
             }
 
             Parallel.ForEach(this._bagPolygons, ParallelOptions, (polygon) => {
-                //if (polygon.Name.Equals("S1452182")) System.Diagnostics.Debugger.Break();
-                //if (polygon.Name.Equals("S1452235")) System.Diagnostics.Debugger.Break();
+                var debug = polygon.Name.Equals("F10400000382");
+
+                //if (polygon.Name.Equals("F10400000382")) System.Diagnostics.Debugger.Break();
 
                 if (!polygon.ExteriorRing.Any()) return;
 
-                var exteriorId = action(polygon.ExteriorRing, LinearRingOrientation.Clockwise, false, () => string.Empty);
+                var exteriorId = action(polygon.ExteriorRing, LinearRingOrientation.Clockwise, false, () => string.Empty, true);
+
                 var surface = new SurfaceFeature() {
                     Ref = polygon.Name,
                     Exterior = exteriorId.featureRef,
@@ -680,7 +945,7 @@ namespace S100FC.Topology
                     surface.Masks1 = [.. exteriorId.masks1.Select(e => e.Id)];
                 //}
                 if (polygon.InteriorRings.Any()) {
-                    var interiorRings = polygon.InteriorRings.Select(e => action(e, LinearRingOrientation.CounterClockwise, false, () => string.Empty));
+                    var interiorRings = polygon.InteriorRings.Select(e => action(e, LinearRingOrientation.CounterClockwise, false, () => string.Empty, false));
                     surface.Interior = [.. interiorRings.Select(e => e.featureRef)];
 
                     //  interior ring can't touch bondary!
@@ -695,16 +960,21 @@ namespace S100FC.Topology
                 this._bagSurfaces.Add(surface);
                 this._mapping.GetOrAdd(polygon.Name, $"S{surface.Id}");
 
-                //if (polygon.Name.Equals("S1452182")) {
-                //    System.Diagnostics.Debugger.Break();
-                //    LineString[] lineStrings = [.. polygon.ExteriorRing, .. polygon.InteriorRings.SelectMany(e => e.ToArray()).ToArray()];
-                //    _interceptor?.Invoke(lineStrings);
-                //}
-                //if (polygon.Name.Equals("S1452235")) {
-                //    System.Diagnostics.Debugger.Break();
-                //    LineString[] lineStrings = [.. polygon.ExteriorRing, .. polygon.InteriorRings.SelectMany(e => e.ToArray()).ToArray()];
-                //    _interceptor?.Invoke(lineStrings);
-                //}
+                if (polygon.Name.Equals("F10400000382")) {
+                    //this._interceptor?.Invoke(1000, [.. polygon.ExteriorRing.Select(e => (e, "F10400000382"))]);
+                    //System.Diagnostics.Debugger.Break();
+
+                    var curve = this._compositeCurveContainer.CompositeCurveFeatures.Single(e => e.Id == exteriorId.featureRef.Id);
+                    LineString[] linestrings = [];
+                    foreach (var c in curve.Curves) {
+                        var l = this._hashing.Single(e => e.Value.fetureRef.Id == c.Id && e.Value.fetureRef.Reverse == c.Reverse);
+                        //var hash = this._hashing[c.Id];                        
+
+                        linestrings = [.. linestrings, l.Value.curve.LineString];
+                    }
+
+                    this._interceptor?.Invoke(7000, [..linestrings.Select(e=>(e,e.ToText()))]);
+                }
             });
 
             //ParallelOptions.MaxDegreeOfParallelism = 1;
@@ -733,7 +1003,7 @@ namespace S100FC.Topology
                 else
                     text = text + ", " + text;
 
-                var curveId = action(polyline.LineStrings, LinearRingOrientation.DontCare, true, () => text);
+                var curveId = action(polyline.LineStrings, LinearRingOrientation.DontCare, true, () => text, false);
 
                 this._mapping.GetOrAdd(polyline.Name, $"C{curveId.featureRef.Id}");
             });
@@ -773,10 +1043,8 @@ namespace S100FC.Topology
                 AddLineString(curve.Name, curve.LineString);
             }
 
-            //this._interceptor?.Invoke(6001, [.. edgeToFeatureMap.Where(e => e.Value.Contains("F10400000002")).Select(e => (e.Key.LineString, string.Join(',',e.Value)))]);
-            
-
-            //this._interceptor?.Invoke(9002, [.. edgeToFeatureMap.Select(e =>e.Key.LineString)]);
+            this._interceptor?.Invoke(6000, [.. edgeToFeatureMap.Where(e => e.Value.Contains("F10400000382")).Select(e => (e.Key.LineString, string.Join(',', e.Value)))]);
+            //this._interceptor?.Invoke(9002, [.. edgeToFeatureMap.Select(e =>(e.Key.LineString, string.Join(',', e.Value)))]);
 
             this._featureToEdges = new Dictionary<string, List<LineString>>();
 
