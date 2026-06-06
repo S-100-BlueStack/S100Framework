@@ -99,7 +99,7 @@ namespace ArcGIS.Core.Geometry
         static readonly GeometryFactory factory = new GeometryFactory(new PrecisionModel(10000000), srid: 4326); // Or PrecisionModels.Floating
 
 
-        public static S100FC.Topology.IMatrix BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default) {
+        public static (S100FC.Topology.IMatrix matrix, IDictionary<string,string> mapper) BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default) {
             var syntax = geodatabase.GetSQLSyntax();
 
             QueryFilter[] filters = [];
@@ -207,6 +207,8 @@ namespace ArcGIS.Core.Geometry
                 };
             }
 
+            var mapper = new Dictionary<string, string>();
+
             //  Skin of the Earth
             {
                 var polygons = new List<S100FC.Topology.Polygon>();
@@ -267,7 +269,7 @@ namespace ArcGIS.Core.Geometry
                             }
                         }
                     }
-                }
+                }                
 
                 var curves = new List<S100FC.Topology.Polyline>();
 
@@ -300,35 +302,35 @@ namespace ArcGIS.Core.Geometry
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
-                            var coordinates = shape.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
+                            //var coordinates = shape.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
 
-                            var linestring = factory.CreateLineString([.. coordinates]);
-                            linestring = linestring.RemoveRepeatedVertices();
+                            //var linestring = factory.CreateLineString([.. coordinates]);
+                            //linestring = linestring.RemoveRepeatedVertices();
 
-                            curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, linestring, name));
+                            //curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, linestring, name));
 
 
-                            //for (int i = 0; i < shape.PartCount; i++) {
-                            //    var p = PolylineBuilderEx.CreatePolyline(shape.Parts[i]);
+                            for (int i = 0; i < shape.PartCount; i++) {
+                                var p = PolylineBuilderEx.CreatePolyline(shape.Parts[i]);
 
-                            //    var coordinates = p.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
+                                var coordinates = p.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
 
-                            //    var linestring = factory.CreateLineString([.. coordinates]);
-                            //    linestring = linestring.RemoveRepeatedVertices();
+                                var linestring = factory.CreateLineString([.. coordinates]);
+                                linestring = linestring.RemoveRepeatedVertices();
 
-                            //    if (shape.PartCount > 1) {
-                            //        curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), $"{name}:{i}", Convert.ToString(f["code"])!, linestring, name));
-                            //        mapper.Add($"{name}:{i}", name);
-                            //    }
-                            //    else
-                            //        curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, linestring, name));
-                            //}
+                                if (shape.PartCount > 1) {
+                                    curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), $"{name}:{i}", Convert.ToString(f["code"])!, linestring, name));
+                                    mapper.Add($"{name}:{i}", name);
+                                }
+                                else
+                                    curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, linestring, name));
+                            }
                         }
                     }
                 }
 
                 builder = matrix.AddTopologyFeatures(polygons, curves);
-            }
+            }            
 
             //  Navigational features
             {
@@ -431,30 +433,30 @@ namespace ArcGIS.Core.Geometry
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
-                            var coordinates = shape.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
+                            //var coordinates = shape.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
 
-                            var linestring = factory.CreateLineString([.. coordinates]);
-                            linestring = linestring.RemoveRepeatedVertices();
+                            //var linestring = factory.CreateLineString([.. coordinates]);
+                            //linestring = linestring.RemoveRepeatedVertices();
 
                             //linestring.Normalize();
 
-                            curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, linestring, name));
+                            //curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, linestring, name));
 
-                            //for (int i = 0; i < shape.PartCount; i++) {
-                            //    var p = PolylineBuilderEx.CreatePolyline(shape.Parts[i]);
+                            for (int i = 0; i < shape.PartCount; i++) {
+                                var p = PolylineBuilderEx.CreatePolyline(shape.Parts[i]);
 
-                            //    var coordinates = p.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
+                                var coordinates = p.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
 
-                            //    var linestring = factory.CreateLineString([.. coordinates]);
-                            //    linestring = linestring.RemoveRepeatedVertices();
+                                var linestring = factory.CreateLineString([.. coordinates]);
+                                linestring = linestring.RemoveRepeatedVertices();
 
-                            //    if (shape.PartCount > 1) {
-                            //        curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), $"{name}:{i}", Convert.ToString(f["code"])!, linestring, name));
-                            //        mapper.Add($"{name}:{i}", name);
-                            //    }
-                            //    else
-                            //        curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, linestring, name));
-                            //}
+                                if (shape.PartCount > 1) {
+                                    curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), $"{name}:{i}", Convert.ToString(f["code"])!, linestring, name));
+                                    mapper.Add($"{name}:{i}", name);
+                                }
+                                else
+                                    curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, linestring, name));
+                            }
                         }
                     }
 
@@ -513,7 +515,7 @@ namespace ArcGIS.Core.Geometry
             //interceptor?.Invoke(6001, result.Curves.Select(e => (e.LineString, $"{e.Id}")).ToArray());
 
 
-            return result;
+            return (result,mapper);
         }
 
         private static Polyline CreateLinearRing(string[] coords, SpatialReference spatialReference) {
