@@ -555,7 +555,7 @@ namespace ArcGIS.Core.Geometry
             return isSelfIntersecting;
             //return (isSelfIntersecting, locations);
         }
-
+        
         public static List<LineString> SplitAtSelfIntersections(LineString lineString) {
             var pm = lineString.Factory.PrecisionModel;
 

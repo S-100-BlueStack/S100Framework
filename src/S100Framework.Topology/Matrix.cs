@@ -931,21 +931,21 @@ namespace S100FC.Topology
                 this._bagSurfaces.Add(surface);
                 this._mapping.GetOrAdd(polygon.Name, $"S{surface.Id}");
 
-                if (polygon.Name.Equals("F10400000382")) {
-                    //this._interceptor?.Invoke(1000, [.. polygon.ExteriorRing.Select(e => (e, "F10400000382"))]);
-                    //System.Diagnostics.Debugger.Break();
+                //if (polygon.Name.Equals("F10400000382")) {
+                //    //this._interceptor?.Invoke(1000, [.. polygon.ExteriorRing.Select(e => (e, "F10400000382"))]);
+                //    //System.Diagnostics.Debugger.Break();
 
-                    var curve = this._compositeCurveContainer.CompositeCurveFeatures.Single(e => e.Id == exteriorId.featureRef.Id);
-                    LineString[] linestrings = [];
-                    foreach (var c in curve.Curves) {
-                        var l = this._hashing.Single(e => e.Value.fetureRef.Id == c.Id && e.Value.fetureRef.Reverse == c.Reverse);
-                        //var hash = this._hashing[c.Id];                        
+                //    var curve = this._compositeCurveContainer.CompositeCurveFeatures.Single(e => e.Id == exteriorId.featureRef.Id);
+                //    LineString[] linestrings = [];
+                //    foreach (var c in curve.Curves) {
+                //        var l = this._hashing.Single(e => e.Value.fetureRef.Id == c.Id && e.Value.fetureRef.Reverse == c.Reverse);
+                //        //var hash = this._hashing[c.Id];                        
 
-                        linestrings = [.. linestrings, l.Value.curve.LineString];
-                    }
+                //        linestrings = [.. linestrings, l.Value.curve.LineString];
+                //    }
 
-                    this._interceptor?.Invoke(7000, [.. linestrings.Select(e => (e, e.ToText()))]);
-                }
+                //    this._interceptor?.Invoke(7000, [.. linestrings.Select(e => (e, e.ToText()))]);
+                //}
             });
 
             //ParallelOptions.MaxDegreeOfParallelism = 1;
