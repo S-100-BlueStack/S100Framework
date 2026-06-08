@@ -244,6 +244,8 @@ namespace ArcGIS.Core.Geometry
 
                             var ex = factory.CreateLineString([.. coordinates, coordinates[0]]);
                             ex = ex.RemoveRepeatedVertices();
+                            //ex.Normalize();
+                            ex = ex.RemoveCollinearVertices();
 
                             if (shape.PartCount > 1) {
                                 var interiorRings = new List<LineString>();
@@ -253,6 +255,8 @@ namespace ArcGIS.Core.Geometry
 
                                     var linestring = factory.CreateLineString([.. coordinates, coordinates[0]]);
                                     linestring = linestring.RemoveRepeatedVertices();
+                                    //linestring.Normalize();
+                                    linestring = linestring.RemoveCollinearVertices();
 
                                     if (!linestring.IsSelfIntersections())
                                         interiorRings.Add(linestring);
@@ -317,6 +321,8 @@ namespace ArcGIS.Core.Geometry
 
                                 var linestring = factory.CreateLineString([.. coordinates]);
                                 linestring = linestring.RemoveRepeatedVertices();
+                                //linestring.Normalize();
+                                linestring = linestring.RemoveCollinearVertices();
 
                                 if (shape.PartCount > 1) {
                                     curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), $"{name}:{i}", Convert.ToString(f["code"])!, linestring, name));

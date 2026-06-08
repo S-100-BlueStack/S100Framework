@@ -281,26 +281,19 @@ namespace S100FC.Topology
             IEnumerable<S100FC.Topology.Polyline> curves = Enumerable.Empty<S100FC.Topology.Polyline>();
 
             {
-#if true
                 string[] edgeFeatureNames = ["DataCoverage"];
+                //string[] edgeFeatureNames = ["DataCoverage", "InformationArea", "MagneticVariation", "NavigationalSystemOfMarks","SoundingDatum","VerticalDatumOfData", "AdministrationArea", "SeaAreaNamedWaterArea"];
+                string[] contourFeatureNames = ["DepthContour", "Coastline", "ShorelineConstruction"];
 
                 var edgeFeatures = this._surfacesNavigational.Where(e => edgeFeatureNames.Contains(e.Code)).Select(e => this._surfacesNavigational.IndexOf(e)).ToArray();
 
-                //foreach (var f in this._surfacesTopology) {
-                //    if (borderFeatures.Contains(f.Code)) continue;
-
-                //    foreach (var _ in features) {
-                //        if (_.ExteriorRing.Disjoint(f.ExteriorRing)) continue;
-
-                //        //var x = _.ExteriorRing.InsertMissingVertices(f.ExteriorRing);
-                //    }
-                //}
-
                 LineString InsertMissingVertices(LineString exteriorRing, LineString lineString) {
                     if (exteriorRing.Disjoint(lineString)) return exteriorRing;
+                    if (!exteriorRing.Intersects(lineString)) return exteriorRing;
+
                     return exteriorRing.InsertMissingVertices(lineString);
 
-                    if (exteriorRing.Disjoint(lineString)) return exteriorRing;
+                    //if (exteriorRing.Disjoint(lineString)) return exteriorRing;
 
                     //var result = exteriorRing.LineStringOverlapAnalyzer(lineString);
 
@@ -309,158 +302,138 @@ namespace S100FC.Topology
                     //return exteriorRing.Factory.CreateLineString(result.UpdatedACoordinates);
                 }
 
-               // this._interceptor?.Invoke(6000, [(before, "F10400000382")]);
+                // this._interceptor?.Invoke(6000, [(before, "F10400000382")]);
 
-                //  Insert vertices on border features
+                //  Align vertices in topology features
+                //for (int i = 0; i < this._surfacesTopology.Count; i++) {
+                //    var feature1 = this._surfacesTopology[i];
+
+                //    for (int j = 0; j < this._surfacesTopology.Count; j++) {
+                //        if (j == i) continue;
+                //        var feature2 = this._surfacesTopology[j];
+
+                //        if ((feature1.UID.Equals("F10800061421") && feature2.UID.Equals("F10800061378")) || (feature1.UID.Equals("F10800061378") && feature2.UID.Equals("F10800061421"))) System.Diagnostics.Debugger.Break();
+
+                //        var line2UniquePart = SnapIfNeededOverlayOp.Intersection(feature1.ExteriorRing, feature2.ExteriorRing);
+
+                //        if (line2UniquePart.IsEmpty) continue;
+
+                //        if (line2UniquePart is GeometryCollection collection) {
+                //            continue;
+                //        }
+
+                //        if (line2UniquePart is LineString lineString) {
+                //            this._surfacesTopology[i] = feature1 with {
+                //                ExteriorRing = InsertMissingVertices(feature1.ExteriorRing, lineString),
+                //            };
+                //        }
+                //        else if (line2UniquePart is MultiLineString multiLine) {
+                //            foreach (var sub in multiLine.Cast<LineString>()) {
+                //                this._surfacesTopology[i] = feature1 with {
+                //                    ExteriorRing = InsertMissingVertices(feature1.ExteriorRing, sub),
+                //                };
+                //                feature1 = this._surfacesTopology[i];
+                //            }
+                //        }
+                //        else if (line2UniquePart is Point point) {
+                //            ;
+                //        }
+                //        else if (line2UniquePart is MultiPoint multiPoint) {
+                //            ;
+                //        }
+                //        else
+                //            System.Diagnostics.Debugger.Break();
+                //    }
+                //}
+
+
+                //  Insert vertices in edge features
                 for (int p = 0; p < this._surfacesTopology.Count; p++) {
                     var feature = this._surfacesTopology[p];
                     if (edgeFeatureNames.Contains(feature.Code)) continue;
 
-                    //if(!"DepthArea".Equals(feature.Code)) continue;
-
                     for (int i = 0; i < edgeFeatures.Length; i++) {
                         var edgeFeature = this._surfacesNavigational[edgeFeatures[i]];
-
-                        //this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
-                        //    ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, feature.ExteriorRing),
-                        //};
-
 
                         var line2UniquePart = SnapIfNeededOverlayOp.Intersection(feature.ExteriorRing, edgeFeature.ExteriorRing);
 
                         if (line2UniquePart.IsEmpty) continue;
 
-                        if (line2UniquePart is LineString lineString) {
-                            //this._interceptor?.Invoke(9001, [(lineString, feature.Name), (edgeFeature.ExteriorRing, edgeFeature.UID)]);
+                        Geometry[] lineStrings = [line2UniquePart];
 
-                            this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
-                                ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, lineString),
-                            };
+                        if (line2UniquePart is GeometryCollection collection) {
+                            var _ = collection.OfType<LineString>();
+                            if(!_.Any()) continue;
+                            lineStrings = [.. _];
                         }
-                        else if (line2UniquePart is MultiLineString multiLine) {
-                            //this._interceptor?.Invoke(9001, [.. multiLine.Cast<LineString>().Select(e => (e, feature.Name)), (edgeFeature.ExteriorRing, edgeFeature.UID)]);
 
-                            foreach (var sub in multiLine.Cast<LineString>()) {
+                        foreach (var _ in lineStrings) {
+                            if (_ is LineString lineString) {
                                 this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
-                                    ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, sub),
+                                    ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, lineString),
                                 };
-                                edgeFeature = this._surfacesNavigational[edgeFeatures[i]];
                             }
+                            else if (_ is MultiLineString multiLine) {
+                                foreach (var sub in multiLine.Cast<LineString>()) {
+                                    this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
+                                        ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, sub),
+                                    };
+                                    edgeFeature = this._surfacesNavigational[edgeFeatures[i]];
+                                }
+                            }
+                            else if (_ is Point point) {
+                                ;
+                            }
+                            else if (_ is MultiPoint multiPoint) {
+                                ;
+                            }
+                            else
+                                System.Diagnostics.Debugger.Break();
                         }
-                        else
-                            System.Diagnostics.Debugger.Break();
-
-
                     }
                 }
                 for (int p = 0; p < this._surfacesNavigational.Count; p++) {
-                    //var feature = this._surfacesNavigational[p];
-                    //if (edgeFeatureNames.Contains(feature.Code)) continue;
-
-                    //for (int i = 0; i < edgeFeatures.Length; i++) {
-                    //    var edgeFeature = this._surfacesNavigational[edgeFeatures[i]];
-
-                    //    //this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
-                    //    //    ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, feature.ExteriorRing),
-                    //    //};
-
-                    //    var line2UniquePart = SnapIfNeededOverlayOp.Intersection(feature.ExteriorRing, edgeFeature.ExteriorRing);
-
-                    //    if (line2UniquePart.IsEmpty) continue;
-
-                    //    if (line2UniquePart is LineString lineString) {
-                    //        this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
-                    //            ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, lineString),
-                    //        };
-                    //    }
-                    //    else if (line2UniquePart is MultiLineString multiLine) {
-                    //        foreach (var sub in multiLine.Cast<LineString>()) {
-                    //            this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
-                    //                ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, sub),
-                    //            };
-                    //        }
-                    //    }
-                    //    else
-                    //        System.Diagnostics.Debugger.Break();
-
-                    //}
                 }
 
 
-                for (int p = 0; p < this._curvesTopology.Count; p++) {
-                    continue;
-                    var feature = this._curvesTopology[p];
-                    if (edgeFeatureNames.Contains(feature.Code)) continue;
+                for (int c = 0; c < this._curvesTopology.Count; c++) {
+                    var contourFeature = this._curvesTopology[c];
+                    if (!contourFeatureNames.Contains(contourFeature.Code)) continue;
 
-                    for (int i = 0; i < edgeFeatures.Length; i++) {
-                        var edgeFeature = this._surfacesNavigational[edgeFeatures[i]];
+                    for (int i = 0; i < this._surfacesTopology.Count; i++) {
+                        var feature = this._surfacesTopology[i];
 
-                        this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
-                            ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, feature.LineString),
-                        };
+                        //if (contourFeature.UID.Equals("F10500048440") && (feature.UID.Equals("F10800061421") || feature.UID.Equals("F10800061378"))) System.Diagnostics.Debugger.Break();
 
-                        //try {
-                        //    var line2UniquePart = SnapIfNeededOverlayOp.Difference(feature.LineString, edgeFeature.ExteriorRing);
+                        var line2UniquePart = SnapIfNeededOverlayOp.Intersection(contourFeature.LineString, feature.ExteriorRing);
 
-                        //    if (line2UniquePart.IsEmpty) continue;
+                        if (line2UniquePart.IsEmpty) continue;
 
-                        //    if (line2UniquePart is LineString lineString) {
-                        //        this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
-                        //            ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, lineString),
-                        //        };
-                        //    }
-                        //    else if (line2UniquePart is MultiLineString multiLine) {
-                        //        foreach (var sub in multiLine.Cast<LineString>()) {
-                        //            this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
-                        //                ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, sub),
-                        //            };
-                        //        }
-                        //    }
-                        //    else
-                        //        System.Diagnostics.Debugger.Break();
+                        if(line2UniquePart is GeometryCollection collection) {
+                            continue;
+                        }
 
-                        //}
-                        //catch (NetTopologySuite.Geometries.TopologyException) {
-                        //    continue;
-                        //}
-                    }
-                }
-                for (int p = 0; p < this._curvesNavigational.Count; p++) {
-                    continue;
-                    var feature = this._curvesNavigational[p];
-                    if (edgeFeatureNames.Contains(feature.Code)) continue;
-
-                    for (int i = 0; i < edgeFeatures.Length; i++) {
-                        var edgeFeature = this._surfacesNavigational[edgeFeatures[i]];
-
-                        this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
-                            ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, feature.LineString),
-                        };
-
-                        //try {
-                        //    var line2UniquePart = SnapIfNeededOverlayOp.Difference(feature.LineString, edgeFeature.ExteriorRing);
-
-                        //    if (line2UniquePart.IsEmpty) continue;
-
-                        //    if (line2UniquePart is LineString lineString) {
-                        //        this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
-                        //            ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, lineString),
-                        //        };
-                        //    }
-                        //    else if (line2UniquePart is MultiLineString multiLine) {
-                        //        foreach (var sub in multiLine.Cast<LineString>()) {
-                        //            this._surfacesNavigational[edgeFeatures[i]] = edgeFeature with {
-                        //                ExteriorRing = InsertMissingVertices(edgeFeature.ExteriorRing, sub),
-                        //            };
-                        //        }
-                        //    }
-                        //    else
-                        //        System.Diagnostics.Debugger.Break();
-
-                        //}
-                        //catch (NetTopologySuite.Geometries.TopologyException) {
-                        //    continue;
-                        //}
+                        if (line2UniquePart is LineString lineString) {
+                            this._surfacesTopology[i] = feature with {
+                                ExteriorRing = InsertMissingVertices(feature.ExteriorRing, lineString),
+                            };
+                        }
+                        else if (line2UniquePart is MultiLineString multiLine) {
+                            foreach (var sub in multiLine.Cast<LineString>()) {
+                                this._surfacesTopology[i] = feature with {
+                                    ExteriorRing = InsertMissingVertices(feature.ExteriorRing, sub),
+                                };
+                                feature = this._surfacesTopology[i];
+                            }
+                        }
+                        else if (line2UniquePart is Point point) {
+                            ;
+                        }
+                        else if (line2UniquePart is MultiPoint multiPoint) {
+                            ;
+                        }
+                        else
+                            System.Diagnostics.Debugger.Break();
                     }
                 }
 
@@ -563,10 +536,8 @@ namespace S100FC.Topology
                         //};
                     }
                 }
-#endif                
-                ;
-
 #endif
+                ;
             }
 
 
@@ -973,7 +944,7 @@ namespace S100FC.Topology
                         linestrings = [.. linestrings, l.Value.curve.LineString];
                     }
 
-                    this._interceptor?.Invoke(7000, [..linestrings.Select(e=>(e,e.ToText()))]);
+                    this._interceptor?.Invoke(7000, [.. linestrings.Select(e => (e, e.ToText()))]);
                 }
             });
 
