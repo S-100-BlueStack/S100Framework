@@ -899,13 +899,13 @@ namespace S100FC.Topology
             }
 
             Parallel.ForEach(this._bagPolygons, ParallelOptions, (polygon) => {
-                var debug = polygon.Name.Equals("F10400000382");
+                //var debug = polygon.Name.Equals("F10400000382");
 
                 //if (polygon.Name.Equals("F10400000382")) System.Diagnostics.Debugger.Break();
 
                 if (!polygon.ExteriorRing.Any()) return;
 
-                var exteriorId = action(polygon.ExteriorRing, LinearRingOrientation.Clockwise, false, () => string.Empty, true);
+                var exteriorId = action(polygon.ExteriorRing, LinearRingOrientation.Clockwise, false, () => string.Empty, false);
 
                 var surface = new SurfaceFeature() {
                     Ref = polygon.Name,
@@ -1014,7 +1014,7 @@ namespace S100FC.Topology
                 AddLineString(curve.Name, curve.LineString);
             }
 
-            this._interceptor?.Invoke(6000, [.. edgeToFeatureMap.Where(e => e.Value.Contains("F10400000382")).Select(e => (e.Key.LineString, string.Join(',', e.Value)))]);
+            //this._interceptor?.Invoke(6000, [.. edgeToFeatureMap.Where(e => e.Value.Contains("F10400000382")).Select(e => (e.Key.LineString, string.Join(',', e.Value)))]);
             //this._interceptor?.Invoke(9002, [.. edgeToFeatureMap.Select(e =>(e.Key.LineString, string.Join(',', e.Value)))]);
 
             this._featureToEdges = new Dictionary<string, List<LineString>>();
