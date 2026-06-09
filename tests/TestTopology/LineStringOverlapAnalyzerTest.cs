@@ -1,10 +1,17 @@
 ﻿using NetTopologySuite.Geometries;
 using NetTopologySuite.IO;
+using Xunit.Abstractions;
 
 namespace TestTopology
 {
-    public class UnitTest1
+    public class LineStringOverlapAnalyzerTest
     {
+        private readonly ITestOutputHelper _output;
+
+        public LineStringOverlapAnalyzerTest(ITestOutputHelper output) {
+            this._output = output;
+        }
+
         [Fact]
         public void Test1() {
             var factory = new GeometryFactory();
