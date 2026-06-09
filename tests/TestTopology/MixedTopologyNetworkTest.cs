@@ -143,6 +143,9 @@ namespace TestTopology
 
             network.Build();
 
+            // All shared edges merged into longest possible linestrings
+            var mergedShared = network.MergeSharedEdges();
+
 
             var spatialReference = SpatialReferenceBuilder.CreateSpatialReference(4326);
 
@@ -159,24 +162,34 @@ namespace TestTopology
 
             int[] edges = [];
 
-            for (int i = 0; i < network.Sources; i++) {
-                var def = network.GetNetworkDefinition(i);
+            foreach (var i in network.Sources) {
+                var def = network.MergeEdgesFor(i);
 
-                foreach (var e in def.SharedEdges) {
-                    if (edges.Contains(e.Id)) continue;
-                    edges = [.. edges, e.Id];
-
-                    buffer_linestring["message"] = $"{e.Id}";
-                    buffer_linestring["shape"] = Shared.ConvertToArcGISPolyline(e.Geometry!, spatialReference);
-                    polylineFC.CreateRow(buffer_linestring);
-                }
-
-                foreach (var e in def.PrivateEdges) {
-                    buffer_linestring["message"] = $"{e.Id}";
+                foreach(var e in def) {
+                    buffer_linestring["message"] = $"{i}";
                     buffer_linestring["shape"] = Shared.ConvertToArcGISPolyline(e.Geometry!, spatialReference);
                     polylineFC.CreateRow(buffer_linestring);
                 }
             }
+
+            //    var def = network.GetNetworkDefinition(i);
+
+            //    foreach (var e in def.SharedEdges) {
+            //        if (edges.Contains(e.Id)) continue;
+            //        edges = [.. edges, e.Id];
+
+            //        buffer_linestring["message"] = $"{e.Id}";
+            //        buffer_linestring["shape"] = Shared.ConvertToArcGISPolyline(e.Geometry!, spatialReference);
+            //        polylineFC.CreateRow(buffer_linestring);
+            //    }
+
+            //    foreach (var e in def.PrivateEdges) {
+            //        buffer_linestring["message"] = $"{e.Id}";
+            //        buffer_linestring["shape"] = Shared.ConvertToArcGISPolyline(e.Geometry!, spatialReference);
+            //        polylineFC.CreateRow(buffer_linestring);
+            //    }
+            //}
+
 
 
             System.Diagnostics.Debugger.Break();
@@ -236,7 +249,7 @@ namespace TestTopology
         private readonly Dictionary<int, List<NetworkEdge>> _edgesBySource = new();
         private STRtree<NetworkEdge>? _edgeIndex = default;
 
-        public int Sources => _sources.Count;
+        public IEnumerable<int> Sources => this._sources.Select(e => e.Id);
 
         public IReadOnlyList<NetworkEdge> Edges => _edges;
         public IReadOnlyCollection<NetworkNode> Nodes => _nodes.Values;
@@ -470,6 +483,204 @@ namespace TestTopology
                 Neighbours = neighbours,
             };
         }
+
+        public enum EdgeRingKind
+        {
+            ExteriorRing,
+            InteriorRing,
+            LineString,
+            Mixed,        // shared between geometries of different kinds
+        }
+
+
+
+        public class MergedEdgeClassification
+        {
+            public EdgeRingKind Kind { get; init; }
+            public int? RingIndex { get; init; }   // null for exterior, 0..n for interior holes
+            public NetworkGeometry Source { get; init; }
+        }
+
+
+        /// <summary>
+        /// Merges collinear/sequential shared edges into the longest possible
+        /// LineStrings, respecting source-geometry boundaries.
+        /// </summary>
+        public List<MergedEdge> MergeSharedEdges() {
+            return MergeEdgeSet(GetAllSharedEdges());
+        }
+
+        /// <summary>
+        /// Merge edges for a specific source geometry.
+        /// </summary>
+        public List<MergedEdge> MergeEdgesFor(int sourceId) {
+            return MergeEdgeSet(GetEdgesFor(sourceId));
+        }
+
+        private List<MergedEdge> MergeEdgeSet(IEnumerable<NetworkEdge> edgeSet) {
+            var edges = edgeSet.ToHashSet();
+            if (edges.Count == 0) return new List<MergedEdge>();
+
+            // Build a local adjacency: coord -> edges in this set only
+            var adjacency = new Dictionary<CoordinateKey, List<NetworkEdge>>();
+
+            void Touch(Coordinate c, NetworkEdge e) {
+                var key = new CoordinateKey(c, _snapTolerance);
+                if (!adjacency.TryGetValue(key, out var list))
+                    adjacency[key] = list = new List<NetworkEdge>();
+                list.Add(e);
+            }
+
+            foreach (var edge in edges) {
+                Touch(edge.StartNode, edge);
+                Touch(edge.EndNode, edge);
+            }
+
+            var visited = new HashSet<int>();   // edge ids already consumed
+            var result = new List<MergedEdge>();
+
+            foreach (var startEdge in edges) {
+                if (visited.Contains(startEdge.Id)) continue;
+
+                // Walk in both directions from this edge, collecting a chain
+                var chain = WalkChain(startEdge, edges, adjacency, visited);
+
+                // Order the chain coordinates into a single LineString
+                var coords = ChainToCoordinates(chain);
+                var sourceSets = chain.Select(e => e.SourceGeometryIds).ToList();
+
+                result.Add(new MergedEdge {
+                    Geometry = _factory.CreateLineString(coords),
+                    SourceGeometryIds = chain
+                        .SelectMany(e => e.SourceGeometryIds)
+                        .Distinct()
+                        .ToHashSet(),
+                    ConstituentEdges = chain,
+                });
+            }
+
+            return result;
+        }
+
+        // -------------------------------------------------------------------------
+        // Chain walker
+        // -------------------------------------------------------------------------
+
+        private List<NetworkEdge> WalkChain(
+            NetworkEdge seed,
+            HashSet<NetworkEdge> edgeSet,
+            Dictionary<CoordinateKey, List<NetworkEdge>> adjacency,
+            HashSet<int> visited) {
+            visited.Add(seed.Id);
+
+            // Walk forward from seed.EndNode, backward from seed.StartNode
+            var forward = Walk(seed.EndNode, seed, edgeSet, adjacency, visited);
+            var backward = Walk(seed.StartNode, seed, edgeSet, adjacency, visited);
+
+            // Chain = reversed-backward + seed + forward
+            backward.Reverse();
+            var chain = new List<NetworkEdge>(backward.Count + 1 + forward.Count);
+            chain.AddRange(backward);
+            chain.Add(seed);
+            chain.AddRange(forward);
+            return chain;
+        }
+
+        private List<NetworkEdge> Walk(
+            Coordinate fromCoord,
+            NetworkEdge incoming,
+            HashSet<NetworkEdge> edgeSet,
+            Dictionary<CoordinateKey, List<NetworkEdge>> adjacency,
+            HashSet<int> visited) {
+            var result = new List<NetworkEdge>();
+            var current = incoming;
+            var currentCoord = fromCoord;
+
+            while (true) {
+                var key = new CoordinateKey(currentCoord, _snapTolerance);
+                if (!adjacency.TryGetValue(key, out var neighbours)) break;
+
+                // Candidates: edges in the set, not already visited, not the current one
+                var next = neighbours
+                    .Where(e => !visited.Contains(e.Id)
+                             && e.Id != current.Id
+                             && edgeSet.Contains(e))
+                    .ToList();
+
+                // Stop if junction (more than one continuation) or dead end
+                if (next.Count != 1) break;
+
+                var nextEdge = next[0];
+
+                // Stop if source-geometry set changes — different topology boundary
+                if (!nextEdge.SourceGeometryIds.SetEquals(current.SourceGeometryIds))
+                    break;
+
+                visited.Add(nextEdge.Id);
+                result.Add(nextEdge);
+
+                // Advance: move to the other end of nextEdge
+                currentCoord = nextEdge.StartNode.Equals2D(currentCoord, _snapTolerance)
+                    ? nextEdge.EndNode
+                    : nextEdge.StartNode;
+                current = nextEdge;
+            }
+
+            return result;
+        }
+
+        // -------------------------------------------------------------------------
+        // Stitch coordinates from an ordered edge chain into one coordinate array
+        // -------------------------------------------------------------------------
+
+        private Coordinate[] ChainToCoordinates(List<NetworkEdge> chain) {
+            if (chain.Count == 0) return Array.Empty<Coordinate>();
+            if (chain.Count == 1)
+                return chain[0].Geometry.Coordinates.ToArray();
+
+            var coords = new List<Coordinate>();
+
+            for (int i = 0; i < chain.Count; i++) {
+                var edge = chain[i];
+                var edgeCs = edge.Geometry.Coordinates;
+
+                if (i == 0) {
+                    // Determine orientation vs next edge
+                    var nextEdge = chain[1];
+                    bool forward = ConnectsTo(edge, nextEdge, fromEnd: true);
+                    coords.AddRange(forward ? edgeCs : edgeCs.Reverse());
+                }
+                else {
+                    // Orient so first coord == last coord already added
+                    var last = coords[^1];
+                    bool startMatches = edgeCs[0].Equals2D(last, _snapTolerance);
+                    var oriented = startMatches ? edgeCs : edgeCs.Reverse();
+
+                    // Skip the first coord — it's the same as the last one added
+                    coords.AddRange(oriented.Skip(1));
+                }
+            }
+
+            return coords.ToArray();
+        }
+
+        private bool ConnectsTo(NetworkEdge edge, NetworkEdge other, bool fromEnd) {
+            var coord = fromEnd ? edge.EndNode : edge.StartNode;
+            return coord.Equals2D(other.StartNode, _snapTolerance)
+                || coord.Equals2D(other.EndNode, _snapTolerance);
+        }
+
+    }
+
+    public class MergedEdge
+    {
+        public LineString Geometry { get; init; }
+        public HashSet<int> SourceGeometryIds { get; init; }
+        public List<NetworkEdge> ConstituentEdges { get; init; }
+
+        public bool IsShared => SourceGeometryIds.Count > 1;
+        public double Length => Geometry.Length;
+        public int SegmentCount => ConstituentEdges.Count;
     }
 
     /// <summary>
