@@ -27,7 +27,8 @@ namespace S100Framework.Topology
 
         private readonly MixedTopologyNetwork _mixedTopologyNetwork;
 
-        private readonly Dictionary<string, int> _featureMapper = [];
+        private readonly Dictionary<string, PolygonSource> _featureMapperPolygons = [];
+        private readonly Dictionary<string, int> _featureMapperLineStrings = [];
 
         protected Reloaded() {
             //  Default protected constructor            
@@ -53,6 +54,14 @@ namespace S100Framework.Topology
             this._mixedTopologyNetwork.Build();
 
             foreach (var id in this._mixedTopologyNetwork.Sources) {
+                if (this._featureMapperLineStrings.ContainsValue(id)) {
+
+                }
+                else {
+                    var p = this._featureMapperPolygons.Single(e => e.Value.ExteriorRing == id || e.Value.InteriorRing.Contains(id));
+                }
+
+
                 var mergedEdges = this._mixedTopologyNetwork.MergeEdgesFor(id);
 
                 foreach(var edge in mergedEdges) {
@@ -84,6 +93,8 @@ namespace S100Framework.Topology
 
         private readonly ConcurrentDictionary<ulong, (FeatureRef fetureRef, CurveFeature curve)> _hashing = new ConcurrentDictionary<ulong, (FeatureRef fetureRef, CurveFeature curve)>();
 
+        public record PolygonSource(int ExteriorRing, int[] InteriorRing);
+
         private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
             foreach (var surface in surfaces) {
                 Func<NetTopologySuite.Geometries.Polygon> createPolygon = surface.InteriorRings.Any() switch {
@@ -98,13 +109,23 @@ namespace S100Framework.Topology
                 };
                 var polygon = createPolygon();
 
-                var id = this._mixedTopologyNetwork.AddPolygon(polygon);
-                this._featureMapper.Add(surface.UID, id);
+                var idExteriorRing = this._mixedTopologyNetwork.AddLineString(polygon.ExteriorRing);
+                var idInteriorRings = new int[0];
+                foreach(var interior in polygon.InteriorRings) {
+                    var id = this._mixedTopologyNetwork.AddLineString(interior);
+                    idInteriorRings = [.. idInteriorRings, id];
+                }
+
+                var p = new PolygonSource(idExteriorRing, idInteriorRings);
+                this._featureMapperPolygons.Add(surface.UID, p);
+
+                //var id = this._mixedTopologyNetwork.AddPolygon(polygon);
+                //this._featureMapper.Add(surface.UID, id);
             }
 
             foreach (var curve in curves) {
                 var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
-                this._featureMapper.Add(curve.UID, id);
+                this._featureMapperLineStrings.Add(curve.UID, id);
             }
 
             return this;
