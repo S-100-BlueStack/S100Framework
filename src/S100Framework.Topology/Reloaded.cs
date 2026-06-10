@@ -54,14 +54,6 @@ namespace S100Framework.Topology
             this._mixedTopologyNetwork.Build();
 
             foreach (var id in this._mixedTopologyNetwork.Sources) {
-                if (this._featureMapperLineStrings.ContainsValue(id)) {
-
-                }
-                else {
-                    var p = this._featureMapperPolygons.Single(e => e.Value.ExteriorRing == id || e.Value.InteriorRing.Contains(id));
-                }
-
-
                 var mergedEdges = this._mixedTopologyNetwork.MergeEdgesFor(id);
 
                 foreach(var edge in mergedEdges) {
@@ -78,6 +70,15 @@ namespace S100Framework.Topology
                         Reverse = true,
                     }, f));
                 }
+
+                if (this._featureMapperLineStrings.ContainsValue(id)) {
+                    var linestring = this._featureMapperLineStrings.Single(e => e.Value == id);
+                    
+                }
+                else {
+                    var polygon = this._featureMapperPolygons.Single(e => e.Value.ExteriorRing == id || e.Value.InteriorRing.Contains(id));
+                }
+                
             }
 
             return this;
