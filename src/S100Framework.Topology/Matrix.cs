@@ -26,7 +26,7 @@ namespace S100FC.Topology
     {
         public CurveFeature(LineString lineString) {
             this.LineString = lineString;
-            this.LineStringReverse = (LineString)lineString.Reverse();
+            this.LineStringReverse = lineString.Factory.CreateLineString([.. lineString.Coordinates.Reverse()]);
 
             this.LineStringText = lineString.ToString();
             this.LineStringReverseText = this.LineStringReverse.ToString();
@@ -98,32 +98,32 @@ namespace S100FC.Topology
     public record Polygon(long ObjectId, string Name, string Code, LineString ExteriorRing, LineString[] InteriorRings) : Polyline(ObjectId, Name, Code, ExteriorRing, Name);
 
 
-    public class CurveContainer
-    {
-        private readonly Dictionary<UInt64, CurveFeature> _feature = [];
-        private readonly Dictionary<ulong, (UInt64 Id, bool Reverse)> _keys = [];
+    //public class CurveContainer
+    //{
+    //    private readonly Dictionary<UInt64, CurveFeature> _feature = [];
+    //    private readonly Dictionary<ulong, (UInt64 Id, bool Reverse)> _keys = [];
 
-        public ICollection<CurveFeature> CurveFeatures => this._feature.Values;
+    //    public ICollection<CurveFeature> CurveFeatures => this._feature.Values;
 
-        public (UInt64 Id, bool Reverse) AddOrGet(LineString lineString) {
-            var keyStraight = System.IO.Hashing.XxHash3.HashToUInt64(lineString.AsBinary());
-            var keyReverse = System.IO.Hashing.XxHash3.HashToUInt64(lineString.Reverse().AsBinary());
+    //    public (UInt64 Id, bool Reverse) AddOrGet(LineString lineString) {
+    //        var keyStraight = System.IO.Hashing.XxHash3.HashToUInt64(lineString.AsBinary());
+    //        var keyReverse = System.IO.Hashing.XxHash3.HashToUInt64(lineString.Reverse().AsBinary());
 
-            var curve = new CurveFeature(lineString);
+    //        var curve = new CurveFeature(lineString);
 
-            lock (this) {
-                if (this._keys.ContainsKey(keyStraight)) {
-                    var value = this._keys[keyStraight];
-                    return (value.Id, value.Reverse);
-                }
-                this._feature.Add(curve.Id, curve);
-                this._keys.Add(keyStraight, (curve.Id, false));
-                this._keys.Add(keyReverse, (curve.Id, true));
+    //        lock (this) {
+    //            if (this._keys.ContainsKey(keyStraight)) {
+    //                var value = this._keys[keyStraight];
+    //                return (value.Id, value.Reverse);
+    //            }
+    //            this._feature.Add(curve.Id, curve);
+    //            this._keys.Add(keyStraight, (curve.Id, false));
+    //            this._keys.Add(keyReverse, (curve.Id, true));
 
-                return (curve.Id, false);
-            }
-        }
-    }
+    //            return (curve.Id, false);
+    //        }
+    //    }
+    //}
 
     public class CompositeCurveContainer
     {

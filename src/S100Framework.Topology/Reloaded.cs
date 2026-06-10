@@ -21,6 +21,17 @@ namespace S100Framework.Topology
 
     public class Reloaded : ITopologyBuilder, IMatrixReloaded
     {
+        private class Surface
+        {
+            public int Id { get; init; }
+
+            public required string Exterior { get; init; }
+
+            public string[]? Interior { get; set; } = default;
+
+            public string Name => $"S{this.Id}";
+        }
+
         public static GeometryFactory Factory { get; set; } = new GeometryFactory(new PrecisionModel(100000000), srid: 4326);
 
         private Action<(LineString lineString, string message)[]>? _interceptor;
@@ -29,6 +40,8 @@ namespace S100Framework.Topology
 
         private readonly Dictionary<string, PolygonSource> _featureMapperPolygons = [];
         private readonly Dictionary<string, int> _featureMapperLineStrings = [];
+
+        private readonly Dictionary<string, string> _mapping = [];
 
         protected Reloaded() {
             //  Default protected constructor            
@@ -49,50 +62,110 @@ namespace S100Framework.Topology
         ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, curves, false);
 
         IMatrix ITopologyBuilder.BuildTopology() {
-            this._hashing.Clear();
-
+            this._mapping.Clear();
             this._mixedTopologyNetwork.Build();
 
+            var featureRefs = new Dictionary<ulong, FeatureRef>();
+
+            var source2featureRefs = new Dictionary<int, ulong>();
+
+            var ids = new Dictionary<int, Func<string>>();
+
+            //  Create all curves and composite curves
+            //  ------------------------------------------------------------------------------------------------
             foreach (var id in this._mixedTopologyNetwork.Sources) {
                 var mergedEdges = this._mixedTopologyNetwork.MergeEdgesFor(id);
 
-                foreach(var edge in mergedEdges) {
-                    var hash = System.IO.Hashing.XxHash3.HashToUInt64(edge.Geometry.AsBinary());
+                FeatureRef[] refs = [];
 
-                    var f = new CurveFeature(edge.Geometry);
-                    var r = this._hashing.GetOrAdd(hash, (new FeatureRef {
-                        Id = f.Id,
-                        Reverse = false,
-                    }, f));
-                    hash = System.IO.Hashing.XxHash3.HashToUInt64(f.LineString.Reverse().AsBinary());
-                    r = this._hashing.GetOrAdd(hash, (new FeatureRef {
-                        Id = f.Id,
-                        Reverse = true,
-                    }, f));
+                foreach (var edge in mergedEdges) {
+                    var hash = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.ToBinary());
+
+                    if (!featureRefs.ContainsKey(hash)) {
+                        var curve = new CurveFeature(edge.Geometry);
+
+                        featureRefs.Add(curve.Id, new FeatureRef {
+                            Id = curve.Id,
+                            Reverse = false,
+                        });
+
+                        featureRefs.Add(System.IO.Hashing.XxHash3.HashToUInt64(curve.LineStringReverse.AsBinary()), new FeatureRef {
+                            Id = curve.Id,
+                            Reverse = true,
+                        });
+
+                        this._curves.Add(curve.Id, curve);
+                    }
+
+                    refs = [.. refs, featureRefs[hash]];
                 }
 
-                if (this._featureMapperLineStrings.ContainsValue(id)) {
-                    var linestring = this._featureMapperLineStrings.Single(e => e.Value == id);
-                    
+                if (refs.Length > 1) {
+                    var compositecurve = new CompositeCurveFeature(refs);
+                    if (!this._compositecurves.ContainsKey(compositecurve.Id))
+                        this._compositecurves.Add(compositecurve.Id, compositecurve);
+
+                    ids.Add(id, () => $"C{compositecurve.Id}");
+
+                    source2featureRefs.Add(id, compositecurve.Id);
                 }
                 else {
-                    var polygon = this._featureMapperPolygons.Single(e => e.Value.ExteriorRing == id || e.Value.InteriorRing.Contains(id));
+                    ids.Add(id, refs[0].Reverse ? () => $"RC{refs[0].Id}" : () => $"C{refs[0].Id}");
+
+                    source2featureRefs.Add(id, refs[0].Id);
                 }
-                
             }
+
+            //  Create mapping
+            //  ------------------------------------------------------------------------------------------------
+            foreach (var id in this._mixedTopologyNetwork.Sources) {
+                if (this._featureMapperLineStrings.ContainsValue(id)) {
+                    var linestring = this._featureMapperLineStrings.Single(e => e.Value == id);
+
+                    var uid = linestring.Key;
+
+                    this._mapping.Add(uid, ids[id]());
+                }
+                //else {
+                //    var polygon = this._featureMapperPolygons.Single(e => e.Value.ExteriorRing == id || e.Value.InteriorRing.Contains(id));
+
+                //    var surface = new SurfaceFeature() {
+                //        Ref = polygon.Key,
+                //        Exterior = ids[polygon.Value.ExteriorRing](),
+                //    };
+
+                //}
+
+            }
+
+            foreach(var polygon in this._featureMapperPolygons) {
+                var uid = polygon.Key;
+
+                var surface = new SurfaceFeature {
+                    Id =0,
+                    Exterior = featureRefs[source2featureRefs[polygon.Value.ExteriorRing]],
+                    Interior = [..polygon.Value.InteriorRing.Select(e => featureRefs[source2featureRefs[e]])]
+                };
+
+                this._mapping.Add(uid, $"S{surface.Id}");
+            }
+
+            if (this._mapping.Any(e => e.Value.StartsWith("RC"))) System.Diagnostics.Debugger.Break();
 
             return this;
         }
 
-        IEnumerable<CurveFeature> IMatrix.Curves => throw new NotImplementedException();
+        private IDictionary<ulong,CurveFeature> _curves = new Dictionary<ulong, CurveFeature>();
+        private IDictionary<ulong, CompositeCurveFeature> _compositecurves = new Dictionary<ulong, CompositeCurveFeature>();
+        private IDictionary<ulong, SurfaceFeature> _surfaces = new Dictionary<ulong, SurfaceFeature>();
 
-        IEnumerable<CompositeCurveFeature> IMatrix.CompositeCurves => throw new NotImplementedException();
+        IEnumerable<CurveFeature> IMatrix.Curves => this._curves.Values;
 
-        IEnumerable<SurfaceFeature> IMatrix.Surfaces => throw new NotImplementedException();
+        IEnumerable<CompositeCurveFeature> IMatrix.CompositeCurves => this._compositecurves.Values;
+
+        IEnumerable<SurfaceFeature> IMatrix.Surfaces => this._surfaces.Values;
 
         IDictionary<string, string> IMatrix.MappingFOID => throw new NotImplementedException();
-
-        private readonly ConcurrentDictionary<ulong, (FeatureRef fetureRef, CurveFeature curve)> _hashing = new ConcurrentDictionary<ulong, (FeatureRef fetureRef, CurveFeature curve)>();
 
         public record PolygonSource(int ExteriorRing, int[] InteriorRing);
 
@@ -112,7 +185,7 @@ namespace S100Framework.Topology
 
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(polygon.ExteriorRing);
                 var idInteriorRings = new int[0];
-                foreach(var interior in polygon.InteriorRings) {
+                foreach (var interior in polygon.InteriorRings) {
                     var id = this._mixedTopologyNetwork.AddLineString(interior);
                     idInteriorRings = [.. idInteriorRings, id];
                 }
