@@ -67,6 +67,7 @@ namespace S100FC.Topology
             this._mixedTopologyNetwork.Build();
 
             var featureRefs = new Dictionary<ulong, FeatureRef>();
+            var featureRefsRevers = new Dictionary<ulong, ulong>();
 
             var source2featureRefs = new Dictionary<int, ulong>();
 
@@ -92,17 +93,19 @@ namespace S100FC.Topology
                             Reverse = false,
                         });
 
-                        featureRefs.Add(System.IO.Hashing.XxHash3.HashToUInt64(curve.LineStringReverse.AsBinary()), new FeatureRef {
+                        var reverse = System.IO.Hashing.XxHash3.HashToUInt64(curve.LineStringReverse.AsBinary());
+                        featureRefs.Add(reverse, new FeatureRef {
                             Id = curve.Id,
                             Reverse = true,
                         });
+                        featureRefsRevers.Add(curve.Id, reverse);
 
                         this._curves.Add(curve.Id, curve);
                     }
 
                     refs = [.. refs, featureRefs[hash]];
 
-                    linemerger.Add(edge.Geometry);                    
+                    linemerger.Add(edge.Geometry);
                 }
 
                 if (refs.Length > 1) {
@@ -114,12 +117,17 @@ namespace S100FC.Topology
 
                     var sortedlist = new SortedList<int, FeatureRef>();
 
-                    foreach(var e in refs) {
+                    foreach (var e in refs) {
                         var curve = this._curves[e.Id];
 
                         var text = curve.LineStringText.Substring("LINESTRING (".Length).TrimEnd(')');
 
-                        sortedlist.Add(IndexOfSegment(mergedText,text),e);
+                        if (ContainsSegment(mergedText, text))
+                            sortedlist.Add(IndexOfSegment(mergedText, text), e);
+                        else {
+                            text = curve.LineStringReverseText.Substring("LINESTRING (".Length).TrimEnd(')');
+                            sortedlist.Add(IndexOfSegment(mergedText, text), featureRefs[featureRefsRevers[e.Id]]);
+                        }
                     }
 
                     var compositecurve = new CompositeCurveFeature(refs);
@@ -166,14 +174,14 @@ namespace S100FC.Topology
 
             }
 
-            foreach(var polygon in this._featureMapperPolygons) {
+            foreach (var polygon in this._featureMapperPolygons) {
                 var uid = polygon.Key;
 
                 var surface = new SurfaceFeature {
                     Id = ulong.Parse(uid.Substring(1)),
                     Exterior = featureRefs[source2featureRefs[polygon.Value.ExteriorRing]],
-                    Interior = [..polygon.Value.InteriorRing.Select(e => featureRefs[source2featureRefs[e]])],
-                    Ref = uid,                    
+                    Interior = [.. polygon.Value.InteriorRing.Select(e => featureRefs[source2featureRefs[e]])],
+                    Ref = uid,
                 };
 
                 if (!this._surfaces.ContainsKey(surface.Id))
@@ -187,7 +195,7 @@ namespace S100FC.Topology
             return this;
         }
 
-        private IDictionary<ulong,CurveFeature> _curves = new Dictionary<ulong, CurveFeature>();
+        private IDictionary<ulong, CurveFeature> _curves = new Dictionary<ulong, CurveFeature>();
         private IDictionary<ulong, CompositeCurveFeature> _compositecurves = new Dictionary<ulong, CompositeCurveFeature>();
         private IDictionary<ulong, SurfaceFeature> _surfaces = new Dictionary<ulong, SurfaceFeature>();
 
