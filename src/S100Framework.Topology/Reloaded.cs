@@ -9,8 +9,10 @@ using System.Text;
 
 namespace S100FC.Topology
 {
+    using NetTopologySuite.Operation.Linemerge;
     using S100Framework.Topology.Internal;
     using System.Collections.Concurrent;
+    using System.Diagnostics;
     using System.Net;
 
     public interface IMatrixReloaded : IMatrix
@@ -77,6 +79,8 @@ namespace S100FC.Topology
 
                 FeatureRef[] refs = [];
 
+                var linemerger = new LineMerger();
+
                 foreach (var edge in mergedEdges) {
                     var hash = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.ToBinary());
 
@@ -97,9 +101,27 @@ namespace S100FC.Topology
                     }
 
                     refs = [.. refs, featureRefs[hash]];
+
+                    linemerger.Add(edge.Geometry);                    
                 }
 
                 if (refs.Length > 1) {
+
+                    var merged = linemerger.GetMergedLineStrings();
+                    Debug.Assert(merged.Count == 1);
+
+                    var mergedText = merged[0].ToText();
+
+                    var sortedlist = new SortedList<int, FeatureRef>();
+
+                    foreach(var e in refs) {
+                        var curve = this._curves[e.Id];
+
+                        var text = curve.LineStringText.Substring("LINESTRING (".Length).TrimEnd(')');
+
+                        sortedlist.Add(IndexOfSegment(mergedText,text),e);
+                    }
+
                     var compositecurve = new CompositeCurveFeature(refs);
                     if (!this._compositecurves.ContainsKey(compositecurve.Id))
                         this._compositecurves.Add(compositecurve.Id, compositecurve);
@@ -178,6 +200,34 @@ namespace S100FC.Topology
         IDictionary<string, string> IMatrix.MappingFOID => this._mapping;
 
         public record PolygonSource(int ExteriorRing, int[] InteriorRing);
+
+        private static bool ContainsSegment(string lineString, string segment) {
+            if (lineString.Equals(segment)) return true;
+
+            if (lineString.Contains(segment + ",")) return true;
+            if (lineString.Contains(", " + segment)) return true;
+
+            //  MultiLineString
+            if (lineString.Contains(segment + ")")) return true;
+            if (lineString.Contains(segment + "),")) return true;
+            if (lineString.Contains("), " + segment)) return true;
+
+            return false;
+        }
+
+        private static int IndexOfSegment(string lineString, string segment) {
+            if (lineString.Equals(segment)) return 0;
+
+            if (lineString.Contains(segment + ",")) return lineString.IndexOf(segment + ",");
+            if (lineString.Contains(", " + segment)) return lineString.IndexOf(", " + segment);
+
+            //  MultiLineString
+            if (lineString.Contains(segment + ")")) return lineString.IndexOf(segment + ")");
+            if (lineString.Contains(segment + "),")) return lineString.IndexOf(segment + "),");
+            if (lineString.Contains("), " + segment)) return lineString.IndexOf("), " + segment);
+
+            throw new IndexOutOfRangeException();
+        }
 
         private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
             foreach (var surface in surfaces) {
