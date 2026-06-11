@@ -89,7 +89,7 @@
 
         public static void UpdateFeatureReferences(this Dataset dataset, string original, string target) {
             if (original == target) {
-                Log.Error("Error! Original cant be same as target!");
+                //Log.Error("Error! Original cant be same as target!");
                 return;
             }
 

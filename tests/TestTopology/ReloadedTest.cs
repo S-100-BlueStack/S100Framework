@@ -29,11 +29,14 @@ namespace TestTopology
 
         [Fact]
         public void Test1() {
-            var reloaded = Reloaded.CreateMatrix((args) => {
+            var factory = new GeometryFactory(new PrecisionModel(10000000), srid: 4326); // Or PrecisionModels.Floating
+            S100FC.Topology.Reloaded.Factory = factory;
+
+            var reloaded = Reloaded.CreateMatrix((code, colelction) => {
 
             });
 
-            var builder = LoadGeodatabase((ITopologyBuilder)reloaded, @"E:\ArcGIS\Projects\DK0040339E\s100ed14.geodatabase", reloaded.Factory);
+            var builder = LoadGeodatabase((ITopologyBuilder)reloaded, @"C:\Users\B061450\Documents\ArcGIS\Projects\101DK0040339E\s100ed14.geodatabase", factory);
 
             builder.BuildTopology();
         }

@@ -158,7 +158,8 @@ namespace ArcGIS.Core.Geometry
             var definitions = geodatabase.GetDefinitions<FeatureClassDefinition>();
 
 
-            var matrix = S100FC.Topology.Matrix.CreateMatrix(interceptor);
+            //var matrix = S100FC.Topology.Matrix.CreateMatrix(interceptor);
+            var matrix = S100FC.Topology.Reloaded.CreateMatrix(interceptor);
 
             S100FC.Topology.ITopologyBuilder? builder = default;
 

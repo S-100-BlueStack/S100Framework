@@ -2,13 +2,12 @@
 using NetTopologySuite.Algorithm;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Index.Strtree;
-using S100FC.Topology;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 
-namespace S100Framework.Topology
+namespace S100FC.Topology
 {
     using S100Framework.Topology.Internal;
     using System.Collections.Concurrent;
@@ -32,9 +31,9 @@ namespace S100Framework.Topology
             public string Name => $"S{this.Id}";
         }
 
-        public static GeometryFactory Factory { get; set; } = new GeometryFactory(new PrecisionModel(100000000), srid: 4326);
+        public static GeometryFactory Factory { get; set; } = new GeometryFactory(new PrecisionModel(10000000), srid: 4326); // Or PrecisionModels.Floating
 
-        private Action<(LineString lineString, string message)[]>? _interceptor;
+        private Action<int, ICollection<(LineString lineString, string message)>>? _interceptor;
 
         private readonly MixedTopologyNetwork _mixedTopologyNetwork;
 
@@ -49,7 +48,7 @@ namespace S100Framework.Topology
             this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory, snapTolerance: 0.000000001);
         }
 
-        public static IMatrixReloaded CreateMatrix(Action<(LineString lineString, string message)[]>? interceptor = default) {
+        public static ITopologyBuilder CreateMatrix(Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default) {
             return new Reloaded() {
                 _interceptor = interceptor,
             };
@@ -108,6 +107,13 @@ namespace S100Framework.Topology
                     ids.Add(id, () => $"C{compositecurve.Id}");
 
                     source2featureRefs.Add(id, compositecurve.Id);
+
+                    if (!featureRefs.ContainsKey(compositecurve.Id)) {
+                        featureRefs.Add(compositecurve.Id, new FeatureRef {
+                            Id = compositecurve.Id,
+                            Reverse = false,
+                        });
+                    }
                 }
                 else {
                     ids.Add(id, refs[0].Reverse ? () => $"RC{refs[0].Id}" : () => $"C{refs[0].Id}");
@@ -142,10 +148,14 @@ namespace S100Framework.Topology
                 var uid = polygon.Key;
 
                 var surface = new SurfaceFeature {
-                    Id =0,
+                    Id = ulong.Parse(uid.Substring(1)),
                     Exterior = featureRefs[source2featureRefs[polygon.Value.ExteriorRing]],
-                    Interior = [..polygon.Value.InteriorRing.Select(e => featureRefs[source2featureRefs[e]])]
+                    Interior = [..polygon.Value.InteriorRing.Select(e => featureRefs[source2featureRefs[e]])],
+                    Ref = uid,                    
                 };
+
+                if (!this._surfaces.ContainsKey(surface.Id))
+                    this._surfaces.Add(surface.Id, surface);
 
                 this._mapping.Add(uid, $"S{surface.Id}");
             }
@@ -165,7 +175,7 @@ namespace S100Framework.Topology
 
         IEnumerable<SurfaceFeature> IMatrix.Surfaces => this._surfaces.Values;
 
-        IDictionary<string, string> IMatrix.MappingFOID => throw new NotImplementedException();
+        IDictionary<string, string> IMatrix.MappingFOID => this._mapping;
 
         public record PolygonSource(int ExteriorRing, int[] InteriorRing);
 
@@ -191,7 +201,8 @@ namespace S100Framework.Topology
                 }
 
                 var p = new PolygonSource(idExteriorRing, idInteriorRings);
-                this._featureMapperPolygons.Add(surface.UID, p);
+                this._featureMapperPolygons.Add(surface.Name, p);
+                //this._featureMapperPolygons.Add(surface.UID, p);
 
                 //var id = this._mixedTopologyNetwork.AddPolygon(polygon);
                 //this._featureMapper.Add(surface.UID, id);
@@ -199,7 +210,8 @@ namespace S100Framework.Topology
 
             foreach (var curve in curves) {
                 var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
-                this._featureMapperLineStrings.Add(curve.UID, id);
+                this._featureMapperLineStrings.Add(curve.Name, id);
+                //this._featureMapperLineStrings.Add(curve.UID, id);
             }
 
             return this;
