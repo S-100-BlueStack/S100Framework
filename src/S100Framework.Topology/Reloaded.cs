@@ -120,8 +120,10 @@ namespace S100FC.Topology
                 var merged = linemerger.GetMergedLineStrings();
                 Debug.Assert(merged.Count == 1);
                 
-                if (curves.Any(e => RingsEqual(e.Value, (LineString)merged[0]))) {
-                    var _ = curves.Single(e => RingsEqual(e.Value, (LineString)merged[0]));
+                if (curves.Any(e => RingsEqual(e.Value, (LineString)merged[0], out bool reverse))) {
+                    var _ = curves.Single(e => RingsEqual(e.Value, (LineString)merged[0], out bool reverse));
+
+                    REVERSE
 
                     ids.Add(id, () => $"C{_.Key.Id}");
                     source2featureRefs.Add(id, _.Key.Id);
@@ -268,7 +270,9 @@ namespace S100FC.Topology
             return this;
         }
 
-        private static bool RingsEqual(LineString a, LineString b) {
+        private static bool RingsEqual(LineString a, LineString b, out bool reverse) {
+            reverse = false;
+
             var coordsA = a.Coordinates.Take(a.Coordinates.Length - 1).ToArray();
             var coordsB = b.Coordinates.Take(b.Coordinates.Length - 1).ToArray();
 
@@ -291,6 +295,7 @@ namespace S100FC.Topology
                     }
                     if (match) return true;
                 }
+                reverse = true;
             }
 
             return false;
