@@ -73,6 +73,12 @@ namespace S100FC.Topology
 
             var ids = new Dictionary<int, Func<string>>();
 
+
+            //var depthArea = this._featureMapperPolygons["F10800045543"];
+            //var landArea = this._featureMapperPolygons["F10800023692"];
+
+            var curves = new Dictionary<FeatureRef, LineString>();
+
             //  Create all curves and composite curves
             //  ------------------------------------------------------------------------------------------------
             foreach (var id in this._mixedTopologyNetwork.Sources) {
@@ -108,11 +114,21 @@ namespace S100FC.Topology
                     linemerger.Add(edge.Geometry);
                 }
 
+                //if (id == landArea.ExteriorRing) System.Diagnostics.Debugger.Break();
+                //if (id == depthArea.InteriorRing[1]) System.Diagnostics.Debugger.Break();
+
+                var merged = linemerger.GetMergedLineStrings();
+                Debug.Assert(merged.Count == 1);
+                
+                if (curves.Any(e => RingsEqual(e.Value, (LineString)merged[0]))) {
+                    var _ = curves.Single(e => RingsEqual(e.Value, (LineString)merged[0]));
+
+                    ids.Add(id, () => $"C{_.Key.Id}");
+                    source2featureRefs.Add(id, _.Key.Id);
+                    continue;
+                }
+
                 if (refs.Length > 1) {
-
-                    var merged = linemerger.GetMergedLineStrings();
-                    Debug.Assert(merged.Count == 1);
-
                     var mergedText = merged[0].ToText();
 
                     var sortedlist = new SortedList<int, FeatureRef>();
@@ -130,26 +146,31 @@ namespace S100FC.Topology
                         }
                     }
 
-                    var compositecurve = new CompositeCurveFeature(refs);
+                    var compositecurve = new CompositeCurveFeature([.. sortedlist.Values]);
                     if (!this._compositecurves.ContainsKey(compositecurve.Id))
                         this._compositecurves.Add(compositecurve.Id, compositecurve);
 
                     ids.Add(id, () => $"C{compositecurve.Id}");
-
                     source2featureRefs.Add(id, compositecurve.Id);
 
                     if (!featureRefs.ContainsKey(compositecurve.Id)) {
-                        featureRefs.Add(compositecurve.Id, new FeatureRef {
+                        var _ = new FeatureRef {
                             Id = compositecurve.Id,
                             Reverse = false,
-                        });
-                    }
+                        };
+                        featureRefs.Add(compositecurve.Id, _);
+
+                        curves.Add(_, (LineString)merged[0]);
+                    }                    
                 }
                 else {
                     ids.Add(id, refs[0].Reverse ? () => $"RC{refs[0].Id}" : () => $"C{refs[0].Id}");
 
                     source2featureRefs.Add(id, refs[0].Id);
+
+                    curves.Add(refs[0], (LineString)merged[0]);
                 }
+
             }
 
             //  Create mapping
@@ -209,34 +230,6 @@ namespace S100FC.Topology
 
         public record PolygonSource(int ExteriorRing, int[] InteriorRing);
 
-        private static bool ContainsSegment(string lineString, string segment) {
-            if (lineString.Equals(segment)) return true;
-
-            if (lineString.Contains(segment + ",")) return true;
-            if (lineString.Contains(", " + segment)) return true;
-
-            //  MultiLineString
-            if (lineString.Contains(segment + ")")) return true;
-            if (lineString.Contains(segment + "),")) return true;
-            if (lineString.Contains("), " + segment)) return true;
-
-            return false;
-        }
-
-        private static int IndexOfSegment(string lineString, string segment) {
-            if (lineString.Equals(segment)) return 0;
-
-            if (lineString.Contains(segment + ",")) return lineString.IndexOf(segment + ",");
-            if (lineString.Contains(", " + segment)) return lineString.IndexOf(", " + segment);
-
-            //  MultiLineString
-            if (lineString.Contains(segment + ")")) return lineString.IndexOf(segment + ")");
-            if (lineString.Contains(segment + "),")) return lineString.IndexOf(segment + "),");
-            if (lineString.Contains("), " + segment)) return lineString.IndexOf("), " + segment);
-
-            throw new IndexOutOfRangeException();
-        }
-
         private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
             foreach (var surface in surfaces) {
                 Func<NetTopologySuite.Geometries.Polygon> createPolygon = surface.InteriorRings.Any() switch {
@@ -274,6 +267,63 @@ namespace S100FC.Topology
 
             return this;
         }
+
+        private static bool RingsEqual(LineString a, LineString b) {
+            var coordsA = a.Coordinates.Take(a.Coordinates.Length - 1).ToArray();
+            var coordsB = b.Coordinates.Take(b.Coordinates.Length - 1).ToArray();
+
+            if (coordsA.Length != coordsB.Length) return false;
+
+            int n = coordsA.Length;
+
+            for (int dir = 0; dir < 2; dir++) {
+                var seqB = dir == 0 ? coordsB : coordsB.Reverse().ToArray();
+
+                for (int offset = 0; offset < n; offset++) {
+                    bool match = true;
+                    for (int i = 0; i < n; i++) {
+                        var ca = coordsA[i];
+                        var cb = seqB[(i + offset) % n];
+                        if (ca.X != cb.X || ca.Y != cb.Y) {
+                            match = false;
+                            break;
+                        }
+                    }
+                    if (match) return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ContainsSegment(string lineString, string segment) {
+            if (lineString.Equals(segment)) return true;
+
+            if (lineString.Contains(segment + ",")) return true;
+            if (lineString.Contains(", " + segment)) return true;
+
+            //  MultiLineString
+            if (lineString.Contains(segment + ")")) return true;
+            if (lineString.Contains(segment + "),")) return true;
+            if (lineString.Contains("), " + segment)) return true;
+
+            return false;
+        }
+
+        private static int IndexOfSegment(string lineString, string segment) {
+            if (lineString.Equals(segment)) return 0;
+
+            if (lineString.Contains(segment + ",")) return lineString.IndexOf(segment + ",");
+            if (lineString.Contains(", " + segment)) return lineString.IndexOf(", " + segment);
+
+            //  MultiLineString
+            if (lineString.Contains(segment + ")")) return lineString.IndexOf(segment + ")");
+            if (lineString.Contains(segment + "),")) return lineString.IndexOf(segment + "),");
+            if (lineString.Contains("), " + segment)) return lineString.IndexOf("), " + segment);
+
+            throw new IndexOutOfRangeException();
+        }
+
     }
 }
 
