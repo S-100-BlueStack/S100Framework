@@ -119,14 +119,19 @@ namespace S100FC.Topology
 
                 var merged = linemerger.GetMergedLineStrings();
                 Debug.Assert(merged.Count == 1);
-                
-                if (curves.Any(e => RingsEqual(e.Value, (LineString)merged[0], out bool reverse))) {
-                    var _ = curves.Single(e => RingsEqual(e.Value, (LineString)merged[0], out bool reverse));
 
-                    REVERSE
+                foreach (var c in curves) {
+                    if (!RingsEqual(c.Value, (LineString)merged[0], out bool reverse)) continue;
 
-                    ids.Add(id, () => $"C{_.Key.Id}");
-                    source2featureRefs.Add(id, _.Key.Id);
+                    if (!reverse) {
+                        ids.Add(id, () => $"C{c.Key.Id}");
+                        source2featureRefs.Add(id, c.Key.Id);
+                    }
+                    else {
+                        var f = featureRefs.Single(e=>e.Key==c.Key.Id && e.Value.Reverse!=c.Key.Reverse);
+                        ids.Add(id, () => $"RC{f.Value.Id}");
+                        source2featureRefs.Add(id, f.Value.Id);
+                    }
                     continue;
                 }
 
@@ -163,7 +168,7 @@ namespace S100FC.Topology
                         featureRefs.Add(compositecurve.Id, _);
 
                         curves.Add(_, (LineString)merged[0]);
-                    }                    
+                    }
                 }
                 else {
                     ids.Add(id, refs[0].Reverse ? () => $"RC{refs[0].Id}" : () => $"C{refs[0].Id}");
