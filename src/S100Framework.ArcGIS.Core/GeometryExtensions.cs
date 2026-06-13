@@ -244,9 +244,8 @@ namespace ArcGIS.Core.Geometry
                             var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
                             var ex = factory.CreateLineString([.. coordinates, coordinates[0]]);
-                            ex = ex.RemoveRepeatedVertices();
+                            ex = ex.RemoveRepeatedVertices().RemoveCollinearVertices();
                             //ex.Normalize();
-                            ex = ex.RemoveCollinearVertices();
 
                             if (shape.PartCount > 1) {
                                 var interiorRings = new List<LineString>();
@@ -255,9 +254,8 @@ namespace ArcGIS.Core.Geometry
                                     coordinates = interiorRing.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
                                     var linestring = factory.CreateLineString([.. coordinates, coordinates[0]]);
-                                    linestring = linestring.RemoveRepeatedVertices();
+                                    linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
                                     //linestring.Normalize();
-                                    linestring = linestring.RemoveCollinearVertices();
 
                                     if (!linestring.IsSelfIntersections())
                                         interiorRings.Add(linestring);
@@ -321,9 +319,8 @@ namespace ArcGIS.Core.Geometry
                                 var coordinates = p.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
 
                                 var linestring = factory.CreateLineString([.. coordinates]);
-                                linestring = linestring.RemoveRepeatedVertices();
+                                linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
                                 //linestring.Normalize();
-                                linestring = linestring.RemoveCollinearVertices();
 
                                 if (shape.PartCount > 1) {
                                     curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), $"{name}:{i}", Convert.ToString(f["code"])!, linestring, name));
@@ -383,7 +380,7 @@ namespace ArcGIS.Core.Geometry
                             var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
                             var ex = factory.CreateLineString([.. coordinates, coordinates[0]]);
-                            ex = ex.RemoveRepeatedVertices();
+                            ex = ex.RemoveRepeatedVertices().RemoveCollinearVertices();
 
                             if (shape.PartCount > 1) {
                                 var interiorRings = new List<LineString>();
@@ -392,7 +389,7 @@ namespace ArcGIS.Core.Geometry
                                     coordinates = interiorRing.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
                                     var linestring = factory.CreateLineString([.. coordinates, coordinates[0]]);
-                                    linestring = linestring.RemoveRepeatedVertices();
+                                    linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
 
                                     if (!linestring.IsSelfIntersections())
                                         interiorRings.Add(linestring);
@@ -455,7 +452,7 @@ namespace ArcGIS.Core.Geometry
                                 var coordinates = p.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
 
                                 var linestring = factory.CreateLineString([.. coordinates]);
-                                linestring = linestring.RemoveRepeatedVertices();
+                                linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
 
                                 if (shape.PartCount > 1) {
                                     curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), $"{name}:{i}", Convert.ToString(f["code"])!, linestring, name));

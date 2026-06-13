@@ -24,6 +24,15 @@ namespace S100FC.Topology
 
     public class CurveFeature : FeatureType
     {
+        public CurveFeature(LineString lineString, ulong hash) {
+            this.LineString = lineString;
+            this.LineStringReverse = lineString.Factory.CreateLineString([.. lineString.Coordinates.Reverse()]);
+
+            this.LineStringText = lineString.ToString();
+            this.LineStringReverseText = this.LineStringReverse.ToString();            
+            base.Id = hash;
+        }
+
         public CurveFeature(LineString lineString) {
             this.LineString = lineString;
             this.LineStringReverse = lineString.Factory.CreateLineString([.. lineString.Coordinates.Reverse()]);

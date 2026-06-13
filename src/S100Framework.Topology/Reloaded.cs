@@ -73,8 +73,8 @@ namespace S100FC.Topology
             var ids = new Dictionary<int, Func<string>>();
 
 
-            //var depthArea = this._featureMapperPolygons["F10800045543"];
-            //var landArea = this._featureMapperPolygons["F10800023692"];
+            var depthArea = this._featureMapperPolygons["F10800045543"];
+            var landArea = this._featureMapperPolygons["F10800023711"];
 
             //var test = this._featureMapperPolygons["F10800023713"];
 
@@ -83,25 +83,34 @@ namespace S100FC.Topology
             //  ------------------------------------------------------------------------------------------------
             foreach (var id in this._mixedTopologyNetwork.Sources) {
                 foreach (var edge in this._mixedTopologyNetwork.MergeEdgesFor(id)) {
-                    var curve = new CurveFeature(edge.Geometry);
+                    var hash1 = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.AsBinary());
+                    var hash2 = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.Factory.CreateLineString([.. edge.Geometry.Coordinates.Reverse()]).AsBinary());
 
-                    if (!featureRefs.ContainsKey(curve.Id)) {
+                    //490474025
+                    //if (hash1 == 1830884544 || hash1 == 490474025) System.Diagnostics.Debugger.Break();
+
+                    if (!featureRefs.ContainsKey(hash1) || !featureRefs.ContainsKey(hash2)) {
                         var featureRef1 = new FeatureRef {
-                            Id = curve.Id,
+                            Id = hash1,
                             Reverse = false,
                         };
                         featureRefs.Add(featureRef1.Id, featureRef1);
 
                         var featureRef2 = new FeatureRef {
-                            Id = System.IO.Hashing.XxHash3.HashToUInt64(curve.LineStringReverse.AsBinary()),
+                            Id = hash2,
                             Reverse = true,
                         };
+                        featureRefs.Add(featureRef2.Id, featureRef2);
+
+                        var curve = new CurveFeature(edge.Geometry, hash1);
                         this._curves.Add(featureRef1.Id, curve);
                     }
                 }
             }
 
             var curves = new Dictionary<FeatureRef, LineString>();
+
+            var used = new List<FeatureRef>();
 
             foreach (var id in this._mixedTopologyNetwork.Sources) {
                 var mergedEdges = this._mixedTopologyNetwork.MergeEdgesFor(id);
@@ -117,10 +126,8 @@ namespace S100FC.Topology
                     linemerger.Add(edge.Geometry);
                 }
 
-                //if (id == test.ExteriorRing) System.Diagnostics.Debugger.Break();
-
                 //if (id == landArea.ExteriorRing) System.Diagnostics.Debugger.Break();
-                //if (id == depthArea.InteriorRing[1]) System.Diagnostics.Debugger.Break();
+                //if (id == depthArea.InteriorRing[0]) System.Diagnostics.Debugger.Break();
 
                 var merged = linemerger.GetMergedLineStrings();
                 Debug.Assert(merged.Count == 1);
@@ -141,6 +148,7 @@ namespace S100FC.Topology
                 }
                 if (skip) continue;
 
+                used.AddRange(refs);
 
                 if (refs.Length > 1) {
                     var mergedText = merged[0].ToText();
@@ -249,7 +257,8 @@ namespace S100FC.Topology
 
             if (this._mapping.Any(e => e.Value.StartsWith("RC"))) System.Diagnostics.Debugger.Break();
 
-            //this._curves = this._curves.Where(e => this._mapping.ContainsValue($"C{e.Key}")).ToDictionary(e => e.Key, e => e.Value);
+            var _ = used.Select(e => e.Id).Distinct();
+            this._curves = this._curves.Where(e => _.Contains(e.Key)).ToDictionary(e => e.Key, e => e.Value);
 
             return this;
         }
@@ -438,7 +447,7 @@ namespace S100Framework.Topology.Internal
         public void AddPolygons(IEnumerable<NetTopologySuite.Geometries.Polygon> ps) { foreach (var p in ps) this.AddPolygon(p); }
         public void AddLineStrings(IEnumerable<LineString> ls) { foreach (var l in ls) this.AddLineString(l); }
 
-        private int Register(NetTopologySuite.Geometries.Geometry geom, GeometryKind kind) {
+        private int Register(NetTopologySuite.Geometries.Geometry geom, GeometryKind kind) {            
             int id = this._sources.Count;
             this._sources.Add(new NetworkGeometry { Id = id, Geometry = geom, Kind = kind });
             return id;

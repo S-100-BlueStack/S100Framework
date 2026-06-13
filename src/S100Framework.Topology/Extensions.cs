@@ -1,6 +1,8 @@
 ﻿namespace GeoAPI.Geometries
 {
     using NetTopologySuite.Geometries;
+    using NetTopologySuite.Precision;
+    using System.Text.RegularExpressions;
 
     public static class Extensions
     {
@@ -22,25 +24,37 @@
         }
 
         public static LineString RemoveCollinearVertices(this LineString line) {
-            return line;
+            return (LineString)GeometryPrecisionReducer.Reduce(line, line.Factory.PrecisionModel);
+
             var coords = line.Coordinates;
-            var keep = new List<Coordinate> { coords[0] };
-
-            for (int i = 1; i < coords.Length - 1; i++) {
-                var prev = keep[^1];
-                var curr = coords[i];
-                var next = coords[i + 1];
-
-                // Cross product of (curr-prev) x (next-prev); non-zero = not collinear
-                double cross = (curr.X - prev.X) * (next.Y - prev.Y)
-                             - (curr.Y - prev.Y) * (next.X - prev.X);
-
-                if (Math.Abs(cross) > 1e-10)
-                    keep.Add(curr);
+            var result = new List<Coordinate>();
+            for (int i = 0; i < coords.Length; i++) {
+                if (i == 0 || !coords[i].Equals2D(coords[i - 1]))
+                    result.Add(coords[i]);
             }
+            if (result.Count != coords.Length) return line.Factory.CreateLineString(coords);
+            return line;
 
-            keep.Add(coords[^1]); // always keep the last point
-            return line.Factory.CreateLineString(keep.ToArray());
+
+            //return line;
+            //var coords = line.Coordinates;
+            //var keep = new List<Coordinate> { coords[0] };
+
+            //for (int i = 1; i < coords.Length - 1; i++) {
+            //    var prev = keep[^1];
+            //    var curr = coords[i];
+            //    var next = coords[i + 1];
+
+            //    // Cross product of (curr-prev) x (next-prev); non-zero = not collinear
+            //    double cross = (curr.X - prev.X) * (next.Y - prev.Y)
+            //                 - (curr.Y - prev.Y) * (next.X - prev.X);
+
+            //    if (Math.Abs(cross) > 1e-10)
+            //        keep.Add(curr);
+            //}
+
+            //keep.Add(coords[^1]); // always keep the last point
+            //return line.Factory.CreateLineString(keep.ToArray());
         }
     }
 }
