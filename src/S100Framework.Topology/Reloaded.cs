@@ -67,7 +67,6 @@ namespace S100FC.Topology
             this._mixedTopologyNetwork.Build();
 
             var featureRefs = new Dictionary<ulong, FeatureRef>();
-            var featureRefsRevers = new Dictionary<ulong, ulong>();
 
             var source2featureRefs = new Dictionary<int, ulong>();
 
@@ -77,10 +76,33 @@ namespace S100FC.Topology
             //var depthArea = this._featureMapperPolygons["F10800045543"];
             //var landArea = this._featureMapperPolygons["F10800023692"];
 
-            var curves = new Dictionary<FeatureRef, LineString>();
+            //var test = this._featureMapperPolygons["F10800023713"];
+
 
             //  Create all curves and composite curves
             //  ------------------------------------------------------------------------------------------------
+            foreach (var id in this._mixedTopologyNetwork.Sources) {
+                foreach (var edge in this._mixedTopologyNetwork.MergeEdgesFor(id)) {
+                    var curve = new CurveFeature(edge.Geometry);
+
+                    if (!featureRefs.ContainsKey(curve.Id)) {
+                        var featureRef1 = new FeatureRef {
+                            Id = curve.Id,
+                            Reverse = false,
+                        };
+                        featureRefs.Add(featureRef1.Id, featureRef1);
+
+                        var featureRef2 = new FeatureRef {
+                            Id = System.IO.Hashing.XxHash3.HashToUInt64(curve.LineStringReverse.AsBinary()),
+                            Reverse = true,
+                        };
+                        this._curves.Add(featureRef1.Id, curve);
+                    }
+                }
+            }
+
+            var curves = new Dictionary<FeatureRef, LineString>();
+
             foreach (var id in this._mixedTopologyNetwork.Sources) {
                 var mergedEdges = this._mixedTopologyNetwork.MergeEdgesFor(id);
 
@@ -90,29 +112,12 @@ namespace S100FC.Topology
 
                 foreach (var edge in mergedEdges) {
                     var hash = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.ToBinary());
-
-                    if (!featureRefs.ContainsKey(hash)) {
-                        var curve = new CurveFeature(edge.Geometry);
-
-                        featureRefs.Add(curve.Id, new FeatureRef {
-                            Id = curve.Id,
-                            Reverse = false,
-                        });
-
-                        var reverse = System.IO.Hashing.XxHash3.HashToUInt64(curve.LineStringReverse.AsBinary());
-                        featureRefs.Add(reverse, new FeatureRef {
-                            Id = curve.Id,
-                            Reverse = true,
-                        });
-                        featureRefsRevers.Add(curve.Id, reverse);
-
-                        this._curves.Add(curve.Id, curve);
-                    }
-
                     refs = [.. refs, featureRefs[hash]];
 
                     linemerger.Add(edge.Geometry);
                 }
+
+                //if (id == test.ExteriorRing) System.Diagnostics.Debugger.Break();
 
                 //if (id == landArea.ExteriorRing) System.Diagnostics.Debugger.Break();
                 //if (id == depthArea.InteriorRing[1]) System.Diagnostics.Debugger.Break();
@@ -120,20 +125,22 @@ namespace S100FC.Topology
                 var merged = linemerger.GetMergedLineStrings();
                 Debug.Assert(merged.Count == 1);
 
+                bool skip = false;
                 foreach (var c in curves) {
                     if (!RingsEqual(c.Value, (LineString)merged[0], out bool reverse)) continue;
 
                     if (!reverse) {
-                        ids.Add(id, () => $"C{c.Key.Id}");
-                        source2featureRefs.Add(id, c.Key.Id);
+                        ids.Add(id, c.Key.Reverse ? () => $"RC{c.Key.Id}" : () => $"C{c.Key.Id}");
                     }
                     else {
-                        var f = featureRefs.Single(e=>e.Key==c.Key.Id && e.Value.Reverse!=c.Key.Reverse);
-                        ids.Add(id, () => $"RC{f.Value.Id}");
-                        source2featureRefs.Add(id, f.Value.Id);
+                        ids.Add(id, !c.Key.Reverse ? () => $"RC{c.Key.Id}" : () => $"C{c.Key.Id}");
                     }
+                    source2featureRefs.Add(id, c.Key.Id);
+                    skip = true;
                     continue;
                 }
+                if (skip) continue;
+
 
                 if (refs.Length > 1) {
                     var mergedText = merged[0].ToText();
@@ -149,7 +156,10 @@ namespace S100FC.Topology
                             sortedlist.Add(IndexOfSegment(mergedText, text), e);
                         else {
                             text = curve.LineStringReverseText.Substring("LINESTRING (".Length).TrimEnd(')');
-                            sortedlist.Add(IndexOfSegment(mergedText, text), featureRefs[featureRefsRevers[e.Id]]);
+                            sortedlist.Add(IndexOfSegment(mergedText, text), new FeatureRef {
+                                Id = e.Id,
+                                Reverse = !e.Reverse,
+                            });
                         }
                     }
 
@@ -161,13 +171,13 @@ namespace S100FC.Topology
                     source2featureRefs.Add(id, compositecurve.Id);
 
                     if (!featureRefs.ContainsKey(compositecurve.Id)) {
-                        var _ = new FeatureRef {
+                        var featureRef1 = new FeatureRef {
                             Id = compositecurve.Id,
                             Reverse = false,
                         };
-                        featureRefs.Add(compositecurve.Id, _);
+                        featureRefs.Add(compositecurve.Id, featureRef1);
 
-                        curves.Add(_, (LineString)merged[0]);
+                        curves.Add(featureRef1, (LineString)merged[0]);
                     }
                 }
                 else {
@@ -190,25 +200,44 @@ namespace S100FC.Topology
 
                     this._mapping.Add(uid, ids[id]());
                 }
-                //else {
-                //    var polygon = this._featureMapperPolygons.Single(e => e.Value.ExteriorRing == id || e.Value.InteriorRing.Contains(id));
-
-                //    var surface = new SurfaceFeature() {
-                //        Ref = polygon.Key,
-                //        Exterior = ids[polygon.Value.ExteriorRing](),
-                //    };
-
-                //}
-
             }
 
             foreach (var polygon in this._featureMapperPolygons) {
                 var uid = polygon.Key;
 
+                FeatureRef exteriorRing = featureRefs[source2featureRefs[polygon.Value.ExteriorRing]];
+                {
+                    var curve = curves[exteriorRing];
+                    var ring = curve.Factory.CreateLinearRing(curve.Coordinates);
+                    if (ring.IsCCW) {
+                        exteriorRing = new FeatureRef {
+                            Id = exteriorRing.Id,
+                            Reverse = !exteriorRing.Reverse,
+                        };
+                    }
+                }
+
+                FeatureRef[] interior = [];
+                if (polygon.Value.InteriorRing != default) {
+                    for (int i = 0; i < polygon.Value.InteriorRing.Length; i++) {
+                        var featureRef = featureRefs[source2featureRefs[polygon.Value.InteriorRing[i]]];
+                        var curve = curves[featureRef];
+
+                        var ring = curve.Factory.CreateLinearRing(curve.Coordinates);
+                        if (!ring.IsCCW) {
+                            featureRef = new FeatureRef {
+                                Id = featureRef.Id,
+                                Reverse = !featureRef.Reverse,
+                            };
+                        }
+                        interior = [.. interior, featureRef];
+                    }
+                }
+
                 var surface = new SurfaceFeature {
                     Id = ulong.Parse(uid.Substring(1)),
-                    Exterior = featureRefs[source2featureRefs[polygon.Value.ExteriorRing]],
-                    Interior = [.. polygon.Value.InteriorRing.Select(e => featureRefs[source2featureRefs[e]])],
+                    Exterior = exteriorRing,
+                    Interior = interior,
                     Ref = uid,
                 };
 
@@ -219,6 +248,8 @@ namespace S100FC.Topology
             }
 
             if (this._mapping.Any(e => e.Value.StartsWith("RC"))) System.Diagnostics.Debugger.Break();
+
+            //this._curves = this._curves.Where(e => this._mapping.ContainsValue($"C{e.Key}")).ToDictionary(e => e.Key, e => e.Value);
 
             return this;
         }
