@@ -235,8 +235,6 @@ namespace ArcGIS.Core.Geometry
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
-                            //if (name.Equals("F10400001035")) System.Diagnostics.Debugger.Break();
-
                             shape = (Polygon)clipGeometry(shape);
                             if (shape.IsEmpty) continue;
 

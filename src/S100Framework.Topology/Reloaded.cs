@@ -66,18 +66,13 @@ namespace S100FC.Topology
             this._mapping.Clear();
             this._mixedTopologyNetwork.Build();
 
+            //this._interceptor?.Invoke(100, [.. this._mixedTopologyNetwork.Edges.Select(e => (e.Geometry, $"{e.Id}"))]);
+
             var featureRefs = new Dictionary<ulong, FeatureRef>();
 
             var source2featureRefs = new Dictionary<int, ulong>();
 
             var ids = new Dictionary<int, Func<string>>();
-
-
-            var depthArea = this._featureMapperPolygons["F10800045543"];
-            var landArea = this._featureMapperPolygons["F10800023711"];
-
-            //var test = this._featureMapperPolygons["F10800023713"];
-
 
             //  Create all curves and composite curves
             //  ------------------------------------------------------------------------------------------------
@@ -85,9 +80,6 @@ namespace S100FC.Topology
                 foreach (var edge in this._mixedTopologyNetwork.MergeEdgesFor(id)) {
                     var hash1 = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.AsBinary());
                     var hash2 = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.Factory.CreateLineString([.. edge.Geometry.Coordinates.Reverse()]).AsBinary());
-
-                    //490474025
-                    //if (hash1 == 1830884544 || hash1 == 490474025) System.Diagnostics.Debugger.Break();
 
                     if (!featureRefs.ContainsKey(hash1) || !featureRefs.ContainsKey(hash2)) {
                         var featureRef1 = new FeatureRef {
@@ -106,7 +98,7 @@ namespace S100FC.Topology
                         this._curves.Add(featureRef1.Id, curve);
                     }
                 }
-            }
+            }            
 
             var curves = new Dictionary<FeatureRef, LineString>();
 
@@ -125,9 +117,6 @@ namespace S100FC.Topology
 
                     linemerger.Add(edge.Geometry);
                 }
-
-                //if (id == landArea.ExteriorRing) System.Diagnostics.Debugger.Break();
-                //if (id == depthArea.InteriorRing[0]) System.Diagnostics.Debugger.Break();
 
                 var merged = linemerger.GetMergedLineStrings();
                 Debug.Assert(merged.Count == 1);
@@ -259,6 +248,9 @@ namespace S100FC.Topology
 
             var _ = used.Select(e => e.Id).Distinct();
             this._curves = this._curves.Where(e => _.Contains(e.Key)).ToDictionary(e => e.Key, e => e.Value);
+
+
+            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
 
             return this;
         }
@@ -447,7 +439,8 @@ namespace S100Framework.Topology.Internal
         public void AddPolygons(IEnumerable<NetTopologySuite.Geometries.Polygon> ps) { foreach (var p in ps) this.AddPolygon(p); }
         public void AddLineStrings(IEnumerable<LineString> ls) { foreach (var l in ls) this.AddLineString(l); }
 
-        private int Register(NetTopologySuite.Geometries.Geometry geom, GeometryKind kind) {            
+        private int Register(NetTopologySuite.Geometries.Geometry geom, GeometryKind kind) {
+            geom.Normalize();
             int id = this._sources.Count;
             this._sources.Add(new NetworkGeometry { Id = id, Geometry = geom, Kind = kind });
             return id;
@@ -556,6 +549,27 @@ namespace S100Framework.Topology.Internal
                 result.Add(new RawSegment(segId++, coords[i], coords[i + 1], sourceId));
             }
             return segId;
+        }
+
+        //private static int ExtractFromRing(
+        //    Coordinate[] coords, int sourceId,
+        //    List<RawSegment> result, int segId) {
+        //    for (int i = 0; i < coords.Length - 1; i++) {
+        //        var p0 = coords[i];
+        //        var p1 = coords[i + 1];
+
+        //        // Canonicalize: always store the "smaller" coordinate first
+        //        bool reversed = ComparePoints(p0, p1) > 0;
+        //        var (c0, c1) = reversed ? (p1, p0) : (p0, p1);
+
+        //        result.Add(new RawSegment(segId++, c0, c1, sourceId, reversed));
+        //    }
+        //    return segId;
+        //}
+
+        private static int ComparePoints(Coordinate a, Coordinate b) {
+            int c = a.X.CompareTo(b.X);
+            return c != 0 ? c : a.Y.CompareTo(b.Y);
         }
 
         private int EstimateSegmentCount() => this._sources.Sum(s => s.Geometry.NumPoints);
@@ -848,6 +862,22 @@ namespace S100Framework.Topology.Internal
             this.Envelope = new NetTopologySuite.Geometries.Envelope(p0, p1);
         }
     }
+
+    //internal sealed class RawSegment
+    //{
+    //    public readonly int SegId;
+    //    public readonly Coordinate P0, P1;
+    //    public readonly int SourceId;
+    //    public readonly bool OriginallyReversed; // true if source digitized P1->P0
+    //    public readonly Envelope Envelope;
+
+    //    public RawSegment(int segId, Coordinate p0, Coordinate p1, int sourceId, bool reversed) {
+    //        SegId = segId; P0 = p0; P1 = p1; SourceId = sourceId;
+    //        OriginallyReversed = reversed;
+    //        Envelope = new Envelope(p0, p1);
+    //    }
+    //}
+
 
     /// <summary>
     /// An intersection point on a segment, ordered by distance from segment start.
