@@ -70,7 +70,7 @@ namespace S100FC.Topology
 
         ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, curves, false);
 
-        public GeometryPrecisionReducer Reducer => this._mixedTopologyNetwork.Reducer;
+        public GeometryPrecisionReducer Reducer => new GeometryPrecisionReducer(Factory!.PrecisionModel);
 
         IMatrix ITopologyBuilder.BuildTopology() {
             this._mapping.Clear();
@@ -402,6 +402,9 @@ namespace S100FC.Topology
     }
 }
 
+
+
+#if null
 namespace S100Framework.Topology.Internal
 {
     /// <summary>
@@ -1352,3 +1355,4 @@ namespace S100Framework.Topology.Internal
     }
 
 }
+#endif
