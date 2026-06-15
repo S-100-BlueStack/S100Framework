@@ -2,6 +2,7 @@
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Operation.Linemerge;
 using NetTopologySuite.Operation.Overlay.Snap;
+using NetTopologySuite.Precision;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
@@ -171,6 +172,8 @@ namespace S100FC.Topology
         ITopologyBuilder AddSingletonFeatures(ICollection<S100FC.Topology.Polyline> curves);
 #endif
 
+        GeometryPrecisionReducer Reducer { get; }
+
         IMatrix BuildTopology();
     }
 
@@ -276,6 +279,8 @@ namespace S100FC.Topology
 
             return this;
         }
+
+        GeometryPrecisionReducer ITopologyBuilder.Reducer => new GeometryPrecisionReducer(Factory.PrecisionModel);
 
 #if Singletons
         ITopologyBuilder ITopologyBuilder.AddSingletonFeatures(IList<Polyline> curves) {

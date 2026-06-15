@@ -8,7 +8,10 @@ using NetTopologySuite.Noding;
 using NetTopologySuite.Noding.Snapround;
 using NetTopologySuite.Operation.Linemerge;
 using NetTopologySuite.Operation.Valid;
+using NetTopologySuite.Precision;
 using System.Globalization;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 
 
 namespace ArcGIS.Core.Data
@@ -96,8 +99,10 @@ namespace ArcGIS.Core.Geometry
 
         static readonly SpatialReference spatialReference = SpatialReferenceBuilder.CreateSpatialReference(4326);
 
-        static readonly GeometryFactory factory = new GeometryFactory(new PrecisionModel(10000000), srid: 4326); // Or PrecisionModels.Floating
+        static readonly PrecisionModel precisionModel = new PrecisionModel(1000000);
+        //static readonly PrecisionModel precisionModel = new PrecisionModel(1000000);
 
+        static readonly GeometryFactory factory = new GeometryFactory(precisionModel, srid: 4326); // Or PrecisionModels.Floating        
 
         public static (S100FC.Topology.IMatrix matrix, IDictionary<string,string> mapper) BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default) {
             var syntax = geodatabase.GetSQLSyntax();
@@ -153,13 +158,14 @@ namespace ArcGIS.Core.Geometry
             var whereClause = queryFilter.WhereClause;
             var prefix = queryFilter.PrefixClause;
 
-            S100FC.Topology.Matrix.Factory = factory;
+            S100FC.Topology.Matrix.Factory = S100FC.Topology.Reloaded.Factory = factory;
 
             var definitions = geodatabase.GetDefinitions<FeatureClassDefinition>();
 
 
             //var matrix = S100FC.Topology.Matrix.CreateMatrix(interceptor);
             var matrix = S100FC.Topology.Reloaded.CreateMatrix(interceptor);
+            
 
             S100FC.Topology.ITopologyBuilder? builder = default;
 
@@ -231,7 +237,7 @@ namespace ArcGIS.Core.Geometry
 
                             var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();
 
-                            var name = Convert.ToString(f["UID"]);// f.Crc32(); UID
+                            var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
@@ -240,9 +246,10 @@ namespace ArcGIS.Core.Geometry
 
                             var exteriorRing = shape.GetExteriorRing(0);
                             var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
-
-                            var ex = factory.CreateLineString([.. coordinates, coordinates[0]]);
-                            ex = ex.RemoveRepeatedVertices().RemoveCollinearVertices();
+                            
+                            var ex = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
+                            ex = (LinearRing)matrix.Reducer.Reduce(ex);
+                            //ex = ex.RemoveRepeatedVertices().RemoveCollinearVertices();
                             //ex.Normalize();
 
                             if (shape.PartCount > 1) {
@@ -251,8 +258,9 @@ namespace ArcGIS.Core.Geometry
                                 foreach (var interiorRing in shape.Parts.Skip(1)) {
                                     coordinates = interiorRing.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
-                                    var linestring = factory.CreateLineString([.. coordinates, coordinates[0]]);
-                                    linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
+                                    var linestring = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
+                                    linestring = (LinearRing)matrix.Reducer.Reduce(linestring);
+                                    //linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
                                     //linestring.Normalize();
 
                                     if (!linestring.IsSelfIntersections())
@@ -274,7 +282,7 @@ namespace ArcGIS.Core.Geometry
 
                 var curves = new List<S100FC.Topology.Polyline>();
 
-                using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("topo_curve")).GetName())) {
+                using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("topo_curve")).GetName())) {                    
                     //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'))";
 
                     foreach (var filter in filters) {
@@ -287,11 +295,6 @@ namespace ArcGIS.Core.Geometry
                         while (cursor.MoveNext()) {
                             var f = (Feature)cursor.Current;
 
-                            //if ("F10500105683".Equals(f["UID"])) System.Diagnostics.Debugger.Break();
-                            //if ("F10500065173".Equals(f["UID"])) System.Diagnostics.Debugger.Break();
-                            //if ("F10500070853".Equals(f["UID"])) System.Diagnostics.Debugger.Break();
-
-
                             if (lookup.Contains(f.GetObjectID())) continue;
 
                             var shape = (Polyline)f.GetShape();
@@ -303,21 +306,14 @@ namespace ArcGIS.Core.Geometry
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
-                            //var coordinates = shape.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
-
-                            //var linestring = factory.CreateLineString([.. coordinates]);
-                            //linestring = linestring.RemoveRepeatedVertices();
-
-                            //curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, linestring, name));
-
-
                             for (int i = 0; i < shape.PartCount; i++) {
                                 var p = PolylineBuilderEx.CreatePolyline(shape.Parts[i]);
 
                                 var coordinates = p.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
-
+                                
                                 var linestring = factory.CreateLineString([.. coordinates]);
-                                linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
+                                linestring = (LineString)matrix.Reducer.Reduce(linestring);
+                                //linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
                                 //linestring.Normalize();
 
                                 if (shape.PartCount > 1) {
@@ -360,25 +356,24 @@ namespace ArcGIS.Core.Geometry
 #if SKIN_OF_THE_EARTH_ONLY
                             if (!testFeatures.Contains(Convert.ToString(f["code"]))) continue;
 #endif
-                            var shape = (Polygon)f.GetShape();
-
-                            //if (f.GetObjectID() == 91) System.Diagnostics.Debugger.Break();
-
-                            shape = (Polygon)clipGeometry(shape);
-                            if (shape.IsEmpty) continue;
+                            var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();
 
                             var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
-                            //if (name.Equals("F10400001035")) System.Diagnostics.Debugger.Break();                            
-                            //if (name.Equals("S1799633")) System.Diagnostics.Debugger.Break();
+                            shape = (Polygon)clipGeometry(shape);
+                            if (shape.IsEmpty) continue;
 
                             var exteriorRing = shape.GetExteriorRing(0);
                             var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
-                            var ex = factory.CreateLineString([.. coordinates, coordinates[0]]);
-                            ex = ex.RemoveRepeatedVertices().RemoveCollinearVertices();
+                            //for (int _ = 0; _ < coordinates.Length; _++)
+                            //    coordinates[_] = SnapToGrid(coordinates[_]);
+                            
+                            var ex = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
+                            ex = (LinearRing)matrix.Reducer.Reduce(ex);
+                            //ex = ex.RemoveRepeatedVertices().RemoveCollinearVertices();
 
                             if (shape.PartCount > 1) {
                                 var interiorRings = new List<LineString>();
@@ -386,8 +381,10 @@ namespace ArcGIS.Core.Geometry
                                 foreach (var interiorRing in shape.Parts.Skip(1)) {
                                     coordinates = interiorRing.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
-                                    var linestring = factory.CreateLineString([.. coordinates, coordinates[0]]);
-                                    linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
+                                    var linestring = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
+                                    linestring = (LinearRing)matrix.Reducer.Reduce(linestring);
+                                    //linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
+                                    //linestring.Normalize();
 
                                     if (!linestring.IsSelfIntersections())
                                         interiorRings.Add(linestring);
@@ -435,22 +432,14 @@ namespace ArcGIS.Core.Geometry
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
-                            //var coordinates = shape.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
-
-                            //var linestring = factory.CreateLineString([.. coordinates]);
-                            //linestring = linestring.RemoveRepeatedVertices();
-
-                            //linestring.Normalize();
-
-                            //curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, linestring, name));
-
                             for (int i = 0; i < shape.PartCount; i++) {
                                 var p = PolylineBuilderEx.CreatePolyline(shape.Parts[i]);
 
                                 var coordinates = p.Points.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.X, segment.Y)).ToArray();
 
                                 var linestring = factory.CreateLineString([.. coordinates]);
-                                linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
+                                linestring = (LineString)matrix.Reducer.Reduce(linestring);
+                                //linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
 
                                 if (shape.PartCount > 1) {
                                     curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), $"{name}:{i}", Convert.ToString(f["code"])!, linestring, name));
@@ -518,6 +507,19 @@ namespace ArcGIS.Core.Geometry
 
 
             return (result,mapper);
+        }
+
+        private const double _snapTolerance = 0.000000001;
+
+        private static Coordinate SnapToGrid(Coordinate c) {
+            double inv = 1.0 / _snapTolerance;
+            double x = Math.Round(c.X * inv) / inv;
+            double y = Math.Round(c.Y * inv) / inv;
+
+            // Preserve Z if present
+            return double.IsNaN(c.Z)
+                ? new Coordinate(x, y)
+                : new CoordinateZ(x, y, c.Z);
         }
 
         private static Polyline CreateLinearRing(string[] coords, SpatialReference spatialReference) {

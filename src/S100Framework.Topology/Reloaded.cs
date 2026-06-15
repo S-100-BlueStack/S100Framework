@@ -2,6 +2,7 @@
 using NetTopologySuite.Algorithm;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Index.Strtree;
+using NetTopologySuite.Precision;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ using System.Text;
 namespace S100FC.Topology
 {
     using NetTopologySuite.Operation.Linemerge;
+    using NetTopologySuite.Precision;
     using S100Framework.Topology.Internal;
     using System.Collections.Concurrent;
     using System.Diagnostics;
@@ -33,7 +35,7 @@ namespace S100FC.Topology
             public string Name => $"S{this.Id}";
         }
 
-        public static GeometryFactory Factory { get; set; } = new GeometryFactory(new PrecisionModel(10000000), srid: 4326); // Or PrecisionModels.Floating
+        public static GeometryFactory? Factory { get; set; } = default; // new GeometryFactory(new PrecisionModel(10000000), srid: 4326); // Or PrecisionModels.Floating
 
         private Action<int, ICollection<(LineString lineString, string message)>>? _interceptor;
 
@@ -45,9 +47,12 @@ namespace S100FC.Topology
         private readonly Dictionary<string, string> _mapping = [];
 
         protected Reloaded() {
-            //  Default protected constructor            
+            //  Protected default constructor            
 
-            this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory, snapTolerance: 0.000000001);
+            //this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory, snapTolerance: 0.000000001);
+            //this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory, snapTolerance: 0.000000005);
+            //this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory, snapTolerance: 0.00000001);
+            this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory, snapTolerance: Reloaded.Factory.PrecisionModel.GridSize);
         }
 
         public static ITopologyBuilder CreateMatrix(Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default) {
@@ -62,6 +67,8 @@ namespace S100FC.Topology
 
         ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, curves, false);
 
+        public GeometryPrecisionReducer Reducer => this._mixedTopologyNetwork.Reducer;
+
         IMatrix ITopologyBuilder.BuildTopology() {
             this._mapping.Clear();
             this._mixedTopologyNetwork.Build();
@@ -73,6 +80,12 @@ namespace S100FC.Topology
             var source2featureRefs = new Dictionary<int, ulong>();
 
             var ids = new Dictionary<int, Func<string>>();
+
+            //var xxFeature = this._featureMapperPolygons.Single(e => e.Key.Equals("F10400012235"));
+            //int[] xxID = [xxFeature.Value.ExteriorRing, .. xxFeature.Value.InteriorRing];
+            //var xxEdges = this._mixedTopologyNetwork.Edges.Where(e => e.SourceGeometryIds.Any(i => xxID.Contains(i))).ToArray();
+
+            //this._interceptor?.Invoke(6000, [.. xxEdges.Select(e => (e.Geometry, $"{e.Id}"))!]);
 
             //  Create all curves and composite curves
             //  ------------------------------------------------------------------------------------------------
@@ -98,14 +111,14 @@ namespace S100FC.Topology
                         this._curves.Add(featureRef1.Id, curve);
                     }
                 }
-            }            
+            }
 
             var curves = new Dictionary<FeatureRef, LineString>();
 
             var used = new List<FeatureRef>();
 
             foreach (var id in this._mixedTopologyNetwork.Sources) {
-                var mergedEdges = this._mixedTopologyNetwork.MergeEdgesFor(id);
+                var mergedEdges = this._mixedTopologyNetwork.MergeEdgesFor(id);                
 
                 FeatureRef[] refs = [];
 
@@ -119,7 +132,13 @@ namespace S100FC.Topology
                 }
 
                 var merged = linemerger.GetMergedLineStrings();
-                Debug.Assert(merged.Count == 1);
+                if (merged.Count > 1) {
+                    this._interceptor?.Invoke(100, [.. mergedEdges.Select(e => (e.Geometry, $"{string.Join(',',e.SourceGeometryIds)}"))]);
+
+                    //this._interceptor?.Invoke(100, [.. merged.Select(e => ((LineString)e, ""))]);
+                    System.Diagnostics.Debugger.Break();
+                }
+                Debug.Assert(merged.Count == 1);                
 
                 bool skip = false;
                 foreach (var c in curves) {
@@ -199,6 +218,8 @@ namespace S100FC.Topology
                 }
             }
 
+            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
+
             foreach (var polygon in this._featureMapperPolygons) {
                 var uid = polygon.Key;
 
@@ -250,7 +271,8 @@ namespace S100FC.Topology
             this._curves = this._curves.Where(e => _.Contains(e.Key)).ToDictionary(e => e.Key, e => e.Value);
 
 
-            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
+            //this._interceptor?.Invoke(6000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
+            //this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
 
             return this;
         }
@@ -269,25 +291,32 @@ namespace S100FC.Topology
 
         public record PolygonSource(int ExteriorRing, int[] InteriorRing);
 
-        private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
+        private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {            
             foreach (var surface in surfaces) {
-                Func<NetTopologySuite.Geometries.Polygon> createPolygon = surface.InteriorRings.Any() switch {
-                    true => () => {
-                        return Factory.CreatePolygon(Factory.CreateLinearRing(surface.ExteriorRing.Coordinates), [.. surface.InteriorRings.Select(e => Factory.CreateLinearRing(e.Coordinates))]);
-                    }
-                    ,
-                    false => () => {
-                        return Factory.CreatePolygon(Factory.CreateLinearRing(surface.ExteriorRing.Coordinates), []);
-                    }
-                    ,
-                };
-                var polygon = createPolygon();
+                //Func<NetTopologySuite.Geometries.Polygon> createPolygon = surface.InteriorRings.Any() switch {
+                //    true => () => {
+                //        return Factory.CreatePolygon(Factory.CreateLinearRing(surface.ExteriorRing.Coordinates), [.. surface.InteriorRings.Select(e => Factory.CreateLinearRing(e.Coordinates))]);
+                //    }
+                //    ,
+                //    false => () => {
+                //        return Factory.CreatePolygon(Factory.CreateLinearRing(surface.ExteriorRing.Coordinates), []);
+                //    }
+                //    ,
+                //};
+                //var polygon = createPolygon();
 
-                var idExteriorRing = this._mixedTopologyNetwork.AddLineString(polygon.ExteriorRing);
+                //if (!reducer.Reduce(polygon.ExteriorRing).Equals(polygon.ExteriorRing)) System.Diagnostics.Debugger.Break();
+                
+                var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
                 var idInteriorRings = new int[0];
-                foreach (var interior in polygon.InteriorRings) {
-                    var id = this._mixedTopologyNetwork.AddLineString(interior);
+                foreach (var interior in surface.InteriorRings) {
+                    var id = this._mixedTopologyNetwork.AddLineString((LineString)this.Reducer.Reduce(interior));
                     idInteriorRings = [.. idInteriorRings, id];
+                }
+
+                if (idExteriorRing == 97 || idInteriorRings.Contains(97)) {
+                    //this._interceptor?.Invoke(100, [(surface.ExteriorRing, surface.UID)]);
+                    //System.Diagnostics.Debugger.Break();
                 }
 
                 var p = new PolygonSource(idExteriorRing, idInteriorRings);
@@ -299,7 +328,9 @@ namespace S100FC.Topology
             }
 
             foreach (var curve in curves) {
-                var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
+                //if (!this.Reducer.Reduce(curve.LineString).Equals(curve.LineString)) System.Diagnostics.Debugger.Break();
+
+                var id = this._mixedTopologyNetwork.AddLineString((LineString)this.Reducer.Reduce(curve.LineString));
                 this._featureMapperLineStrings.Add(curve.Name, id);
                 //this._featureMapperLineStrings.Add(curve.UID, id);
             }
@@ -365,7 +396,6 @@ namespace S100FC.Topology
 
             throw new IndexOutOfRangeException();
         }
-
     }
 }
 
@@ -427,7 +457,9 @@ namespace S100Framework.Topology.Internal
         public IReadOnlyList<NetworkEdge> Edges => this._edges;
         public IReadOnlyCollection<NetworkNode> Nodes => this._nodes.Values;
 
-        public MixedTopologyNetwork(GeometryFactory factory, double snapTolerance = 0.0001) {
+        public GeometryPrecisionReducer Reducer => new GeometryPrecisionReducer(new PrecisionModel(1.0 / this._snapTolerance)) { Pointwise = true, RemoveCollapsedComponents = true };
+
+        public MixedTopologyNetwork(GeometryFactory factory, double snapTolerance) {
             this._factory = factory;
             this._snapTolerance = snapTolerance;
         }
@@ -440,7 +472,7 @@ namespace S100Framework.Topology.Internal
         public void AddLineStrings(IEnumerable<LineString> ls) { foreach (var l in ls) this.AddLineString(l); }
 
         private int Register(NetTopologySuite.Geometries.Geometry geom, GeometryKind kind) {
-            geom.Normalize();
+            //geom.Normalize();
             int id = this._sources.Count;
             this._sources.Add(new NetworkGeometry { Id = id, Geometry = geom, Kind = kind });
             return id;
@@ -452,7 +484,7 @@ namespace S100Framework.Topology.Internal
         public void Build() {
             // Step 1: Extract raw segments per source — no LineString allocation,
             //         just coordinate pairs + source id
-            var rawSegments = this.ExtractRawSegments();
+            var rawSegments = this.ExtractRawSegments();            
 
             // Step 2: Build a spatial index over raw segments
             var segIndex = new STRtree<RawSegment>();
@@ -509,14 +541,16 @@ namespace S100Framework.Topology.Internal
                     coords.Add(seg.P1);
 
                 // Insert each sub-segment as a network edge
-                for (int i = 0; i < coords.Count - 1; i++)
-                    this.InsertEdge(coords[i], coords[i + 1], seg.SourceId, edgeMap);
+                for (int i = 0; i < coords.Count - 1; i++) {
+                    //this.InsertEdge(coords[i], coords[i + 1], seg.SourceId, edgeMap);
+                    this.InsertEdge(SnapToGrid(coords[i]), SnapToGrid(coords[i + 1]), seg.SourceId, edgeMap);
+                }
             }
 
             // Step 5: Spatial index on final edges
             this._edgeIndex = new STRtree<NetworkEdge>();
             foreach (var edge in this._edges)
-                this._edgeIndex.Insert(edge.Geometry.EnvelopeInternal, edge);
+                this._edgeIndex.Insert(edge.Geometry!.EnvelopeInternal, edge);
         }
 
         // -------------------------------------------------------------------------
@@ -528,7 +562,7 @@ namespace S100Framework.Topology.Internal
 
             foreach (var src in this._sources) {
                 if (src.Kind == GeometryKind.Polygon) {
-                    var poly = (NetTopologySuite.Geometries.Polygon)src.Geometry;
+                    var poly = (NetTopologySuite.Geometries.Polygon)src.Geometry!;
                     segId = ExtractFromRing(poly.ExteriorRing.Coordinates,
                         src.Id, result, segId);
                     foreach (var hole in poly.InteriorRings)
@@ -536,7 +570,7 @@ namespace S100Framework.Topology.Internal
                             src.Id, result, segId);
                 }
                 else {
-                    segId = ExtractFromRing(src.Geometry.Coordinates,
+                    segId = ExtractFromRing(src.Geometry!.Coordinates,
                         src.Id, result, segId);
                 }
             }
@@ -544,11 +578,43 @@ namespace S100Framework.Topology.Internal
             return result;
         }
 
-        private static int ExtractFromRing(Coordinate[] coords, int sourceId, List<RawSegment> result, int segId) {
+        private int ExtractFromRing(Coordinate[] coords, int sourceId, List<RawSegment> result, int segId) {
             for (int i = 0; i < coords.Length - 1; i++) {
-                result.Add(new RawSegment(segId++, coords[i], coords[i + 1], sourceId));
+                result.Add(new RawSegment(segId++, SnapToGrid(coords[i]), SnapToGrid(coords[i + 1]), sourceId));
             }
             return segId;
+        }
+
+        /// <summary>
+        /// Snaps a coordinate to a fixed grid defined by tolerance.
+        /// </summary>
+        //private Coordinate SnapToGrid(Coordinate c) {
+        //    return c;
+        //    double inv = 1.0 / _snapTolerance;
+        //    double x = Math.Round(c.X * inv) / inv;
+        //    double y = Math.Round(c.Y * inv) / inv;
+
+        //    // Preserve Z if present
+        //    var coord = double.IsNaN(c.Z)
+        //        ?  new Coordinate(x, y)
+        //        : new CoordinateZ(x, y, c.Z);
+
+        //    //_factory.PrecisionModel.MakePrecise(coord);
+        //    return coord;
+        //}
+
+        private Coordinate SnapToGrid(Coordinate c) {
+            double inv = 1.0 / _snapTolerance;
+
+            // Nudge slightly before flooring to absorb floating-point noise
+            // that places a "true" grid-line point just below the line
+            const double epsilon = 1e-9;
+            double x = Math.Floor(c.X * inv + epsilon) * _snapTolerance;
+            double y = Math.Floor(c.Y * inv + epsilon) * _snapTolerance;
+
+            return double.IsNaN(c.Z)
+                ? new Coordinate(x, y)
+                : new CoordinateZ(x, y, c.Z);
         }
 
         //private static int ExtractFromRing(
@@ -699,8 +765,8 @@ namespace S100Framework.Topology.Internal
             }
 
             foreach (var edge in edges) {
-                Touch(edge.StartNode, edge);
-                Touch(edge.EndNode, edge);
+                Touch(edge.StartNode!, edge);
+                Touch(edge.EndNode!, edge);
             }
 
             var visited = new HashSet<int>();   // edge ids already consumed
@@ -740,8 +806,8 @@ namespace S100Framework.Topology.Internal
             visited.Add(seed.Id);
 
             // Walk forward from seed.EndNode, backward from seed.StartNode
-            var forward = Walk(seed.EndNode, seed, edgeSet, adjacency, visited);
-            var backward = Walk(seed.StartNode, seed, edgeSet, adjacency, visited);
+            var forward = Walk(seed.EndNode!, seed, edgeSet, adjacency, visited);
+            var backward = Walk(seed.StartNode!, seed, edgeSet, adjacency, visited);
 
             // Chain = reversed-backward + seed + forward
             backward.Reverse();
@@ -758,7 +824,7 @@ namespace S100Framework.Topology.Internal
             var currentCoord = fromCoord;
 
             while (true) {
-                var key = new CoordinateKey(currentCoord, _snapTolerance);
+                var key = new CoordinateKey(currentCoord!, _snapTolerance);
                 if (!adjacency.TryGetValue(key, out var neighbours)) break;
 
                 // Candidates: edges in the set, not already visited, not the current one
@@ -781,7 +847,7 @@ namespace S100Framework.Topology.Internal
                 result.Add(nextEdge);
 
                 // Advance: move to the other end of nextEdge
-                currentCoord = nextEdge.StartNode.Equals2D(currentCoord, _snapTolerance)
+                currentCoord = nextEdge.StartNode!.Equals2D(currentCoord, _snapTolerance)
                     ? nextEdge.EndNode
                     : nextEdge.StartNode;
                 current = nextEdge;
@@ -796,13 +862,13 @@ namespace S100Framework.Topology.Internal
         private Coordinate[] ChainToCoordinates(List<NetworkEdge> chain) {
             if (chain.Count == 0) return Array.Empty<Coordinate>();
             if (chain.Count == 1)
-                return chain[0].Geometry.Coordinates.ToArray();
+                return chain[0].Geometry!.Coordinates.ToArray();
 
             var coords = new List<Coordinate>();
 
             for (int i = 0; i < chain.Count; i++) {
                 var edge = chain[i];
-                var edgeCs = edge.Geometry.Coordinates;
+                var edgeCs = edge.Geometry!.Coordinates;
 
                 if (i == 0) {
                     // Determine orientation vs next edge
@@ -826,7 +892,7 @@ namespace S100Framework.Topology.Internal
 
         private bool ConnectsTo(NetworkEdge edge, NetworkEdge other, bool fromEnd) {
             var coord = fromEnd ? edge.EndNode : edge.StartNode;
-            return coord.Equals2D(other.StartNode, _snapTolerance)
+            return coord!.Equals2D(other.StartNode, _snapTolerance)
                 || coord.Equals2D(other.EndNode, _snapTolerance);
         }
 
@@ -906,9 +972,15 @@ namespace S100Framework.Topology.Internal
         private readonly long _x, _y;
 
         public CoordinateKey(Coordinate c, double tolerance) {
+            //double inv = 1.0 / tolerance;
+            //this._x = (long)Math.Round(c.X * inv);
+            //this._y = (long)Math.Round(c.Y * inv);
+
             double inv = 1.0 / tolerance;
-            this._x = (long)Math.Round(c.X * inv);
-            this._y = (long)Math.Round(c.Y * inv);
+            const double epsilon = 1e-9;
+
+            _x = (long)Math.Floor(c.X * inv + epsilon);
+            _y = (long)Math.Floor(c.Y * inv + epsilon);
         }
 
         public bool Equals(CoordinateKey other) => this._x == other._x && this._y == other._y;
