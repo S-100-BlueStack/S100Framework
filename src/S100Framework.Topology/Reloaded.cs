@@ -6,7 +6,10 @@ using NetTopologySuite.Precision;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
+
+[assembly: InternalsVisibleTo("TestTopology")]
 
 namespace S100FC.Topology
 {
@@ -426,6 +429,9 @@ namespace S100Framework.Topology.Internal
         // Which registered geometries contributed this edge
         public HashSet<int> SourceGeometryIds { get; } = [];
 
+        // sourceId -> true if that source traverses StartNode -> EndNode (forward)
+        public Dictionary<int, bool> SourceOrientation { get; } = new();
+
         // Is this edge shared between two or more geometries?
         public bool IsShared => this.SourceGeometryIds.Count > 1;
     }
@@ -481,10 +487,53 @@ namespace S100Framework.Topology.Internal
         // -------------------------------------------------------------------------
         // Build — spatially-local noding only
         // -------------------------------------------------------------------------
+#if null
         public void Build() {
             // Step 1: Extract raw segments per source — no LineString allocation,
             //         just coordinate pairs + source id
-            var rawSegments = this.ExtractRawSegments();            
+            var rawSegments = this.ExtractRawSegments();
+
+            // ---- SINGLE canonical coordinate pass ----
+            // Build ONE dictionary: grid-cell-key -> canonical Coordinate
+            // Merge adjacent cells (within 1 cell) into the SAME canonical coordinate.
+            var canonical = BuildCanonicalCoordinateMap(rawSegments);
+
+            var remapped = new List<RawSegment>(rawSegments.Count);
+            // Remap every raw segment endpoint through the canonical map
+            for (int i = 0; i < rawSegments.Count; i++) {
+                var seg = rawSegments[i];
+                var p0 = canonical[new CoordinateKey(SnapToGrid(seg.P0), _snapTolerance)];
+                var p1 = canonical[new CoordinateKey(SnapToGrid(seg.P1), _snapTolerance)];
+
+                // ✅ CRITICAL: skip degenerate segments AFTER canonicalization,
+                // not just at original extraction time
+                if (p0.Equals2D(p1)) continue;
+
+                //rawSegments[i] = seg.WithCoordinates(p0, p1);
+                remapped.Add(seg.WithCoordinates(p0, p1));
+            }
+            rawSegments = remapped;
+
+            // Pass 1: collect all distinct snapped coordinates
+            var existingByKey = new Dictionary<CoordinateKey, Coordinate>();
+            var dedupeTolerance = _snapTolerance * 2; // 1-cell neighbor search
+
+            foreach (var seg in rawSegments) {
+                RegisterCoordinate(seg.P0, existingByKey, dedupeTolerance);
+                RegisterCoordinate(seg.P1, existingByKey, dedupeTolerance);
+            }
+
+            // Pass 2: re-map every segment endpoint through the dedupe map
+            for (int i = 0; i < rawSegments.Count; i++) {
+                var seg = rawSegments[i];
+                var p0 = SnapToNearestExisting(seg.P0, existingByKey, dedupeTolerance);
+                var p1 = SnapToNearestExisting(seg.P1, existingByKey, dedupeTolerance);
+                rawSegments[i] = seg.WithCoordinates(p0, p1);
+            }
+
+
+
+
 
             // Step 2: Build a spatial index over raw segments
             var segIndex = new STRtree<RawSegment>();
@@ -552,6 +601,124 @@ namespace S100Framework.Topology.Internal
             foreach (var edge in this._edges)
                 this._edgeIndex.Insert(edge.Geometry!.EnvelopeInternal, edge);
         }
+#endif
+        public void Build() {
+            // -----------------------------------------------------------------
+            // Step 1: Extract raw segments per source (bare coordinates)
+            // -----------------------------------------------------------------
+            var rawSegments = ExtractRawSegments();
+
+            // -----------------------------------------------------------------
+            // Step 2: Canonicalize coordinates (union-find over adjacent grid cells)
+            //         and remap every segment's endpoints to canonical coordinates.
+            //         Drop any segment that becomes degenerate (zero-length)
+            //         AFTER canonicalization.
+            // -----------------------------------------------------------------
+            var canonical = BuildCanonicalCoordinateMap(rawSegments);
+
+            var cleanedSegments = new List<RawSegment>(rawSegments.Count);
+            foreach (var seg in rawSegments) {
+                var p0 = canonical[new CoordinateKey(SnapToGrid(seg.P0), _snapTolerance)];
+                var p1 = canonical[new CoordinateKey(SnapToGrid(seg.P1), _snapTolerance)];
+
+                if (p0.Equals2D(p1)) continue; // degenerate after canonicalization
+
+                cleanedSegments.Add(seg.WithCoordinates(p0, p1));
+            }
+
+            // Re-assign sequential SegIds — the intersection loop below relies on
+            // "other.SegId >= seg.SegId" to process each pair once, so ids must
+            // be dense/contiguous after we dropped some segments.
+            var segments = new List<RawSegment>(cleanedSegments.Count);
+            for (int i = 0; i < cleanedSegments.Count; i++)
+                segments.Add(cleanedSegments[i].WithSegId(i));
+
+            // -----------------------------------------------------------------
+            // Step 3: Spatial index over cleaned segments
+            // -----------------------------------------------------------------
+            var segIndex = new STRtree<RawSegment>();
+            foreach (var seg in segments)
+                segIndex.Insert(seg.Envelope, seg);
+
+            // -----------------------------------------------------------------
+            // Step 4: Local intersection detection — collect split points per segment
+            // -----------------------------------------------------------------
+            var splitPoints = new Dictionary<int, SortedSet<SplitPoint>>(segments.Count);
+            for (int i = 0; i < segments.Count; i++)
+                splitPoints[i] = new SortedSet<SplitPoint>(SplitPoint.Comparer);
+
+            var li = new RobustLineIntersector();
+
+            foreach (var seg in segments) {
+                var queryEnv = seg.Envelope.Copy();
+                queryEnv.ExpandBy(_snapTolerance);
+
+                var candidates = segIndex.Query(queryEnv);
+                foreach (var other in candidates) {
+                    if (other.SegId >= seg.SegId) continue; // process each pair once
+
+                    li.ComputeIntersection(seg.P0, seg.P1, other.P0, other.P1);
+                    if (!li.HasIntersection) continue;
+
+                    for (int k = 0; k < li.IntersectionNum; k++) {
+                        var pt = li.GetIntersection(k);
+
+                        // Canonicalize the computed intersection point too —
+                        // it's a brand-new floating-point coordinate that must
+                        // land on the same grid as everything else.
+                        pt = SnapToGrid(pt);
+                        var ptKey = new CoordinateKey(pt, _snapTolerance);
+                        if (canonical.TryGetValue(ptKey, out var canonPt))
+                            pt = canonPt;
+
+                        // Snap to endpoint if within tolerance
+                        pt = SnapToEndpoint(pt, seg, other);
+
+                        splitPoints[seg.SegId].Add(new SplitPoint(pt, seg.P0));
+                        splitPoints[other.SegId].Add(new SplitPoint(pt, other.P0));
+                    }
+                }
+            }
+
+            // -----------------------------------------------------------------
+            // Step 5: Split each segment at its intersection points and insert
+            //         the resulting sub-segments into the graph
+            // -----------------------------------------------------------------
+            _nodes.Clear();
+            _edges.Clear();
+            _edgesBySource.Clear();
+
+            var edgeMap = new Dictionary<(CoordinateKey, CoordinateKey), NetworkEdge>();
+
+            foreach (var seg in segments) {
+                var splits = splitPoints[seg.SegId];
+
+                var coords = new List<Coordinate>(splits.Count + 2) { seg.P0 };
+                foreach (var sp in splits) {
+                    if (!sp.Coord.Equals2D(coords[^1], _snapTolerance))
+                        coords.Add(sp.Coord);
+                }
+                if (!seg.P1.Equals2D(coords[^1], _snapTolerance))
+                    coords.Add(seg.P1);
+
+                for (int i = 0; i < coords.Count - 1; i++) {
+                    if (coords[i].Equals2D(coords[i + 1], _snapTolerance))
+                        continue; // skip degenerate sub-segments from split noise
+
+                    InsertEdge(coords[i], coords[i + 1], seg.SourceId, seg.OriginallyReversed, edgeMap);
+                }
+            }
+
+            // -----------------------------------------------------------------
+            // Step 6: Spatial index on final edges
+            // -----------------------------------------------------------------
+            _edgeIndex = new STRtree<NetworkEdge>();
+            foreach (var edge in _edges)
+                _edgeIndex.Insert(edge.Geometry.EnvelopeInternal, edge);
+        }
+
+
+
 
         // -------------------------------------------------------------------------
         // Segment extraction — no geometry object allocation per segment
@@ -578,11 +745,125 @@ namespace S100Framework.Topology.Internal
             return result;
         }
 
-        private int ExtractFromRing(Coordinate[] coords, int sourceId, List<RawSegment> result, int segId) {
-            for (int i = 0; i < coords.Length - 1; i++) {
-                result.Add(new RawSegment(segId++, SnapToGrid(coords[i]), SnapToGrid(coords[i + 1]), sourceId));
+        private int ExtractFromRing(
+            Coordinate[] coords, int sourceId,
+            List<RawSegment> result, int segId) {
+            // Snap + de-duplicate consecutive identical coordinates that
+            // collapse together after snapping
+            var snapped = new List<Coordinate>(coords.Length);
+            foreach (var c in coords) {
+                var sc = SnapToGrid(c);
+                if (snapped.Count == 0 || !sc.Equals2D(snapped[^1]))
+                    snapped.Add(sc);
             }
+
+            // Re-close the ring if snapping broke closure
+            if (snapped.Count > 2 && !snapped[0].Equals2D(snapped[^1]))
+                snapped.Add(snapped[0]);
+
+            for (int i = 0; i < snapped.Count - 1; i++) {
+                var p0 = snapped[i];
+                var p1 = snapped[i + 1];
+
+                if (p0.Equals2D(p1)) continue; // degenerate after snapping
+
+                // Canonicalize direction: always store the "smaller" coordinate first
+                bool reversed = ComparePoints(p0, p1) > 0;
+                var (c0, c1) = reversed ? (p1, p0) : (p0, p1);
+
+                result.Add(new RawSegment(segId++, c0, c1, sourceId, reversed));
+            }
+
             return segId;
+        }
+
+        /// <summary>
+        /// Builds a map from EVERY grid cell touched by input coordinates to ONE
+        /// canonical coordinate. Adjacent cells (within 1 cell of each other) that
+        /// are also within snapTolerance in real distance collapse to the same
+        /// canonical coordinate using a union-find–style merge.
+        /// </summary>
+        private Dictionary<CoordinateKey, Coordinate> BuildCanonicalCoordinateMap(
+            List<RawSegment> rawSegments) {
+            // Step 1: collect distinct snapped coordinates per cell (first-seen wins
+            // as the "raw" value for that cell)
+            var cellValue = new Dictionary<CoordinateKey, Coordinate>();
+            foreach (var seg in rawSegments) {
+                foreach (var c in new[] { seg.P0, seg.P1 }) {
+                    var snapped = SnapToGrid(c);
+                    var key = new CoordinateKey(snapped, _snapTolerance);
+                    if (!cellValue.ContainsKey(key))
+                        cellValue[key] = snapped;
+                }
+            }
+
+            // Step 2: union-find over cells. Two cells merge if they are adjacent
+            // (within 1 cell in x or y) AND their raw values are within tolerance.
+            var parent = new Dictionary<CoordinateKey, CoordinateKey>();
+            CoordinateKey Find(CoordinateKey k) {
+                while (parent.TryGetValue(k, out var p) && !p.Equals(k))
+                    k = p;
+                return k;
+            }
+            void Union(CoordinateKey a, CoordinateKey b) {
+                var ra = Find(a);
+                var rb = Find(b);
+                if (!ra.Equals(rb))
+                    parent[ra] = rb;
+            }
+
+            foreach (var key in cellValue.Keys)
+                parent[key] = key;
+
+            var keys = cellValue.Keys.ToList();
+            foreach (var key in keys) {
+                var v = cellValue[key];
+                for (int dx = -1; dx <= 1; dx++)
+                    for (int dy = -1; dy <= 1; dy++) {
+                        if (dx == 0 && dy == 0) continue;
+                        var nk = key.Offset(dx, dy);
+                        if (cellValue.TryGetValue(nk, out var nv)
+                            && v.Distance(nv) <= _snapTolerance * 1.0001) // tiny epsilon for fp safety
+                        {
+                            Union(key, nk);
+                        }
+                    }
+            }
+
+            // Step 3: pick ONE canonical coordinate per union-find group
+            // (use the group's representative cell's value)
+            var groupCanonical = new Dictionary<CoordinateKey, Coordinate>();
+            var result = new Dictionary<CoordinateKey, Coordinate>();
+
+            foreach (var key in keys) {
+                var root = Find(key);
+                if (!groupCanonical.TryGetValue(root, out var canon)) {
+                    canon = cellValue[root]; // representative's own value
+                    groupCanonical[root] = canon;
+                }
+                result[key] = canon;
+            }
+
+            return result;
+        }
+
+        private void RegisterCoordinate(Coordinate c, Dictionary<CoordinateKey, Coordinate> existingByKey, double dedupeTolerance) {
+            var snapped = SnapToGrid(c);
+            var key = new CoordinateKey(snapped, _snapTolerance);
+
+            if (!existingByKey.ContainsKey(key)) {
+                // Check if a neighboring cell already has a coordinate within
+                // dedupe distance — if so, don't register a new one
+                foreach (var dx in new[] { -1, 0, 1 })
+                    foreach (var dy in new[] { -1, 0, 1 }) {
+                        var nk = key.Offset(dx, dy);
+                        if (existingByKey.TryGetValue(nk, out var existing)
+                            && snapped.Distance(existing) <= dedupeTolerance)
+                            return; // already covered by a neighbor
+                    }
+
+                existingByKey[key] = snapped;
+            }
         }
 
         /// <summary>
@@ -633,6 +914,32 @@ namespace S100Framework.Topology.Internal
         //    return segId;
         //}
 
+        /// <summary>
+        /// Snaps a coordinate to the nearest coordinate in a reference set,
+        /// if one exists within tolerance. Falls back to grid-snap otherwise.
+        /// </summary>
+        private Coordinate SnapToNearestExisting(
+            Coordinate c,
+            Dictionary<CoordinateKey, Coordinate> existingByKey,
+            double tolerance) {
+            var key = new CoordinateKey(SnapToGrid(c), tolerance);
+
+            if (existingByKey.TryGetValue(key, out var existing))
+                return existing;
+
+            // Check neighboring cells too — handles the "1 cell apart" case
+            foreach (var dx in new[] { -1, 0, 1 })
+                foreach (var dy in new[] { -1, 0, 1 }) {
+                    var neighborKey = key.Offset(dx, dy);
+                    if (existingByKey.TryGetValue(neighborKey, out var neighbor)
+                        && c.Distance(neighbor) <= tolerance) {
+                        return neighbor;
+                    }
+                }
+
+            return SnapToGrid(c);
+        }
+
         private static int ComparePoints(Coordinate a, Coordinate b) {
             int c = a.X.CompareTo(b.X);
             return c != 0 ? c : a.Y.CompareTo(b.Y);
@@ -643,34 +950,40 @@ namespace S100Framework.Topology.Internal
         // -------------------------------------------------------------------------
         // Graph insertion
         // -------------------------------------------------------------------------
-        private void InsertEdge(Coordinate c0, Coordinate c1, int sourceId, Dictionary<(CoordinateKey, CoordinateKey), NetworkEdge> edgeMap) {
-            if (c0.Equals2D(c1, this._snapTolerance)) return; // degenerate
+        private void InsertEdge(
+            Coordinate c0, Coordinate c1, int sourceId, bool sourceReversed,
+            Dictionary<(CoordinateKey, CoordinateKey), NetworkEdge> edgeMap) {
+            if (c0.Equals2D(c1, _snapTolerance)) return; // degenerate
 
-            var k0 = new CoordinateKey(c0, this._snapTolerance);
-            var k1 = new CoordinateKey(c1, this._snapTolerance);
-            var key = k0.CompareTo(k1) <= 0 ? (k0, k1) : (k1, k0);
+            var k0 = new CoordinateKey(c0, _snapTolerance);
+            var k1 = new CoordinateKey(c1, _snapTolerance);
+            bool needsSwap = k0.CompareTo(k1) > 0;
+            var key = needsSwap ? (k1, k0) : (k0, k1);
 
             if (!edgeMap.TryGetValue(key, out var edge)) {
-                var ls = this._factory.CreateLineString(new[] { c0, c1 });
+                var (geomC0, geomC1) = needsSwap ? (c1, c0) : (c0, c1);
+                var ls = _factory.CreateLineString(new[] { geomC0, geomC1 });
                 edge = new NetworkEdge {
-                    Id = this._edges.Count,
+                    Id = _edges.Count,
                     Geometry = ls,
-                    StartNode = c0,
-                    EndNode = c1,
+                    StartNode = geomC0,
+                    EndNode = geomC1,
                 };
-                this._edges.Add(edge);
+                _edges.Add(edge);
                 edgeMap[key] = edge;
 
-                this.GetOrCreateNode(c0).Edges.Add(edge);
-                this.GetOrCreateNode(c1).Edges.Add(edge);
+                GetOrCreateNode(geomC0).Edges.Add(edge);
+                GetOrCreateNode(geomC1).Edges.Add(edge);
             }
 
             edge.SourceGeometryIds.Add(sourceId);
 
-            if (!this._edgesBySource.TryGetValue(sourceId, out var list))
-                this._edgesBySource[sourceId] = list = [];
+            // Did THIS source traverse edge.StartNode -> edge.EndNode?
+            bool sourceGoesStartToEnd = c0.Equals2D(edge.StartNode, _snapTolerance);
+            edge.SourceOrientation[sourceId] = sourceGoesStartToEnd;
 
-            // Avoid duplicates if the same source produced the same sub-segment
+            if (!_edgesBySource.TryGetValue(sourceId, out var list))
+                _edgesBySource[sourceId] = list = new List<NetworkEdge>();
             if (!list.Contains(edge))
                 list.Add(edge);
         }
@@ -918,15 +1231,20 @@ namespace S100Framework.Topology.Internal
         public readonly int SegId;
         public readonly Coordinate P0, P1;
         public readonly int SourceId;
-        public readonly NetTopologySuite.Geometries.Envelope Envelope;
+        public readonly bool OriginallyReversed;
+        public readonly Envelope Envelope;
 
-        public RawSegment(int segId, Coordinate p0, Coordinate p1, int sourceId) {
-            this.SegId = segId;
-            this.P0 = p0;
-            this.P1 = p1;
-            this.SourceId = sourceId;
-            this.Envelope = new NetTopologySuite.Geometries.Envelope(p0, p1);
+        public RawSegment(int segId, Coordinate p0, Coordinate p1, int sourceId, bool reversed) {
+            SegId = segId; P0 = p0; P1 = p1; SourceId = sourceId;
+            OriginallyReversed = reversed;
+            Envelope = new Envelope(p0, p1);
         }
+
+        public RawSegment WithCoordinates(Coordinate p0, Coordinate p1)
+            => new RawSegment(SegId, p0, p1, SourceId, OriginallyReversed);
+
+        public RawSegment WithSegId(int segId)
+            => new RawSegment(segId, P0, P1, SourceId, OriginallyReversed);
     }
 
     //internal sealed class RawSegment
@@ -966,29 +1284,52 @@ namespace S100Framework.Topology.Internal
     /// <summary>
     /// Bucketed coordinate key for tolerance-based node identity.
     /// </summary>
-    internal readonly struct CoordinateKey : IEquatable<CoordinateKey>,
-                                           IComparable<CoordinateKey>
+    //internal readonly struct CoordinateKey : IEquatable<CoordinateKey>,
+    //                                       IComparable<CoordinateKey>
+    //{
+    //    private readonly long _x, _y;
+
+    //    public CoordinateKey(Coordinate c, double tolerance) {
+    //        //double inv = 1.0 / tolerance;
+    //        //this._x = (long)Math.Round(c.X * inv);
+    //        //this._y = (long)Math.Round(c.Y * inv);
+
+    //        double inv = 1.0 / tolerance;
+    //        const double epsilon = 1e-9;
+
+    //        _x = (long)Math.Floor(c.X * inv + epsilon);
+    //        _y = (long)Math.Floor(c.Y * inv + epsilon);
+    //    }
+
+    //    public bool Equals(CoordinateKey other) => this._x == other._x && this._y == other._y;
+    //    public override bool Equals(object obj) => obj is CoordinateKey k && this.Equals(k);
+    //    public override int GetHashCode() => HashCode.Combine(this._x, this._y);
+    //    public int CompareTo(CoordinateKey other) {
+    //        int c = this._x.CompareTo(other._x);
+    //        return c != 0 ? c : this._y.CompareTo(other._y);
+    //    }
+    //}
+
+    internal readonly struct CoordinateKey : IEquatable<CoordinateKey>, IComparable<CoordinateKey>
     {
         private readonly long _x, _y;
 
-        public CoordinateKey(Coordinate c, double tolerance) {
-            //double inv = 1.0 / tolerance;
-            //this._x = (long)Math.Round(c.X * inv);
-            //this._y = (long)Math.Round(c.Y * inv);
-
+        public CoordinateKey(Coordinate snappedCoord, double tolerance) {
             double inv = 1.0 / tolerance;
-            const double epsilon = 1e-9;
-
-            _x = (long)Math.Floor(c.X * inv + epsilon);
-            _y = (long)Math.Floor(c.Y * inv + epsilon);
+            _x = (long)Math.Round(snappedCoord.X * inv);
+            _y = (long)Math.Round(snappedCoord.Y * inv);
         }
 
-        public bool Equals(CoordinateKey other) => this._x == other._x && this._y == other._y;
-        public override bool Equals(object obj) => obj is CoordinateKey k && this.Equals(k);
-        public override int GetHashCode() => HashCode.Combine(this._x, this._y);
+        private CoordinateKey(long x, long y) { _x = x; _y = y; }
+
+        public CoordinateKey Offset(int dx, int dy) => new CoordinateKey(_x + dx, _y + dy);
+
+        public bool Equals(CoordinateKey other) => _x == other._x && _y == other._y;
+        public override bool Equals(object obj) => obj is CoordinateKey k && Equals(k);
+        public override int GetHashCode() => HashCode.Combine(_x, _y);
         public int CompareTo(CoordinateKey other) {
-            int c = this._x.CompareTo(other._x);
-            return c != 0 ? c : this._y.CompareTo(other._y);
+            int c = _x.CompareTo(other._x);
+            return c != 0 ? c : _y.CompareTo(other._y);
         }
     }
 
