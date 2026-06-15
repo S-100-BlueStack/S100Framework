@@ -112,6 +112,7 @@ namespace S100FC.Topology
 
                         var curve = new CurveFeature(edge.Geometry, hash1);
                         this._curves.Add(featureRef1.Id, curve);
+                        this._curves.Add(featureRef2.Id, curve);
                     }
                 }
             }
@@ -317,9 +318,9 @@ namespace S100FC.Topology
                     idInteriorRings = [.. idInteriorRings, id];
                 }
 
-                if (idExteriorRing == 97 || idInteriorRings.Contains(97)) {
+                if (idExteriorRing == 78 || idInteriorRings.Contains(78)) {
                     //this._interceptor?.Invoke(100, [(surface.ExteriorRing, surface.UID)]);
-                    //System.Diagnostics.Debugger.Break();
+                    System.Diagnostics.Debugger.Break();
                 }
 
                 var p = new PolygonSource(idExteriorRing, idInteriorRings);
