@@ -450,6 +450,7 @@ namespace S100Framework.Topology.Internal
         /// are also within snapTolerance in real distance collapse to the same
         /// canonical coordinate using a union-find–style merge.
         /// </summary>
+#if null
         private Dictionary<CoordinateKey, Coordinate> BuildCanonicalCoordinateMap(
             List<RawSegment> rawSegments)
         {
@@ -515,6 +516,70 @@ namespace S100Framework.Topology.Internal
                 if (!groupCanonical.TryGetValue(root, out var canon))
                 {
                     canon = cellValue[root]; // representative's own value
+                    groupCanonical[root] = canon;
+                }
+                result[key] = canon;
+            }
+
+            return result;
+        }
+#endif
+        private Dictionary<CoordinateKey, Coordinate> BuildCanonicalCoordinateMap(
+            List<RawSegment> rawSegments) {
+            var cellValue = new Dictionary<CoordinateKey, Coordinate>();
+            foreach (var seg in rawSegments) {
+                foreach (var c in new[] { seg.P0, seg.P1 }) {
+                    var snapped = SnapToGrid(c);
+                    var key = new CoordinateKey(snapped, _snapTolerance);
+                    if (!cellValue.ContainsKey(key))
+                        cellValue[key] = snapped;
+                }
+            }
+
+            var parent = new Dictionary<CoordinateKey, CoordinateKey>();
+            CoordinateKey Find(CoordinateKey k) {
+                while (parent.TryGetValue(k, out var p) && !p.Equals(k))
+                    k = p;
+                return k;
+            }
+            void Union(CoordinateKey a, CoordinateKey b) {
+                var ra = Find(a);
+                var rb = Find(b);
+                if (!ra.Equals(rb))
+                    parent[ra] = rb;
+            }
+
+            foreach (var key in cellValue.Keys)
+                parent[key] = key;
+
+            var keys = cellValue.Keys.ToList();
+
+            // Search radius widened to ±2 cells to catch 2-cell gaps (e.g. x differs
+            // by exactly 2 grid units). Distance threshold widened to tol*1.5 to
+            // catch diagonal 1-cell neighbors (sqrt(2)*tol ≈ 1.414*tol).
+            const int searchRadius = 2;
+            double distThreshold = _snapTolerance * 2.5;    // covers both 2-cell-axis-aligned (2.0) and diagonal (1.414) gaps with margin
+
+            foreach (var key in keys) {
+                var v = cellValue[key];
+                for (int dx = -searchRadius; dx <= searchRadius; dx++)
+                    for (int dy = -searchRadius; dy <= searchRadius; dy++) {
+                        if (dx == 0 && dy == 0) continue;
+                        var nk = key.Offset(dx, dy);
+                        if (cellValue.TryGetValue(nk, out var nv)
+                            && v.Distance(nv) <= distThreshold) {
+                            Union(key, nk);
+                        }
+                    }
+            }
+
+            var groupCanonical = new Dictionary<CoordinateKey, Coordinate>();
+            var result = new Dictionary<CoordinateKey, Coordinate>();
+
+            foreach (var key in keys) {
+                var root = Find(key);
+                if (!groupCanonical.TryGetValue(root, out var canon)) {
+                    canon = cellValue[root];
                     groupCanonical[root] = canon;
                 }
                 result[key] = canon;
