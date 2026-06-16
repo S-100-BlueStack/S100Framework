@@ -52,10 +52,11 @@ namespace S100FC.Topology
         protected Reloaded() {
             //  Protected default constructor            
 
-            //this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory, snapTolerance: 0.000000001);
+
+            //this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory!, snapTolerance: 0.000000001);
             //this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory, snapTolerance: 0.000000005);
-            //this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory, snapTolerance: 0.00000001);
-            this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory, snapTolerance: Reloaded.Factory.PrecisionModel.GridSize);
+            //this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory!, snapTolerance: 0.0000001);                                                                                                    
+            this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory!, snapTolerance: Reloaded.Factory!.PrecisionModel.GridSize);
         }
 
         public static ITopologyBuilder CreateMatrix(Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default) {
@@ -64,7 +65,7 @@ namespace S100FC.Topology
             };
         }
 
-        GeometryFactory IMatrixReloaded.Factory => Reloaded.Factory;
+        GeometryFactory IMatrixReloaded.Factory => Reloaded.Factory!;
 
         ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, curves, true);
 
@@ -87,12 +88,6 @@ namespace S100FC.Topology
 
             var ids = new Dictionary<int, Func<string>>();
 
-            //var xxFeature = this._featureMapperPolygons.Single(e => e.Key.Equals("F10400012235"));
-            //int[] xxID = [xxFeature.Value.ExteriorRing, .. xxFeature.Value.InteriorRing];
-            //var xxEdges = this._mixedTopologyNetwork.Edges.Where(e => e.SourceGeometryIds.Any(i => xxID.Contains(i))).ToArray();
-
-            //this._interceptor?.Invoke(6000, [.. xxEdges.Select(e => (e.Geometry, $"{e.Id}"))!]);
-
             var rc2c = new Dictionary<ulong, ulong>();
 
             //  Create all curves and composite curves
@@ -101,9 +96,6 @@ namespace S100FC.Topology
                 foreach (var edge in this._mixedTopologyNetwork.MergeEdgesFor(id)) {
                     var hash1 = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.AsBinary());
                     var hash2 = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.Factory.CreateLineString([.. edge.Geometry.Coordinates.Reverse()]).AsBinary());
-
-                    //if (hash1 == 232626361 || hash2 == 232626361) System.Diagnostics.Debugger.Break();
-                    //if (hash1 == 1066293143 || hash2 == 1066293143) System.Diagnostics.Debugger.Break();
 
                     if (!featureRefs.ContainsKey(hash1) || !featureRefs.ContainsKey(hash2)) {
                         var featureRef1 = new FeatureRef {
@@ -136,8 +128,6 @@ namespace S100FC.Topology
             var used = new List<FeatureRef>();
 
             foreach (var id in this._mixedTopologyNetwork.Sources) {
-                if (id == 6) System.Diagnostics.Debugger.Break();   //232626361 hash2
-
                 var mergedEdges = this._mixedTopologyNetwork.MergeEdgesFor(id);
                 if (mergedEdges.Count == 0) continue;
 
@@ -158,8 +148,6 @@ namespace S100FC.Topology
                 if (merged.Count > 1) {
                     var xx = mergedEdges.SelectMany(e => e.SourceGeometryIds).Distinct().ToArray();
                     this._interceptor?.Invoke(100, [.. mergedEdges.Select(e => (e.Geometry, $"{string.Join(',', e.SourceGeometryIds)}"))]);
-
-                    //this._interceptor?.Invoke(100, [.. merged.Select(e => ((LineString)e, ""))]);
                     System.Diagnostics.Debugger.Break();
                 }
                 Debug.Assert(merged.Count == 1);
@@ -297,9 +285,7 @@ namespace S100FC.Topology
                 this._mapping.Add(uid, $"S{surface.Id}");
             }
 
-            if (this._mapping.Any(e => e.Value.StartsWith("RC"))) System.Diagnostics.Debugger.Break();
-
-            //this._mapping = this._mapping.ToDictionary(e => e.Key, e => e.Value.StartsWith("RC") ? rc2c[e.Key].Id : e.Value);
+            //if (this._mapping.Any(e => e.Value.StartsWith("RC"))) System.Diagnostics.Debugger.Break();
 
             ulong[] _ = [];
             foreach (var e in used) {
@@ -335,38 +321,33 @@ namespace S100FC.Topology
         private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
             int[] checks = [104, 154, 271, 770, 740];
             checks = [1546];
-            checks = [577];
+            checks = [577];            
+            checks = [97];
             checks = [];
 
             foreach (var surface in surfaces) {
-
-                //if (surface.UID.Equals("F10800045699")) System.Diagnostics.Debugger.Break();
-
-                //var idExteriorRing = this._mixedTopologyNetwork.AddLineString((LineString)this.Reducer.Reduce(surface.ExteriorRing));
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
                 var idInteriorRings = new int[0];
                 foreach (var interior in surface.InteriorRings) {
-                    //var id = this._mixedTopologyNetwork.AddLineString((LineString)this.Reducer.Reduce(interior));
                     var id = this._mixedTopologyNetwork.AddLineString(interior);
                     idInteriorRings = [.. idInteriorRings, id];
                 }
 
-                if (checks.Contains(idExteriorRing) || checks.ContainsAny(idInteriorRings)) {
-                    System.Diagnostics.Debugger.Break();
-                }
+                //if (checks.Contains(idExteriorRing) || checks.ContainsAny(idInteriorRings)) {
+                //    System.Diagnostics.Debugger.Break();
+                //}
 
                 var p = new PolygonSource(idExteriorRing, idInteriorRings);
                 this._featureMapperPolygons.Add(surface.Name, p);
             }
 
             foreach (var curve in curves) {
-                //var id = this._mixedTopologyNetwork.AddLineString((LineString)this.Reducer.Reduce(curve.LineString));
                 var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
                 if (id < 0) continue;
 
-                if (checks.Contains(id)) {
-                    System.Diagnostics.Debugger.Break();
-                }
+                //if (checks.Contains(id)) {
+                //    System.Diagnostics.Debugger.Break();
+                //}
 
                 this._featureMapperLineStrings.Add(curve.Name, id);
             }

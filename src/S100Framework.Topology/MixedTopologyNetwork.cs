@@ -377,10 +377,13 @@ namespace S100Framework.Topology.Internal
         /// Snaps + de-duplicates a coordinate sequence, re-closes rings if needed,
         /// and emits direction-canonicalized RawSegments (smaller coordinate first).
         /// </summary>
-        private int ExtractFromRing(
-            Coordinate[] coords, int sourceId,
-            List<RawSegment> result, int segId, bool isRing = true) {
+        private int ExtractFromRing(Coordinate[] coords, int sourceId, List<RawSegment> result, int segId, bool isRing = true) {
             //if (sourceId == 104) System.Diagnostics.Debugger.Break();
+
+            // Pre-clean: remove near-duplicate "spike" vertices using a tolerance
+            // matched to source data precision, separate from the fine _snapTolerance
+            // used for the rest of the network build.
+            coords = RemoveSpikes(coords, spikeTolerance: _snapTolerance);
 
             // Snap + de-duplicate consecutive identical coordinates that
             // collapse together after snapping
@@ -409,6 +412,27 @@ namespace S100Framework.Topology.Internal
             }
 
             return segId;
+        }
+
+        /// <summary>
+        /// Removes "spike" vertices — a vertex whose neighbors on both sides are
+        /// within distSnapTolerance, indicating a near-duplicate point that
+        /// creates a degenerate zero-area excursion.
+        /// </summary>
+        private Coordinate[] RemoveSpikes(Coordinate[] coords, double spikeTolerance) {
+            if (coords.Length < 4) return coords;
+
+            var result = new List<Coordinate> { coords[0] };
+            for (int i = 1; i < coords.Length - 1; i++) {
+                // Skip this vertex if it's within spikeTolerance of either
+                // the previous kept vertex or the next vertex
+                if (result[^1].Distance(coords[i]) <= spikeTolerance)
+                    continue; // collapses into previous point — skip
+
+                result.Add(coords[i]);
+            }
+            result.Add(coords[^1]);
+            return result.ToArray();
         }
 
         private static int ComparePoints(Coordinate a, Coordinate b) {
