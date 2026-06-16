@@ -56,5 +56,7 @@
             //keep.Add(coords[^1]); // always keep the last point
             //return line.Factory.CreateLineString(keep.ToArray());
         }
+
+
     }
 }

@@ -70,7 +70,10 @@ namespace S100FC.Topology
 
         ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, curves, false);
 
-        public GeometryPrecisionReducer Reducer => new GeometryPrecisionReducer(Factory!.PrecisionModel);
+        public GeometryPrecisionReducer Reducer => new GeometryPrecisionReducer(Factory!.PrecisionModel) {
+            Pointwise = true,
+            RemoveCollapsedComponents = true,
+        };
 
         IMatrix ITopologyBuilder.BuildTopology() {
             this._mapping.Clear();
@@ -90,12 +93,17 @@ namespace S100FC.Topology
 
             //this._interceptor?.Invoke(6000, [.. xxEdges.Select(e => (e.Geometry, $"{e.Id}"))!]);
 
+            var rc2c = new Dictionary<ulong, ulong>();
+
             //  Create all curves and composite curves
             //  ------------------------------------------------------------------------------------------------
             foreach (var id in this._mixedTopologyNetwork.Sources) {
                 foreach (var edge in this._mixedTopologyNetwork.MergeEdgesFor(id)) {
                     var hash1 = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.AsBinary());
                     var hash2 = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.Factory.CreateLineString([.. edge.Geometry.Coordinates.Reverse()]).AsBinary());
+
+                    //if (hash1 == 232626361 || hash2 == 232626361) System.Diagnostics.Debugger.Break();
+                    //if (hash1 == 1066293143 || hash2 == 1066293143) System.Diagnostics.Debugger.Break();
 
                     if (!featureRefs.ContainsKey(hash1) || !featureRefs.ContainsKey(hash2)) {
                         var featureRef1 = new FeatureRef {
@@ -112,7 +120,13 @@ namespace S100FC.Topology
 
                         var curve = new CurveFeature(edge.Geometry, hash1);
                         this._curves.Add(featureRef1.Id, curve);
-                        this._curves.Add(featureRef2.Id, curve);
+                        //this._curves.Add(featureRef2.Id, curve);
+
+                        //rc2c.Add($"RC{featureRef1.Id}", $"C{featureRef1.Id}");
+                        //rc2c.Add($"RC{featureRef2.Id}", $"C{featureRef1.Id}");
+
+                        rc2c.Add(featureRef1.Id, featureRef1.Id);
+                        rc2c.Add(featureRef2.Id, featureRef1.Id);
                     }
                 }
             }
@@ -122,14 +136,19 @@ namespace S100FC.Topology
             var used = new List<FeatureRef>();
 
             foreach (var id in this._mixedTopologyNetwork.Sources) {
-                var mergedEdges = this._mixedTopologyNetwork.MergeEdgesFor(id);                
+                if (id == 6) System.Diagnostics.Debugger.Break();   //232626361 hash2
+
+                var mergedEdges = this._mixedTopologyNetwork.MergeEdgesFor(id);
+                if (mergedEdges.Count == 0) continue;
 
                 FeatureRef[] refs = [];
 
                 var linemerger = new LineMerger();
 
                 foreach (var edge in mergedEdges) {
-                    var hash = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.ToBinary());
+                    ulong hash = System.IO.Hashing.XxHash32.HashToUInt32(edge.Geometry.ToBinary());
+
+                    hash = rc2c[hash];  //  remap to non reverse!
                     refs = [.. refs, featureRefs[hash]];
 
                     linemerger.Add(edge.Geometry);
@@ -137,12 +156,13 @@ namespace S100FC.Topology
 
                 var merged = linemerger.GetMergedLineStrings();
                 if (merged.Count > 1) {
-                    this._interceptor?.Invoke(100, [.. mergedEdges.Select(e => (e.Geometry, $"{string.Join(',',e.SourceGeometryIds)}"))]);
+                    var xx = mergedEdges.SelectMany(e => e.SourceGeometryIds).Distinct().ToArray();
+                    this._interceptor?.Invoke(100, [.. mergedEdges.Select(e => (e.Geometry, $"{string.Join(',', e.SourceGeometryIds)}"))]);
 
                     //this._interceptor?.Invoke(100, [.. merged.Select(e => ((LineString)e, ""))]);
                     System.Diagnostics.Debugger.Break();
                 }
-                Debug.Assert(merged.Count == 1);                
+                Debug.Assert(merged.Count == 1);
 
                 bool skip = false;
                 foreach (var c in curves) {
@@ -162,13 +182,15 @@ namespace S100FC.Topology
 
                 used.AddRange(refs);
 
+                if (refs.Select(e => e.Id).ToList().Contains(232626361)) System.Diagnostics.Debugger.Break();
+
                 if (refs.Length > 1) {
                     var mergedText = merged[0].ToText();
 
                     var sortedlist = new SortedList<int, FeatureRef>();
 
                     foreach (var e in refs) {
-                        var curve = this._curves[e.Id];
+                        var curve = this._curves[rc2c[e.Id]];
 
                         var text = curve.LineStringText.Substring("LINESTRING (".Length).TrimEnd(')');
 
@@ -218,7 +240,13 @@ namespace S100FC.Topology
 
                     var uid = linestring.Key;
 
-                    this._mapping.Add(uid, ids[id]());
+                    if (!ids.ContainsKey(id)) continue;
+
+                    string _id = ids[id]();
+
+                    //if (_id.StartsWith("RC"))
+                    //    _id = rc2c[_id];
+                    this._mapping.Add(uid, _id);
                 }
             }
 
@@ -271,9 +299,18 @@ namespace S100FC.Topology
 
             if (this._mapping.Any(e => e.Value.StartsWith("RC"))) System.Diagnostics.Debugger.Break();
 
-            var _ = used.Select(e => e.Id).Distinct();
-            this._curves = this._curves.Where(e => _.Contains(e.Key)).ToDictionary(e => e.Key, e => e.Value);
+            //this._mapping = this._mapping.ToDictionary(e => e.Key, e => e.Value.StartsWith("RC") ? rc2c[e.Key].Id : e.Value);
 
+            ulong[] _ = [];
+            foreach (var e in used) {
+                if (e.Reverse) {
+                    _ = [.. _, rc2c[e.Id]];
+                }
+                else
+                    _ = [.. _, e.Id];
+            }
+
+            this._curves = this._curves.Where(e => _.Contains(e.Key)).ToDictionary(e => e.Key, e => e.Value);
 
             //this._interceptor?.Invoke(6000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
             //this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
@@ -295,48 +332,43 @@ namespace S100FC.Topology
 
         public record PolygonSource(int ExteriorRing, int[] InteriorRing);
 
-        private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {            
-            foreach (var surface in surfaces) {
-                //Func<NetTopologySuite.Geometries.Polygon> createPolygon = surface.InteriorRings.Any() switch {
-                //    true => () => {
-                //        return Factory.CreatePolygon(Factory.CreateLinearRing(surface.ExteriorRing.Coordinates), [.. surface.InteriorRings.Select(e => Factory.CreateLinearRing(e.Coordinates))]);
-                //    }
-                //    ,
-                //    false => () => {
-                //        return Factory.CreatePolygon(Factory.CreateLinearRing(surface.ExteriorRing.Coordinates), []);
-                //    }
-                //    ,
-                //};
-                //var polygon = createPolygon();
+        private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
+            int[] checks = [104, 154, 271, 770, 740];
+            checks = [1546];
+            checks = [577];
+            checks = [];
 
-                //if (!reducer.Reduce(polygon.ExteriorRing).Equals(polygon.ExteriorRing)) System.Diagnostics.Debugger.Break();
-                
+            foreach (var surface in surfaces) {
+
+                //if (surface.UID.Equals("F10800045699")) System.Diagnostics.Debugger.Break();
+
+                //var idExteriorRing = this._mixedTopologyNetwork.AddLineString((LineString)this.Reducer.Reduce(surface.ExteriorRing));
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
                 var idInteriorRings = new int[0];
                 foreach (var interior in surface.InteriorRings) {
-                    var id = this._mixedTopologyNetwork.AddLineString((LineString)this.Reducer.Reduce(interior));
+                    //var id = this._mixedTopologyNetwork.AddLineString((LineString)this.Reducer.Reduce(interior));
+                    var id = this._mixedTopologyNetwork.AddLineString(interior);
                     idInteriorRings = [.. idInteriorRings, id];
                 }
 
-                if (idExteriorRing == 78 || idInteriorRings.Contains(78)) {
-                    //this._interceptor?.Invoke(100, [(surface.ExteriorRing, surface.UID)]);
+                if (checks.Contains(idExteriorRing) || checks.ContainsAny(idInteriorRings)) {
                     System.Diagnostics.Debugger.Break();
                 }
 
                 var p = new PolygonSource(idExteriorRing, idInteriorRings);
                 this._featureMapperPolygons.Add(surface.Name, p);
-                //this._featureMapperPolygons.Add(surface.UID, p);
-
-                //var id = this._mixedTopologyNetwork.AddPolygon(polygon);
-                //this._featureMapper.Add(surface.UID, id);
             }
 
             foreach (var curve in curves) {
-                //if (!this.Reducer.Reduce(curve.LineString).Equals(curve.LineString)) System.Diagnostics.Debugger.Break();
+                //var id = this._mixedTopologyNetwork.AddLineString((LineString)this.Reducer.Reduce(curve.LineString));
+                var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
+                if (id < 0) continue;
 
-                var id = this._mixedTopologyNetwork.AddLineString((LineString)this.Reducer.Reduce(curve.LineString));
+                if (checks.Contains(id)) {
+                    System.Diagnostics.Debugger.Break();
+                }
+
                 this._featureMapperLineStrings.Add(curve.Name, id);
-                //this._featureMapperLineStrings.Add(curve.UID, id);
             }
 
             return this;
