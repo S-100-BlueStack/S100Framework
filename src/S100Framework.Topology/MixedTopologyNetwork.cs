@@ -444,21 +444,37 @@ namespace S100Framework.Topology.Internal
         // Snapping / canonicalization helpers
         // -------------------------------------------------------------------
 
+        ///// <summary>
+        ///// Snaps a coordinate to a fixed grid defined by _snapTolerance.
+        ///// Floor-based with a small epsilon to avoid boundary-straddling issues.
+        ///// </summary>
+        //private Coordinate SnapToGrid(Coordinate c) {
+        //    double inv = 1.0 / _snapTolerance;
+        //    const double epsilon = 1e-9;
+
+        //    double x = Math.Floor(c.X * inv + epsilon) * _snapTolerance;
+        //    double y = Math.Floor(c.Y * inv + epsilon) * _snapTolerance;
+
+        //    var coord = double.IsNaN(c.Z)
+        //        ? new Coordinate(x, y)
+        //        : new CoordinateZ(x, y, c.Z);
+
+        //    _factory.PrecisionModel.MakePrecise(coord);
+        //    return coord;
+        //}
+
         /// <summary>
-        /// Snaps a coordinate to a fixed grid defined by _snapTolerance.
-        /// Floor-based with a small epsilon to avoid boundary-straddling issues.
+        /// Snaps a coordinate to a fixed grid defined by tolerance.
         /// </summary>
         private Coordinate SnapToGrid(Coordinate c) {
             double inv = 1.0 / _snapTolerance;
-            const double epsilon = 1e-9;
+            double x = Math.Round(c.X * inv) / inv;
+            double y = Math.Round(c.Y * inv) / inv;
 
-            double x = Math.Floor(c.X * inv + epsilon) * _snapTolerance;
-            double y = Math.Floor(c.Y * inv + epsilon) * _snapTolerance;
-
+            // Preserve Z if present
             var coord = double.IsNaN(c.Z)
                 ? new Coordinate(x, y)
                 : new CoordinateZ(x, y, c.Z);
-
             _factory.PrecisionModel.MakePrecise(coord);
             return coord;
         }
