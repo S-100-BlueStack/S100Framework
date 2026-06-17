@@ -206,7 +206,7 @@ namespace S100Framework.Topology.Internal
             // Default dedupe radius: a generous multiple of snapTolerance to absorb
             // typical digitizing noise (duplicate vertices a few ULPs apart), while
             // staying well below any real feature size.
-            _dedupeRadius = dedupeRadius > 0 ? dedupeRadius : snapTolerance * 5;
+            _dedupeRadius = dedupeRadius > 0 ? dedupeRadius : snapTolerance * 5;            
         }
 
         // -------------------------------------------------------------------
@@ -633,6 +633,7 @@ namespace S100Framework.Topology.Internal
         }
 #endif
 
+#if null
         private Dictionary<CoordinateKey, Coordinate> BuildCanonicalCoordinateMap(
             List<RawSegment> rawSegments) {
             // Collect all distinct snapped coordinates
@@ -703,6 +704,76 @@ namespace S100Framework.Topology.Internal
 
             return result;
         }
+#endif
+
+        /// <summary>
+        /// Builds a canonical coordinate map, but only merges a point with its
+        /// IMMEDIATE NEIGHBORS in segment-adjacency terms — i.e. only collapses
+        /// duplicate/near-duplicate vertices that are CONSECUTIVE in some source
+        /// geometry's coordinate sequence, never just "spatially nearby."
+        /// This avoids collapsing genuinely close-but-unrelated vertices in thin
+        /// sliver polygons while still fixing digitizing dangles at shared edges.
+        /// </summary>
+        private Dictionary<CoordinateKey, Coordinate> BuildCanonicalCoordinateMap(
+            List<RawSegment> rawSegments) {
+            var cellValue = new Dictionary<CoordinateKey, Coordinate>();
+            foreach (var seg in rawSegments) {
+                foreach (var c in new[] { seg.P0, seg.P1 }) {
+                    var snapped = SnapToGrid(c);
+                    var key = new CoordinateKey(snapped, _snapTolerance);
+                    if (!cellValue.ContainsKey(key))
+                        cellValue[key] = snapped;
+                }
+            }
+
+            var parent = new Dictionary<CoordinateKey, CoordinateKey>();
+            CoordinateKey Find(CoordinateKey k) {
+                while (parent.TryGetValue(k, out var p) && !p.Equals(k))
+                    k = p;
+                return k;
+            }
+            void Union(CoordinateKey a, CoordinateKey b) {
+                var ra = Find(a);
+                var rb = Find(b);
+                if (!ra.Equals(rb))
+                    parent[ra] = rb;
+            }
+
+            foreach (var key in cellValue.Keys)
+                parent[key] = key;
+
+            // ONLY merge endpoints of segments that are THEMSELVES short (i.e. the
+            // segment connecting them is, by itself, shorter than dedupeRadius).
+            // This catches: (a) genuine zero/near-zero-length digitizing artifacts
+            // -- the dangle case -- because the dangle IS a short connecting hop.
+            // It will NOT catch two unrelated nearby vertices in a thin sliver,
+            // because those vertices are typically NOT directly joined by a raw
+            // segment in the source data (they're connected via several hops
+            // around the sliver tip, not by a single short edge).
+            foreach (var seg in rawSegments) {
+                if (seg.P0.Distance(seg.P1) <= _dedupeRadius) {
+                    var k0 = new CoordinateKey(SnapToGrid(seg.P0), _snapTolerance);
+                    var k1 = new CoordinateKey(SnapToGrid(seg.P1), _snapTolerance);
+                    Union(k0, k1);
+                }
+            }
+
+            var groupCanonical = new Dictionary<CoordinateKey, Coordinate>();
+            var result = new Dictionary<CoordinateKey, Coordinate>();
+
+            foreach (var key in cellValue.Keys) {
+                var root = Find(key);
+                if (!groupCanonical.TryGetValue(root, out var canon)) {
+                    canon = cellValue[root];
+                    groupCanonical[root] = canon;
+                }
+                result[key] = canon;
+            }
+
+            return result;
+        }
+
+
 
         /// <summary>
         /// If the intersection point pt is within tolerance of an endpoint of
@@ -989,6 +1060,102 @@ namespace S100Framework.Topology.Internal
             return coord.Equals2D(other.StartNode, _snapTolerance)
                 || coord.Equals2D(other.EndNode, _snapTolerance);
         }
+
+
+        /// <summary>
+        /// Returns the full geometry for a single source, stitched back into one
+        /// LineString (or closed ring), ignoring source-set boundaries entirely.
+        /// Unlike MergeEdgesFor, this never splits at points where the boundary
+        /// is shared with other geometries — it only considers this source's own
+        /// edges and walks them end-to-end.
+        /// </summary>
+        public LineString GetFullGeometryFor(int sourceId) {
+            var edges = GetEdgesFor(sourceId).ToHashSet();
+            if (edges.Count == 0) return null;
+
+            // Build adjacency using ONLY this source's own edges
+            var adjacency = new Dictionary<CoordinateKey, List<NetworkEdge>>();
+            void Touch(Coordinate c, NetworkEdge e) {
+                var key = new CoordinateKey(c, _snapTolerance);
+                if (!adjacency.TryGetValue(key, out var list))
+                    adjacency[key] = list = new List<NetworkEdge>();
+                list.Add(e);
+            }
+            foreach (var edge in edges) {
+                Touch(edge.StartNode, edge);
+                Touch(edge.EndNode, edge);
+            }
+
+            var visited = new HashSet<int>();
+            var seed = edges.First();
+            var chain = WalkFullChainIgnoringSourceSets(seed, edges, adjacency, visited);
+
+            var coords = ChainToCoordinates(chain);
+            return _factory.CreateLineString(coords);
+        }
+
+        /// <summary>
+        /// Same traversal as WalkFullChain, but WITHOUT the SourceGeometryIds.SetEquals
+        /// check — it walks purely on graph degree (within this source's own edge
+        /// set), so a node that's also shared with other geometries doesn't break
+        /// the chain, as long as within THIS source's edges the node still has
+        /// degree 2.
+        /// </summary>
+        private List<NetworkEdge> WalkFullChainIgnoringSourceSets(
+            NetworkEdge seed,
+            HashSet<NetworkEdge> edgeSet,
+            Dictionary<CoordinateKey, List<NetworkEdge>> adjacency,
+            HashSet<int> visited) {
+            visited.Add(seed.Id);
+            var forward = new List<NetworkEdge>();
+            var backward = new List<NetworkEdge>();
+
+            var coord = seed.EndNode;
+            var current = seed;
+            while (true) {
+                var key = new CoordinateKey(coord, _snapTolerance);
+                if (!adjacency.TryGetValue(key, out var neighbours)) break;
+
+                var candidates = neighbours.Where(e => edgeSet.Contains(e) && e.Id != current.Id).ToList();
+                if (candidates.Count != 1) break;
+
+                var next = candidates[0];
+                if (next.Id == seed.Id || visited.Contains(next.Id)) break;
+                // NOTE: no SourceGeometryIds check here — that's the whole point
+
+                visited.Add(next.Id);
+                forward.Add(next);
+                coord = next.StartNode.Equals2D(coord, _snapTolerance) ? next.EndNode : next.StartNode;
+                current = next;
+            }
+
+            coord = seed.StartNode;
+            current = seed;
+            while (true) {
+                var key = new CoordinateKey(coord, _snapTolerance);
+                if (!adjacency.TryGetValue(key, out var neighbours)) break;
+
+                var candidates = neighbours.Where(e => edgeSet.Contains(e) && e.Id != current.Id).ToList();
+                if (candidates.Count != 1) break;
+
+                var prev = candidates[0];
+                if (prev.Id == seed.Id || visited.Contains(prev.Id)) break;
+
+                visited.Add(prev.Id);
+                backward.Add(prev);
+                coord = prev.StartNode.Equals2D(coord, _snapTolerance) ? prev.EndNode : prev.StartNode;
+                current = prev;
+            }
+
+            backward.Reverse();
+            var chain = new List<NetworkEdge>(backward.Count + 1 + forward.Count);
+            chain.AddRange(backward);
+            chain.Add(seed);
+            chain.AddRange(forward);
+            return chain;
+        }
+
+
 
         // -------------------------------------------------------------------
         // Ring / LineString classification for merged edges
