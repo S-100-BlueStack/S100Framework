@@ -186,6 +186,7 @@ namespace S100Framework.Topology.Internal
     {
         private readonly GeometryFactory _factory;
         private readonly double _snapTolerance;
+        private readonly double _dedupeRadius;
 
         private readonly List<NetworkGeometry> _sources = new();
         private readonly List<NetworkEdge> _edges = new();
@@ -198,9 +199,14 @@ namespace S100Framework.Topology.Internal
 
         public IEnumerable<int> Sources => this._sources.Select(e => e.Id);
 
-        public MixedTopologyNetwork(GeometryFactory factory = null, double snapTolerance = 0.000001) {
+        public MixedTopologyNetwork(GeometryFactory? factory = default, double snapTolerance = 0.000001, double dedupeRadius = -1) {
             _factory = factory ?? NtsGeometryServices.Instance.CreateGeometryFactory();
             _snapTolerance = snapTolerance;
+
+            // Default dedupe radius: a generous multiple of snapTolerance to absorb
+            // typical digitizing noise (duplicate vertices a few ULPs apart), while
+            // staying well below any real feature size.
+            _dedupeRadius = dedupeRadius > 0 ? dedupeRadius : snapTolerance * 5;
         }
 
         // -------------------------------------------------------------------
@@ -443,30 +449,31 @@ namespace S100Framework.Topology.Internal
         // -------------------------------------------------------------------
         // Snapping / canonicalization helpers
         // -------------------------------------------------------------------
+        private Coordinate SnapToGrid(Coordinate c) => SnapToGridRound(c);
 
-        ///// <summary>
-        ///// Snaps a coordinate to a fixed grid defined by _snapTolerance.
-        ///// Floor-based with a small epsilon to avoid boundary-straddling issues.
-        ///// </summary>
-        //private Coordinate SnapToGrid(Coordinate c) {
-        //    double inv = 1.0 / _snapTolerance;
-        //    const double epsilon = 1e-9;
+        /// <summary>
+        /// Snaps a coordinate to a fixed grid defined by _snapTolerance.
+        /// Floor-based with a small epsilon to avoid boundary-straddling issues.
+        /// </summary>
+        private Coordinate SnapToGridFloor(Coordinate c) {
+            double inv = 1.0 / _snapTolerance;
+            const double epsilon = 1e-9;
 
-        //    double x = Math.Floor(c.X * inv + epsilon) * _snapTolerance;
-        //    double y = Math.Floor(c.Y * inv + epsilon) * _snapTolerance;
+            double x = Math.Floor(c.X * inv + epsilon) * _snapTolerance;
+            double y = Math.Floor(c.Y * inv + epsilon) * _snapTolerance;
 
-        //    var coord = double.IsNaN(c.Z)
-        //        ? new Coordinate(x, y)
-        //        : new CoordinateZ(x, y, c.Z);
+            var coord = double.IsNaN(c.Z)
+                ? new Coordinate(x, y)
+                : new CoordinateZ(x, y, c.Z);
 
-        //    _factory.PrecisionModel.MakePrecise(coord);
-        //    return coord;
-        //}
+            _factory.PrecisionModel.MakePrecise(coord);
+            return coord;
+        }
 
         /// <summary>
         /// Snaps a coordinate to a fixed grid defined by tolerance.
         /// </summary>
-        private Coordinate SnapToGrid(Coordinate c) {
+        private Coordinate SnapToGridRound(Coordinate c) {
             double inv = 1.0 / _snapTolerance;
             double x = Math.Round(c.X * inv) / inv;
             double y = Math.Round(c.Y * inv) / inv;
@@ -559,6 +566,8 @@ namespace S100Framework.Topology.Internal
             return result;
         }
 #endif
+
+#if null
         private Dictionary<CoordinateKey, Coordinate> BuildCanonicalCoordinateMap(
             List<RawSegment> rawSegments) {
             var cellValue = new Dictionary<CoordinateKey, Coordinate>();
@@ -612,6 +621,78 @@ namespace S100Framework.Topology.Internal
             var result = new Dictionary<CoordinateKey, Coordinate>();
 
             foreach (var key in keys) {
+                var root = Find(key);
+                if (!groupCanonical.TryGetValue(root, out var canon)) {
+                    canon = cellValue[root];
+                    groupCanonical[root] = canon;
+                }
+                result[key] = canon;
+            }
+
+            return result;
+        }
+#endif
+
+        private Dictionary<CoordinateKey, Coordinate> BuildCanonicalCoordinateMap(
+            List<RawSegment> rawSegments) {
+            // Collect all distinct snapped coordinates
+            var cellValue = new Dictionary<CoordinateKey, Coordinate>();
+            foreach (var seg in rawSegments) {
+                foreach (var c in new[] { seg.P0, seg.P1 }) {
+                    var snapped = SnapToGrid(c);
+                    var key = new CoordinateKey(snapped, _snapTolerance);
+                    if (!cellValue.ContainsKey(key))
+                        cellValue[key] = snapped;
+                }
+            }
+
+            // Build a spatial index over the distinct points for proximity search
+            var pointIndex = new STRtree<CoordinateKey>();
+            foreach (var kvp in cellValue) {
+                var env = new Envelope(kvp.Value);
+                pointIndex.Insert(env, kvp.Key);
+            }
+
+            // Union-find over points within DEDUPE RADIUS of each other (real distance,
+            // not grid-cell offset). This catches dangles of any size up to the radius,
+            // regardless of how many grid cells they happen to span.
+            var parent = new Dictionary<CoordinateKey, CoordinateKey>();
+            CoordinateKey Find(CoordinateKey k) {
+                while (parent.TryGetValue(k, out var p) && !p.Equals(k))
+                    k = p;
+                return k;
+            }
+            void Union(CoordinateKey a, CoordinateKey b) {
+                var ra = Find(a);
+                var rb = Find(b);
+                if (!ra.Equals(rb))
+                    parent[ra] = rb;
+            }
+
+            foreach (var key in cellValue.Keys)
+                parent[key] = key;
+
+            foreach (var kvp in cellValue) {
+                var key = kvp.Key;
+                var v = kvp.Value;
+
+                var queryEnv = new Envelope(v);
+                queryEnv.ExpandBy(_dedupeRadius);
+
+                var candidates = pointIndex.Query(queryEnv);
+                foreach (var candidateKey in candidates) {
+                    if (candidateKey.Equals(key)) continue;
+                    var candidateValue = cellValue[candidateKey];
+                    if (v.Distance(candidateValue) <= _dedupeRadius)
+                        Union(key, candidateKey);
+                }
+            }
+
+            // Pick one canonical coordinate per group
+            var groupCanonical = new Dictionary<CoordinateKey, Coordinate>();
+            var result = new Dictionary<CoordinateKey, Coordinate>();
+
+            foreach (var key in cellValue.Keys) {
                 var root = Find(key);
                 if (!groupCanonical.TryGetValue(root, out var canon)) {
                     canon = cellValue[root];
