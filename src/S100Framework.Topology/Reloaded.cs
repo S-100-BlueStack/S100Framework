@@ -326,6 +326,7 @@ namespace S100FC.Topology
             checks = [648, 1280, 2606, 2741, 1026, 1728, 1040, 1730, 1028, 1727, 2607, 1056, 1725, 1063, 1726, 1384, 2845, 1064, 1724, 504, 1722, 1054, 1721, 455, 1683, 1306, 2609, 2767, 475, 1674, 1283, 2612, 2744, 460, 1672, 452, 1979, 1031, 1977, 457, 1970, 462, 1939, 545, 1924, 1081, 1937, 1082, 1940, 1084, 1941, 1087, 1933, 1088, 1947, 1089, 1950, 1091, 1959, 1092, 1951, 1094, 1957, 1096, 1958, 1098, 1952, 1100, 1963, 1102, 1967, 1105, 1980, 1107, 1671, 1109, 1673, 1111, 1693, 1114, 1692, 1116, 1686, 1118, 1700, 1119, 1698, 1122, 1699, 2604, 2605, 3067, 3084, 3085, 3088, 3716, 4114, 4117, 1154, 1910, 1211, 2674, 1086, 1922, 1083, 1915, 1079, 1909, 535, 1896, 530, 1899, 1898, 1061, 1888, 469, 1893, 1328, 2621, 2789, 490, 1907, 1885, 483, 1884, 1047, 1883, 480, 1882, 1044, 1881, 1043, 2120, 1127, 1880, 3732, 563, 1712, 3731, 1150, 1840];
             checks = [93, 2336, 3088, 3590, 3628, 1584, 3040, 3683, 3732];
             checks = [595];
+            checks = [];
 
             string[] checks_linestrings = [];
 
@@ -336,11 +337,13 @@ namespace S100FC.Topology
                     var id = this._mixedTopologyNetwork.AddLineString(interior);
                     idInteriorRings = [.. idInteriorRings, id];
 
+                    //checks_linestrings = [.. checks_linestrings, interior.ToText()];
                     if (checks.Contains(id)) {
                         checks_linestrings = [.. checks_linestrings, interior.ToText()];
                     }
                 }
 
+                //checks_linestrings = [.. checks_linestrings, surface.ExteriorRing.ToText()];
                 if (checks.Contains(idExteriorRing)) {
                     checks_linestrings = [.. checks_linestrings, surface.ExteriorRing.ToText()];
                     //System.Diagnostics.Debugger.Break();
@@ -354,6 +357,7 @@ namespace S100FC.Topology
                 var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
                 if (id < 0) continue;
 
+                //checks_linestrings = [.. checks_linestrings, curve.LineString.ToText()];
                 if (checks.Contains(id)) {
                     checks_linestrings = [.. checks_linestrings, curve.LineString.ToText()];
                     //System.Diagnostics.Debugger.Break();
