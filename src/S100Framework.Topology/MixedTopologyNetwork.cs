@@ -1069,6 +1069,7 @@ namespace S100Framework.Topology.Internal
         /// is shared with other geometries — it only considers this source's own
         /// edges and walks them end-to-end.
         /// </summary>
+#if null
         public LineString GetFullGeometryFor(int sourceId) {
             var edges = GetEdgesFor(sourceId).ToHashSet();
             if (edges.Count == 0) return null;
@@ -1093,6 +1094,45 @@ namespace S100Framework.Topology.Internal
             var coords = ChainToCoordinates(chain);
             return _factory.CreateLineString(coords);
         }
+#endif
+
+        public LineString? GetFullGeometryFor(int sourceId) {
+            var chain = GetFullEdgeChainFor(sourceId);
+            if (chain.Count == 0) return null;
+
+            var coords = ChainToCoordinates(chain);
+            return _factory.CreateLineString(coords);
+        }
+
+        /// <summary>
+        /// Returns the full ordered list of NetworkEdges belonging to a single
+        /// source, walked end-to-end, ignoring source-set boundaries entirely
+        /// (i.e. it does not stop at nodes shared with other geometries).
+        /// Unlike MergeEdgesFor, every edge stays a distinct NetworkEdge in the
+        /// result — nothing is merged or flattened into one LineString.
+        /// </summary>
+        public List<NetworkEdge> GetFullEdgeChainFor(int sourceId) {
+            var edges = GetEdgesFor(sourceId).ToHashSet();
+            if (edges.Count == 0) return new List<NetworkEdge>();
+
+            var adjacency = new Dictionary<CoordinateKey, List<NetworkEdge>>();
+            void Touch(Coordinate c, NetworkEdge e) {
+                var key = new CoordinateKey(c, _snapTolerance);
+                if (!adjacency.TryGetValue(key, out var list))
+                    adjacency[key] = list = new List<NetworkEdge>();
+                list.Add(e);
+            }
+            foreach (var edge in edges) {
+                Touch(edge.StartNode, edge);
+                Touch(edge.EndNode, edge);
+            }
+
+            var visited = new HashSet<int>();
+            var seed = edges.First();
+            return WalkFullChainIgnoringSourceSets(seed, edges, adjacency, visited);
+        }
+
+
 
         /// <summary>
         /// Same traversal as WalkFullChain, but WITHOUT the SourceGeometryIds.SetEquals
