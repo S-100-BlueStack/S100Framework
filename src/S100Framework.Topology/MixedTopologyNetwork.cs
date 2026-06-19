@@ -1195,6 +1195,61 @@ namespace S100Framework.Topology.Internal
             return chain;
         }
 
+        /// <summary>
+        /// Returns the full boundary of a source as an ordered list of MergedEdges,
+        /// where consecutive edges with the same SourceGeometryIds are stitched into
+        /// the longest possible LineString. Break points occur only where the shared-
+        /// source-set changes (i.e. where the boundary switches from "private" to
+        /// "shared with geometry X" to "shared with geometries X+Y", etc).
+        ///
+        /// This gives you the largest reusable line segments: each MergedEdge in the
+        /// result has a single, consistent topological meaning.
+        /// </summary>
+        public List<MergedEdge> GetMergedEdgeChainFor(int sourceId) {
+            var chain = GetFullEdgeChainFor(sourceId);
+            if (chain.Count == 0) return new List<MergedEdge>();
+
+            var result = new List<MergedEdge>();
+            var currentGroup = new List<NetworkEdge> { chain[0] };
+
+            for (int i = 1; i < chain.Count; i++) {
+                var edge = chain[i];
+                var prev = currentGroup[^1];
+
+                if (edge.SourceGeometryIds.SetEquals(prev.SourceGeometryIds)) {
+                    // Same source set — extend the current group
+                    currentGroup.Add(edge);
+                }
+                else {
+                    // Source set changed — flush current group as a MergedEdge
+                    result.Add(BuildMergedEdge(currentGroup));
+                    currentGroup = new List<NetworkEdge> { edge };
+                }
+            }
+
+            // Flush the last group
+            if (currentGroup.Count > 0)
+                result.Add(BuildMergedEdge(currentGroup));
+
+            return result;
+        }
+
+        private MergedEdge BuildMergedEdge(List<NetworkEdge> edges) {
+            var coords = ChainToCoordinates(edges);
+            return new MergedEdge {
+                Geometry = _factory.CreateLineString(coords),
+                SourceGeometryIds = edges.SelectMany(e => e.SourceGeometryIds)
+                                         .Distinct()
+                                         .ToHashSet(),
+                ConstituentEdges = edges.ToList(),
+            };
+        }
+
+
+
+
+
+
 
 
         // -------------------------------------------------------------------
