@@ -1187,12 +1187,14 @@ namespace S100Framework.Topology.Internal
             var coords = ChainToCoordinates(chain);
             if (coords.Length == 0) return null;
 
-            // Force exact ring closure: last point must be bit-identical to first
-            var result = new Coordinate[coords.Length];
-            Array.Copy(coords, result, coords.Length);
-            result[^1] = new Coordinate(result[0].X, result[0].Y);
+            // Only force ring closure for sources that were registered as rings
+            var source = _sources.First(s => s.Id == sourceId);
+            bool isRing = source.Kind == GeometryKind.Polygon || source.Geometry is LinearRing;
 
-            return _factory.CreateLineString(result);
+            if (isRing && coords.Length > 1)
+                coords[^1] = new Coordinate(coords[0].X, coords[0].Y);
+
+            return _factory.CreateLineString(coords);
         }
 
 
