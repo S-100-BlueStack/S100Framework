@@ -1378,41 +1378,94 @@ namespace S100Framework.Topology.Internal
             var chain = GetFullEdgeChainFor(sourceId);
             if (chain.Count == 0) return new List<MergedEdge>();
 
+            // Pre-compute traversal directions for the full chain once,
+            // so BuildMergedEdge doesn't have to re-infer them.
+            var directions = ComputeChainDirections(chain);
+
             var result = new List<MergedEdge>();
             var currentGroup = new List<NetworkEdge> { chain[0] };
+            var currentDirs = new List<bool> { directions[0] };
 
             for (int i = 1; i < chain.Count; i++) {
                 var edge = chain[i];
                 var prev = currentGroup[^1];
 
                 if (edge.SourceGeometryIds.SetEquals(prev.SourceGeometryIds)) {
-                    // Same source set — extend the current group
                     currentGroup.Add(edge);
+                    currentDirs.Add(directions[i]);
                 }
                 else {
-                    // Source set changed — flush current group as a MergedEdge
-                    result.Add(BuildMergedEdge(currentGroup));
+                    result.Add(BuildMergedEdge(currentGroup, currentDirs));
                     currentGroup = new List<NetworkEdge> { edge };
+                    currentDirs = new List<bool> { directions[i] };
                 }
             }
 
-            // Flush the last group
             if (currentGroup.Count > 0)
-                result.Add(BuildMergedEdge(currentGroup));
+                result.Add(BuildMergedEdge(currentGroup, currentDirs));
 
             return result;
         }
 
-        private MergedEdge BuildMergedEdge(List<NetworkEdge> edges) {
-            var coords = ChainToCoordinates(edges);
+        // Returns true = traverse StartNode->EndNode, false = traverse EndNode->StartNode
+        private List<bool> ComputeChainDirections(List<NetworkEdge> chain) {
+            var directions = new List<bool>(chain.Count);
+            if (chain.Count == 0) return directions;
+
+            if (chain.Count == 1) {
+                directions.Add(true); // arbitrary for single edge, both ends are valid
+                return directions;
+            }
+
+            // Determine first edge direction from how it connects to the second edge
+            var first = chain[0];
+            var second = chain[1];
+            bool firstForward = second.StartNode.Equals2D(first.EndNode, _snapTolerance)
+                             || second.EndNode.Equals2D(first.EndNode, _snapTolerance);
+            directions.Add(firstForward);
+
+            // Each subsequent edge: orient so its "entry" end matches previous "exit"
+            for (int i = 1; i < chain.Count; i++) {
+                var prev = chain[i - 1];
+                var prevExit = directions[i - 1] ? prev.EndNode : prev.StartNode;
+                var curr = chain[i];
+                bool forward = curr.StartNode.Equals2D(prevExit, _snapTolerance);
+                directions.Add(forward);
+            }
+
+            return directions;
+        }
+
+        private MergedEdge BuildMergedEdge(List<NetworkEdge> edges, List<bool> directions) {
+            var coords = new List<Coordinate>();
+
+            for (int i = 0; i < edges.Count; i++) {
+                var edgeCoords = edges[i].Geometry.Coordinates;
+                var ordered = directions[i] ? edgeCoords : edgeCoords.Reverse().ToArray();
+
+                if (coords.Count == 0)
+                    coords.AddRange(ordered.Select(c => SnapToGrid(c)));
+                else
+                    coords.AddRange(ordered.Skip(1).Select(c => SnapToGrid(c)));
+            }
+
             return new MergedEdge {
-                Geometry = _factory.CreateLineString(coords),
-                SourceGeometryIds = edges.SelectMany(e => e.SourceGeometryIds)
-                                         .Distinct()
-                                         .ToHashSet(),
+                Geometry = _factory.CreateLineString(coords.ToArray()),
+                SourceGeometryIds = edges.SelectMany(e => e.SourceGeometryIds).Distinct().ToHashSet(),
                 ConstituentEdges = edges.ToList(),
             };
         }
+
+        //private MergedEdge BuildMergedEdge(List<NetworkEdge> edges) {
+        //    var coords = ChainToCoordinates(edges);
+        //    return new MergedEdge {
+        //        Geometry = _factory.CreateLineString(coords),
+        //        SourceGeometryIds = edges.SelectMany(e => e.SourceGeometryIds)
+        //                                 .Distinct()
+        //                                 .ToHashSet(),
+        //        ConstituentEdges = edges.ToList(),
+        //    };
+        //}
 
 
 
