@@ -1181,20 +1181,29 @@ namespace S100Framework.Topology.Internal
         //}
 
         public LineString GetFullGeometryFor(int sourceId) {
-            var chain = GetFullEdgeChainFor(sourceId);
-            if (chain.Count == 0) return null;
+            var mergedEdges = GetMergedEdgeChainFor(sourceId);
+            if (mergedEdges.Count == 0) return null;
 
-            var coords = ChainToCoordinates(chain);
-            if (coords.Length == 0) return null;
+            var coords = new List<Coordinate>();
 
-            // Only force ring closure for sources that were registered as rings
+            foreach (var merged in mergedEdges) {
+                var mergedCoords = merged.Geometry.Coordinates;
+                if (coords.Count == 0) {
+                    coords.AddRange(mergedCoords.Select(c => SnapToGrid(c)));
+                }
+                else {
+                    // Skip first coord - it duplicates the last coord we already have
+                    coords.AddRange(mergedCoords.Skip(1).Select(c => SnapToGrid(c)));
+                }
+            }
+
             var source = _sources.First(s => s.Id == sourceId);
             bool isRing = source.Kind == GeometryKind.Polygon || source.Geometry is LinearRing;
 
-            if (isRing && coords.Length > 1)
+            if (isRing && coords.Count > 1)
                 coords[^1] = new Coordinate(coords[0].X, coords[0].Y);
 
-            return _factory.CreateLineString(coords);
+            return _factory.CreateLineString(coords.ToArray());
         }
 
 
