@@ -370,12 +370,14 @@ namespace S100Framework.Topology.Internal
                         segId = ExtractFromRing(hole.Coordinates, src.Id, result, segId, isRing: true);
                 }
                 else {
-                    segId = ExtractFromRing(src.Geometry.Coordinates, src.Id, result, segId, isRing: false);
+                    segId = ExtractFromRing(src.Geometry.Coordinates, src.Id, result, segId, isRing: src.Geometry is LinearRing);
                 }
             }
 
             return result;
         }
+
+
 
         private int EstimateSegmentCount() => _sources.Sum(s => s.Geometry.NumPoints);
 
@@ -383,16 +385,56 @@ namespace S100Framework.Topology.Internal
         /// Snaps + de-duplicates a coordinate sequence, re-closes rings if needed,
         /// and emits direction-canonicalized RawSegments (smaller coordinate first).
         /// </summary>
-        private int ExtractFromRing(Coordinate[] coords, int sourceId, List<RawSegment> result, int segId, bool isRing = true) {
-            //if (sourceId == 104) System.Diagnostics.Debugger.Break();
+        //private int ExtractFromRing(Coordinate[] coords, int sourceId, List<RawSegment> result, int segId, bool isRing = true) {
+        //    //if (sourceId == 104) System.Diagnostics.Debugger.Break();
 
-            // Pre-clean: remove near-duplicate "spike" vertices using a tolerance
-            // matched to source data precision, separate from the fine _snapTolerance
-            // used for the rest of the network build.
+        //    // Pre-clean: remove near-duplicate "spike" vertices using a tolerance
+        //    // matched to source data precision, separate from the fine _snapTolerance
+        //    // used for the rest of the network build.
+        //    coords = RemoveSpikes(coords, spikeTolerance: _snapTolerance);
+
+        //    // Snap + de-duplicate consecutive identical coordinates that
+        //    // collapse together after snapping
+        //    var snapped = new List<Coordinate>(coords.Length);
+        //    foreach (var c in coords) {
+        //        var sc = SnapToGrid(c);
+        //        if (snapped.Count == 0 || !sc.Equals2D(snapped[^1]))
+        //            snapped.Add(sc);
+        //    }
+
+        //    // Re-close the ring if snapping broke closure
+        //    if (isRing && snapped.Count > 2 && !snapped[0].Equals2D(snapped[^1]))
+        //        snapped.Add(snapped[0]);
+
+        //    for (int i = 0; i < snapped.Count - 1; i++) {
+        //        var p0 = snapped[i];
+        //        var p1 = snapped[i + 1];
+
+        //        if (p0.Equals2D(p1)) continue; // degenerate after snapping
+
+        //        // Canonicalize direction: always store the "smaller" coordinate first
+        //        bool reversed = ComparePoints(p0, p1) > 0;
+        //        var (c0, c1) = reversed ? (p1, p0) : (p0, p1);
+
+        //        result.Add(new RawSegment(segId++, c0, c1, sourceId, reversed));
+        //    }
+
+        //    return segId;
+        //}
+        private int ExtractFromRing(Coordinate[] coords, int sourceId, List<RawSegment> result, int segId, bool isRing = true) {
             coords = RemoveSpikes(coords, spikeTolerance: _snapTolerance);
 
-            // Snap + de-duplicate consecutive identical coordinates that
-            // collapse together after snapping
+            // For rings, strip the closing duplicate BEFORE snapping so the
+            // re-close logic below is always the one that adds it back.
+            // This prevents the dedup loop from silently eating the last point
+            // when snapped-last == snapped-first.
+            if (isRing && coords.Length > 1) {
+                var snapFirst = SnapToGrid(coords[0]);
+                var snapLast = SnapToGrid(coords[^1]);
+                if (snapFirst.Equals2D(snapLast))
+                    coords = coords[..^1]; // strip closing duplicate
+            }
+
             var snapped = new List<Coordinate>(coords.Length);
             foreach (var c in coords) {
                 var sc = SnapToGrid(c);
@@ -400,20 +442,17 @@ namespace S100Framework.Topology.Internal
                     snapped.Add(sc);
             }
 
-            // Re-close the ring if snapping broke closure
+            // Re-close the ring
             if (isRing && snapped.Count > 2 && !snapped[0].Equals2D(snapped[^1]))
                 snapped.Add(snapped[0]);
 
             for (int i = 0; i < snapped.Count - 1; i++) {
                 var p0 = snapped[i];
                 var p1 = snapped[i + 1];
+                if (p0.Equals2D(p1)) continue;
 
-                if (p0.Equals2D(p1)) continue; // degenerate after snapping
-
-                // Canonicalize direction: always store the "smaller" coordinate first
                 bool reversed = ComparePoints(p0, p1) > 0;
                 var (c0, c1) = reversed ? (p1, p0) : (p0, p1);
-
                 result.Add(new RawSegment(segId++, c0, c1, sourceId, reversed));
             }
 
@@ -462,12 +501,9 @@ namespace S100Framework.Topology.Internal
             double x = Math.Floor(c.X * inv + epsilon) * _snapTolerance;
             double y = Math.Floor(c.Y * inv + epsilon) * _snapTolerance;
 
-            var coord = double.IsNaN(c.Z)
+            return double.IsNaN(c.Z)
                 ? new Coordinate(x, y)
                 : new CoordinateZ(x, y, c.Z);
-
-            _factory.PrecisionModel.MakePrecise(coord);
-            return coord;
         }
 
         /// <summary>
@@ -1026,30 +1062,70 @@ namespace S100Framework.Topology.Internal
         /// Stitches an ordered chain of edges into a single coordinate array,
         /// orienting each edge so consecutive coordinates connect.
         /// </summary>
+        //private Coordinate[] ChainToCoordinates(List<NetworkEdge> chain) {
+        //    if (chain.Count == 0) return Array.Empty<Coordinate>();
+        //    if (chain.Count == 1)
+        //        return chain[0].Geometry.Coordinates.ToArray();
+
+        //    var coords = new List<Coordinate>();
+
+        //    for (int i = 0; i < chain.Count; i++) {
+        //        var edge = chain[i];
+        //        var edgeCs = edge.Geometry.Coordinates;
+
+        //        if (i == 0) {
+        //            var nextEdge = chain[1];
+        //            bool forward = ConnectsTo(edge, nextEdge, fromEnd: true);
+        //            coords.AddRange(forward ? edgeCs : edgeCs.Reverse());
+        //        }
+        //        else {
+        //            var last = coords[^1];
+        //            bool startMatches = edgeCs[0].Equals2D(last, _snapTolerance);
+        //            var oriented = startMatches ? edgeCs : edgeCs.Reverse();
+
+        //            // Skip the first coord — it's the same as the last one added
+        //            coords.AddRange(oriented.Skip(1));
+        //        }
+        //    }
+
+        //    return coords.ToArray();
+        //}
         private Coordinate[] ChainToCoordinates(List<NetworkEdge> chain) {
             if (chain.Count == 0) return Array.Empty<Coordinate>();
-            if (chain.Count == 1)
-                return chain[0].Geometry.Coordinates.ToArray();
 
             var coords = new List<Coordinate>();
 
-            for (int i = 0; i < chain.Count; i++) {
+            // The second coord in the chain tells us which end of edge[0] connects forward
+            Coordinate nextStart = chain.Count > 1
+                ? (chain[1].StartNode.Equals2D(chain[0].StartNode, _snapTolerance) ||
+                   chain[1].StartNode.Equals2D(chain[0].EndNode, _snapTolerance)
+                       ? chain[1].StartNode
+                       : chain[1].EndNode)
+                : chain[0].EndNode;
+
+            // Determine traversal direction for the first edge
+            bool firstReversed = nextStart.Equals2D(chain[0].StartNode, _snapTolerance);
+
+            var firstEdge = chain[0];
+            var firstCoords = firstReversed
+                ? firstEdge.Geometry.Coordinates.Reverse().ToArray()
+                : firstEdge.Geometry.Coordinates;
+
+            foreach (var c in firstCoords)
+                coords.Add(SnapToGrid(c));  // <-- snap
+
+            for (int i = 1; i < chain.Count; i++) {
                 var edge = chain[i];
-                var edgeCs = edge.Geometry.Coordinates;
+                var prevEnd = coords[^1];
 
-                if (i == 0) {
-                    var nextEdge = chain[1];
-                    bool forward = ConnectsTo(edge, nextEdge, fromEnd: true);
-                    coords.AddRange(forward ? edgeCs : edgeCs.Reverse());
-                }
-                else {
-                    var last = coords[^1];
-                    bool startMatches = edgeCs[0].Equals2D(last, _snapTolerance);
-                    var oriented = startMatches ? edgeCs : edgeCs.Reverse();
+                bool reversed = !edge.StartNode.Equals2D(prevEnd, _snapTolerance);
+                var edgeCoords = reversed
+                    ? edge.Geometry.Coordinates.Reverse().ToArray()
+                    : edge.Geometry.Coordinates;
 
-                    // Skip the first coord — it's the same as the last one added
-                    coords.AddRange(oriented.Skip(1));
-                }
+                // Skip first coord (it duplicates prevEnd), snap the rest
+                foreach (var c in edgeCoords.Skip(1))
+                    coords.Add(SnapToGrid(c));  // <-- snap
             }
 
             return coords.ToArray();
@@ -1096,13 +1172,29 @@ namespace S100Framework.Topology.Internal
         }
 #endif
 
-        public LineString? GetFullGeometryFor(int sourceId) {
+        //public LineString? GetFullGeometryFor(int sourceId) {
+        //    var chain = GetFullEdgeChainFor(sourceId);
+        //    if (chain.Count == 0) return null;
+
+        //    var coords = ChainToCoordinates(chain);
+        //    return _factory.CreateLineString(coords);
+        //}
+
+        public LineString GetFullGeometryFor(int sourceId) {
             var chain = GetFullEdgeChainFor(sourceId);
             if (chain.Count == 0) return null;
 
             var coords = ChainToCoordinates(chain);
-            return _factory.CreateLineString(coords);
+            if (coords.Length == 0) return null;
+
+            // Force exact ring closure: last point must be bit-identical to first
+            var result = new Coordinate[coords.Length];
+            Array.Copy(coords, result, coords.Length);
+            result[^1] = new Coordinate(result[0].X, result[0].Y);
+
+            return _factory.CreateLineString(result);
         }
+
 
         /// <summary>
         /// Returns the full ordered list of NetworkEdges belonging to a single
@@ -1141,6 +1233,59 @@ namespace S100Framework.Topology.Internal
         /// the chain, as long as within THIS source's edges the node still has
         /// degree 2.
         /// </summary>
+        //private List<NetworkEdge> WalkFullChainIgnoringSourceSets(
+        //    NetworkEdge seed,
+        //    HashSet<NetworkEdge> edgeSet,
+        //    Dictionary<CoordinateKey, List<NetworkEdge>> adjacency,
+        //    HashSet<int> visited) {
+        //    visited.Add(seed.Id);
+        //    var forward = new List<NetworkEdge>();
+        //    var backward = new List<NetworkEdge>();
+
+        //    var coord = seed.EndNode;
+        //    var current = seed;
+        //    while (true) {
+        //        var key = new CoordinateKey(coord, _snapTolerance);
+        //        if (!adjacency.TryGetValue(key, out var neighbours)) break;
+
+        //        var candidates = neighbours.Where(e => edgeSet.Contains(e) && e.Id != current.Id).ToList();
+        //        if (candidates.Count != 1) break;
+
+        //        var next = candidates[0];
+        //        if (next.Id == seed.Id || visited.Contains(next.Id)) break;
+        //        // NOTE: no SourceGeometryIds check here — that's the whole point
+
+        //        visited.Add(next.Id);
+        //        forward.Add(next);
+        //        coord = next.StartNode.Equals2D(coord, _snapTolerance) ? next.EndNode : next.StartNode;
+        //        current = next;
+        //    }
+
+        //    coord = seed.StartNode;
+        //    current = seed;
+        //    while (true) {
+        //        var key = new CoordinateKey(coord, _snapTolerance);
+        //        if (!adjacency.TryGetValue(key, out var neighbours)) break;
+
+        //        var candidates = neighbours.Where(e => edgeSet.Contains(e) && e.Id != current.Id).ToList();
+        //        if (candidates.Count != 1) break;
+
+        //        var prev = candidates[0];
+        //        if (prev.Id == seed.Id || visited.Contains(prev.Id)) break;
+
+        //        visited.Add(prev.Id);
+        //        backward.Add(prev);
+        //        coord = prev.StartNode.Equals2D(coord, _snapTolerance) ? prev.EndNode : prev.StartNode;
+        //        current = prev;
+        //    }
+
+        //    backward.Reverse();
+        //    var chain = new List<NetworkEdge>(backward.Count + 1 + forward.Count);
+        //    chain.AddRange(backward);
+        //    chain.Add(seed);
+        //    chain.AddRange(forward);
+        //    return chain;
+        //}
         private List<NetworkEdge> WalkFullChainIgnoringSourceSets(
             NetworkEdge seed,
             HashSet<NetworkEdge> edgeSet,
@@ -1150,18 +1295,24 @@ namespace S100Framework.Topology.Internal
             var forward = new List<NetworkEdge>();
             var backward = new List<NetworkEdge>();
 
+            // --- Forward walk ---
             var coord = seed.EndNode;
             var current = seed;
             while (true) {
                 var key = new CoordinateKey(coord, _snapTolerance);
                 if (!adjacency.TryGetValue(key, out var neighbours)) break;
-
-                var candidates = neighbours.Where(e => edgeSet.Contains(e) && e.Id != current.Id).ToList();
+                var candidates = neighbours.Where(e => edgeSet.Contains(e) && !visited.Contains(e.Id)).ToList();
                 if (candidates.Count != 1) break;
-
                 var next = candidates[0];
-                if (next.Id == seed.Id || visited.Contains(next.Id)) break;
-                // NOTE: no SourceGeometryIds check here — that's the whole point
+
+                // Closed ring: forward walk has reached back to seed's start
+                bool closedRing = next.StartNode.Equals2D(seed.StartNode, _snapTolerance)
+                               || next.EndNode.Equals2D(seed.StartNode, _snapTolerance);
+                if (closedRing) {
+                    visited.Add(next.Id);
+                    forward.Add(next);
+                    break; // ring is closed, don't continue
+                }
 
                 visited.Add(next.Id);
                 forward.Add(next);
@@ -1169,22 +1320,26 @@ namespace S100Framework.Topology.Internal
                 current = next;
             }
 
-            coord = seed.StartNode;
-            current = seed;
-            while (true) {
-                var key = new CoordinateKey(coord, _snapTolerance);
-                if (!adjacency.TryGetValue(key, out var neighbours)) break;
+            // --- Backward walk (only if ring isn't already closed) ---
+            bool ringClosed = forward.Count > 0 &&
+                              (forward[^1].StartNode.Equals2D(seed.StartNode, _snapTolerance) ||
+                               forward[^1].EndNode.Equals2D(seed.StartNode, _snapTolerance));
 
-                var candidates = neighbours.Where(e => edgeSet.Contains(e) && e.Id != current.Id).ToList();
-                if (candidates.Count != 1) break;
+            if (!ringClosed) {
+                coord = seed.StartNode;
+                current = seed;
+                while (true) {
+                    var key = new CoordinateKey(coord, _snapTolerance);
+                    if (!adjacency.TryGetValue(key, out var neighbours)) break;
+                    var candidates = neighbours.Where(e => edgeSet.Contains(e) && !visited.Contains(e.Id)).ToList();
+                    if (candidates.Count != 1) break;
+                    var prev = candidates[0];
 
-                var prev = candidates[0];
-                if (prev.Id == seed.Id || visited.Contains(prev.Id)) break;
-
-                visited.Add(prev.Id);
-                backward.Add(prev);
-                coord = prev.StartNode.Equals2D(coord, _snapTolerance) ? prev.EndNode : prev.StartNode;
-                current = prev;
+                    visited.Add(prev.Id);
+                    backward.Add(prev);
+                    coord = prev.StartNode.Equals2D(coord, _snapTolerance) ? prev.EndNode : prev.StartNode;
+                    current = prev;
+                }
             }
 
             backward.Reverse();
@@ -1194,6 +1349,9 @@ namespace S100Framework.Topology.Internal
             chain.AddRange(forward);
             return chain;
         }
+
+
+
 
         /// <summary>
         /// Returns the full boundary of a source as an ordered list of MergedEdges,
