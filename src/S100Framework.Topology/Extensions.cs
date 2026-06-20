@@ -2,7 +2,6 @@
 {
     using NetTopologySuite.Geometries;
     using NetTopologySuite.Precision;
-    using System.Text.RegularExpressions;
 
     public static class Extensions
     {

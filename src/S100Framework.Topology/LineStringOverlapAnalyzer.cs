@@ -1,7 +1,4 @@
 ﻿using NetTopologySuite.Geometries;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace S100FC.Topology
 {
@@ -69,7 +66,7 @@ namespace S100FC.Topology
             double dot = px * dx + py * dy;
             double lenSq = dx * dx + dy * dy;
             return dot >= -tol && dot <= lenSq + tol;   // within segment bounds
-        }        
+        }
     }
 
     public class TolerantComparer : IEqualityComparer<Coordinate>
@@ -77,20 +74,20 @@ namespace S100FC.Topology
         private readonly double _tolerance;
 
         public TolerantComparer(double tolerance = 1e-9) {
-            _tolerance = tolerance;
+            this._tolerance = tolerance;
         }
 
         public bool Equals(Coordinate x, Coordinate y) {
             if (x == null && y == null) return true;
             if (x == null || y == null) return false;
-            return Math.Abs(x.X - y.X) < _tolerance &&
-                   Math.Abs(x.Y - y.Y) < _tolerance;
+            return Math.Abs(x.X - y.X) < this._tolerance &&
+                   Math.Abs(x.Y - y.Y) < this._tolerance;
         }
 
         public int GetHashCode(Coordinate c) {
             // Bucket coordinates by rounding to the tolerance scale
             // Must be consistent with Equals — two coords that are Equal must produce the same hash
-            double scale = 1.0 / _tolerance;
+            double scale = 1.0 / this._tolerance;
             long xBucket = (long)Math.Round(c.X * scale);
             long yBucket = (long)Math.Round(c.Y * scale);
             return HashCode.Combine(xBucket, yBucket);
@@ -99,9 +96,9 @@ namespace S100FC.Topology
 
     public record SharedRun(List<(int bIdx, Coordinate coord)> Vertices)
     {
-        public Coordinate Start => Vertices[0].coord;
-        public Coordinate End => Vertices[^1].coord;
-        public int Count => Vertices.Count;
+        public Coordinate Start => this.Vertices[0].coord;
+        public Coordinate End => this.Vertices[^1].coord;
+        public int Count => this.Vertices.Count;
     }
 
     public record InsertionPoint(Coordinate Coordinate, int SegmentIndex);

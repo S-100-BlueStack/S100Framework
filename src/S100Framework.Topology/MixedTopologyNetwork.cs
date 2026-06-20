@@ -29,9 +29,9 @@ namespace S100Framework.Topology.Internal
         public Coordinate Coordinate { get; init; }
 
         // All edges incident to this node
-        public List<NetworkEdge> Edges { get; } = new();
+        public List<NetworkEdge> Edges { get; } = [];
 
-        public int Degree => Edges.Count;
+        public int Degree => this.Edges.Count;
     }
 
     /// <summary>
@@ -45,12 +45,12 @@ namespace S100Framework.Topology.Internal
         public Coordinate EndNode { get; init; }
 
         // Which registered geometries contributed this edge
-        public HashSet<int> SourceGeometryIds { get; } = new();
+        public HashSet<int> SourceGeometryIds { get; } = [];
 
         // sourceId -> true if that source traverses StartNode -> EndNode (forward)
-        public Dictionary<int, bool> SourceOrientation { get; } = new();
+        public Dictionary<int, bool> SourceOrientation { get; } = [];
 
-        public bool IsShared => SourceGeometryIds.Count > 1;
+        public bool IsShared => this.SourceGeometryIds.Count > 1;
     }
 
     /// <summary>
@@ -63,9 +63,9 @@ namespace S100Framework.Topology.Internal
         public HashSet<int> SourceGeometryIds { get; init; }
         public List<NetworkEdge> ConstituentEdges { get; init; }
 
-        public bool IsShared => SourceGeometryIds.Count > 1;
-        public double Length => Geometry.Length;
-        public int SegmentCount => ConstituentEdges.Count;
+        public bool IsShared => this.SourceGeometryIds.Count > 1;
+        public double Length => this.Geometry.Length;
+        public int SegmentCount => this.ConstituentEdges.Count;
     }
 
     /// <summary>
@@ -80,8 +80,8 @@ namespace S100Framework.Topology.Internal
         public List<NetworkEdge> PrivateEdges { get; init; }
         public List<NetworkGeometry> Neighbours { get; init; }
 
-        public double TotalLength => AllEdges.Sum(e => e.Geometry.Length);
-        public double SharedLength => SharedEdges.Sum(e => e.Geometry.Length);
+        public double TotalLength => this.AllEdges.Sum(e => e.Geometry.Length);
+        public double SharedLength => this.SharedEdges.Sum(e => e.Geometry.Length);
     }
 
     public enum EdgeRingKind
@@ -112,24 +112,24 @@ namespace S100Framework.Topology.Internal
         /// </summary>
         public CoordinateKey(Coordinate snappedCoord, double tolerance) {
             double inv = 1.0 / tolerance;
-            _x = (long)Math.Round(snappedCoord.X * inv);
-            _y = (long)Math.Round(snappedCoord.Y * inv);
+            this._x = (long)Math.Round(snappedCoord.X * inv);
+            this._y = (long)Math.Round(snappedCoord.Y * inv);
         }
 
         private CoordinateKey(long x, long y) {
-            _x = x;
-            _y = y;
+            this._x = x;
+            this._y = y;
         }
 
-        public CoordinateKey Offset(int dx, int dy) => new CoordinateKey(_x + dx, _y + dy);
+        public CoordinateKey Offset(int dx, int dy) => new CoordinateKey(this._x + dx, this._y + dy);
 
-        public bool Equals(CoordinateKey other) => _x == other._x && _y == other._y;
-        public override bool Equals(object obj) => obj is CoordinateKey k && Equals(k);
-        public override int GetHashCode() => HashCode.Combine(_x, _y);
+        public bool Equals(CoordinateKey other) => this._x == other._x && this._y == other._y;
+        public override bool Equals(object obj) => obj is CoordinateKey k && this.Equals(k);
+        public override int GetHashCode() => HashCode.Combine(this._x, this._y);
 
         public int CompareTo(CoordinateKey other) {
-            int c = _x.CompareTo(other._x);
-            return c != 0 ? c : _y.CompareTo(other._y);
+            int c = this._x.CompareTo(other._x);
+            return c != 0 ? c : this._y.CompareTo(other._y);
         }
     }
 
@@ -145,19 +145,19 @@ namespace S100Framework.Topology.Internal
         public readonly Envelope Envelope;
 
         public RawSegment(int segId, Coordinate p0, Coordinate p1, int sourceId, bool reversed) {
-            SegId = segId;
-            P0 = p0;
-            P1 = p1;
-            SourceId = sourceId;
-            OriginallyReversed = reversed;
-            Envelope = new Envelope(p0, p1);
+            this.SegId = segId;
+            this.P0 = p0;
+            this.P1 = p1;
+            this.SourceId = sourceId;
+            this.OriginallyReversed = reversed;
+            this.Envelope = new Envelope(p0, p1);
         }
 
         public RawSegment WithCoordinates(Coordinate p0, Coordinate p1)
-            => new RawSegment(SegId, p0, p1, SourceId, OriginallyReversed);
+            => new RawSegment(this.SegId, p0, p1, this.SourceId, this.OriginallyReversed);
 
         public RawSegment WithSegId(int segId)
-            => new RawSegment(segId, P0, P1, SourceId, OriginallyReversed);
+            => new RawSegment(segId, this.P0, this.P1, this.SourceId, this.OriginallyReversed);
     }
 
     /// <summary>
@@ -169,8 +169,8 @@ namespace S100Framework.Topology.Internal
         private readonly double _distFromStart;
 
         public SplitPoint(Coordinate coord, Coordinate segStart) {
-            Coord = coord;
-            _distFromStart = coord.Distance(segStart);
+            this.Coord = coord;
+            this._distFromStart = coord.Distance(segStart);
         }
 
         public static readonly IComparer<SplitPoint> Comparer =
@@ -188,46 +188,46 @@ namespace S100Framework.Topology.Internal
         private readonly double _snapTolerance;
         private readonly double _dedupeRadius;
 
-        private readonly List<NetworkGeometry> _sources = new();
-        private readonly List<NetworkEdge> _edges = new();
-        private readonly Dictionary<CoordinateKey, NetworkNode> _nodes = new();
-        private readonly Dictionary<int, List<NetworkEdge>> _edgesBySource = new();
+        private readonly List<NetworkGeometry> _sources = [];
+        private readonly List<NetworkEdge> _edges = [];
+        private readonly Dictionary<CoordinateKey, NetworkNode> _nodes = [];
+        private readonly Dictionary<int, List<NetworkEdge>> _edgesBySource = [];
         private STRtree<NetworkEdge> _edgeIndex;
 
-        public IReadOnlyList<NetworkEdge> Edges => _edges;
-        public IReadOnlyCollection<NetworkNode> Nodes => _nodes.Values;
+        public IReadOnlyList<NetworkEdge> Edges => this._edges;
+        public IReadOnlyCollection<NetworkNode> Nodes => this._nodes.Values;
 
         public IEnumerable<int> Sources => this._sources.Select(e => e.Id);
 
         public MixedTopologyNetwork(GeometryFactory? factory = default, double snapTolerance = 0.000001, double dedupeRadius = -1) {
-            _factory = factory ?? NtsGeometryServices.Instance.CreateGeometryFactory();
-            _snapTolerance = snapTolerance;
+            this._factory = factory ?? NtsGeometryServices.Instance.CreateGeometryFactory();
+            this._snapTolerance = snapTolerance;
 
             // Default dedupe radius: a generous multiple of snapTolerance to absorb
             // typical digitizing noise (duplicate vertices a few ULPs apart), while
             // staying well below any real feature size.
-            _dedupeRadius = dedupeRadius > 0 ? dedupeRadius : snapTolerance * 5;            
+            this._dedupeRadius = dedupeRadius > 0 ? dedupeRadius : snapTolerance * 5;
         }
 
         // -------------------------------------------------------------------
         // Registration
         // -------------------------------------------------------------------
 
-        public int AddPolygon(Polygon polygon) => Register(polygon, GeometryKind.Polygon);
+        public int AddPolygon(Polygon polygon) => this.Register(polygon, GeometryKind.Polygon);
 
-        public int AddLineString(LineString lineString) => Register(lineString, GeometryKind.LineString);
+        public int AddLineString(LineString lineString) => this.Register(lineString, GeometryKind.LineString);
 
         public void AddPolygons(IEnumerable<Polygon> polygons) {
-            foreach (var p in polygons) AddPolygon(p);
+            foreach (var p in polygons) this.AddPolygon(p);
         }
 
         public void AddLineStrings(IEnumerable<LineString> lines) {
-            foreach (var l in lines) AddLineString(l);
+            foreach (var l in lines) this.AddLineString(l);
         }
 
         private int Register(Geometry geom, GeometryKind kind) {
-            int id = _sources.Count;
-            _sources.Add(new NetworkGeometry { Id = id, Geometry = geom, Kind = kind });
+            int id = this._sources.Count;
+            this._sources.Add(new NetworkGeometry { Id = id, Geometry = geom, Kind = kind });
             return id;
         }
 
@@ -244,7 +244,7 @@ namespace S100Framework.Topology.Internal
             double diagonal = Math.Sqrt(
                 env.Width * env.Width + env.Height * env.Height);
 
-            return diagonal <= _snapTolerance;
+            return diagonal <= this._snapTolerance;
         }
 
         // -------------------------------------------------------------------
@@ -253,18 +253,18 @@ namespace S100Framework.Topology.Internal
 
         public void Build() {
             // Step 1: Extract raw segments per source (bare coordinates)
-            var rawSegments = ExtractRawSegments();
+            var rawSegments = this.ExtractRawSegments();
 
             // Step 2: Canonicalize coordinates (union-find over adjacent grid cells)
             //         and remap every segment's endpoints to canonical coordinates.
             //         Drop any segment that becomes degenerate (zero-length)
             //         AFTER canonicalization.
-            var canonical = BuildCanonicalCoordinateMap(rawSegments);
+            var canonical = this.BuildCanonicalCoordinateMap(rawSegments);
 
             var cleanedSegments = new List<RawSegment>(rawSegments.Count);
             foreach (var seg in rawSegments) {
-                var p0 = canonical[new CoordinateKey(SnapToGrid(seg.P0), _snapTolerance)];
-                var p1 = canonical[new CoordinateKey(SnapToGrid(seg.P1), _snapTolerance)];
+                var p0 = canonical[new CoordinateKey(this.SnapToGrid(seg.P0), this._snapTolerance)];
+                var p1 = canonical[new CoordinateKey(this.SnapToGrid(seg.P1), this._snapTolerance)];
 
                 if (p0.Equals2D(p1)) continue; // degenerate after canonicalization
 
@@ -292,7 +292,7 @@ namespace S100Framework.Topology.Internal
 
             foreach (var seg in segments) {
                 var queryEnv = seg.Envelope.Copy();
-                queryEnv.ExpandBy(_snapTolerance);
+                queryEnv.ExpandBy(this._snapTolerance);
 
                 var candidates = segIndex.Query(queryEnv);
                 foreach (var other in candidates) {
@@ -307,13 +307,13 @@ namespace S100Framework.Topology.Internal
                         // Canonicalize the computed intersection point too —
                         // it's a brand-new floating-point coordinate that must
                         // land on the same grid as everything else.
-                        pt = SnapToGrid(pt);
-                        var ptKey = new CoordinateKey(pt, _snapTolerance);
+                        pt = this.SnapToGrid(pt);
+                        var ptKey = new CoordinateKey(pt, this._snapTolerance);
                         if (canonical.TryGetValue(ptKey, out var canonPt))
                             pt = canonPt;
 
                         // Snap to endpoint if within tolerance
-                        pt = SnapToEndpoint(pt, seg, other);
+                        pt = this.SnapToEndpoint(pt, seg, other);
 
                         splitPoints[seg.SegId].Add(new SplitPoint(pt, seg.P0));
                         splitPoints[other.SegId].Add(new SplitPoint(pt, other.P0));
@@ -323,9 +323,9 @@ namespace S100Framework.Topology.Internal
 
             // Step 5: Split each segment at its intersection points and insert
             //         the resulting sub-segments into the graph
-            _nodes.Clear();
-            _edges.Clear();
-            _edgesBySource.Clear();
+            this._nodes.Clear();
+            this._edges.Clear();
+            this._edgesBySource.Clear();
 
             var edgeMap = new Dictionary<(CoordinateKey, CoordinateKey), NetworkEdge>();
 
@@ -334,24 +334,24 @@ namespace S100Framework.Topology.Internal
 
                 var coords = new List<Coordinate>(splits.Count + 2) { seg.P0 };
                 foreach (var sp in splits) {
-                    if (!sp.Coord.Equals2D(coords[^1], _snapTolerance))
+                    if (!sp.Coord.Equals2D(coords[^1], this._snapTolerance))
                         coords.Add(sp.Coord);
                 }
-                if (!seg.P1.Equals2D(coords[^1], _snapTolerance))
+                if (!seg.P1.Equals2D(coords[^1], this._snapTolerance))
                     coords.Add(seg.P1);
 
                 for (int i = 0; i < coords.Count - 1; i++) {
-                    if (coords[i].Equals2D(coords[i + 1], _snapTolerance))
+                    if (coords[i].Equals2D(coords[i + 1], this._snapTolerance))
                         continue; // skip degenerate sub-segments from split noise
 
-                    InsertEdge(coords[i], coords[i + 1], seg.SourceId, seg.OriginallyReversed, edgeMap);
+                    this.InsertEdge(coords[i], coords[i + 1], seg.SourceId, seg.OriginallyReversed, edgeMap);
                 }
             }
 
             // Step 6: Spatial index on final edges
-            _edgeIndex = new STRtree<NetworkEdge>();
-            foreach (var edge in _edges)
-                _edgeIndex.Insert(edge.Geometry.EnvelopeInternal, edge);
+            this._edgeIndex = new STRtree<NetworkEdge>();
+            foreach (var edge in this._edges)
+                this._edgeIndex.Insert(edge.Geometry.EnvelopeInternal, edge);
         }
 
         // -------------------------------------------------------------------
@@ -359,18 +359,18 @@ namespace S100Framework.Topology.Internal
         // -------------------------------------------------------------------
 
         private List<RawSegment> ExtractRawSegments() {
-            var result = new List<RawSegment>(EstimateSegmentCount());
+            var result = new List<RawSegment>(this.EstimateSegmentCount());
             int segId = 0;
 
-            foreach (var src in _sources) {
+            foreach (var src in this._sources) {
                 if (src.Kind == GeometryKind.Polygon) {
                     var poly = (Polygon)src.Geometry;
-                    segId = ExtractFromRing(poly.ExteriorRing.Coordinates, src.Id, result, segId, isRing: true);
+                    segId = this.ExtractFromRing(poly.ExteriorRing.Coordinates, src.Id, result, segId, isRing: true);
                     foreach (var hole in poly.InteriorRings)
-                        segId = ExtractFromRing(hole.Coordinates, src.Id, result, segId, isRing: true);
+                        segId = this.ExtractFromRing(hole.Coordinates, src.Id, result, segId, isRing: true);
                 }
                 else {
-                    segId = ExtractFromRing(src.Geometry.Coordinates, src.Id, result, segId, isRing: src.Geometry is LinearRing);
+                    segId = this.ExtractFromRing(src.Geometry.Coordinates, src.Id, result, segId, isRing: src.Geometry is LinearRing);
                 }
             }
 
@@ -379,7 +379,7 @@ namespace S100Framework.Topology.Internal
 
 
 
-        private int EstimateSegmentCount() => _sources.Sum(s => s.Geometry.NumPoints);
+        private int EstimateSegmentCount() => this._sources.Sum(s => s.Geometry.NumPoints);
 
         /// <summary>
         /// Snaps + de-duplicates a coordinate sequence, re-closes rings if needed,
@@ -422,22 +422,22 @@ namespace S100Framework.Topology.Internal
         //    return segId;
         //}
         private int ExtractFromRing(Coordinate[] coords, int sourceId, List<RawSegment> result, int segId, bool isRing = true) {
-            coords = RemoveSpikes(coords, spikeTolerance: _snapTolerance);
+            coords = this.RemoveSpikes(coords, spikeTolerance: this._snapTolerance);
 
             // For rings, strip the closing duplicate BEFORE snapping so the
             // re-close logic below is always the one that adds it back.
             // This prevents the dedup loop from silently eating the last point
             // when snapped-last == snapped-first.
             if (isRing && coords.Length > 1) {
-                var snapFirst = SnapToGrid(coords[0]);
-                var snapLast = SnapToGrid(coords[^1]);
+                var snapFirst = this.SnapToGrid(coords[0]);
+                var snapLast = this.SnapToGrid(coords[^1]);
                 if (snapFirst.Equals2D(snapLast))
                     coords = coords[..^1]; // strip closing duplicate
             }
 
             var snapped = new List<Coordinate>(coords.Length);
             foreach (var c in coords) {
-                var sc = SnapToGrid(c);
+                var sc = this.SnapToGrid(c);
                 if (snapped.Count == 0 || !sc.Equals2D(snapped[^1]))
                     snapped.Add(sc);
             }
@@ -488,18 +488,18 @@ namespace S100Framework.Topology.Internal
         // -------------------------------------------------------------------
         // Snapping / canonicalization helpers
         // -------------------------------------------------------------------
-        private Coordinate SnapToGrid(Coordinate c) => SnapToGridRound(c);
+        private Coordinate SnapToGrid(Coordinate c) => this.SnapToGridRound(c);
 
         /// <summary>
         /// Snaps a coordinate to a fixed grid defined by _snapTolerance.
         /// Floor-based with a small epsilon to avoid boundary-straddling issues.
         /// </summary>
         private Coordinate SnapToGridFloor(Coordinate c) {
-            double inv = 1.0 / _snapTolerance;
+            double inv = 1.0 / this._snapTolerance;
             const double epsilon = 1e-9;
 
-            double x = Math.Floor(c.X * inv + epsilon) * _snapTolerance;
-            double y = Math.Floor(c.Y * inv + epsilon) * _snapTolerance;
+            double x = Math.Floor(c.X * inv + epsilon) * this._snapTolerance;
+            double y = Math.Floor(c.Y * inv + epsilon) * this._snapTolerance;
 
             return double.IsNaN(c.Z)
                 ? new Coordinate(x, y)
@@ -510,7 +510,7 @@ namespace S100Framework.Topology.Internal
         /// Snaps a coordinate to a fixed grid defined by tolerance.
         /// </summary>
         private Coordinate SnapToGridRound(Coordinate c) {
-            double inv = 1.0 / _snapTolerance;
+            double inv = 1.0 / this._snapTolerance;
             double x = Math.Round(c.X * inv) / inv;
             double y = Math.Round(c.Y * inv) / inv;
 
@@ -518,7 +518,7 @@ namespace S100Framework.Topology.Internal
             var coord = double.IsNaN(c.Z)
                 ? new Coordinate(x, y)
                 : new CoordinateZ(x, y, c.Z);
-            _factory.PrecisionModel.MakePrecise(coord);
+            this._factory.PrecisionModel.MakePrecise(coord);
             return coord;
         }
 
@@ -755,8 +755,8 @@ namespace S100Framework.Topology.Internal
             var cellValue = new Dictionary<CoordinateKey, Coordinate>();
             foreach (var seg in rawSegments) {
                 foreach (var c in new[] { seg.P0, seg.P1 }) {
-                    var snapped = SnapToGrid(c);
-                    var key = new CoordinateKey(snapped, _snapTolerance);
+                    var snapped = this.SnapToGrid(c);
+                    var key = new CoordinateKey(snapped, this._snapTolerance);
                     if (!cellValue.ContainsKey(key))
                         cellValue[key] = snapped;
                 }
@@ -787,9 +787,9 @@ namespace S100Framework.Topology.Internal
             // segment in the source data (they're connected via several hops
             // around the sliver tip, not by a single short edge).
             foreach (var seg in rawSegments) {
-                if (seg.P0.Distance(seg.P1) <= _dedupeRadius) {
-                    var k0 = new CoordinateKey(SnapToGrid(seg.P0), _snapTolerance);
-                    var k1 = new CoordinateKey(SnapToGrid(seg.P1), _snapTolerance);
+                if (seg.P0.Distance(seg.P1) <= this._dedupeRadius) {
+                    var k0 = new CoordinateKey(this.SnapToGrid(seg.P0), this._snapTolerance);
+                    var k1 = new CoordinateKey(this.SnapToGrid(seg.P1), this._snapTolerance);
                     Union(k0, k1);
                 }
             }
@@ -817,7 +817,7 @@ namespace S100Framework.Topology.Internal
         /// </summary>
         private Coordinate SnapToEndpoint(Coordinate pt, RawSegment seg, RawSegment other) {
             foreach (var ep in new[] { seg.P0, seg.P1, other.P0, other.P1 }) {
-                if (pt.Distance(ep) <= _snapTolerance)
+                if (pt.Distance(ep) <= this._snapTolerance)
                     return ep;
             }
             return pt;
@@ -830,27 +830,27 @@ namespace S100Framework.Topology.Internal
         private void InsertEdge(
             Coordinate c0, Coordinate c1, int sourceId, bool sourceReversed,
             Dictionary<(CoordinateKey, CoordinateKey), NetworkEdge> edgeMap) {
-            if (c0.Equals2D(c1, _snapTolerance)) return;
+            if (c0.Equals2D(c1, this._snapTolerance)) return;
 
-            var k0 = new CoordinateKey(c0, _snapTolerance);
-            var k1 = new CoordinateKey(c1, _snapTolerance);
+            var k0 = new CoordinateKey(c0, this._snapTolerance);
+            var k1 = new CoordinateKey(c1, this._snapTolerance);
             bool needsSwap = k0.CompareTo(k1) > 0;
             var key = needsSwap ? (k1, k0) : (k0, k1);
 
             if (!edgeMap.TryGetValue(key, out var edge)) {
                 var (geomC0, geomC1) = needsSwap ? (c1, c0) : (c0, c1);
-                var ls = _factory.CreateLineString(new[] { geomC0, geomC1 });
+                var ls = this._factory.CreateLineString(new[] { geomC0, geomC1 });
                 edge = new NetworkEdge {
-                    Id = _edges.Count,
+                    Id = this._edges.Count,
                     Geometry = ls,
                     StartNode = geomC0,
                     EndNode = geomC1,
                 };
-                _edges.Add(edge);
+                this._edges.Add(edge);
                 edgeMap[key] = edge;
 
-                GetOrCreateNode(geomC0).Edges.Add(edge);
-                GetOrCreateNode(geomC1).Edges.Add(edge);
+                this.GetOrCreateNode(geomC0).Edges.Add(edge);
+                this.GetOrCreateNode(geomC1).Edges.Add(edge);
             }
 
             edge.SourceGeometryIds.Add(sourceId);
@@ -862,16 +862,16 @@ namespace S100Framework.Topology.Internal
             bool sourceGoesStartToEnd = (sourceReversed == needsSwap);
             edge.SourceOrientation[sourceId] = sourceGoesStartToEnd;
 
-            if (!_edgesBySource.TryGetValue(sourceId, out var list))
-                _edgesBySource[sourceId] = list = new List<NetworkEdge>();
+            if (!this._edgesBySource.TryGetValue(sourceId, out var list))
+                this._edgesBySource[sourceId] = list = [];
             if (!list.Contains(edge))
                 list.Add(edge);
         }
 
         private NetworkNode GetOrCreateNode(Coordinate coord) {
-            var key = new CoordinateKey(coord, _snapTolerance);
-            if (!_nodes.TryGetValue(key, out var node))
-                _nodes[key] = node = new NetworkNode { Coordinate = coord };
+            var key = new CoordinateKey(coord, this._snapTolerance);
+            if (!this._nodes.TryGetValue(key, out var node))
+                this._nodes[key] = node = new NetworkNode { Coordinate = coord };
             return node;
         }
 
@@ -883,7 +883,7 @@ namespace S100Framework.Topology.Internal
         /// Get all network edges that belong to a registered geometry by id.
         /// </summary>
         public IReadOnlyList<NetworkEdge> GetEdgesFor(int sourceId)
-            => _edgesBySource.TryGetValue(sourceId, out var list)
+            => this._edgesBySource.TryGetValue(sourceId, out var list)
                 ? list
                 : Array.Empty<NetworkEdge>();
 
@@ -891,39 +891,39 @@ namespace S100Framework.Topology.Internal
         /// Get all edges shared between exactly these two geometries.
         /// </summary>
         public IEnumerable<NetworkEdge> GetSharedEdges(int sourceIdA, int sourceIdB)
-            => GetEdgesFor(sourceIdA).Where(e => e.SourceGeometryIds.Contains(sourceIdB));
+            => this.GetEdgesFor(sourceIdA).Where(e => e.SourceGeometryIds.Contains(sourceIdB));
 
         /// <summary>
         /// Get all edges shared between any two or more geometries.
         /// </summary>
         public IEnumerable<NetworkEdge> GetAllSharedEdges()
-            => _edges.Where(e => e.IsShared);
+            => this._edges.Where(e => e.IsShared);
 
         /// <summary>
         /// Find which source geometries contain a given edge.
         /// </summary>
         public IEnumerable<NetworkGeometry> GetSourceGeometriesForEdge(NetworkEdge edge)
-            => edge.SourceGeometryIds.Select(id => _sources[id]);
+            => edge.SourceGeometryIds.Select(id => this._sources[id]);
 
         /// <summary>
         /// Get the node at a coordinate (within snap tolerance).
         /// </summary>
         public NetworkNode GetNode(Coordinate coord) {
-            var key = new CoordinateKey(coord, _snapTolerance);
-            return _nodes.TryGetValue(key, out var node) ? node : null;
+            var key = new CoordinateKey(coord, this._snapTolerance);
+            return this._nodes.TryGetValue(key, out var node) ? node : null;
         }
 
         /// <summary>
         /// Find all edges within a search envelope.
         /// </summary>
         public IEnumerable<NetworkEdge> QueryEdges(Envelope envelope)
-            => _edgeIndex.Query(envelope).Cast<NetworkEdge>();
+            => this._edgeIndex.Query(envelope).Cast<NetworkEdge>();
 
         /// <summary>
         /// Describe the full network definition for a source geometry.
         /// </summary>
         public NetworkDefinition GetNetworkDefinition(int sourceId) {
-            var edges = GetEdgesFor(sourceId);
+            var edges = this.GetEdgesFor(sourceId);
             var sharedEdges = edges.Where(e => e.IsShared).ToList();
             var privateEdges = edges.Where(e => !e.IsShared).ToList();
 
@@ -935,11 +935,11 @@ namespace S100Framework.Topology.Internal
 
             return new NetworkDefinition {
                 SourceId = sourceId,
-                Source = _sources[sourceId],
+                Source = this._sources[sourceId],
                 AllEdges = edges.ToList(),
                 SharedEdges = sharedEdges,
                 PrivateEdges = privateEdges,
-                Neighbours = neighbourIds.Select(id => _sources[id]).ToList(),
+                Neighbours = neighbourIds.Select(id => this._sources[id]).ToList(),
             };
         }
 
@@ -951,25 +951,25 @@ namespace S100Framework.Topology.Internal
         /// Merges all shared edges into the longest possible LineStrings,
         /// respecting source-geometry boundaries.
         /// </summary>
-        public List<MergedEdge> MergeSharedEdges() => MergeEdgeSet(GetAllSharedEdges());
+        public List<MergedEdge> MergeSharedEdges() => this.MergeEdgeSet(this.GetAllSharedEdges());
 
         /// <summary>
         /// Merges all edges belonging to a specific source geometry into the
         /// longest possible LineStrings.
         /// </summary>
-        public List<MergedEdge> MergeEdgesFor(int sourceId) => MergeEdgeSet(GetEdgesFor(sourceId));
+        public List<MergedEdge> MergeEdgesFor(int sourceId) => this.MergeEdgeSet(this.GetEdgesFor(sourceId));
 
         private List<MergedEdge> MergeEdgeSet(IEnumerable<NetworkEdge> edgeSet) {
             var edges = edgeSet.ToHashSet();
-            if (edges.Count == 0) return new List<MergedEdge>();
+            if (edges.Count == 0) return [];
 
             // Build a local adjacency: coord -> edges in this set only
             var adjacency = new Dictionary<CoordinateKey, List<NetworkEdge>>();
 
             void Touch(Coordinate c, NetworkEdge e) {
-                var key = new CoordinateKey(c, _snapTolerance);
+                var key = new CoordinateKey(c, this._snapTolerance);
                 if (!adjacency.TryGetValue(key, out var list))
-                    adjacency[key] = list = new List<NetworkEdge>();
+                    adjacency[key] = list = [];
                 list.Add(e);
             }
 
@@ -984,11 +984,11 @@ namespace S100Framework.Topology.Internal
             foreach (var startEdge in edges) {
                 if (visited.Contains(startEdge.Id)) continue;
 
-                var chain = WalkFullChain(startEdge, edges, adjacency, visited);
-                var coords = ChainToCoordinates(chain);
+                var chain = this.WalkFullChain(startEdge, edges, adjacency, visited);
+                var coords = this.ChainToCoordinates(chain);
 
                 result.Add(new MergedEdge {
-                    Geometry = _factory.CreateLineString(coords),
+                    Geometry = this._factory.CreateLineString(coords),
                     SourceGeometryIds = chain.SelectMany(e => e.SourceGeometryIds).Distinct().ToHashSet(),
                     ConstituentEdges = chain,
                 });
@@ -1014,7 +1014,7 @@ namespace S100Framework.Topology.Internal
             var coord = seed.EndNode;
             var current = seed;
             while (true) {
-                var key = new CoordinateKey(coord, _snapTolerance);
+                var key = new CoordinateKey(coord, this._snapTolerance);
                 if (!adjacency.TryGetValue(key, out var neighbours)) break;
 
                 var candidates = neighbours.Where(e => edgeSet.Contains(e) && e.Id != current.Id).ToList();
@@ -1028,7 +1028,7 @@ namespace S100Framework.Topology.Internal
 
                 visited.Add(next.Id);
                 forward.Add(next);
-                coord = next.StartNode.Equals2D(coord, _snapTolerance) ? next.EndNode : next.StartNode;
+                coord = next.StartNode.Equals2D(coord, this._snapTolerance) ? next.EndNode : next.StartNode;
                 current = next;
             }
 
@@ -1036,7 +1036,7 @@ namespace S100Framework.Topology.Internal
             coord = seed.StartNode;
             current = seed;
             while (true) {
-                var key = new CoordinateKey(coord, _snapTolerance);
+                var key = new CoordinateKey(coord, this._snapTolerance);
                 if (!adjacency.TryGetValue(key, out var neighbours)) break;
 
                 var candidates = neighbours.Where(e => edgeSet.Contains(e) && e.Id != current.Id).ToList();
@@ -1049,7 +1049,7 @@ namespace S100Framework.Topology.Internal
 
                 visited.Add(prev.Id);
                 backward.Add(prev);
-                coord = prev.StartNode.Equals2D(coord, _snapTolerance) ? prev.EndNode : prev.StartNode;
+                coord = prev.StartNode.Equals2D(coord, this._snapTolerance) ? prev.EndNode : prev.StartNode;
                 current = prev;
             }
 
@@ -1093,51 +1093,51 @@ namespace S100Framework.Topology.Internal
 
         //    return coords.ToArray();
         //}
-        private Coordinate[] ChainToCoordinates(List<NetworkEdge> chain) {
-            if (chain.Count == 0) return Array.Empty<Coordinate>();
+        //private Coordinate[] ChainToCoordinates(List<NetworkEdge> chain) {
+        //    if (chain.Count == 0) return Array.Empty<Coordinate>();
 
-            var coords = new List<Coordinate>();
+        //    var coords = new List<Coordinate>();
 
-            // The second coord in the chain tells us which end of edge[0] connects forward
-            Coordinate nextStart = chain.Count > 1
-                ? (chain[1].StartNode.Equals2D(chain[0].StartNode, _snapTolerance) ||
-                   chain[1].StartNode.Equals2D(chain[0].EndNode, _snapTolerance)
-                       ? chain[1].StartNode
-                       : chain[1].EndNode)
-                : chain[0].EndNode;
+        //    // The second coord in the chain tells us which end of edge[0] connects forward
+        //    Coordinate nextStart = chain.Count > 1
+        //        ? (chain[1].StartNode.Equals2D(chain[0].StartNode, _snapTolerance) ||
+        //           chain[1].StartNode.Equals2D(chain[0].EndNode, _snapTolerance)
+        //               ? chain[1].StartNode
+        //               : chain[1].EndNode)
+        //        : chain[0].EndNode;
 
-            // Determine traversal direction for the first edge
-            bool firstReversed = nextStart.Equals2D(chain[0].StartNode, _snapTolerance);
+        //    // Determine traversal direction for the first edge
+        //    bool firstReversed = nextStart.Equals2D(chain[0].StartNode, _snapTolerance);
 
-            var firstEdge = chain[0];
-            var firstCoords = firstReversed
-                ? firstEdge.Geometry.Coordinates.Reverse().ToArray()
-                : firstEdge.Geometry.Coordinates;
+        //    var firstEdge = chain[0];
+        //    var firstCoords = firstReversed
+        //        ? firstEdge.Geometry.Coordinates.Reverse().ToArray()
+        //        : firstEdge.Geometry.Coordinates;
 
-            foreach (var c in firstCoords)
-                coords.Add(SnapToGrid(c));  // <-- snap
+        //    foreach (var c in firstCoords)
+        //        coords.Add(SnapToGrid(c));  // <-- snap
 
-            for (int i = 1; i < chain.Count; i++) {
-                var edge = chain[i];
-                var prevEnd = coords[^1];
+        //    for (int i = 1; i < chain.Count; i++) {
+        //        var edge = chain[i];
+        //        var prevEnd = coords[^1];
 
-                bool reversed = !edge.StartNode.Equals2D(prevEnd, _snapTolerance);
-                var edgeCoords = reversed
-                    ? edge.Geometry.Coordinates.Reverse().ToArray()
-                    : edge.Geometry.Coordinates;
+        //        bool reversed = !edge.StartNode.Equals2D(prevEnd, _snapTolerance);
+        //        var edgeCoords = reversed
+        //            ? edge.Geometry.Coordinates.Reverse().ToArray()
+        //            : edge.Geometry.Coordinates;
 
-                // Skip first coord (it duplicates prevEnd), snap the rest
-                foreach (var c in edgeCoords.Skip(1))
-                    coords.Add(SnapToGrid(c));  // <-- snap
-            }
+        //        // Skip first coord (it duplicates prevEnd), snap the rest
+        //        foreach (var c in edgeCoords.Skip(1))
+        //            coords.Add(SnapToGrid(c));  // <-- snap
+        //    }
 
-            return coords.ToArray();
-        }
+        //    return coords.ToArray();
+        //}
 
         private bool ConnectsTo(NetworkEdge edge, NetworkEdge other, bool fromEnd) {
             var coord = fromEnd ? edge.EndNode : edge.StartNode;
-            return coord.Equals2D(other.StartNode, _snapTolerance)
-                || coord.Equals2D(other.EndNode, _snapTolerance);
+            return coord.Equals2D(other.StartNode, this._snapTolerance)
+                || coord.Equals2D(other.EndNode, this._snapTolerance);
         }
 
 
@@ -1184,7 +1184,7 @@ namespace S100Framework.Topology.Internal
         //}
 
         public LineString GetFullGeometryFor(int sourceId) {
-            var mergedEdges = GetMergedEdgeChainFor(sourceId);
+            var mergedEdges = this.GetMergedEdgeChainFor(sourceId);
             if (mergedEdges.Count == 0) return null;
 
             var coords = new List<Coordinate>();
@@ -1192,21 +1192,21 @@ namespace S100Framework.Topology.Internal
             foreach (var merged in mergedEdges) {
                 var mergedCoords = merged.Geometry.Coordinates;
                 if (coords.Count == 0) {
-                    coords.AddRange(mergedCoords.Select(c => SnapToGrid(c)));
+                    coords.AddRange(mergedCoords.Select(c => this.SnapToGrid(c)));
                 }
                 else {
                     // Skip first coord - it duplicates the last coord we already have
-                    coords.AddRange(mergedCoords.Skip(1).Select(c => SnapToGrid(c)));
+                    coords.AddRange(mergedCoords.Skip(1).Select(c => this.SnapToGrid(c)));
                 }
             }
 
-            var source = _sources.First(s => s.Id == sourceId);
+            var source = this._sources.First(s => s.Id == sourceId);
             bool isRing = source.Kind == GeometryKind.Polygon || source.Geometry is LinearRing;
 
             if (isRing && coords.Count > 1)
                 coords[^1] = new Coordinate(coords[0].X, coords[0].Y);
 
-            return _factory.CreateLineString(coords.ToArray());
+            return this._factory.CreateLineString(coords.ToArray());
         }
 
 
@@ -1218,14 +1218,14 @@ namespace S100Framework.Topology.Internal
         /// result — nothing is merged or flattened into one LineString.
         /// </summary>
         public List<NetworkEdge> GetFullEdgeChainFor(int sourceId) {
-            var edges = GetEdgesFor(sourceId).ToHashSet();
-            if (edges.Count == 0) return new List<NetworkEdge>();
+            var edges = this.GetEdgesFor(sourceId).ToHashSet();
+            if (edges.Count == 0) return [];
 
             var adjacency = new Dictionary<CoordinateKey, List<NetworkEdge>>();
             void Touch(Coordinate c, NetworkEdge e) {
-                var key = new CoordinateKey(c, _snapTolerance);
+                var key = new CoordinateKey(c, this._snapTolerance);
                 if (!adjacency.TryGetValue(key, out var list))
-                    adjacency[key] = list = new List<NetworkEdge>();
+                    adjacency[key] = list = [];
                 list.Add(e);
             }
             foreach (var edge in edges) {
@@ -1235,7 +1235,7 @@ namespace S100Framework.Topology.Internal
 
             var visited = new HashSet<int>();
             var seed = edges.First();
-            return WalkFullChainIgnoringSourceSets(seed, edges, adjacency, visited);
+            return this.WalkFullChainIgnoringSourceSets(seed, edges, adjacency, visited);
         }
 
 
@@ -1313,15 +1313,15 @@ namespace S100Framework.Topology.Internal
             var coord = seed.EndNode;
             var current = seed;
             while (true) {
-                var key = new CoordinateKey(coord, _snapTolerance);
+                var key = new CoordinateKey(coord, this._snapTolerance);
                 if (!adjacency.TryGetValue(key, out var neighbours)) break;
                 var candidates = neighbours.Where(e => edgeSet.Contains(e) && !visited.Contains(e.Id)).ToList();
                 if (candidates.Count != 1) break;
                 var next = candidates[0];
 
                 // Closed ring: forward walk has reached back to seed's start
-                bool closedRing = next.StartNode.Equals2D(seed.StartNode, _snapTolerance)
-                               || next.EndNode.Equals2D(seed.StartNode, _snapTolerance);
+                bool closedRing = next.StartNode.Equals2D(seed.StartNode, this._snapTolerance)
+                               || next.EndNode.Equals2D(seed.StartNode, this._snapTolerance);
                 if (closedRing) {
                     visited.Add(next.Id);
                     forward.Add(next);
@@ -1330,20 +1330,20 @@ namespace S100Framework.Topology.Internal
 
                 visited.Add(next.Id);
                 forward.Add(next);
-                coord = next.StartNode.Equals2D(coord, _snapTolerance) ? next.EndNode : next.StartNode;
+                coord = next.StartNode.Equals2D(coord, this._snapTolerance) ? next.EndNode : next.StartNode;
                 current = next;
             }
 
             // --- Backward walk (only if ring isn't already closed) ---
             bool ringClosed = forward.Count > 0 &&
-                              (forward[^1].StartNode.Equals2D(seed.StartNode, _snapTolerance) ||
-                               forward[^1].EndNode.Equals2D(seed.StartNode, _snapTolerance));
+                              (forward[^1].StartNode.Equals2D(seed.StartNode, this._snapTolerance) ||
+                               forward[^1].EndNode.Equals2D(seed.StartNode, this._snapTolerance));
 
             if (!ringClosed) {
                 coord = seed.StartNode;
                 current = seed;
                 while (true) {
-                    var key = new CoordinateKey(coord, _snapTolerance);
+                    var key = new CoordinateKey(coord, this._snapTolerance);
                     if (!adjacency.TryGetValue(key, out var neighbours)) break;
                     var candidates = neighbours.Where(e => edgeSet.Contains(e) && !visited.Contains(e.Id)).ToList();
                     if (candidates.Count != 1) break;
@@ -1351,7 +1351,7 @@ namespace S100Framework.Topology.Internal
 
                     visited.Add(prev.Id);
                     backward.Add(prev);
-                    coord = prev.StartNode.Equals2D(coord, _snapTolerance) ? prev.EndNode : prev.StartNode;
+                    coord = prev.StartNode.Equals2D(coord, this._snapTolerance) ? prev.EndNode : prev.StartNode;
                     current = prev;
                 }
             }
@@ -1378,36 +1378,27 @@ namespace S100Framework.Topology.Internal
         /// result has a single, consistent topological meaning.
         /// </summary>
         public List<MergedEdge> GetMergedEdgeChainFor(int sourceId) {
-            var sourceEdges = GetEdgesFor(sourceId).ToHashSet();
-            if (sourceEdges.Count == 0) return new List<MergedEdge>();
+            var chain = this.GetFullEdgeChainFor(sourceId); // your now-working ordered chain
+            if (chain.Count == 0) return [];
 
-            // Walk edges in the order the SOURCE originally traversed them,
-            // using SourceOrientation to determine direction.
-            var orderedEdges = OrderEdgesBySourceTraversal(sourceId, sourceEdges);
-            if (orderedEdges.Count == 0) return new List<MergedEdge>();
-
-            var directions = orderedEdges.Select(e =>
-                e.SourceOrientation.TryGetValue(sourceId, out bool fwd) ? fwd : true
-            ).ToList();
-
-            // Group consecutive edges with the same SourceGeometryIds
             var result = new List<MergedEdge>();
-            var currentGroup = new List<NetworkEdge> { orderedEdges[0] };
-            var currentDirs = new List<bool> { directions[0] };
+            var currentGroup = new List<NetworkEdge> { chain[0] };
 
-            for (int i = 1; i < orderedEdges.Count; i++) {
-                if (orderedEdges[i].SourceGeometryIds.SetEquals(currentGroup[^1].SourceGeometryIds)) {
-                    currentGroup.Add(orderedEdges[i]);
-                    currentDirs.Add(directions[i]);
+            for (int i = 1; i < chain.Count; i++) {
+                var edge = chain[i];
+                var prev = currentGroup[^1];
+
+                if (edge.SourceGeometryIds.SetEquals(prev.SourceGeometryIds)) {
+                    currentGroup.Add(edge);
                 }
                 else {
-                    result.Add(BuildMergedEdge(currentGroup, currentDirs));
-                    currentGroup = new List<NetworkEdge> { orderedEdges[i] };
-                    currentDirs = new List<bool> { directions[i] };
+                    result.Add(this.BuildMergedEdge(currentGroup));
+                    currentGroup = [edge];
                 }
             }
+
             if (currentGroup.Count > 0)
-                result.Add(BuildMergedEdge(currentGroup, currentDirs));
+                result.Add(this.BuildMergedEdge(currentGroup));
 
             return result;
         }
@@ -1415,16 +1406,16 @@ namespace S100Framework.Topology.Internal
         private List<NetworkEdge> OrderEdgesBySourceTraversal(
     int sourceId, HashSet<NetworkEdge> sourceEdges) {
 
-            var source = _sources[sourceId];
+            var source = this._sources[sourceId];
             var originalCoords = source.Geometry.Coordinates;
 
             // Build a lookup: network node coordinate -> edges in this source
             var nodeToEdges = new Dictionary<CoordinateKey, List<NetworkEdge>>();
             foreach (var edge in sourceEdges) {
                 void Touch(Coordinate c) {
-                    var key = new CoordinateKey(c, _snapTolerance);
+                    var key = new CoordinateKey(c, this._snapTolerance);
                     if (!nodeToEdges.TryGetValue(key, out var list))
-                        nodeToEdges[key] = list = new List<NetworkEdge>();
+                        nodeToEdges[key] = list = [];
                     if (!list.Contains(edge)) list.Add(edge);
                 }
                 Touch(edge.StartNode);
@@ -1437,8 +1428,8 @@ namespace S100Framework.Topology.Internal
             var visited = new HashSet<int>();
 
             for (int ci = 0; ci < originalCoords.Length; ci++) {
-                var snapped = SnapToGrid(originalCoords[ci]);
-                var key = new CoordinateKey(snapped, _snapTolerance);
+                var snapped = this.SnapToGrid(originalCoords[ci]);
+                var key = new CoordinateKey(snapped, this._snapTolerance);
 
                 if (!nodeToEdges.TryGetValue(key, out var edgesHere)) continue;
 
@@ -1449,8 +1440,8 @@ namespace S100Framework.Topology.Internal
                     // (the node we arrive at from the previous coord in the sequence)
                     // Entry = StartNode if we're going forward, EndNode if reversed.
                     // We determine direction by which endpoint matches snapped.
-                    bool entryIsStart = edge.StartNode.Equals2D(snapped, _snapTolerance);
-                    bool entryIsEnd = edge.EndNode.Equals2D(snapped, _snapTolerance);
+                    bool entryIsStart = edge.StartNode.Equals2D(snapped, this._snapTolerance);
+                    bool entryIsEnd = edge.EndNode.Equals2D(snapped, this._snapTolerance);
 
                     if (!entryIsStart && !entryIsEnd) continue;
 
@@ -1459,13 +1450,13 @@ namespace S100Framework.Topology.Internal
                     var exitNode = entryIsStart ? edge.EndNode : edge.StartNode;
                     bool exitFoundLater = false;
                     for (int cj = ci + 1; cj < originalCoords.Length; cj++) {
-                        if (SnapToGrid(originalCoords[cj]).Equals2D(exitNode, _snapTolerance)) {
+                        if (this.SnapToGrid(originalCoords[cj]).Equals2D(exitNode, this._snapTolerance)) {
                             exitFoundLater = true;
                             break;
                         }
                         // Stop searching if we hit another network node first
                         // (that would mean this edge goes backwards)
-                        var ck = new CoordinateKey(SnapToGrid(originalCoords[cj]), _snapTolerance);
+                        var ck = new CoordinateKey(this.SnapToGrid(originalCoords[cj]), this._snapTolerance);
                         if (nodeToEdges.ContainsKey(ck)) break;
                     }
 
@@ -1483,14 +1474,14 @@ namespace S100Framework.Topology.Internal
         private List<NetworkEdge> RotateChainToSourceStart(
             List<NetworkEdge> chain, int sourceId, NetworkGeometry source) {
 
-            var firstCoord = SnapToGrid(source.Geometry.Coordinates[0]);
+            var firstCoord = this.SnapToGrid(source.Geometry.Coordinates[0]);
 
             // First try: find edge where source enters at firstCoord (it's a node)
             for (int i = 0; i < chain.Count; i++) {
                 var edge = chain[i];
                 if (!edge.SourceOrientation.TryGetValue(sourceId, out bool forward)) continue;
                 var entryNode = forward ? edge.StartNode : edge.EndNode;
-                if (entryNode.Equals2D(firstCoord, _snapTolerance)) {
+                if (entryNode.Equals2D(firstCoord, this._snapTolerance)) {
                     if (i == 0) return chain;
                     var rotated = new List<NetworkEdge>(chain.Count);
                     rotated.AddRange(chain.Skip(i));
@@ -1505,7 +1496,7 @@ namespace S100Framework.Topology.Internal
                 var edge = chain[i];
                 var edgeCoords = edge.Geometry.Coordinates;
                 foreach (var c in edgeCoords) {
-                    if (SnapToGrid(c).Equals2D(firstCoord, _snapTolerance)) {
+                    if (this.SnapToGrid(c).Equals2D(firstCoord, this._snapTolerance)) {
                         if (i == 0) return chain;
                         var rotated = new List<NetworkEdge>(chain.Count);
                         rotated.AddRange(chain.Skip(i));
@@ -1514,7 +1505,7 @@ namespace S100Framework.Topology.Internal
                     }
                 }
                 // Also check if firstCoord is within snap tolerance of any coord
-                if (edge.Geometry.Coordinates.Any(c => c.Distance(firstCoord) <= _snapTolerance)) {
+                if (edge.Geometry.Coordinates.Any(c => c.Distance(firstCoord) <= this._snapTolerance)) {
                     if (i == 0) return chain;
                     var rotated = new List<NetworkEdge>(chain.Count);
                     rotated.AddRange(chain.Skip(i));
@@ -1546,7 +1537,7 @@ namespace S100Framework.Topology.Internal
                         var prevExit = directions[i - 1]
                             ? chain[i - 1].EndNode
                             : chain[i - 1].StartNode;
-                        directions.Add(chain[i].StartNode.Equals2D(prevExit, _snapTolerance));
+                        directions.Add(chain[i].StartNode.Equals2D(prevExit, this._snapTolerance));
                     }
                 }
             }
@@ -1554,24 +1545,85 @@ namespace S100Framework.Topology.Internal
             return directions;
         }
 
-        private MergedEdge BuildMergedEdge(List<NetworkEdge> edges, List<bool> directions) {
-            var coords = new List<Coordinate>();
-
-            for (int i = 0; i < edges.Count; i++) {
-                var edgeCoords = edges[i].Geometry.Coordinates;
-                var ordered = directions[i] ? edgeCoords : edgeCoords.Reverse().ToArray();
-
-                if (coords.Count == 0)
-                    coords.AddRange(ordered.Select(c => SnapToGrid(c)));
-                else
-                    coords.AddRange(ordered.Skip(1).Select(c => SnapToGrid(c)));
-            }
-
+        private MergedEdge BuildMergedEdge(List<NetworkEdge> edges) {
+            var coords = this.ChainToCoordinates(edges);
             return new MergedEdge {
-                Geometry = _factory.CreateLineString(coords.ToArray()),
-                SourceGeometryIds = edges.SelectMany(e => e.SourceGeometryIds).Distinct().ToHashSet(),
+                Geometry = this._factory.CreateLineString(coords),
+                SourceGeometryIds = edges.SelectMany(e => e.SourceGeometryIds)
+                                         .Distinct()
+                                         .ToHashSet(),
                 ConstituentEdges = edges.ToList(),
             };
+        }
+
+        /// <summary>
+        /// Stitches an ordered chain of edges into a single coordinate array.
+        /// Relies ONLY on connectivity between consecutive edges (StartNode/EndNode
+        /// matching), not on SourceOrientation. The chain must already be in the
+        /// correct topological order (consecutive edges share a node).
+        /// </summary>
+        private Coordinate[] ChainToCoordinates(List<NetworkEdge> chain) {
+            if (chain.Count == 0) return Array.Empty<Coordinate>();
+            if (chain.Count == 1)
+                return chain[0].Geometry.Coordinates.Select(this.SnapToGrid).ToArray();
+
+            var coords = new List<Coordinate>();
+
+            // Determine the orientation of edge[0] by checking how it connects to edge[1]
+            var e0 = chain[0];
+            var e1 = chain[1];
+
+            bool e0Forward; // true = traverse StartNode->EndNode
+            if (e0.EndNode.Equals2D(e1.StartNode, this._snapTolerance) ||
+                e0.EndNode.Equals2D(e1.EndNode, this._snapTolerance)) {
+                e0Forward = true;   // e0's EndNode connects to e1 -> go forward
+            }
+            else if (e0.StartNode.Equals2D(e1.StartNode, this._snapTolerance) ||
+                     e0.StartNode.Equals2D(e1.EndNode, this._snapTolerance)) {
+                e0Forward = false;  // e0's StartNode connects to e1 -> go backward (reverse e0)
+            }
+            else {
+                // Edges don't actually connect — chain is broken. Default forward.
+                e0Forward = true;
+            }
+
+            var firstCoords = e0Forward
+                ? e0.Geometry.Coordinates
+                : e0.Geometry.Coordinates.Reverse().ToArray();
+
+            foreach (var c in firstCoords)
+                coords.Add(this.SnapToGrid(c));
+
+            // Walk the rest of the chain: each edge must start where the previous
+            // one ended (after orienting it that way).
+            for (int i = 1; i < chain.Count; i++) {
+                var edge = chain[i];
+                var prevEnd = coords[^1];
+
+                bool forward;
+                if (edge.StartNode.Equals2D(prevEnd, this._snapTolerance)) {
+                    forward = true;
+                }
+                else if (edge.EndNode.Equals2D(prevEnd, this._snapTolerance)) {
+                    forward = false;
+                }
+                else {
+                    // Edge doesn't connect to previous end within tolerance.
+                    // Fall back to whichever endpoint is closer (shouldn't normally happen
+                    // if the chain was built correctly).
+                    forward = edge.StartNode.Distance(prevEnd) <= edge.EndNode.Distance(prevEnd);
+                }
+
+                var edgeCoords = forward
+                    ? edge.Geometry.Coordinates
+                    : edge.Geometry.Coordinates.Reverse().ToArray();
+
+                // Skip the first coordinate — it duplicates prevEnd
+                foreach (var c in edgeCoords.Skip(1))
+                    coords.Add(this.SnapToGrid(c));
+            }
+
+            return coords.ToArray();
         }
 
         //private MergedEdge BuildMergedEdge(List<NetworkEdge> edges) {
@@ -1604,7 +1656,7 @@ namespace S100Framework.Topology.Internal
             var result = new List<MergedEdgeClassification>();
 
             foreach (var sourceId in edge.SourceGeometryIds) {
-                var src = _sources[sourceId];
+                var src = this._sources[sourceId];
 
                 if (src.Kind == GeometryKind.LineString) {
                     result.Add(new MergedEdgeClassification {
@@ -1615,7 +1667,7 @@ namespace S100Framework.Topology.Internal
                 }
 
                 var poly = (Polygon)src.Geometry;
-                var ringKind = ClassifyAgainstPolygon(edge.Geometry, poly);
+                var ringKind = this.ClassifyAgainstPolygon(edge.Geometry, poly);
 
                 result.Add(new MergedEdgeClassification {
                     Kind = ringKind.Kind,
@@ -1642,18 +1694,18 @@ namespace S100Framework.Topology.Internal
         private (EdgeRingKind Kind, int? RingIndex) ClassifyAgainstPolygon(LineString edgeGeom, Polygon poly) {
             var probe = MidPoint(edgeGeom);
 
-            if (IsOnRing(probe, poly.ExteriorRing))
+            if (this.IsOnRing(probe, poly.ExteriorRing))
                 return (EdgeRingKind.ExteriorRing, null);
 
             for (int i = 0; i < poly.NumInteriorRings; i++) {
-                if (IsOnRing(probe, poly.GetInteriorRingN(i)))
+                if (this.IsOnRing(probe, poly.GetInteriorRingN(i)))
                     return (EdgeRingKind.InteriorRing, i);
             }
 
-            return FallbackClassify(edgeGeom, poly);
+            return this.FallbackClassify(edgeGeom, poly);
         }
 
-        private bool IsOnRing(Point probe, LineString ring) => ring.Distance(probe) <= _snapTolerance;
+        private bool IsOnRing(Point probe, LineString ring) => ring.Distance(probe) <= this._snapTolerance;
 
         private (EdgeRingKind Kind, int? RingIndex) FallbackClassify(LineString edgeGeom, Polygon poly) {
             int exteriorVotes = 0;
@@ -1664,12 +1716,12 @@ namespace S100Framework.Topology.Internal
                 int idx = (int)((double)i / samples * (edgeGeom.NumPoints - 1));
                 var pt = edgeGeom.Factory.CreatePoint(edgeGeom.GetCoordinateN(idx));
 
-                if (poly.ExteriorRing.Distance(pt) <= _snapTolerance) {
+                if (poly.ExteriorRing.Distance(pt) <= this._snapTolerance) {
                     exteriorVotes++;
                     continue;
                 }
                 for (int j = 0; j < poly.NumInteriorRings; j++) {
-                    if (poly.GetInteriorRingN(j).Distance(pt) <= _snapTolerance)
+                    if (poly.GetInteriorRingN(j).Distance(pt) <= this._snapTolerance)
                         interiorVotes[j]++;
                 }
             }
@@ -1713,7 +1765,7 @@ namespace S100Framework.Topology.Internal
 
             bool sourceForward = refEdge.SourceOrientation[sourceId];
 
-            bool mergedMatchesEdgeStart = coords[0].Equals2D(refEdge.StartNode, _snapTolerance);
+            bool mergedMatchesEdgeStart = coords[0].Equals2D(refEdge.StartNode, this._snapTolerance);
             bool mergedIsForwardForSource = mergedMatchesEdgeStart == sourceForward;
 
             return mergedIsForwardForSource
