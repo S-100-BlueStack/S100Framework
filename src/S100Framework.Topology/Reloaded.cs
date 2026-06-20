@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace S100FC.Topology
 {
+    using NetTopologySuite.Operation.Linemerge;
     using NetTopologySuite.Precision;
     using S100Framework.Topology.Internal;
 
@@ -82,8 +83,8 @@ namespace S100FC.Topology
 
             //  Create all curves and composite curves
             //  ------------------------------------------------------------------------------------------------
-            foreach (var id in this._mixedTopologyNetwork.Sources) {
-                foreach (var edge in this._mixedTopologyNetwork.GetMergedEdgeChainFor(id)) {
+            foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
+                foreach (var edge in this._mixedTopologyNetwork.GetMergedEdgeChainFor(sourceId)) {
                     var hash1 = System.IO.Hashing.XxHash64.HashToUInt64(edge.Geometry.AsBinary());
                     var hash2 = System.IO.Hashing.XxHash64.HashToUInt64(edge.Geometry.Factory.CreateLineString([.. edge.Geometry.Coordinates.Reverse()]).AsBinary());
 
@@ -119,15 +120,17 @@ namespace S100FC.Topology
 
             var used = new List<FeatureRef>();
 
-            foreach (var id in this._mixedTopologyNetwork.Sources) {
-                var mergedEdges = this._mixedTopologyNetwork.GetMergedEdgeChainFor(id);
-                if (mergedEdges.Count == 0) continue;
+            foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
+                var chain = this._mixedTopologyNetwork.GetMergedEdgeChainFor(sourceId)!;
+                if (!chain.Any()) continue;
 
                 FeatureRef[] refs = [];
 
                 //var linemerger = new LineMerger();
 
-                foreach (var edge in mergedEdges) {
+                if (sourceId == 7) System.Diagnostics.Debugger.Break();
+
+                foreach (var edge in chain) {
                     ulong hash = System.IO.Hashing.XxHash64.HashToUInt64(edge.Geometry.ToBinary());
 
                     hash = rc2c[hash];  //  remap to non reverse!
@@ -136,7 +139,13 @@ namespace S100FC.Topology
                     //linemerger.Add(edge.Geometry);
                 }
 
-                var merged = this._mixedTopologyNetwork.GetFullGeometryFor(id);
+                var merger = new LineMerger();
+                for (int i = 0; i < chain.Count; i++)
+                    merger.Add(chain[i].Geometry);
+
+                var mergedLineStrings = merger.GetMergedLineStrings();
+                if (mergedLineStrings.Count > 1) System.Diagnostics.Debugger.Break();
+                var merged = (LineString)mergedLineStrings[0];
 
                 bool skip = false;
                 foreach (var c in curves) {
@@ -144,12 +153,12 @@ namespace S100FC.Topology
                     //if (!RingsEqual(c.Value, (LineString)merged[0], out bool reverse)) continue;
 
                     if (!reverse) {
-                        ids.Add(id, c.Key.Reverse ? () => $"RC{c.Key.Id}" : () => $"C{c.Key.Id}");
+                        ids.Add(sourceId, c.Key.Reverse ? () => $"RC{c.Key.Id}" : () => $"C{c.Key.Id}");
                     }
                     else {
-                        ids.Add(id, !c.Key.Reverse ? () => $"RC{c.Key.Id}" : () => $"C{c.Key.Id}");
+                        ids.Add(sourceId, !c.Key.Reverse ? () => $"RC{c.Key.Id}" : () => $"C{c.Key.Id}");
                     }
-                    source2featureRefs.Add(id, c.Key.Id);
+                    source2featureRefs.Add(sourceId, c.Key.Id);
                     skip = true;
                     continue;
                 }
@@ -160,34 +169,44 @@ namespace S100FC.Topology
                 //if (refs.Select(e => e.Id).ToList().Contains(232626361)) System.Diagnostics.Debugger.Break();
 
                 if (refs.Length > 1) {
-                    //var mergedText = merged.ToText();
+                    var mergedText = merged.ToText();
 
-                    //var sortedlist = new SortedList<int, FeatureRef>();
+                    var sortedlist = new SortedList<int, FeatureRef>();
 
-                    //foreach (var e in refs) {
-                    //    var curve = this._curves[rc2c[e.Id]];
+                    foreach (var e in refs) {
+                        var curve = this._curves[rc2c[e.Id]];
 
-                    //    var text = curve.LineStringText.Substring("LINESTRING (".Length).TrimEnd(')');
+                        var text = curve.LineStringText.Substring("LINESTRING (".Length).TrimEnd(')');
 
-                    //    if (ContainsSegment(mergedText, text))
-                    //        sortedlist.Add(IndexOfSegment(mergedText, text), e);
-                    //    else {
-                    //        text = curve.LineStringReverseText.Substring("LINESTRING (".Length).TrimEnd(')');
-                    //        sortedlist.Add(IndexOfSegment(mergedText, text), new FeatureRef {
-                    //            Id = e.Id,
-                    //            Reverse = !e.Reverse,
-                    //        });
-                    //    }
+                        if (ContainsSegment(mergedText, text))
+                            sortedlist.Add(IndexOfSegment(mergedText, text), e);
+                        else {
+                            text = curve.LineStringReverseText.Substring("LINESTRING (".Length).TrimEnd(')');
+                            sortedlist.Add(IndexOfSegment(mergedText, text), new FeatureRef {
+                                Id = e.Id,
+                                Reverse = !e.Reverse,
+                            });
+                        }
+                    }
+                    //int i = 0;
+                    //var sortedlist = new SortedList<int, FeatureRef>(refs.ToDictionary(e => i++, e => e));
+
+                    //var _curves = refs.Skip(0).Select(e => this._curves[rc2c[e.Id]]);
+
+                    //sortedlist.Add(0, refs[0]);
+                    //var edge = this._curves[rc2c[refs[0].Id]];
+                    //for (int i = 1; i < refs.Length; i++) {
+                    //    var next = _curves.Single(e => e.LineString.StartPoint.Equals(edge.LineString.EndPoint));
+
+                        
                     //}
-                    int i = 0;
-                    var sortedlist = new SortedList<int, FeatureRef>(refs.ToDictionary(e => i++, e => e));
 
                     var compositecurve = new CompositeCurveFeature([.. sortedlist.Values]);
                     if (!this._compositecurves.ContainsKey(compositecurve.Id))
                         this._compositecurves.Add(compositecurve.Id, compositecurve);
 
-                    ids.Add(id, () => $"C{compositecurve.Id}");
-                    source2featureRefs.Add(id, compositecurve.Id);
+                    ids.Add(sourceId, () => $"C{compositecurve.Id}");
+                    source2featureRefs.Add(sourceId, compositecurve.Id);
 
                     if (!featureRefs.ContainsKey(compositecurve.Id)) {
                         var featureRef1 = new FeatureRef {
@@ -201,9 +220,9 @@ namespace S100FC.Topology
                     }
                 }
                 else {
-                    ids.Add(id, refs[0].Reverse ? () => $"RC{refs[0].Id}" : () => $"C{refs[0].Id}");
+                    ids.Add(sourceId, refs[0].Reverse ? () => $"RC{refs[0].Id}" : () => $"C{refs[0].Id}");
 
-                    source2featureRefs.Add(id, refs[0].Id);
+                    source2featureRefs.Add(sourceId, refs[0].Id);
 
                     curves.Add(refs[0], merged);
                     //curves.Add(refs[0], (LineString)merged[0]);
@@ -326,13 +345,13 @@ namespace S100FC.Topology
                     var id = this._mixedTopologyNetwork.AddLineString(interior);
                     idInteriorRings = [.. idInteriorRings, id];
 
-                    //checks_linestrings = [.. checks_linestrings, interior.ToText()];
+                    checks_linestrings = [.. checks_linestrings, interior.ToText()];
                     if (checks.Contains(id)) {
                         checks_linestrings = [.. checks_linestrings, interior.ToText()];
                     }
                 }
 
-                //checks_linestrings = [.. checks_linestrings, surface.ExteriorRing.ToText()];
+                checks_linestrings = [.. checks_linestrings, surface.ExteriorRing.ToText()];
                 if (checks.Contains(idExteriorRing)) {
                     checks_linestrings = [.. checks_linestrings, surface.ExteriorRing.ToText()];
                     //System.Diagnostics.Debugger.Break();
@@ -346,7 +365,7 @@ namespace S100FC.Topology
                 var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
                 if (id < 0) continue;
 
-                //checks_linestrings = [.. checks_linestrings, curve.LineString.ToText()];
+                checks_linestrings = [.. checks_linestrings, curve.LineString.ToText()];
                 if (checks.Contains(id)) {
                     checks_linestrings = [.. checks_linestrings, curve.LineString.ToText()];
                     //System.Diagnostics.Debugger.Break();
