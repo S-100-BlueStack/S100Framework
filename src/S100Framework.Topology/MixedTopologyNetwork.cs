@@ -380,47 +380,7 @@ namespace S100Framework.Topology.Internal
 
 
         private int EstimateSegmentCount() => this._sources.Sum(s => s.Geometry.NumPoints);
-
-        /// <summary>
-        /// Snaps + de-duplicates a coordinate sequence, re-closes rings if needed,
-        /// and emits direction-canonicalized RawSegments (smaller coordinate first).
-        /// </summary>
-        //private int ExtractFromRing(Coordinate[] coords, int sourceId, List<RawSegment> result, int segId, bool isRing = true) {
-        //    //if (sourceId == 104) System.Diagnostics.Debugger.Break();
-
-        //    // Pre-clean: remove near-duplicate "spike" vertices using a tolerance
-        //    // matched to source data precision, separate from the fine _snapTolerance
-        //    // used for the rest of the network build.
-        //    coords = RemoveSpikes(coords, spikeTolerance: _snapTolerance);
-
-        //    // Snap + de-duplicate consecutive identical coordinates that
-        //    // collapse together after snapping
-        //    var snapped = new List<Coordinate>(coords.Length);
-        //    foreach (var c in coords) {
-        //        var sc = SnapToGrid(c);
-        //        if (snapped.Count == 0 || !sc.Equals2D(snapped[^1]))
-        //            snapped.Add(sc);
-        //    }
-
-        //    // Re-close the ring if snapping broke closure
-        //    if (isRing && snapped.Count > 2 && !snapped[0].Equals2D(snapped[^1]))
-        //        snapped.Add(snapped[0]);
-
-        //    for (int i = 0; i < snapped.Count - 1; i++) {
-        //        var p0 = snapped[i];
-        //        var p1 = snapped[i + 1];
-
-        //        if (p0.Equals2D(p1)) continue; // degenerate after snapping
-
-        //        // Canonicalize direction: always store the "smaller" coordinate first
-        //        bool reversed = ComparePoints(p0, p1) > 0;
-        //        var (c0, c1) = reversed ? (p1, p0) : (p0, p1);
-
-        //        result.Add(new RawSegment(segId++, c0, c1, sourceId, reversed));
-        //    }
-
-        //    return segId;
-        //}
+      
         private int ExtractFromRing(Coordinate[] coords, int sourceId, List<RawSegment> result, int segId, bool isRing = true) {
             coords = this.RemoveSpikes(coords, spikeTolerance: this._snapTolerance);
 
@@ -523,226 +483,6 @@ namespace S100Framework.Topology.Internal
         }
 
         /// <summary>
-        /// Builds a map from EVERY grid cell touched by input coordinates to ONE
-        /// canonical coordinate. Adjacent cells (within 1 cell of each other) that
-        /// are also within snapTolerance in real distance collapse to the same
-        /// canonical coordinate using a union-find–style merge.
-        /// </summary>
-#if null
-        private Dictionary<CoordinateKey, Coordinate> BuildCanonicalCoordinateMap(
-            List<RawSegment> rawSegments)
-        {
-            // Step 1: collect distinct snapped coordinates per cell (first-seen wins
-            // as the "raw" value for that cell)
-            var cellValue = new Dictionary<CoordinateKey, Coordinate>();
-            foreach (var seg in rawSegments)
-            {
-                foreach (var c in new[] { seg.P0, seg.P1 })
-                {
-                    var snapped = SnapToGrid(c);
-                    var key = new CoordinateKey(snapped, _snapTolerance);
-                    if (!cellValue.ContainsKey(key))
-                        cellValue[key] = snapped;
-                }
-            }
-
-            // Step 2: union-find over cells. Two cells merge if they are adjacent
-            // (within 1 cell in x or y) AND their raw values are within tolerance.
-            var parent = new Dictionary<CoordinateKey, CoordinateKey>();
-            CoordinateKey Find(CoordinateKey k)
-            {
-                while (parent.TryGetValue(k, out var p) && !p.Equals(k))
-                    k = p;
-                return k;
-            }
-            void Union(CoordinateKey a, CoordinateKey b)
-            {
-                var ra = Find(a);
-                var rb = Find(b);
-                if (!ra.Equals(rb))
-                    parent[ra] = rb;
-            }
-
-            foreach (var key in cellValue.Keys)
-                parent[key] = key;
-
-            var keys = cellValue.Keys.ToList();
-            foreach (var key in keys)
-            {
-                var v = cellValue[key];
-                for (int dx = -1; dx <= 1; dx++)
-                for (int dy = -1; dy <= 1; dy++)
-                {
-                    if (dx == 0 && dy == 0) continue;
-                    var nk = key.Offset(dx, dy);
-                    if (cellValue.TryGetValue(nk, out var nv)
-                        && v.Distance(nv) <= _snapTolerance * 1.0001) // tiny epsilon for fp safety
-                    {
-                        Union(key, nk);
-                    }
-                }
-            }
-
-            // Step 3: pick ONE canonical coordinate per union-find group
-            // (use the group's representative cell's value)
-            var groupCanonical = new Dictionary<CoordinateKey, Coordinate>();
-            var result = new Dictionary<CoordinateKey, Coordinate>();
-
-            foreach (var key in keys)
-            {
-                var root = Find(key);
-                if (!groupCanonical.TryGetValue(root, out var canon))
-                {
-                    canon = cellValue[root]; // representative's own value
-                    groupCanonical[root] = canon;
-                }
-                result[key] = canon;
-            }
-
-            return result;
-        }
-#endif
-
-#if null
-        private Dictionary<CoordinateKey, Coordinate> BuildCanonicalCoordinateMap(
-            List<RawSegment> rawSegments) {
-            var cellValue = new Dictionary<CoordinateKey, Coordinate>();
-            foreach (var seg in rawSegments) {
-                foreach (var c in new[] { seg.P0, seg.P1 }) {
-                    var snapped = SnapToGrid(c);
-                    var key = new CoordinateKey(snapped, _snapTolerance);
-                    if (!cellValue.ContainsKey(key))
-                        cellValue[key] = snapped;
-                }
-            }
-
-            var parent = new Dictionary<CoordinateKey, CoordinateKey>();
-            CoordinateKey Find(CoordinateKey k) {
-                while (parent.TryGetValue(k, out var p) && !p.Equals(k))
-                    k = p;
-                return k;
-            }
-            void Union(CoordinateKey a, CoordinateKey b) {
-                var ra = Find(a);
-                var rb = Find(b);
-                if (!ra.Equals(rb))
-                    parent[ra] = rb;
-            }
-
-            foreach (var key in cellValue.Keys)
-                parent[key] = key;
-
-            var keys = cellValue.Keys.ToList();
-
-            // Search radius widened to ±2 cells to catch 2-cell gaps (e.g. x differs
-            // by exactly 2 grid units). Distance threshold widened to tol*1.5 to
-            // catch diagonal 1-cell neighbors (sqrt(2)*tol ≈ 1.414*tol).
-            const int searchRadius = 2;
-            double distThreshold = _snapTolerance * 2.5;    // covers both 2-cell-axis-aligned (2.0) and diagonal (1.414) gaps with margin
-
-            foreach (var key in keys) {
-                var v = cellValue[key];
-                for (int dx = -searchRadius; dx <= searchRadius; dx++)
-                    for (int dy = -searchRadius; dy <= searchRadius; dy++) {
-                        if (dx == 0 && dy == 0) continue;
-                        var nk = key.Offset(dx, dy);
-                        if (cellValue.TryGetValue(nk, out var nv)
-                            && v.Distance(nv) <= distThreshold) {
-                            Union(key, nk);
-                        }
-                    }
-            }
-
-            var groupCanonical = new Dictionary<CoordinateKey, Coordinate>();
-            var result = new Dictionary<CoordinateKey, Coordinate>();
-
-            foreach (var key in keys) {
-                var root = Find(key);
-                if (!groupCanonical.TryGetValue(root, out var canon)) {
-                    canon = cellValue[root];
-                    groupCanonical[root] = canon;
-                }
-                result[key] = canon;
-            }
-
-            return result;
-        }
-#endif
-
-#if null
-        private Dictionary<CoordinateKey, Coordinate> BuildCanonicalCoordinateMap(
-            List<RawSegment> rawSegments) {
-            // Collect all distinct snapped coordinates
-            var cellValue = new Dictionary<CoordinateKey, Coordinate>();
-            foreach (var seg in rawSegments) {
-                foreach (var c in new[] { seg.P0, seg.P1 }) {
-                    var snapped = SnapToGrid(c);
-                    var key = new CoordinateKey(snapped, _snapTolerance);
-                    if (!cellValue.ContainsKey(key))
-                        cellValue[key] = snapped;
-                }
-            }
-
-            // Build a spatial index over the distinct points for proximity search
-            var pointIndex = new STRtree<CoordinateKey>();
-            foreach (var kvp in cellValue) {
-                var env = new Envelope(kvp.Value);
-                pointIndex.Insert(env, kvp.Key);
-            }
-
-            // Union-find over points within DEDUPE RADIUS of each other (real distance,
-            // not grid-cell offset). This catches dangles of any size up to the radius,
-            // regardless of how many grid cells they happen to span.
-            var parent = new Dictionary<CoordinateKey, CoordinateKey>();
-            CoordinateKey Find(CoordinateKey k) {
-                while (parent.TryGetValue(k, out var p) && !p.Equals(k))
-                    k = p;
-                return k;
-            }
-            void Union(CoordinateKey a, CoordinateKey b) {
-                var ra = Find(a);
-                var rb = Find(b);
-                if (!ra.Equals(rb))
-                    parent[ra] = rb;
-            }
-
-            foreach (var key in cellValue.Keys)
-                parent[key] = key;
-
-            foreach (var kvp in cellValue) {
-                var key = kvp.Key;
-                var v = kvp.Value;
-
-                var queryEnv = new Envelope(v);
-                queryEnv.ExpandBy(_dedupeRadius);
-
-                var candidates = pointIndex.Query(queryEnv);
-                foreach (var candidateKey in candidates) {
-                    if (candidateKey.Equals(key)) continue;
-                    var candidateValue = cellValue[candidateKey];
-                    if (v.Distance(candidateValue) <= _dedupeRadius)
-                        Union(key, candidateKey);
-                }
-            }
-
-            // Pick one canonical coordinate per group
-            var groupCanonical = new Dictionary<CoordinateKey, Coordinate>();
-            var result = new Dictionary<CoordinateKey, Coordinate>();
-
-            foreach (var key in cellValue.Keys) {
-                var root = Find(key);
-                if (!groupCanonical.TryGetValue(root, out var canon)) {
-                    canon = cellValue[root];
-                    groupCanonical[root] = canon;
-                }
-                result[key] = canon;
-            }
-
-            return result;
-        }
-#endif
-
-        /// <summary>
         /// Builds a canonical coordinate map, but only merges a point with its
         /// IMMEDIATE NEIGHBORS in segment-adjacency terms — i.e. only collapses
         /// duplicate/near-duplicate vertices that are CONSECUTIVE in some source
@@ -751,12 +491,12 @@ namespace S100Framework.Topology.Internal
         /// sliver polygons while still fixing digitizing dangles at shared edges.
         /// </summary>
         private Dictionary<CoordinateKey, Coordinate> BuildCanonicalCoordinateMap(
-            List<RawSegment> rawSegments) {
+    List<RawSegment> rawSegments) {
             var cellValue = new Dictionary<CoordinateKey, Coordinate>();
             foreach (var seg in rawSegments) {
                 foreach (var c in new[] { seg.P0, seg.P1 }) {
-                    var snapped = this.SnapToGrid(c);
-                    var key = new CoordinateKey(snapped, this._snapTolerance);
+                    var snapped = SnapToGrid(c);
+                    var key = new CoordinateKey(snapped, _snapTolerance);
                     if (!cellValue.ContainsKey(key))
                         cellValue[key] = snapped;
                 }
@@ -771,39 +511,32 @@ namespace S100Framework.Topology.Internal
             void Union(CoordinateKey a, CoordinateKey b) {
                 var ra = Find(a);
                 var rb = Find(b);
-                if (!ra.Equals(rb))
+                if (ra.Equals(rb)) return;
+                // Deterministic tie-break: always attach the larger key to the smaller
+                // so the result never depends on segment/source processing order.
+                if (ra.CompareTo(rb) < 0)
+                    parent[rb] = ra;
+                else
                     parent[ra] = rb;
             }
 
             foreach (var key in cellValue.Keys)
                 parent[key] = key;
 
-            // ONLY merge endpoints of segments that are THEMSELVES short (i.e. the
-            // segment connecting them is, by itself, shorter than dedupeRadius).
-            // This catches: (a) genuine zero/near-zero-length digitizing artifacts
-            // -- the dangle case -- because the dangle IS a short connecting hop.
-            // It will NOT catch two unrelated nearby vertices in a thin sliver,
-            // because those vertices are typically NOT directly joined by a raw
-            // segment in the source data (they're connected via several hops
-            // around the sliver tip, not by a single short edge).
             foreach (var seg in rawSegments) {
-                if (seg.P0.Distance(seg.P1) <= this._dedupeRadius) {
-                    var k0 = new CoordinateKey(this.SnapToGrid(seg.P0), this._snapTolerance);
-                    var k1 = new CoordinateKey(this.SnapToGrid(seg.P1), this._snapTolerance);
+                if (seg.P0.Distance(seg.P1) <= _dedupeRadius) {
+                    var k0 = new CoordinateKey(SnapToGrid(seg.P0), _snapTolerance);
+                    var k1 = new CoordinateKey(SnapToGrid(seg.P1), _snapTolerance);
                     Union(k0, k1);
                 }
             }
 
-            var groupCanonical = new Dictionary<CoordinateKey, Coordinate>();
+            // Pick canonical value deterministically too: use the root key's OWN
+            // snapped coordinate, not "whichever value happened to be cellValue[root]".
             var result = new Dictionary<CoordinateKey, Coordinate>();
-
             foreach (var key in cellValue.Keys) {
                 var root = Find(key);
-                if (!groupCanonical.TryGetValue(root, out var canon)) {
-                    canon = cellValue[root];
-                    groupCanonical[root] = canon;
-                }
-                result[key] = canon;
+                result[key] = cellValue[root];
             }
 
             return result;
@@ -1061,127 +794,12 @@ namespace S100Framework.Topology.Internal
             return chain;
         }
 
-        /// <summary>
-        /// Stitches an ordered chain of edges into a single coordinate array,
-        /// orienting each edge so consecutive coordinates connect.
-        /// </summary>
-        //private Coordinate[] ChainToCoordinates(List<NetworkEdge> chain) {
-        //    if (chain.Count == 0) return Array.Empty<Coordinate>();
-        //    if (chain.Count == 1)
-        //        return chain[0].Geometry.Coordinates.ToArray();
-
-        //    var coords = new List<Coordinate>();
-
-        //    for (int i = 0; i < chain.Count; i++) {
-        //        var edge = chain[i];
-        //        var edgeCs = edge.Geometry.Coordinates;
-
-        //        if (i == 0) {
-        //            var nextEdge = chain[1];
-        //            bool forward = ConnectsTo(edge, nextEdge, fromEnd: true);
-        //            coords.AddRange(forward ? edgeCs : edgeCs.Reverse());
-        //        }
-        //        else {
-        //            var last = coords[^1];
-        //            bool startMatches = edgeCs[0].Equals2D(last, _snapTolerance);
-        //            var oriented = startMatches ? edgeCs : edgeCs.Reverse();
-
-        //            // Skip the first coord — it's the same as the last one added
-        //            coords.AddRange(oriented.Skip(1));
-        //        }
-        //    }
-
-        //    return coords.ToArray();
-        //}
-        //private Coordinate[] ChainToCoordinates(List<NetworkEdge> chain) {
-        //    if (chain.Count == 0) return Array.Empty<Coordinate>();
-
-        //    var coords = new List<Coordinate>();
-
-        //    // The second coord in the chain tells us which end of edge[0] connects forward
-        //    Coordinate nextStart = chain.Count > 1
-        //        ? (chain[1].StartNode.Equals2D(chain[0].StartNode, _snapTolerance) ||
-        //           chain[1].StartNode.Equals2D(chain[0].EndNode, _snapTolerance)
-        //               ? chain[1].StartNode
-        //               : chain[1].EndNode)
-        //        : chain[0].EndNode;
-
-        //    // Determine traversal direction for the first edge
-        //    bool firstReversed = nextStart.Equals2D(chain[0].StartNode, _snapTolerance);
-
-        //    var firstEdge = chain[0];
-        //    var firstCoords = firstReversed
-        //        ? firstEdge.Geometry.Coordinates.Reverse().ToArray()
-        //        : firstEdge.Geometry.Coordinates;
-
-        //    foreach (var c in firstCoords)
-        //        coords.Add(SnapToGrid(c));  // <-- snap
-
-        //    for (int i = 1; i < chain.Count; i++) {
-        //        var edge = chain[i];
-        //        var prevEnd = coords[^1];
-
-        //        bool reversed = !edge.StartNode.Equals2D(prevEnd, _snapTolerance);
-        //        var edgeCoords = reversed
-        //            ? edge.Geometry.Coordinates.Reverse().ToArray()
-        //            : edge.Geometry.Coordinates;
-
-        //        // Skip first coord (it duplicates prevEnd), snap the rest
-        //        foreach (var c in edgeCoords.Skip(1))
-        //            coords.Add(SnapToGrid(c));  // <-- snap
-        //    }
-
-        //    return coords.ToArray();
-        //}
-
         private bool ConnectsTo(NetworkEdge edge, NetworkEdge other, bool fromEnd) {
             var coord = fromEnd ? edge.EndNode : edge.StartNode;
             return coord.Equals2D(other.StartNode, this._snapTolerance)
                 || coord.Equals2D(other.EndNode, this._snapTolerance);
         }
 
-
-        /// <summary>
-        /// Returns the full geometry for a single source, stitched back into one
-        /// LineString (or closed ring), ignoring source-set boundaries entirely.
-        /// Unlike MergeEdgesFor, this never splits at points where the boundary
-        /// is shared with other geometries — it only considers this source's own
-        /// edges and walks them end-to-end.
-        /// </summary>
-#if null
-        public LineString GetFullGeometryFor(int sourceId) {
-            var edges = GetEdgesFor(sourceId).ToHashSet();
-            if (edges.Count == 0) return null;
-
-            // Build adjacency using ONLY this source's own edges
-            var adjacency = new Dictionary<CoordinateKey, List<NetworkEdge>>();
-            void Touch(Coordinate c, NetworkEdge e) {
-                var key = new CoordinateKey(c, _snapTolerance);
-                if (!adjacency.TryGetValue(key, out var list))
-                    adjacency[key] = list = new List<NetworkEdge>();
-                list.Add(e);
-            }
-            foreach (var edge in edges) {
-                Touch(edge.StartNode, edge);
-                Touch(edge.EndNode, edge);
-            }
-
-            var visited = new HashSet<int>();
-            var seed = edges.First();
-            var chain = WalkFullChainIgnoringSourceSets(seed, edges, adjacency, visited);
-
-            var coords = ChainToCoordinates(chain);
-            return _factory.CreateLineString(coords);
-        }
-#endif
-
-        //public LineString? GetFullGeometryFor(int sourceId) {
-        //    var chain = GetFullEdgeChainFor(sourceId);
-        //    if (chain.Count == 0) return null;
-
-        //    var coords = ChainToCoordinates(chain);
-        //    return _factory.CreateLineString(coords);
-        //}
 
         public LineString GetFullGeometryFor(int sourceId) {
             var mergedEdges = this.GetMergedEdgeChainFor(sourceId);
@@ -1247,59 +865,6 @@ namespace S100Framework.Topology.Internal
         /// the chain, as long as within THIS source's edges the node still has
         /// degree 2.
         /// </summary>
-        //private List<NetworkEdge> WalkFullChainIgnoringSourceSets(
-        //    NetworkEdge seed,
-        //    HashSet<NetworkEdge> edgeSet,
-        //    Dictionary<CoordinateKey, List<NetworkEdge>> adjacency,
-        //    HashSet<int> visited) {
-        //    visited.Add(seed.Id);
-        //    var forward = new List<NetworkEdge>();
-        //    var backward = new List<NetworkEdge>();
-
-        //    var coord = seed.EndNode;
-        //    var current = seed;
-        //    while (true) {
-        //        var key = new CoordinateKey(coord, _snapTolerance);
-        //        if (!adjacency.TryGetValue(key, out var neighbours)) break;
-
-        //        var candidates = neighbours.Where(e => edgeSet.Contains(e) && e.Id != current.Id).ToList();
-        //        if (candidates.Count != 1) break;
-
-        //        var next = candidates[0];
-        //        if (next.Id == seed.Id || visited.Contains(next.Id)) break;
-        //        // NOTE: no SourceGeometryIds check here — that's the whole point
-
-        //        visited.Add(next.Id);
-        //        forward.Add(next);
-        //        coord = next.StartNode.Equals2D(coord, _snapTolerance) ? next.EndNode : next.StartNode;
-        //        current = next;
-        //    }
-
-        //    coord = seed.StartNode;
-        //    current = seed;
-        //    while (true) {
-        //        var key = new CoordinateKey(coord, _snapTolerance);
-        //        if (!adjacency.TryGetValue(key, out var neighbours)) break;
-
-        //        var candidates = neighbours.Where(e => edgeSet.Contains(e) && e.Id != current.Id).ToList();
-        //        if (candidates.Count != 1) break;
-
-        //        var prev = candidates[0];
-        //        if (prev.Id == seed.Id || visited.Contains(prev.Id)) break;
-
-        //        visited.Add(prev.Id);
-        //        backward.Add(prev);
-        //        coord = prev.StartNode.Equals2D(coord, _snapTolerance) ? prev.EndNode : prev.StartNode;
-        //        current = prev;
-        //    }
-
-        //    backward.Reverse();
-        //    var chain = new List<NetworkEdge>(backward.Count + 1 + forward.Count);
-        //    chain.AddRange(backward);
-        //    chain.Add(seed);
-        //    chain.AddRange(forward);
-        //    return chain;
-        //}
         private List<NetworkEdge> WalkFullChainIgnoringSourceSets(
             NetworkEdge seed,
             HashSet<NetworkEdge> edgeSet,
@@ -1625,24 +1190,6 @@ namespace S100Framework.Topology.Internal
 
             return coords.ToArray();
         }
-
-        //private MergedEdge BuildMergedEdge(List<NetworkEdge> edges) {
-        //    var coords = ChainToCoordinates(edges);
-        //    return new MergedEdge {
-        //        Geometry = _factory.CreateLineString(coords),
-        //        SourceGeometryIds = edges.SelectMany(e => e.SourceGeometryIds)
-        //                                 .Distinct()
-        //                                 .ToHashSet(),
-        //        ConstituentEdges = edges.ToList(),
-        //    };
-        //}
-
-
-
-
-
-
-
 
         // -------------------------------------------------------------------
         // Ring / LineString classification for merged edges
