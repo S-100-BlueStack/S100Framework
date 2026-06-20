@@ -830,7 +830,7 @@ namespace S100Framework.Topology.Internal
         private void InsertEdge(
             Coordinate c0, Coordinate c1, int sourceId, bool sourceReversed,
             Dictionary<(CoordinateKey, CoordinateKey), NetworkEdge> edgeMap) {
-            if (c0.Equals2D(c1, _snapTolerance)) return; // degenerate
+            if (c0.Equals2D(c1, _snapTolerance)) return;
 
             var k0 = new CoordinateKey(c0, _snapTolerance);
             var k1 = new CoordinateKey(c1, _snapTolerance);
@@ -855,8 +855,11 @@ namespace S100Framework.Topology.Internal
 
             edge.SourceGeometryIds.Add(sourceId);
 
-            // Did THIS source traverse edge.StartNode -> edge.EndNode?
-            bool sourceGoesStartToEnd = c0.Equals2D(edge.StartNode, _snapTolerance);
+            // c0→c1 is the source's traversal direction.
+            // edge.StartNode is geomC0 = (needsSwap ? c1 : c0)
+            // So source goes StartNode→EndNode iff NOT needsSwap
+            // (because if needsSwap, StartNode=c1 and source goes c0→c1 = EndNode→StartNode)
+            bool sourceGoesStartToEnd = (sourceReversed == needsSwap);
             edge.SourceOrientation[sourceId] = sourceGoesStartToEnd;
 
             if (!_edgesBySource.TryGetValue(sourceId, out var list))
@@ -1375,62 +1378,177 @@ namespace S100Framework.Topology.Internal
         /// result has a single, consistent topological meaning.
         /// </summary>
         public List<MergedEdge> GetMergedEdgeChainFor(int sourceId) {
-            var chain = GetFullEdgeChainFor(sourceId);
-            if (chain.Count == 0) return new List<MergedEdge>();
+            var sourceEdges = GetEdgesFor(sourceId).ToHashSet();
+            if (sourceEdges.Count == 0) return new List<MergedEdge>();
 
-            // Pre-compute traversal directions for the full chain once,
-            // so BuildMergedEdge doesn't have to re-infer them.
-            var directions = ComputeChainDirections(chain);
+            // Walk edges in the order the SOURCE originally traversed them,
+            // using SourceOrientation to determine direction.
+            var orderedEdges = OrderEdgesBySourceTraversal(sourceId, sourceEdges);
+            if (orderedEdges.Count == 0) return new List<MergedEdge>();
 
+            var directions = orderedEdges.Select(e =>
+                e.SourceOrientation.TryGetValue(sourceId, out bool fwd) ? fwd : true
+            ).ToList();
+
+            // Group consecutive edges with the same SourceGeometryIds
             var result = new List<MergedEdge>();
-            var currentGroup = new List<NetworkEdge> { chain[0] };
+            var currentGroup = new List<NetworkEdge> { orderedEdges[0] };
             var currentDirs = new List<bool> { directions[0] };
 
-            for (int i = 1; i < chain.Count; i++) {
-                var edge = chain[i];
-                var prev = currentGroup[^1];
-
-                if (edge.SourceGeometryIds.SetEquals(prev.SourceGeometryIds)) {
-                    currentGroup.Add(edge);
+            for (int i = 1; i < orderedEdges.Count; i++) {
+                if (orderedEdges[i].SourceGeometryIds.SetEquals(currentGroup[^1].SourceGeometryIds)) {
+                    currentGroup.Add(orderedEdges[i]);
                     currentDirs.Add(directions[i]);
                 }
                 else {
                     result.Add(BuildMergedEdge(currentGroup, currentDirs));
-                    currentGroup = new List<NetworkEdge> { edge };
+                    currentGroup = new List<NetworkEdge> { orderedEdges[i] };
                     currentDirs = new List<bool> { directions[i] };
                 }
             }
-
             if (currentGroup.Count > 0)
                 result.Add(BuildMergedEdge(currentGroup, currentDirs));
 
             return result;
         }
 
+        private List<NetworkEdge> OrderEdgesBySourceTraversal(
+    int sourceId, HashSet<NetworkEdge> sourceEdges) {
+
+            var source = _sources[sourceId];
+            var originalCoords = source.Geometry.Coordinates;
+
+            // Build a lookup: network node coordinate -> edges in this source
+            var nodeToEdges = new Dictionary<CoordinateKey, List<NetworkEdge>>();
+            foreach (var edge in sourceEdges) {
+                void Touch(Coordinate c) {
+                    var key = new CoordinateKey(c, _snapTolerance);
+                    if (!nodeToEdges.TryGetValue(key, out var list))
+                        nodeToEdges[key] = list = new List<NetworkEdge>();
+                    if (!list.Contains(edge)) list.Add(edge);
+                }
+                Touch(edge.StartNode);
+                Touch(edge.EndNode);
+            }
+
+            // Walk original coords; each time we hit a network node that starts
+            // an unvisited edge, emit that edge.
+            var result = new List<NetworkEdge>();
+            var visited = new HashSet<int>();
+
+            for (int ci = 0; ci < originalCoords.Length; ci++) {
+                var snapped = SnapToGrid(originalCoords[ci]);
+                var key = new CoordinateKey(snapped, _snapTolerance);
+
+                if (!nodeToEdges.TryGetValue(key, out var edgesHere)) continue;
+
+                foreach (var edge in edgesHere) {
+                    if (visited.Contains(edge.Id)) continue;
+
+                    // Only take this edge if snapped coord is the ENTRY node
+                    // (the node we arrive at from the previous coord in the sequence)
+                    // Entry = StartNode if we're going forward, EndNode if reversed.
+                    // We determine direction by which endpoint matches snapped.
+                    bool entryIsStart = edge.StartNode.Equals2D(snapped, _snapTolerance);
+                    bool entryIsEnd = edge.EndNode.Equals2D(snapped, _snapTolerance);
+
+                    if (!entryIsStart && !entryIsEnd) continue;
+
+                    // Verify the OTHER endpoint appears later in originalCoords
+                    // to confirm we're traversing in the right direction.
+                    var exitNode = entryIsStart ? edge.EndNode : edge.StartNode;
+                    bool exitFoundLater = false;
+                    for (int cj = ci + 1; cj < originalCoords.Length; cj++) {
+                        if (SnapToGrid(originalCoords[cj]).Equals2D(exitNode, _snapTolerance)) {
+                            exitFoundLater = true;
+                            break;
+                        }
+                        // Stop searching if we hit another network node first
+                        // (that would mean this edge goes backwards)
+                        var ck = new CoordinateKey(SnapToGrid(originalCoords[cj]), _snapTolerance);
+                        if (nodeToEdges.ContainsKey(ck)) break;
+                    }
+
+                    if (exitFoundLater) {
+                        visited.Add(edge.Id);
+                        result.Add(edge);
+                        break;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private List<NetworkEdge> RotateChainToSourceStart(
+            List<NetworkEdge> chain, int sourceId, NetworkGeometry source) {
+
+            var firstCoord = SnapToGrid(source.Geometry.Coordinates[0]);
+
+            // First try: find edge where source enters at firstCoord (it's a node)
+            for (int i = 0; i < chain.Count; i++) {
+                var edge = chain[i];
+                if (!edge.SourceOrientation.TryGetValue(sourceId, out bool forward)) continue;
+                var entryNode = forward ? edge.StartNode : edge.EndNode;
+                if (entryNode.Equals2D(firstCoord, _snapTolerance)) {
+                    if (i == 0) return chain;
+                    var rotated = new List<NetworkEdge>(chain.Count);
+                    rotated.AddRange(chain.Skip(i));
+                    rotated.AddRange(chain.Take(i));
+                    return rotated;
+                }
+            }
+
+            // Second try: find the edge whose geometry CONTAINS firstCoord
+            // (it's interior to an edge — source start was not a network node)
+            for (int i = 0; i < chain.Count; i++) {
+                var edge = chain[i];
+                var edgeCoords = edge.Geometry.Coordinates;
+                foreach (var c in edgeCoords) {
+                    if (SnapToGrid(c).Equals2D(firstCoord, _snapTolerance)) {
+                        if (i == 0) return chain;
+                        var rotated = new List<NetworkEdge>(chain.Count);
+                        rotated.AddRange(chain.Skip(i));
+                        rotated.AddRange(chain.Take(i));
+                        return rotated;
+                    }
+                }
+                // Also check if firstCoord is within snap tolerance of any coord
+                if (edge.Geometry.Coordinates.Any(c => c.Distance(firstCoord) <= _snapTolerance)) {
+                    if (i == 0) return chain;
+                    var rotated = new List<NetworkEdge>(chain.Count);
+                    rotated.AddRange(chain.Skip(i));
+                    rotated.AddRange(chain.Take(i));
+                    return rotated;
+                }
+            }
+
+            return chain; // can't find it, return as-is
+        }
+
         // Returns true = traverse StartNode->EndNode, false = traverse EndNode->StartNode
-        private List<bool> ComputeChainDirections(List<NetworkEdge> chain) {
+        private List<bool> ComputeChainDirections(List<NetworkEdge> chain, int sourceId) {
             var directions = new List<bool>(chain.Count);
             if (chain.Count == 0) return directions;
 
-            if (chain.Count == 1) {
-                directions.Add(true); // arbitrary for single edge, both ends are valid
-                return directions;
-            }
-
-            // Determine first edge direction from how it connects to the second edge
-            var first = chain[0];
-            var second = chain[1];
-            bool firstForward = second.StartNode.Equals2D(first.EndNode, _snapTolerance)
-                             || second.EndNode.Equals2D(first.EndNode, _snapTolerance);
-            directions.Add(firstForward);
-
-            // Each subsequent edge: orient so its "entry" end matches previous "exit"
-            for (int i = 1; i < chain.Count; i++) {
-                var prev = chain[i - 1];
-                var prevExit = directions[i - 1] ? prev.EndNode : prev.StartNode;
-                var curr = chain[i];
-                bool forward = curr.StartNode.Equals2D(prevExit, _snapTolerance);
-                directions.Add(forward);
+            // Use SourceOrientation as ground truth for direction
+            for (int i = 0; i < chain.Count; i++) {
+                var edge = chain[i];
+                if (edge.SourceOrientation.TryGetValue(sourceId, out bool sourceForward)) {
+                    directions.Add(sourceForward);
+                }
+                else {
+                    // Fallback: infer from connectivity to previous edge
+                    if (i == 0) {
+                        directions.Add(true);
+                    }
+                    else {
+                        var prevExit = directions[i - 1]
+                            ? chain[i - 1].EndNode
+                            : chain[i - 1].StartNode;
+                        directions.Add(chain[i].StartNode.Equals2D(prevExit, _snapTolerance));
+                    }
+                }
             }
 
             return directions;
