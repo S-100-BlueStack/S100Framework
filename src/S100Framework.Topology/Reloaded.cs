@@ -1,24 +1,12 @@
-﻿using NetTopologySuite;
-using NetTopologySuite.Algorithm;
-using NetTopologySuite.Geometries;
-using NetTopologySuite.Index.Strtree;
-using NetTopologySuite.Precision;
-using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using NetTopologySuite.Geometries;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 [assembly: InternalsVisibleTo("TestTopology")]
 
 namespace S100FC.Topology
 {
-    using NetTopologySuite.Operation.Linemerge;
     using NetTopologySuite.Precision;
     using S100Framework.Topology.Internal;
-    using System.Collections.Concurrent;
-    using System.Diagnostics;
-    using System.Net;
 
     public interface IMatrixReloaded : IMatrix
     {
@@ -306,8 +294,8 @@ namespace S100FC.Topology
         }
 
         private IDictionary<ulong, CurveFeature> _curves = new Dictionary<ulong, CurveFeature>();
-        private IDictionary<ulong, CompositeCurveFeature> _compositecurves = new Dictionary<ulong, CompositeCurveFeature>();
-        private IDictionary<ulong, SurfaceFeature> _surfaces = new Dictionary<ulong, SurfaceFeature>();
+        private readonly IDictionary<ulong, CompositeCurveFeature> _compositecurves = new Dictionary<ulong, CompositeCurveFeature>();
+        private readonly IDictionary<ulong, SurfaceFeature> _surfaces = new Dictionary<ulong, SurfaceFeature>();
 
         IEnumerable<CurveFeature> IMatrix.Curves => this._curves.Values;
 

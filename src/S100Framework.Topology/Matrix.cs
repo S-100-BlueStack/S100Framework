@@ -30,7 +30,7 @@ namespace S100FC.Topology
             this.LineStringReverse = lineString.Factory.CreateLineString([.. lineString.Coordinates.Reverse()]);
 
             this.LineStringText = lineString.ToString();
-            this.LineStringReverseText = this.LineStringReverse.ToString();            
+            this.LineStringReverseText = this.LineStringReverse.ToString();
             base.Id = hash;
         }
 
@@ -377,7 +377,7 @@ namespace S100FC.Topology
 
                         if (line2UniquePart is GeometryCollection collection) {
                             var _ = collection.OfType<LineString>();
-                            if(!_.Any()) continue;
+                            if (!_.Any()) continue;
                             lineStrings = [.. _];
                         }
 
@@ -423,7 +423,7 @@ namespace S100FC.Topology
 
                         if (line2UniquePart.IsEmpty) continue;
 
-                        if(line2UniquePart is GeometryCollection collection) {
+                        if (line2UniquePart is GeometryCollection collection) {
                             continue;
                         }
 
