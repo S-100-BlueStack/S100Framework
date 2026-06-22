@@ -824,41 +824,135 @@ namespace S100Framework.Topology.Internal
         public (List<MergedEdge> AllEdges, Dictionary<int, List<EdgeReference>> SourceRefs)
             BuildEdgeIndex() {
 
-            // Step 1: collect ALL unique merged edges across all sources.
-            // We do this by running GetMergedEdgeChainFor for every source and
-            // deduplicating on constituent NetworkEdge ids.
-            var seenEdgeKey = new Dictionary<string, MergedEdge>();
-            var sourceRefs = new Dictionary<int, List<EdgeReference>>();
+            // Step 1: for every network edge, determine its canonical MergedEdge.
+            // Two NetworkEdges belong to the same canonical MergedEdge iff they have
+            // the same SourceGeometryIds AND are adjacent in EVERY source that
+            // contains them. The only reliable way to determine this is: they must
+            // be consecutive in ALL sources' full chains.
+            // Simplification: group NetworkEdges by SourceGeometryIds signature.
+            // Within each group, find maximal consecutive runs across any one source.
 
-            foreach (var src in _sources) {
-                var chain = GetMergedEdgeChainFor(src.Id);
-                var refs = new List<EdgeReference>();
+            // Map sourceId signature -> list of NetworkEdge ids with that signature
+            var sigToEdges = new Dictionary<string, List<int>>();
+            foreach (var edge in _edges) {
+                var sig = string.Join(",", edge.SourceGeometryIds.OrderBy(x => x));
+                if (!sigToEdges.TryGetValue(sig, out var list))
+                    sigToEdges[sig] = list = new List<int>();
+                list.Add(edge.Id);
+            }
 
-                foreach (var merged in chain) {
-                    // Canonical key = sorted constituent edge ids
-                    var key = string.Join(",",
-                        merged.ConstituentEdges.Select(e => e.Id).OrderBy(id => id));
+            // For each signature group, split into maximal runs that are consecutive
+            // in some source's chain. Use the numerically smallest source as reference.
+            var networkEdgeToMerged = new Dictionary<int, MergedEdge>();
+            var allMergedEdges = new List<MergedEdge>();
 
-                    if (!seenEdgeKey.TryGetValue(key, out var canonical)) {
-                        canonical = merged;
-                        seenEdgeKey[key] = canonical;
+            foreach (var (sig, edgeIds) in sigToEdges) {
+                // Pick reference source = smallest id in this sig's source set
+                var refSourceId = edgeIds[0] < _edges.Count
+                    ? _edges[edgeIds[0]].SourceGeometryIds.Min()
+                    : 0;
+
+                // Get the full chain for this source and find positions of these edges
+                var refChain = GetFullEdgeChainFor(refSourceId);
+                var posInChain = new Dictionary<int, int>();
+                for (int i = 0; i < refChain.Count; i++)
+                    posInChain[refChain[i].Id] = i;
+
+                // Sort this group's edges by position in the reference chain
+                var edgeIdSet = edgeIds.ToHashSet();
+                var sortedIds = edgeIds
+                    .Where(id => posInChain.ContainsKey(id))
+                    .OrderBy(id => posInChain[id])
+                    .ToList();
+
+                // Split into consecutive runs
+                if (sortedIds.Count == 0) continue;
+                var currentRun = new List<NetworkEdge> { _edges[sortedIds[0]] };
+
+                for (int i = 1; i < sortedIds.Count; i++) {
+                    int prevPos = posInChain[sortedIds[i - 1]];
+                    int currPos = posInChain[sortedIds[i]];
+                    if (currPos == prevPos + 1) {
+                        currentRun.Add(_edges[sortedIds[i]]);
                     }
+                    else {
+                        // Flush run
+                        var merged = BuildMergedEdgeFromChain(currentRun, refSourceId);
+                        allMergedEdges.Add(merged);
+                        foreach (var e in currentRun)
+                            networkEdgeToMerged[e.Id] = merged;
+                        currentRun = new List<NetworkEdge> { _edges[sortedIds[i]] };
+                    }
+                }
+                // Flush last run
+                var lastMerged = BuildMergedEdgeFromChain(currentRun, refSourceId);
+                allMergedEdges.Add(lastMerged);
+                foreach (var e in currentRun)
+                    networkEdgeToMerged[e.Id] = lastMerged;
+            }
 
-                    // Determine direction: does this source traverse the canonical
-                    // edge forward or backward?
-                    // Compare first coordinate of oriented geometry vs canonical start.
-                    var orientedFirst = merged.Geometry.Coordinates[0];
-                    var canonicalFirst = canonical.Geometry.Coordinates[0];
-                    bool forward = orientedFirst.Equals2D(canonicalFirst, _snapTolerance);
+            // Step 2: build EdgeReference list per source
+            var sourceRefs = new Dictionary<int, List<EdgeReference>>();
+            foreach (var src in _sources) {
+                var chain = GetFullEdgeChainFor(src.Id);
+                var refs = new List<EdgeReference>();
+                MergedEdge lastMerged = null;
 
-                    refs.Add(new EdgeReference { Edge = canonical, Forward = forward });
+                foreach (var netEdge in chain) {
+                    if (!networkEdgeToMerged.TryGetValue(netEdge.Id, out var merged)) continue;
+                    if (ReferenceEquals(merged, lastMerged)) continue;
+
+                    // Direction: does this source traverse the canonical merged edge forward?
+                    var canonFirst = merged.Geometry.Coordinates[0];
+                    var srcEntryNode = netEdge.SourceOrientation.TryGetValue(src.Id, out bool fwd)
+                        ? (fwd ? netEdge.StartNode : netEdge.EndNode)
+                        : netEdge.StartNode;
+                    bool forward = srcEntryNode.Equals2D(canonFirst, _snapTolerance);
+
+                    refs.Add(new EdgeReference { Edge = merged, Forward = forward });
+                    lastMerged = merged;
                 }
 
                 sourceRefs[src.Id] = refs;
             }
 
-            var allEdges = seenEdgeKey.Values.ToList();
-            return (allEdges, sourceRefs);
+            return (allMergedEdges, sourceRefs);
+        }
+
+        private MergedEdge BuildMergedEdgeFromChain(List<NetworkEdge> edges, int refSourceId) {
+            // Orient using the reference source's traversal direction
+            var dirs = new List<bool>();
+            for (int i = 0; i < edges.Count; i++) {
+                bool fwd;
+                if (i == 0) {
+                    fwd = edges.Count == 1 ||
+                          edges[0].EndNode.Equals2D(edges[1].StartNode, _snapTolerance) ||
+                          edges[0].EndNode.Equals2D(edges[1].EndNode, _snapTolerance);
+                }
+                else {
+                    var prevFwd = dirs[i - 1];
+                    var prevExit = prevFwd ? edges[i - 1].EndNode : edges[i - 1].StartNode;
+                    fwd = edges[i].StartNode.Equals2D(prevExit, _snapTolerance);
+                }
+                dirs.Add(fwd);
+            }
+            var coords = StitchEdges(edges, dirs);
+            return new MergedEdge {
+                Geometry = _factory.CreateLineString(coords),
+                SourceGeometryIds = edges[0].SourceGeometryIds,
+                ConstituentEdges = edges,
+            };
+        }
+
+        private Coordinate[] StitchEdges(List<NetworkEdge> edges, List<bool> dirs) {
+            var coords = new List<Coordinate>();
+            for (int i = 0; i < edges.Count; i++) {
+                var ec = dirs[i] ? edges[i].Geometry.Coordinates
+                                 : edges[i].Geometry.Coordinates.Reverse().ToArray();
+                if (coords.Count == 0) coords.AddRange(ec.Select(Canonicalize));
+                else coords.AddRange(ec.Skip(1).Select(Canonicalize));
+            }
+            return coords.ToArray();
         }
 
         /// <summary>
@@ -1096,28 +1190,29 @@ namespace S100Framework.Topology.Internal
                 Touch(edge.EndNode, edge);
             }
 
-            // Prefer a private (non-shared) edge as seed so that shared edges
-            // always appear as contiguous runs within the resulting chain,
-            // never split across the seed boundary.
-            // For a LineString (non-ring) prefer the degree-1 endpoint as seed.
+            // Find the seed edge by scanning the source's original coordinate
+            // sequence for the first node that appears in this source's edge set.
+            // This guarantees a consistent starting point regardless of insertion
+            // order, so the chain always begins at the same place and consecutive
+            // shared edges are never split across the seed boundary.
             var source = _sources[sourceId];
-            bool isRing = source.Kind == GeometryKind.Polygon || source.Geometry is LinearRing;
-
-            NetworkEdge seed;
-            if (!isRing) {
-                // For open linestrings, find the edge at the degree-1 end node
-                seed = edges.FirstOrDefault(e =>
-                    adjacency[new CoordinateKey(e.StartNode, _snapTolerance)].Count == 1 ||
-                    adjacency[new CoordinateKey(e.EndNode, _snapTolerance)].Count == 1)
-                    ?? edges.First();
-                // Make sure we seed at the actual start (degree-1 node)
-                // WalkFullChainIgnoringSourceSets handles this via backward walk
+            NetworkEdge seed = null;
+            foreach (var coord in source.Geometry.Coordinates) {
+                var key = new CoordinateKey(Canonicalize(coord), _snapTolerance);
+                if (!adjacency.TryGetValue(key, out var edgesAtNode)) continue;
+                // Find an edge at this node whose SourceOrientation entry node
+                // matches — i.e. this source ENTERS this node, not exits from it
+                foreach (var candidate in edgesAtNode) {
+                    if (!candidate.SourceOrientation.TryGetValue(sourceId, out bool fwd)) continue;
+                    var entryNode = fwd ? candidate.StartNode : candidate.EndNode;
+                    if (entryNode.Equals2D(Canonicalize(coord), _snapTolerance)) {
+                        seed = candidate;
+                        break;
+                    }
+                }
+                if (seed != null) break;
             }
-            else {
-                // For rings: prefer a private edge as seed
-                seed = edges.FirstOrDefault(e => !e.IsShared)
-                    ?? edges.First();
-            }
+            seed ??= edges.First(); // fallback
 
             var visited = new HashSet<int>();
             return WalkFullChainIgnoringSourceSets(seed, edges, adjacency, visited);
