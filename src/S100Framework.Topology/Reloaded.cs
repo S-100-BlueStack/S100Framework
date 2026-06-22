@@ -128,7 +128,7 @@ namespace S100FC.Topology
 
                 //var linemerger = new LineMerger();
 
-                if (sourceId == 7) System.Diagnostics.Debugger.Break();
+                //if (sourceId == 7) System.Diagnostics.Debugger.Break();
 
                 foreach (var edge in chain) {
                     ulong hash = System.IO.Hashing.XxHash64.HashToUInt64(edge.Geometry.ToBinary());
@@ -345,13 +345,13 @@ namespace S100FC.Topology
                     var id = this._mixedTopologyNetwork.AddLineString(interior);
                     idInteriorRings = [.. idInteriorRings, id];
 
-                    checks_linestrings = [.. checks_linestrings, interior.ToText()];
+                    //checks_linestrings = [.. checks_linestrings, interior.ToText()];
                     if (checks.Contains(id)) {
                         checks_linestrings = [.. checks_linestrings, interior.ToText()];
                     }
                 }
 
-                checks_linestrings = [.. checks_linestrings, surface.ExteriorRing.ToText()];
+                //checks_linestrings = [.. checks_linestrings, surface.ExteriorRing.ToText()];
                 if (checks.Contains(idExteriorRing)) {
                     checks_linestrings = [.. checks_linestrings, surface.ExteriorRing.ToText()];
                     //System.Diagnostics.Debugger.Break();
@@ -365,7 +365,7 @@ namespace S100FC.Topology
                 var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
                 if (id < 0) continue;
 
-                checks_linestrings = [.. checks_linestrings, curve.LineString.ToText()];
+                //checks_linestrings = [.. checks_linestrings, curve.LineString.ToText()];
                 if (checks.Contains(id)) {
                     checks_linestrings = [.. checks_linestrings, curve.LineString.ToText()];
                     //System.Diagnostics.Debugger.Break();
