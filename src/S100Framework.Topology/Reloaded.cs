@@ -8,6 +8,7 @@ namespace S100FC.Topology
     using NetTopologySuite.Operation.Linemerge;
     using NetTopologySuite.Precision;
     using S100Framework.Topology.Internal;
+    using System.Net;
 
     public interface IMatrixReloaded : IMatrix
     {
@@ -81,6 +82,33 @@ namespace S100FC.Topology
 
             var featureRef2Curve = new Dictionary<ulong, LineString>();
 
+
+
+            ;
+            var (allEdges, sourceRefs) = this._mixedTopologyNetwork.BuildEdgeIndex();
+
+            string[] edges = [];
+            foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
+                var _edges = sourceRefs[sourceId];
+                foreach(var e in _edges) {
+                    var txt = e.Forward ? e.OrientedGeometry.ToText() : e.OrientedGeometry.Reverse().ToText();
+                    txt = e.OrientedGeometry.ToText();
+                    if (edges.Contains(txt)) continue;
+                    edges = [.. edges, txt];
+
+                    this._interceptor?.Invoke(100, [(e.OrientedGeometry, $"{string.Join(',',e.Edge.SourceGeometryIds)}")]);
+                }
+                var geom = this._mixedTopologyNetwork.ReconstructGeometry(_edges, sourceId);
+            }
+            ;
+            //this._interceptor?.Invoke(100, [.. allEdges.Select(e => (e.Geometry, $"{string.Join(',', e.SourceGeometryIds)}"))]);
+
+
+
+
+
+
+
             //  Create all curves and composite curves
             //  ------------------------------------------------------------------------------------------------
             foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
@@ -103,7 +131,8 @@ namespace S100FC.Topology
                         featureRefs.Add(featureRef2.Id, featureRef2);
                         featureRef2Curve.Add(featureRef2.Id, edge.Geometry);
 
-                        var curve = new CurveFeature(edge.Geometry, hash1);
+                        var curve = new CurveFeature(edge.Geometry, hash1);                        
+
                         this._curves.Add(featureRef1.Id, curve);
                         //this._curves.Add(featureRef2.Id, curve);
 
@@ -198,7 +227,7 @@ namespace S100FC.Topology
                     //for (int i = 1; i < refs.Length; i++) {
                     //    var next = _curves.Single(e => e.LineString.StartPoint.Equals(edge.LineString.EndPoint));
 
-                        
+
                     //}
 
                     var compositecurve = new CompositeCurveFeature([.. sortedlist.Values]);
@@ -307,7 +336,7 @@ namespace S100FC.Topology
             this._curves = this._curves.Where(e => _.Contains(e.Key)).ToDictionary(e => e.Key, e => e.Value);
 
             //this._interceptor?.Invoke(6000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
-            //this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
+            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
 
             return this;
         }
@@ -337,6 +366,7 @@ namespace S100FC.Topology
             //checks = [93, 2336, 3088, 3590, 3628, 1584, 3040, 3683, 3732];
             //checks = [595];
             //checks = [7, 187, 383, 607, 622, 723, 742, 755, 772, 407, 718, 734, 758, 419, 782, 969, 888, 392, 701, 558, 1157, 586, 587, 602, 608, 1163, 1179, 908, 914, 915, 211, 365, 911, 769, 797, 850, 729, 736, 843, 961, 875, 998, 854, 757, 1164, 1171, 1174, 738, 609, 154, 118, 1165, 1177, 1172, 1175, 1178, 773, 180, 750, 416, 390, 754, 420, 385, 417, 716, 359, 362, 614, 424, 615, 896, 882, 740, 415, 418, 761, 374, 714, 405, 776, 753, 735, 400, 703, 422, 398, 715, 368, 395, 698, 382, 770, 376, 713, 421, 414, 707, 401, 375, 710, 397, 372, 721, 386, 495, 402, 455, 391, 442, 393, 460, 364, 1014, 520, 220, 423, 941, 440, 728, 360, 508, 1168, 110, 104, 143, 185, 141, 124, 77, 369, 123, 216, 756, 27, 215, 819, 730, 428, 412, 367, 704, 534, 403, 370, 699, 363, 805, 907, 411, 705, 358, 379, 695, 380, 806, 752, 749, 521, 1003, 446, 478, 67, 410, 413, 722, 371, 790, 473, 158, 171, 81, 186, 408, 533, 763, 766, 396, 388, 696, 399, 378, 717, 409, 406, 709];
+            checks = [2, 87];
 
             foreach (var surface in surfaces) {
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);

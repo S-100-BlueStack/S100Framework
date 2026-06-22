@@ -801,6 +801,97 @@ namespace S100Framework.Topology.Internal
             return result;
         }
 
+
+        /// <summary>
+        /// A reference to a network edge with a traversal direction.
+        /// </summary>
+        public class EdgeReference
+        {
+            public MergedEdge Edge { get; init; }
+            public bool Forward { get; init; } // true = use Edge.Geometry as-is
+
+            public LineString OrientedGeometry => Forward
+                ? Edge.Geometry
+                : (LineString)Edge.Geometry.Reverse();
+        }
+
+        /// <summary>
+        /// Returns all unique merged edges in the network (equivalent to
+        /// MergeSharedEdges but also including private edges for every source),
+        /// plus for each source an ordered list of EdgeReferences that
+        /// reconstructs its original geometry end-to-end.
+        /// </summary>
+        public (List<MergedEdge> AllEdges, Dictionary<int, List<EdgeReference>> SourceRefs)
+            BuildEdgeIndex() {
+
+            // Step 1: collect ALL unique merged edges across all sources.
+            // We do this by running GetMergedEdgeChainFor for every source and
+            // deduplicating on constituent NetworkEdge ids.
+            var seenEdgeKey = new Dictionary<string, MergedEdge>();
+            var sourceRefs = new Dictionary<int, List<EdgeReference>>();
+
+            foreach (var src in _sources) {
+                var chain = GetMergedEdgeChainFor(src.Id);
+                var refs = new List<EdgeReference>();
+
+                foreach (var merged in chain) {
+                    // Canonical key = sorted constituent edge ids
+                    var key = string.Join(",",
+                        merged.ConstituentEdges.Select(e => e.Id).OrderBy(id => id));
+
+                    if (!seenEdgeKey.TryGetValue(key, out var canonical)) {
+                        canonical = merged;
+                        seenEdgeKey[key] = canonical;
+                    }
+
+                    // Determine direction: does this source traverse the canonical
+                    // edge forward or backward?
+                    // Compare first coordinate of oriented geometry vs canonical start.
+                    var orientedFirst = merged.Geometry.Coordinates[0];
+                    var canonicalFirst = canonical.Geometry.Coordinates[0];
+                    bool forward = orientedFirst.Equals2D(canonicalFirst, _snapTolerance);
+
+                    refs.Add(new EdgeReference { Edge = canonical, Forward = forward });
+                }
+
+                sourceRefs[src.Id] = refs;
+            }
+
+            var allEdges = seenEdgeKey.Values.ToList();
+            return (allEdges, sourceRefs);
+        }
+
+        /// <summary>
+        /// Reconstructs the full geometry of a source from its EdgeReferences.
+        /// </summary>
+        public LineString ReconstructGeometry(List<EdgeReference> refs, int sourceId) {
+            if (refs.Count == 0) return null;
+
+            var coords = new List<Coordinate>();
+
+            foreach (var r in refs) {
+                var edgeCoords = r.OrientedGeometry.Coordinates;
+                if (coords.Count == 0) {
+                    coords.AddRange(edgeCoords.Select(Canonicalize));
+                }
+                else {
+                    coords.AddRange(edgeCoords.Skip(1).Select(Canonicalize));
+                }
+            }
+
+            var source = _sources[sourceId];
+            bool isRing = source.Kind == GeometryKind.Polygon
+                       || source.Geometry is LinearRing;
+
+            if (isRing && coords.Count > 1)
+                coords[^1] = new Coordinate(coords[0].X, coords[0].Y);
+
+            return _factory.CreateLineString(coords.ToArray());
+        }
+
+
+
+
         /// <summary>
         /// Walks a chain in both directions from seed, correctly handling
         /// closed loops (stops cleanly when arriving back at the seed).
@@ -1005,8 +1096,30 @@ namespace S100Framework.Topology.Internal
                 Touch(edge.EndNode, edge);
             }
 
+            // Prefer a private (non-shared) edge as seed so that shared edges
+            // always appear as contiguous runs within the resulting chain,
+            // never split across the seed boundary.
+            // For a LineString (non-ring) prefer the degree-1 endpoint as seed.
+            var source = _sources[sourceId];
+            bool isRing = source.Kind == GeometryKind.Polygon || source.Geometry is LinearRing;
+
+            NetworkEdge seed;
+            if (!isRing) {
+                // For open linestrings, find the edge at the degree-1 end node
+                seed = edges.FirstOrDefault(e =>
+                    adjacency[new CoordinateKey(e.StartNode, _snapTolerance)].Count == 1 ||
+                    adjacency[new CoordinateKey(e.EndNode, _snapTolerance)].Count == 1)
+                    ?? edges.First();
+                // Make sure we seed at the actual start (degree-1 node)
+                // WalkFullChainIgnoringSourceSets handles this via backward walk
+            }
+            else {
+                // For rings: prefer a private edge as seed
+                seed = edges.FirstOrDefault(e => !e.IsShared)
+                    ?? edges.First();
+            }
+
             var visited = new HashSet<int>();
-            var seed = edges.First();
             return WalkFullChainIgnoringSourceSets(seed, edges, adjacency, visited);
         }
 
