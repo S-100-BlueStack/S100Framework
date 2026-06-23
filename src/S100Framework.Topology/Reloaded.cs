@@ -8,6 +8,7 @@ namespace S100FC.Topology
     using NetTopologySuite.Operation.Linemerge;
     using NetTopologySuite.Precision;
     using S100Framework.Topology.Internal;
+    using System.Collections;
     using System.Net;
 
     public interface IMatrixReloaded : IMatrix
@@ -74,41 +75,171 @@ namespace S100FC.Topology
 
             var featureRefs = new Dictionary<ulong, FeatureRef>();
 
-            var source2featureRefs = new Dictionary<int, ulong>();
+            var sourceId2FeatureRef = new Dictionary<int, ulong>();
 
-            var ids = new Dictionary<int, Func<string>>();
+            //var ids = new Dictionary<int, Func<string>>();
 
-            var rc2c = new Dictionary<ulong, ulong>();
+            //var rc2c = new Dictionary<ulong, ulong>();
 
-            var featureRef2Curve = new Dictionary<ulong, LineString>();
+            //var featureRef2Curve = new Dictionary<ulong, LineString>();
 
-
-
-            ;
+            
             var (allEdges, sourceRefs) = this._mixedTopologyNetwork.BuildEdgeIndex();
 
-            string[] edges = [];
-            foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
-                var _edges = sourceRefs[sourceId];
-                foreach(var e in _edges) {
-                    var txt = e.Forward ? e.OrientedGeometry.ToText() : e.OrientedGeometry.Reverse().ToText();
-                    txt = e.OrientedGeometry.ToText();
-                    if (edges.Contains(txt)) continue;
-                    edges = [.. edges, txt];
+            //string[] edges = [];
+            //foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
+            //    var _edges = sourceRefs[sourceId];
+            //    foreach(var e in _edges) {
+            //        var txt = e.Forward ? e.OrientedGeometry.ToText() : e.OrientedGeometry.Reverse().ToText();
+            //        txt = e.OrientedGeometry.ToText();
+            //        if (edges.Contains(txt)) continue;
+            //        edges = [.. edges, txt];
 
-                    this._interceptor?.Invoke(100, [(e.OrientedGeometry, $"{string.Join(',',e.Edge.SourceGeometryIds)}")]);
+            //        this._interceptor?.Invoke(100, [(e.OrientedGeometry, $"{string.Join(',',e.Edge.SourceGeometryIds)}")]);
+            //    }
+            //    var geom = this._mixedTopologyNetwork.ReconstructGeometry(_edges, sourceId);
+            //}
+
+            foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
+                foreach (var e in sourceRefs[sourceId]) {
+                    var forward = System.IO.Hashing.XxHash32.HashToUInt32(e.OrientedGeometry.AsBinary());
+                    var backwards = System.IO.Hashing.XxHash32.HashToUInt32(e.OrientedGeometry.Factory.CreateLineString([.. e.OrientedGeometry.Coordinates.Reverse()]).AsBinary());
+
+                    if (!featureRefs.ContainsKey(forward) || !featureRefs.ContainsKey(backwards)) {
+                        var featureRef1 = new FeatureRef {
+                            Id = forward,
+                            Reverse = false,
+                        };
+                        featureRefs.Add(forward, featureRef1);
+                        //featureRef2Curve.Add(featureRef1.Id, e.OrientedGeometry);
+
+                        var featureRef2 = new FeatureRef {
+                            Id = forward,
+                            Reverse = true,
+                        };
+                        featureRefs.Add(backwards, featureRef2);
+                        //featureRef2Curve.Add(featureRef2.Id, e.OrientedGeometry);
+
+                        var curve = new CurveFeature(e.OrientedGeometry, forward);
+
+                        this._curves.Add(featureRef1.Id, curve);
+                        //this._curves.Add(featureRef2.Id, curve);
+
+                        //rc2c.Add(featureRef1.Id, featureRef1.Id);
+                        //rc2c.Add(featureRef2.Id, featureRef1.Id);
+                    }
                 }
-                var geom = this._mixedTopologyNetwork.ReconstructGeometry(_edges, sourceId);
             }
-            ;
+
+
             //this._interceptor?.Invoke(100, [.. allEdges.Select(e => (e.Geometry, $"{string.Join(',', e.SourceGeometryIds)}"))]);
 
+            //var curves = new Dictionary<FeatureRef, LineString>();
+            int[] empty_sources = [];
+            foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
+                //if (sourceId == 2) System.Diagnostics.Debugger.Break();
+
+                var edges = sourceRefs[sourceId];
+                if (!edges.Any()) {
+                    empty_sources = [.. empty_sources, sourceId];
+                    continue;
+                }
+                if (edges.Count > 1) {
+                    FeatureRef[] refs = [];
+                    foreach (var e in edges) {
+                        var forward = System.IO.Hashing.XxHash32.HashToUInt32(e.OrientedGeometry.AsBinary());
+                        var backwards = System.IO.Hashing.XxHash32.HashToUInt32(e.OrientedGeometry.Factory.CreateLineString([.. e.OrientedGeometry.Coordinates.Reverse()]).AsBinary());
+
+                        //if (forward == 7034141738638826682 || backwards == 7034141738638826682) System.Diagnostics.Debugger.Break();
+
+                        if (e.Forward) {
+                            refs = [.. refs, featureRefs[forward]];
+                        }
+                        else {
+                            refs = [.. refs, featureRefs[backwards]];
+                        }
+                        if (!this._curves.ContainsKey(forward))
+                            this._curves.Add(forward, new CurveFeature(e.OrientedGeometry, forward));
+                    }
+                    var compositecurve = new CompositeCurveFeature(refs);
+                    if (!this._compositecurves.ContainsKey(compositecurve.Id)) {
+                        this._compositecurves.Add(compositecurve.Id, compositecurve);
+
+                        featureRefs.Add(compositecurve.Id, new FeatureRef {
+                            Id = compositecurve.Id,
+                            Reverse = false,
+                        });
+                    }
+
+                    sourceId2FeatureRef.Add(sourceId, compositecurve.Id);
+                    if (this._featureMapperLineStrings.ContainsValue(sourceId)) {
+                        var id = $"C{compositecurve.Id}";
+                        this._mapping.Add(this._featureMapperLineStrings.Single(e => e.Value == sourceId).Key, id);
+                    }
+                }
+                else {
+                    var e = edges[0];
+                    var forward = System.IO.Hashing.XxHash32.HashToUInt32(e.OrientedGeometry.AsBinary());
+                    //var backwards = System.IO.Hashing.XxHash32.HashToUInt32(e.OrientedGeometry.Factory.CreateLineString([.. e.OrientedGeometry.Coordinates.Reverse()]).AsBinary());
+
+                    if (!this._curves.ContainsKey(forward))
+                        this._curves.Add(forward, new CurveFeature(e.OrientedGeometry, forward));
+
+                    sourceId2FeatureRef.Add(sourceId, forward);
+                    if (this._featureMapperLineStrings.ContainsValue(sourceId)) {
+                        var id = e.Forward ? $"C{forward}" : $"RC{forward}";
+                        this._mapping.Add(this._featureMapperLineStrings.Single(e => e.Value == sourceId).Key, id);
+                    }
+                }
+            }
 
 
+            foreach (var polygon in this._featureMapperPolygons) {
+                var uid = polygon.Key;
 
+                FeatureRef exteriorRing = featureRefs[sourceId2FeatureRef[polygon.Value.ExteriorRing]];
+                {
+                    //var curve = this._curves[exteriorRing.Id];
+                    //var ring = Reloaded.Factory!.CreateLinearRing(curve.LineString.Coordinates);
+                    //if (ring.IsCCW) {
+                    //    exteriorRing = new FeatureRef {
+                    //        Id = exteriorRing.Id,
+                    //        Reverse = !exteriorRing.Reverse,
+                    //    };
+                    //}
+                }
 
+                FeatureRef[] interior = [];
+                if (polygon.Value.InteriorRing != default) {
+                    for (int i = 0; i < polygon.Value.InteriorRing.Length; i++) {
+                        var featureRef = featureRefs[sourceId2FeatureRef[polygon.Value.InteriorRing[i]]];
+                        var curve = this._curves[featureRef.Id];
 
+                        var ring = Reloaded.Factory!.CreateLinearRing(curve.LineString.Coordinates);
+                        if (!ring.IsCCW) {
+                            featureRef = new FeatureRef {
+                                Id = featureRef.Id,
+                                Reverse = !featureRef.Reverse,
+                            };
+                        }
+                        interior = [.. interior, featureRef];
+                    }
+                }
 
+                var surface = new SurfaceFeature {
+                    Id = ulong.Parse(uid.Substring(1)),
+                    Exterior = exteriorRing,
+                    Interior = interior,
+                    Ref = uid,
+                };
+
+                if (!this._surfaces.ContainsKey(surface.Id))
+                    this._surfaces.Add(surface.Id, surface);
+
+                this._mapping.Add(uid, $"S{surface.Id}");
+            }
+
+#if null
             //  Create all curves and composite curves
             //  ------------------------------------------------------------------------------------------------
             foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
@@ -131,7 +262,7 @@ namespace S100FC.Topology
                         featureRefs.Add(featureRef2.Id, featureRef2);
                         featureRef2Curve.Add(featureRef2.Id, edge.Geometry);
 
-                        var curve = new CurveFeature(edge.Geometry, hash1);                        
+                        var curve = new CurveFeature(edge.Geometry, hash1);
 
                         this._curves.Add(featureRef1.Id, curve);
                         //this._curves.Add(featureRef2.Id, curve);
@@ -145,7 +276,7 @@ namespace S100FC.Topology
                 }
             }
 
-            var curves = new Dictionary<FeatureRef, LineString>();
+            //var curves = new Dictionary<FeatureRef, LineString>();
 
             var used = new List<FeatureRef>();
 
@@ -334,7 +465,7 @@ namespace S100FC.Topology
             }
 
             this._curves = this._curves.Where(e => _.Contains(e.Key)).ToDictionary(e => e.Key, e => e.Value);
-
+#endif
             //this._interceptor?.Invoke(6000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
             this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
 
@@ -366,7 +497,7 @@ namespace S100FC.Topology
             //checks = [93, 2336, 3088, 3590, 3628, 1584, 3040, 3683, 3732];
             //checks = [595];
             //checks = [7, 187, 383, 607, 622, 723, 742, 755, 772, 407, 718, 734, 758, 419, 782, 969, 888, 392, 701, 558, 1157, 586, 587, 602, 608, 1163, 1179, 908, 914, 915, 211, 365, 911, 769, 797, 850, 729, 736, 843, 961, 875, 998, 854, 757, 1164, 1171, 1174, 738, 609, 154, 118, 1165, 1177, 1172, 1175, 1178, 773, 180, 750, 416, 390, 754, 420, 385, 417, 716, 359, 362, 614, 424, 615, 896, 882, 740, 415, 418, 761, 374, 714, 405, 776, 753, 735, 400, 703, 422, 398, 715, 368, 395, 698, 382, 770, 376, 713, 421, 414, 707, 401, 375, 710, 397, 372, 721, 386, 495, 402, 455, 391, 442, 393, 460, 364, 1014, 520, 220, 423, 941, 440, 728, 360, 508, 1168, 110, 104, 143, 185, 141, 124, 77, 369, 123, 216, 756, 27, 215, 819, 730, 428, 412, 367, 704, 534, 403, 370, 699, 363, 805, 907, 411, 705, 358, 379, 695, 380, 806, 752, 749, 521, 1003, 446, 478, 67, 410, 413, 722, 371, 790, 473, 158, 171, 81, 186, 408, 533, 763, 766, 396, 388, 696, 399, 378, 717, 409, 406, 709];
-            checks = [2, 87];
+            //checks = [2, 87];
 
             foreach (var surface in surfaces) {
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);

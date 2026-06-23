@@ -33,7 +33,7 @@ namespace S100FC.Topology
             this.LineStringReverseText = this.LineStringReverse.ToString();
             base.Id = hash;
 
-            if (base.Id == 11123348237682635517 || base.Id == 8819474955002669271) System.Diagnostics.Debugger.Break();
+            //if (base.Id == 11123348237682635517 || base.Id == 8819474955002669271) System.Diagnostics.Debugger.Break();
         }
 
         public CurveFeature(LineString lineString) {
@@ -46,7 +46,7 @@ namespace S100FC.Topology
             //base.Id = System.IO.Hashing.XxHash64.HashToUInt64(LineString.ToBinary());
             base.Id = System.IO.Hashing.XxHash32.HashToUInt32(this.LineString.ToBinary());
 
-            if (base.Id == 11123348237682635517 || base.Id == 8819474955002669271) System.Diagnostics.Debugger.Break();
+            //if (base.Id == 11123348237682635517 || base.Id == 8819474955002669271) System.Diagnostics.Debugger.Break();
         }
 
         public LineString LineString { get; set; }
