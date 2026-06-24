@@ -57,5 +57,11 @@
         }
 
 
+        public static double Slope(this LineString lineString) {
+            var coord1 = lineString.Coordinates[0];
+            var coord2 = lineString.Coordinates[^1];
+            if (coord2.X - coord1.X == 0d) return double.PositiveInfinity;
+            return (coord2.Y - coord1.Y) / (coord2.X - coord1.X);
+        }
     }
 }

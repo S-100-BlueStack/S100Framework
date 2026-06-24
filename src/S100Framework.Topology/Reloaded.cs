@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace S100FC.Topology
 {
+    using GeoAPI.Geometries;
     using NetTopologySuite.Operation.Linemerge;
     using NetTopologySuite.Precision;
     using S100Framework.Topology.Internal;
@@ -132,6 +133,12 @@ namespace S100FC.Topology
                             merged = (LinearRing)linearRing.Reverse();
                         }
                     }
+                    else {
+                        var slope = merged.Slope();
+                        if (Math.Sign(this._sourceSlope[sourceId]) != Math.Sign(slope)) {
+                            merged = (LinearRing)merged.Reverse();
+                        }
+                    }
 
                     var mergedText = merged.ToText();
 
@@ -180,6 +187,12 @@ namespace S100FC.Topology
                             }
                         }
                         else if (!isCCW) {
+                            hashGeometry = featureRefs2Reverse[hashGeometry];
+                        }
+                    }
+                    else {
+                        var slope = this._curves[hashGeometry].LineString.Slope();
+                        if (Math.Sign(this._sourceSlope[sourceId]) != Math.Sign(slope)) {
                             hashGeometry = featureRefs2Reverse[hashGeometry];
                         }
                     }
@@ -252,6 +265,7 @@ namespace S100FC.Topology
         };
 
         private readonly Dictionary<int, LineType> _sourceLineType = [];
+        private readonly Dictionary<int, double> _sourceSlope = [];
 
         private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
             int[] checks = [];
@@ -301,6 +315,8 @@ namespace S100FC.Topology
                 if (id < 0) continue;
                 this._sourceLineType.Add(id, LineType.Curve);
 
+                this._sourceSlope.Add(id, curve.LineString.Slope());
+
                 //checks_linestrings = [.. checks_linestrings, curve.LineString.ToText()];
                 if (checks.Contains(id)) {
                     this.checks_linestrings = [.. this.checks_linestrings, curve.LineString.ToText()];
@@ -311,38 +327,7 @@ namespace S100FC.Topology
             }
 
             return this;
-        }
-
-        private static bool RingsEqual(LineString a, LineString b, out bool reverse) {
-            reverse = false;
-
-            var coordsA = a.Coordinates.Take(a.Coordinates.Length - 1).ToArray();
-            var coordsB = b.Coordinates.Take(b.Coordinates.Length - 1).ToArray();
-
-            if (coordsA.Length != coordsB.Length) return false;
-
-            int n = coordsA.Length;
-
-            for (int dir = 0; dir < 2; dir++) {
-                var seqB = dir == 0 ? coordsB : coordsB.Reverse().ToArray();
-
-                for (int offset = 0; offset < n; offset++) {
-                    bool match = true;
-                    for (int i = 0; i < n; i++) {
-                        var ca = coordsA[i];
-                        var cb = seqB[(i + offset) % n];
-                        if (ca.X != cb.X || ca.Y != cb.Y) {
-                            match = false;
-                            break;
-                        }
-                    }
-                    if (match) return true;
-                }
-                reverse = true;
-            }
-
-            return false;
-        }
+        }        
 
         private static bool ContainsSegment(string lineString, string segment) {
             if (lineString.Equals(segment)) return true;
