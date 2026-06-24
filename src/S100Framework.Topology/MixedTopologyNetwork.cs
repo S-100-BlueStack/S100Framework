@@ -892,9 +892,18 @@ namespace S100Framework.Topology.Internal
             }
 
             // Step 2: build EdgeReference list per source
-            var sourceRefs = new Dictionary<int, List<EdgeReference>>();
+            var sourceRefs = new Dictionary<int, List<EdgeReference>>();            
             foreach (var src in _sources) {
                 var chain = GetFullEdgeChainFor(src.Id);
+
+                // For rings: rotate chain so it starts at a group boundary,
+                // preventing the same MergedEdge from appearing at both ends.
+                var source = _sources[src.Id];
+                bool isRing = source.Kind == GeometryKind.Polygon
+                           || source.Geometry is LinearRing;
+                if (isRing && chain.Count > 1)
+                    chain = RotateChainToGroupBoundary(chain, networkEdgeToMerged);
+
                 var refs = new List<EdgeReference>();
                 MergedEdge lastMerged = null;
 
@@ -902,7 +911,6 @@ namespace S100Framework.Topology.Internal
                     if (!networkEdgeToMerged.TryGetValue(netEdge.Id, out var merged)) continue;
                     if (ReferenceEquals(merged, lastMerged)) continue;
 
-                    // Direction: does this source traverse the canonical merged edge forward?
                     var canonFirst = merged.Geometry.Coordinates[0];
                     var srcEntryNode = netEdge.SourceOrientation.TryGetValue(src.Id, out bool fwd)
                         ? (fwd ? netEdge.StartNode : netEdge.EndNode)
@@ -918,6 +926,45 @@ namespace S100Framework.Topology.Internal
 
             return (allMergedEdges, sourceRefs);
         }
+
+
+        private List<NetworkEdge> RotateChainToGroupBoundary(
+            List<NetworkEdge> chain,
+            Dictionary<int, MergedEdge> networkEdgeToMerged) {
+
+            if (chain.Count == 0) return chain;
+
+            // Find the first index where the canonical MergedEdge changes
+            // from the previous edge — that's a group boundary, safe to start at.
+            for (int i = 1; i < chain.Count; i++) {
+                var prevMerged = networkEdgeToMerged.TryGetValue(chain[i - 1].Id, out var pm) ? pm : null;
+                var currMerged = networkEdgeToMerged.TryGetValue(chain[i].Id, out var cm) ? cm : null;
+                if (prevMerged != null && currMerged != null && !ReferenceEquals(prevMerged, currMerged)) {
+                    // Rotate so chain starts at index i
+                    var rotated = new List<NetworkEdge>(chain.Count);
+                    rotated.AddRange(chain.Skip(i));
+                    rotated.AddRange(chain.Take(i));
+                    return rotated;
+                }
+            }
+            return chain; // already starts at a boundary (or single group)
+        }
+
+        public bool IsCCW(List<EdgeReference> refs) {
+            var coords = new List<Coordinate>();
+            foreach (var r in refs) {
+                var edgeCoords = r.OrientedGeometry.Coordinates;
+                if (coords.Count == 0) coords.AddRange(edgeCoords);
+                else coords.AddRange(edgeCoords.Skip(1));
+            }
+
+            // Ensure closed
+            if (!coords[0].Equals2D(coords[^1]))
+                coords.Add(new Coordinate(coords[0].X, coords[0].Y));
+
+            return NetTopologySuite.Algorithm.Orientation.IsCCW(coords.ToArray());
+        }
+
 
         private MergedEdge BuildMergedEdgeFromChain(List<NetworkEdge> edges, int refSourceId) {
             // Orient using the reference source's traversal direction

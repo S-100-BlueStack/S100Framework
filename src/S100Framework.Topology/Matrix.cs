@@ -33,7 +33,7 @@ namespace S100FC.Topology
             this.LineStringReverseText = this.LineStringReverse.ToString();
             base.Id = hash;
 
-            //if (base.Id == 11123348237682635517 || base.Id == 8819474955002669271) System.Diagnostics.Debugger.Break();
+            //if (base.Id == 3297669815 || base.Id == 562315920) System.Diagnostics.Debugger.Break();
         }
 
         public CurveFeature(LineString lineString) {
