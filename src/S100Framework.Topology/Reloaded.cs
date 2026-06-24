@@ -8,9 +8,6 @@ namespace S100FC.Topology
     using NetTopologySuite.Operation.Linemerge;
     using NetTopologySuite.Precision;
     using S100Framework.Topology.Internal;
-    using System.Collections;
-    using System.Net;
-    using static S100Framework.Topology.Internal.MixedTopologyNetwork;
 
     public interface IMatrixReloaded : IMatrix
     {
@@ -43,11 +40,6 @@ namespace S100FC.Topology
 
         protected Reloaded() {
             //  Protected default constructor            
-
-
-            //this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory!, snapTolerance: 0.000000001);
-            //this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory, snapTolerance: 0.000000005);
-            //this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory!, snapTolerance: 0.0000001);                                                                                                    
             this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory!, snapTolerance: Reloaded.Factory!.PrecisionModel.GridSize);
         }
 
@@ -71,8 +63,6 @@ namespace S100FC.Topology
         IMatrix ITopologyBuilder.BuildTopology() {
             this._mapping.Clear();
             this._mixedTopologyNetwork.Build();
-
-            //this._interceptor?.Invoke(100, [.. this._mixedTopologyNetwork.Edges.Select(e => (e.Geometry, $"{e.Id}"))]);
 
             var featureRefs = new Dictionary<ulong, FeatureRef>();
             var featureRefs2Reverse = new Dictionary<ulong, ulong>();
@@ -124,27 +114,21 @@ namespace S100FC.Topology
                     }
 
                     var mergedLineStrings = lineMerger.GetMergedLineStrings();
-                    if (mergedLineStrings.Count > 1) System.Diagnostics.Debugger.Break();
+                    if (mergedLineStrings.Count > 1)
+                        throw new InvalidOperationException("Merged LineString can't be a multipart geometry!");
                     var merged = (LineString)mergedLineStrings[0];
 
-                    if (_sourceLineType[sourceId] == LineType.Curve) {
-
-                    }
-                    else {
+                    if (_sourceLineType[sourceId] != LineType.Curve) {
                         var linearRing = Reloaded.Factory!.CreateLinearRing(merged.Coordinates);
                         var isCCW = linearRing.IsCCW;
                         merged = linearRing;
 
                         if (this._sourceLineType[sourceId] == LineType.Exterior) {
                             if (isCCW) {
-                                //edges.Reverse();
-                                //hash = (e) => System.IO.Hashing.XxHash32.HashToUInt32(e.Edge.Geometry.Reverse().AsBinary());
                                 merged = (LinearRing)linearRing.Reverse();
                             }
                         }
                         else if (!isCCW) {
-                            //edges.Reverse();
-                            //hash = (e) => System.IO.Hashing.XxHash32.HashToUInt32(e.Edge.Geometry.Reverse().AsBinary());
                             merged = (LinearRing)linearRing.Reverse();
                         }
                     }
@@ -152,8 +136,6 @@ namespace S100FC.Topology
                     var mergedText = merged.ToText();
 
                     var sortedlist = new SortedList<int, FeatureRef>();
-
-                    //if (sourceId == 1174) System.Diagnostics.Debugger.Break();
 
                     foreach (var e in edges) {
                         var hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(e.Edge.Geometry.AsBinary());
@@ -186,7 +168,21 @@ namespace S100FC.Topology
                     }
                 }
                 else {
-                    var hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(edges[0].Edge.Geometry.AsBinary());
+                    ulong hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(edges[0].Edge.Geometry.AsBinary());
+
+                    if (_sourceLineType[sourceId] != LineType.Curve) {
+                        var linearRing = Reloaded.Factory!.CreateLinearRing(this._curves[hashGeometry].LineString.Coordinates);
+                        var isCCW = linearRing.IsCCW;
+
+                        if (this._sourceLineType[sourceId] == LineType.Exterior) {
+                            if (isCCW) {
+                                hashGeometry = featureRefs2Reverse[hashGeometry];
+                            }
+                        }
+                        else if (!isCCW) {
+                            hashGeometry = featureRefs2Reverse[hashGeometry];
+                        }
+                    }
                     featureRefUsed = [.. featureRefUsed, hashGeometry];
 
                     sourceId2FeatureRef.Add(sourceId, hashGeometry);
@@ -197,33 +193,14 @@ namespace S100FC.Topology
                 }
             }
 
-            this._curves = this._curves.Where(e => featureRefUsed.Contains(e.Key)).ToDictionary(e => e.Key, e => e.Value);
+            // Get real hash values for used curves
+            var _ = featureRefs.Where(e => featureRefUsed.Contains(e.Key)).Select(e => e.Value.Id);
+            this._curves = this._curves.Where(e => _.Contains(e.Key)).ToDictionary(e => e.Key, e => e.Value);
 
             foreach (var polygon in this._featureMapperPolygons) {
                 var uid = polygon.Key;
 
                 FeatureRef exteriorRing = featureRefs[sourceId2FeatureRef[polygon.Value.ExteriorRing]];
-                {
-                    //if (polygon.Value.ExteriorRing == 1175) System.Diagnostics.Debugger.Break();
-
-                    //var isCCW = this._mixedTopologyNetwork.IsCCW(sourceRefs[polygon.Value.ExteriorRing]);
-
-                    //if (isCCW) {
-                    //    exteriorRing = new FeatureRef {
-                    //        Id = exteriorRing.Id,
-                    //        Reverse = !exteriorRing.Reverse,
-                    //    };
-                    //}
-
-                    //var lineMerger = new LineMerger();
-                    //foreach (var edge in sourceRefs[polygon.Value.ExteriorRing]) {
-                    //    lineMerger.Add(edge.OrientedGeometry);
-                    //}
-
-                    //var curve = lineMerger.GetMergedLineStrings();
-                    //var ring = Reloaded.Factory!.CreateLinearRing(curve[0].Coordinates);
-                }
-
                 FeatureRef[] interior = [];
                 if (polygon.Value.InteriorRing != default) {
                     for (int i = 0; i < polygon.Value.InteriorRing.Length; i++) {
@@ -288,8 +265,7 @@ namespace S100FC.Topology
             //checks = [2, 87];            
 
             foreach (var surface in surfaces) {
-                //if (surface.UID.EndsWith("F10400040142")) System.Diagnostics.Debugger.Break();
-                if (surface.UID.EndsWith("F10400040081")) System.Diagnostics.Debugger.Break();
+                //if (surface.UID.EndsWith("10400010491")) System.Diagnostics.Debugger.Break();
 
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 

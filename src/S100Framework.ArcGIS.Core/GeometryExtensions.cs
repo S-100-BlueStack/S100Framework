@@ -2,16 +2,12 @@
 
 using ArcGIS.Core.Data;
 using ArcGIS.Core.SystemCore;
-using GeoAPI.Geometries;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Noding;
 using NetTopologySuite.Noding.Snapround;
 using NetTopologySuite.Operation.Linemerge;
 using NetTopologySuite.Operation.Valid;
-using NetTopologySuite.Precision;
 using System.Globalization;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.CompilerServices;
 
 
 namespace ArcGIS.Core.Data
@@ -440,7 +436,7 @@ namespace ArcGIS.Core.Geometry
 
                             var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
-                                name = string.Empty;                            
+                                name = string.Empty;
 
                             LineString[] parts = [];
                             foreach (var part in shape.Parts) {
