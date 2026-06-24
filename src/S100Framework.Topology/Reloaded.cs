@@ -118,7 +118,7 @@ namespace S100FC.Topology
                         throw new InvalidOperationException("Merged LineString can't be a multipart geometry!");
                     var merged = (LineString)mergedLineStrings[0];
 
-                    if (_sourceLineType[sourceId] != LineType.Curve) {
+                    if (this._sourceLineType[sourceId] != LineType.Curve) {
                         var linearRing = Reloaded.Factory!.CreateLinearRing(merged.Coordinates);
                         var isCCW = linearRing.IsCCW;
                         merged = linearRing;
@@ -170,7 +170,7 @@ namespace S100FC.Topology
                 else {
                     ulong hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(edges[0].Edge.Geometry.AsBinary());
 
-                    if (_sourceLineType[sourceId] != LineType.Curve) {
+                    if (this._sourceLineType[sourceId] != LineType.Curve) {
                         var linearRing = Reloaded.Factory!.CreateLinearRing(this._curves[hashGeometry].LineString.Coordinates);
                         var isCCW = linearRing.IsCCW;
 
@@ -251,7 +251,7 @@ namespace S100FC.Topology
             Curve = 4,
         };
 
-        private Dictionary<int, LineType> _sourceLineType = [];
+        private readonly Dictionary<int, LineType> _sourceLineType = [];
 
         private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
             int[] checks = [];
@@ -269,24 +269,24 @@ namespace S100FC.Topology
 
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
-                _sourceLineType.Add(idExteriorRing, LineType.Exterior);
+                this._sourceLineType.Add(idExteriorRing, LineType.Exterior);
 
                 var idInteriorRings = new int[0];
                 foreach (var interior in surface.InteriorRings) {
                     var id = this._mixedTopologyNetwork.AddLineString(interior);
                     idInteriorRings = [.. idInteriorRings, id];
 
-                    _sourceLineType.Add(id, LineType.Interior);
+                    this._sourceLineType.Add(id, LineType.Interior);
 
                     //checks_linestrings = [.. checks_linestrings, interior.ToText()];
                     if (checks.Contains(id)) {
-                        checks_linestrings = [.. checks_linestrings, interior.ToText()];
+                        this.checks_linestrings = [.. this.checks_linestrings, interior.ToText()];
                     }
                 }
 
                 //checks_linestrings = [.. checks_linestrings, surface.ExteriorRing.ToText()];
                 if (checks.Contains(idExteriorRing)) {
-                    checks_linestrings = [.. checks_linestrings, surface.ExteriorRing.ToText()];
+                    this.checks_linestrings = [.. this.checks_linestrings, surface.ExteriorRing.ToText()];
                     //System.Diagnostics.Debugger.Break();
                 }
 
@@ -299,11 +299,11 @@ namespace S100FC.Topology
 
                 var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
                 if (id < 0) continue;
-                _sourceLineType.Add(id, LineType.Curve);
+                this._sourceLineType.Add(id, LineType.Curve);
 
                 //checks_linestrings = [.. checks_linestrings, curve.LineString.ToText()];
                 if (checks.Contains(id)) {
-                    checks_linestrings = [.. checks_linestrings, curve.LineString.ToText()];
+                    this.checks_linestrings = [.. this.checks_linestrings, curve.LineString.ToText()];
                     //System.Diagnostics.Debugger.Break();
                 }
 
