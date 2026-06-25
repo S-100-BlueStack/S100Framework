@@ -361,6 +361,15 @@ namespace S100Framework.Topology.Internal
             Dictionary<(CoordinateKey, CoordinateKey), NetworkEdge> edgeMap) {
 
             if (c0.Equals2D(c1, _snapTolerance)) return;
+
+            // Canonicalize BEFORE computing keys — ensures coordinates that the
+            // union-find merged to the same representative produce the same key
+            // and land on the same node, even if they came from different sources.
+            c0 = Canonicalize(c0);
+            c1 = Canonicalize(c1);
+
+            if (c0.Equals2D(c1, _snapTolerance)) return; // degenerate after canonicalization
+
             var k0 = new CoordinateKey(c0, _snapTolerance);
             var k1 = new CoordinateKey(c1, _snapTolerance);
             bool swap = k0.CompareTo(k1) > 0;

@@ -108,15 +108,25 @@ namespace S100FC.Topology
                 }
 
                 if (edges.Count > 1) {
-                    var lineMerger = new LineMerger();
-                    foreach (var edge in edges) {
-                        lineMerger.Add(edge.Edge.Geometry);
+                    //var lineMerger = new LineMerger();
+                    //foreach (var edge in edges) {
+                    //    lineMerger.Add(edge.Edge.Geometry);
+                    //    if (sourceId == 93)
+                    //        this._interceptor?.Invoke(100, [(edge.Edge.Geometry, $"{edge.Edge.Geometry.ToText()}")]);
+                    //}                    
+
+                    //var mergedLineStrings = lineMerger.GetMergedLineStrings();
+                    //if (mergedLineStrings.Count > 1)
+                    //    throw new InvalidOperationException("Merged LineString can't be a multipart geometry!");
+                    //var merged = (LineString)mergedLineStrings[0];
+                    var merged = LineStringBuilder(edges);
+
+                    if (sourceId == 93) {
+                        //this._interceptor?.Invoke(100, [(merged, "93")]);
+                        this._interceptor?.Invoke(100, [.. edges.Select(e=>(e.Edge.Geometry, $"{e.Edge.Geometry.ToText()}"))]);
+                      System.Diagnostics.Debugger.Break();
                     }
 
-                    var mergedLineStrings = lineMerger.GetMergedLineStrings();
-                    if (mergedLineStrings.Count > 1)
-                        throw new InvalidOperationException("Merged LineString can't be a multipart geometry!");
-                    var merged = (LineString)mergedLineStrings[0];
 
                     if (_sourceLineType[sourceId] != LineType.Curve) {
                         var linearRing = Reloaded.Factory!.CreateLinearRing(merged.Coordinates);
@@ -262,7 +272,7 @@ namespace S100FC.Topology
             //checks = [93, 2336, 3088, 3590, 3628, 1584, 3040, 3683, 3732];
             //checks = [595];
             //checks = [7, 187, 383, 607, 622, 723, 742, 755, 772, 407, 718, 734, 758, 419, 782, 969, 888, 392, 701, 558, 1157, 586, 587, 602, 608, 1163, 1179, 908, 914, 915, 211, 365, 911, 769, 797, 850, 729, 736, 843, 961, 875, 998, 854, 757, 1164, 1171, 1174, 738, 609, 154, 118, 1165, 1177, 1172, 1175, 1178, 773, 180, 750, 416, 390, 754, 420, 385, 417, 716, 359, 362, 614, 424, 615, 896, 882, 740, 415, 418, 761, 374, 714, 405, 776, 753, 735, 400, 703, 422, 398, 715, 368, 395, 698, 382, 770, 376, 713, 421, 414, 707, 401, 375, 710, 397, 372, 721, 386, 495, 402, 455, 391, 442, 393, 460, 364, 1014, 520, 220, 423, 941, 440, 728, 360, 508, 1168, 110, 104, 143, 185, 141, 124, 77, 369, 123, 216, 756, 27, 215, 819, 730, 428, 412, 367, 704, 534, 403, 370, 699, 363, 805, 907, 411, 705, 358, 379, 695, 380, 806, 752, 749, 521, 1003, 446, 478, 67, 410, 413, 722, 371, 790, 473, 158, 171, 81, 186, 408, 533, 763, 766, 396, 388, 696, 399, 378, 717, 409, 406, 709];
-            //checks = [2, 87];            
+            checks = [93];
 
             foreach (var surface in surfaces) {
                 //if (surface.UID.EndsWith("10400010491")) System.Diagnostics.Debugger.Break();
@@ -370,6 +380,33 @@ namespace S100FC.Topology
             if (lineString.Contains("), " + segment)) return lineString.IndexOf("), " + segment);
 
             throw new IndexOutOfRangeException();
+        }
+
+        private LineString LineStringBuilder(IList<EdgeReference> edges) {
+            var lineMerger = new LineMerger();
+            foreach (var edge in edges) {
+                lineMerger.Add(edge.Edge.Geometry);
+            }
+
+            var mergedLineStrings = lineMerger.GetMergedLineStrings();
+            if (mergedLineStrings.Count > 1)
+                throw new InvalidOperationException("Merged LineString can't be a multipart geometry!");
+            var merged = (LineString)mergedLineStrings[0];
+            return merged;
+
+            Coordinate[] coords = [.. edges[0].Edge.Geometry.Coordinates];
+            for(int i=1; i<edges.Count; i++) {
+                var edge = edges.Single(e => e.Edge.Geometry.Coordinates[0].Equals2D(coords[^1]));
+                var index = edges.IndexOf(edge);
+
+                if (edge.Edge.Geometry.Coordinates[0].Equals2D(coords[^1]))
+                    coords = [.. coords, .. edge.Edge.Geometry.Coordinates];
+                else {
+                    if (!coords[^1].Equals2D(edge.Edge.Geometry.Coordinates[^1])) System.Diagnostics.Debugger.Break();
+                    coords = [.. coords, .. edge.Edge.Geometry.Coordinates.Reverse()];
+                }
+            }
+            return Reloaded.Factory!.CreateLineString(coords);
         }
     }
 }
