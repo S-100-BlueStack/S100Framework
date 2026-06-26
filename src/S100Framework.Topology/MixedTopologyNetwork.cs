@@ -1086,6 +1086,126 @@ namespace S100Framework.Topology.Internal
             return (allMergedEdges, sourceEdges);
         }
 
+        /// <summary>
+        /// Resolves a <see cref="LineString"/> against the already-built network
+        /// (from <see cref="BuildEdgeIndex"/>) and returns an ordered list of
+        /// <see cref="MergedEdge"/> objects that together cover the full path.
+        /// <para>
+        /// Edges that already exist in the network (<paramref name="allEdges"/>) are
+        /// returned as-is. Portions of the linestring that fall between two existing
+        /// network nodes but have no canonical edge are returned as new
+        /// <see cref="MergedEdge"/> objects that are <b>not</b> added to the network —
+        /// they are ephemeral, for this linestring only.
+        /// </para>
+        /// <para>
+        /// Call <see cref="Build"/> and <see cref="BuildEdgeIndex"/> before calling
+        /// this method.
+        /// </para>
+        /// </summary>
+        /// <param name="lineString">The open (non-ring) linestring to resolve.</param>
+        /// <param name="allEdges">
+        /// The canonical edge list returned by <see cref="BuildEdgeIndex"/>.
+        /// Used to look up existing canonical edges by their constituent node pair.
+        /// </param>
+        public List<MergedEdge> ResolveLineString(
+            LineString lineString,
+            List<MergedEdge> allEdges) {
+
+            // Build a lookup: canonical (StartNode, EndNode) pair -> MergedEdge.
+            // Both orderings are stored so direction doesn't matter for lookup.
+            if (_nodeEdgeLookup == null)
+                _nodeEdgeLookup = BuildNodeEdgeLookup(allEdges);
+
+            // Snap all linestring coordinates to the network's canonical grid.
+            // Any coordinate within _snapTolerance of an existing network node
+            // is mapped to that node; unknown coordinates stay as-is.
+            var raw = lineString.Coordinates;
+            var snapped = new List<Coordinate>(raw.Length);
+            foreach (var c in raw) {
+                var key = new CoordinateKey(SnapToGrid(c), _snapTolerance);
+                if (_nodes.TryGetValue(key, out var node))
+                    snapped.Add(node.Coordinate);
+                else
+                    snapped.Add(SnapToGrid(c));
+            }
+
+            // Remove consecutive duplicates produced by snapping.
+            var pts = new List<Coordinate> { snapped[0] };
+            for (int i = 1; i < snapped.Count; i++)
+                if (!snapped[i].Equals2D(pts[^1]))
+                    pts.Add(snapped[i]);
+
+            // Walk pts, grouping consecutive coordinates by whether they form
+            // a known network edge (StartNode, EndNode) pair.
+            var result = new List<MergedEdge>();
+
+            int start = 0;
+            while (start < pts.Count - 1) {
+                // Try extending from pts[start] to find the longest run that
+                // matches a single canonical MergedEdge in the network.
+                MergedEdge? matched = null;
+                int matchedEnd = -1;
+
+                for (int end = pts.Count - 1; end > start; end--) {
+                    var key = MakeNodePairKey(pts[start], pts[end]);
+                    if (_nodeEdgeLookup.TryGetValue(key, out var edge)) {
+                        matched = edge;
+                        matchedEnd = end;
+                        break;
+                    }
+                }
+
+                if (matched != null) {
+                    result.Add(matched);
+                    start = matchedEnd;
+                }
+                else {
+                    // No existing edge covers pts[start]→pts[start+1].
+                    // Advance one step and build an ephemeral single-segment edge.
+                    var ephemeral = new MergedEdge {
+                        Geometry = _factory.CreateLineString(
+                                                new[] { pts[start], pts[start + 1] }),
+                        SourceGeometryIds = new HashSet<int>(),
+                        ConstituentEdges = new List<NetworkEdge>(),
+                    };
+                    result.Add(ephemeral);
+                    start++;
+                }
+            }
+
+            return result;
+        }
+
+        // Cached node-pair -> MergedEdge lookup built on first ResolveLineString call.
+        private Dictionary<(CoordinateKey, CoordinateKey), MergedEdge>? _nodeEdgeLookup;
+
+        private Dictionary<(CoordinateKey, CoordinateKey), MergedEdge>
+            BuildNodeEdgeLookup(List<MergedEdge> allEdges) {
+
+            var lookup = new Dictionary<(CoordinateKey, CoordinateKey), MergedEdge>();
+            foreach (var edge in allEdges) {
+                var coords = edge.Geometry.Coordinates;
+                var k0 = new CoordinateKey(coords[0], _snapTolerance);
+                var k1 = new CoordinateKey(coords[^1], _snapTolerance);
+                // Store both orderings so direction-agnostic lookup works.
+                lookup.TryAdd((k0, k1), edge);
+                lookup.TryAdd((k1, k0), edge);
+                // Also index every constituent NetworkEdge endpoint pair so
+                // sub-edges of a longer merged edge can be resolved individually.
+                foreach (var ne in edge.ConstituentEdges) {
+                    var nk0 = new CoordinateKey(ne.StartNode, _snapTolerance);
+                    var nk1 = new CoordinateKey(ne.EndNode, _snapTolerance);
+                    lookup.TryAdd((nk0, nk1), edge);
+                    lookup.TryAdd((nk1, nk0), edge);
+                }
+            }
+            return lookup;
+        }
+
+        private (CoordinateKey, CoordinateKey) MakeNodePairKey(
+            Coordinate a, Coordinate b) =>
+            (new CoordinateKey(a, _snapTolerance), new CoordinateKey(b, _snapTolerance));
+
         private List<NetworkEdge> RotateToGroupBoundary(
             List<NetworkEdge> chain,
             Dictionary<int, MergedEdge> edgeToCanonical) {
