@@ -34,6 +34,7 @@ namespace S100FC.Topology
             base.Id = hash;
 
             //if (base.Id == 52672787 || base.Id == 3587297466) System.Diagnostics.Debugger.Break();
+            if (base.Id == 2933884953) System.Diagnostics.Debugger.Break();
         }
 
         public CurveFeature(LineString lineString) {

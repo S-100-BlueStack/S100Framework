@@ -219,7 +219,7 @@ namespace S100FC.Topology
 
             int[] empty_sources = [];
             foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
-                //if (sourceId == 1181) System.Diagnostics.Debugger.Break();                
+                //if (sourceId == 1439) System.Diagnostics.Debugger.Break();                
 
                 var edges = sourceRefs[sourceId];
                 if (!edges.Any()) {
@@ -230,24 +230,13 @@ namespace S100FC.Topology
                 if (edges.Count > 1 && edges[0].Geometry.Equals(edges[^1].Geometry))
                     edges = edges[..^1];
 
-                if (edges.Count > 1) {
-                    //var lineMerger = new LineMerger();
-                    //foreach (var edge in edges) {
-                    //    lineMerger.Add(edge.Geometry);
-                    //    if (sourceId == 93)
-                    //        this._interceptor?.Invoke(100, [(edge.Geometry, $"{edge.Geometry.ToText()}")]);
-                    //}                    
+                if (edges.Count > 1) {              
+                    //if (sourceId == 595) {
+                    //    //this._interceptor?.Invoke(100, [(merged, "93")]);
+                    //    this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}"))]);
+                    //    System.Diagnostics.Debugger.Break();
+                    //}
 
-                    if (sourceId == 603) {
-                        //this._interceptor?.Invoke(100, [(merged, "93")]);
-                        this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}"))]);
-                        System.Diagnostics.Debugger.Break();
-                    }
-
-                    //var mergedLineStrings = lineMerger.GetMergedLineStrings();
-                    //if (mergedLineStrings.Count > 1)
-                    //    throw new InvalidOperationException("Merged LineString can't be a multipart geometry!");
-                    //var merged = (LineString)mergedLineStrings[0];
                     var merged = LineStringBuilder(edges);
 
                     if (this._sourceLineType[sourceId] != LineType.Curve) {
@@ -308,30 +297,35 @@ namespace S100FC.Topology
                 else {
                     ulong hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(edges[0].Geometry.AsBinary());
 
+                    var id = $"C{hashGeometry}";
+
                     if (this._sourceLineType[sourceId] != LineType.Curve) {
                         var linearRing = Reloaded.Factory!.CreateLinearRing(this._curves[hashGeometry].LineString.Coordinates);
                         var isCCW = linearRing.IsCCW;
 
                         if (this._sourceLineType[sourceId] == LineType.Exterior) {
                             if (isCCW) {
-                                hashGeometry = featureRefs2Reverse[hashGeometry];
+                                hashGeometry = featureRefs2Reverse[hashGeometry];                                
+                                id = featureRefs[hashGeometry].Reverse ? $"RC{featureRefs[hashGeometry].Id}" : $"C{featureRefs[hashGeometry].Id}";
                             }
                         }
                         else if (!isCCW) {
                             hashGeometry = featureRefs2Reverse[hashGeometry];
+                            id = featureRefs[hashGeometry].Reverse ? $"RC{featureRefs[hashGeometry].Id}" : $"C{featureRefs[hashGeometry].Id}";
                         }
                     }
                     else {
                         var slope = this._curves[hashGeometry].LineString.Slope();
                         if (Math.Sign(this._sourceSlope[sourceId]) != Math.Sign(slope)) {
                             hashGeometry = featureRefs2Reverse[hashGeometry];
+                            id = featureRefs[hashGeometry].Reverse ? $"RC{featureRefs[hashGeometry].Id}" : $"C{featureRefs[hashGeometry].Id}";
                         }
                     }
                     featureRefUsed = [.. featureRefUsed, hashGeometry];
 
                     sourceId2FeatureRef.Add(sourceId, hashGeometry);
                     if (this._featureMapperLineStrings.ContainsValue(sourceId)) {
-                        var id = $"C{hashGeometry}";// e.Forward ? $"C{forward}" : $"RC{forward}";
+                        //var id = $"C{hashGeometry}";// e.Forward ? $"C{forward}" : $"RC{forward}";
                         this._mapping.Add(this._featureMapperLineStrings.Single(e => e.Value == sourceId).Key, id);
                     }
                 }
@@ -401,7 +395,7 @@ namespace S100FC.Topology
 
         private int[] checks = [];
 
-        private Geometry[] _geometries = [];
+        //private Geometry[] _geometries = [];
 
         private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
             //checks = [1546];
@@ -417,7 +411,7 @@ namespace S100FC.Topology
                 //if (surface.UID.EndsWith("10800023700")) System.Diagnostics.Debugger.Break();
                 //if (surface.UID.EndsWith("F10800045684")) System.Diagnostics.Debugger.Break();
 
-                _geometries = [.. _geometries, surface.ExteriorRing];
+                //_geometries = [.. _geometries, surface.ExteriorRing];
 
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
@@ -425,7 +419,7 @@ namespace S100FC.Topology
 
                 var idInteriorRings = new int[0];
                 foreach (var interior in surface.InteriorRings) {
-                    _geometries = [.. _geometries, interior];
+                    //_geometries = [.. _geometries, interior];
 
                     var id = this._mixedTopologyNetwork.AddLineString(interior);
                     idInteriorRings = [.. idInteriorRings, id];
@@ -449,8 +443,8 @@ namespace S100FC.Topology
             }
 
             foreach (var curve in curves) {
-                //if (curve.UID.EndsWith("10100023030")) System.Diagnostics.Debugger.Break();
-                _geometries = [.. _geometries, curve.LineString];
+                //if (curve.UID.EndsWith("10100081766")) System.Diagnostics.Debugger.Break();
+                //_geometries = [.. _geometries, curve.LineString];
 
                 var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
                 if (id < 0) continue;

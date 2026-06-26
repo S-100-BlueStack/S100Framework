@@ -465,8 +465,7 @@ namespace S100Framework.Topology.Internal
             }
 
             // For rings: if the last snapped coordinate is within _dedupeRadius of the
-            // first (a self-closing dangle where the ring almost but not exactly returns
-            // to its start), snap it to the first coordinate so the ring closes cleanly.
+            // first (a self-closing dangle), snap the last to the first.
             if (isRing && snapped.Count > 1 &&
                 !snapped[0].Equals2D(snapped[^1]) &&
                 snapped[0].Distance(snapped[^1]) <= _dedupeRadius)
@@ -549,13 +548,24 @@ namespace S100Framework.Topology.Internal
                 segSourceCount[segKey] = cnt + 1;
             }
 
+            // Extended radius for shared segments: two sources digitizing the same node
+            // slightly differently can produce a short connecting segment up to ~6e-6
+            // long. Private segments only get the standard _dedupeRadius.
+            double sharedRadius = _dedupeRadius * 1.04; // 5.2e-6: catches 5.099e-6 dangle, stays below 5.385e-6
+
             foreach (var seg in rawSegments) {
-                if (seg.P0.Distance(seg.P1) > _dedupeRadius) continue;
+                double d = seg.P0.Distance(seg.P1);
+                if (d > sharedRadius) continue;
                 var k0 = new CoordinateKey(SnapToGrid(seg.P0), _snapTolerance);
                 var k1 = new CoordinateKey(SnapToGrid(seg.P1), _snapTolerance);
                 var segKey = k0.CompareTo(k1) < 0 ? (k0, k1) : (k1, k0);
-                if (segSourceCount.TryGetValue(segKey, out int cnt) && cnt > 1)
-                    Union(k0, k1);
+                if (!segSourceCount.TryGetValue(segKey, out int cnt)) continue;
+                // Shared (cnt > 1): union up to sharedRadius.
+                // Private (cnt == 1): only union at exactly _snapTolerance (1 ULP artefacts).
+                bool shouldUnion = cnt > 1
+                    ? d <= sharedRadius
+                    : d <= _snapTolerance;
+                if (shouldUnion) Union(k0, k1);
             }
 
             var result = new Dictionary<CoordinateKey, Coordinate>();
@@ -1014,6 +1024,21 @@ namespace S100Framework.Topology.Internal
                 foreach (var e in canonical.ConstituentEdges)
                     edgeToCanonical[e.Id] = canonical;
 
+            // Ensure every NetworkEdge in the network is represented.
+            // Any edge not reached by GetMergedEdgeChainFor for any source
+            // (e.g. due to a walk gap) gets a single-edge fallback canonical.
+            foreach (var netEdge in _edges) {
+                if (edgeToCanonical.ContainsKey(netEdge.Id)) continue;
+                var fallback = new MergedEdge {
+                    Geometry = _factory.CreateLineString(
+                                            new[] { netEdge.StartNode, netEdge.EndNode }),
+                    SourceGeometryIds = new HashSet<int>(netEdge.SourceGeometryIds),
+                    ConstituentEdges = new List<NetworkEdge> { netEdge },
+                };
+                edgeToCanonical[netEdge.Id] = fallback;
+                allMergedEdges.Add(fallback);
+            }
+
             // Pass 2: build per-source ordered lists of canonical MergedEdges.
             // Walk the raw NetworkEdge chain for each source (via GetFullEdgeChainFor),
             // rotate rings to a canonical-group boundary, then map each NetworkEdge to
@@ -1032,7 +1057,19 @@ namespace S100Framework.Topology.Internal
                 MergedEdge? last = null;
 
                 foreach (var netEdge in chain) {
-                    if (!edgeToCanonical.TryGetValue(netEdge.Id, out var canonical)) continue;
+                    // Map to canonical. If this edge was never registered in Pass 1
+                    // (e.g. due to a walk gap), create a single-edge fallback so no
+                    // NetworkEdge is silently dropped from the source's edge list.
+                    if (!edgeToCanonical.TryGetValue(netEdge.Id, out var canonical)) {
+                        canonical = new MergedEdge {
+                            Geometry = _factory.CreateLineString(
+                                                    new[] { netEdge.StartNode, netEdge.EndNode }),
+                            SourceGeometryIds = new HashSet<int>(netEdge.SourceGeometryIds),
+                            ConstituentEdges = new List<NetworkEdge> { netEdge },
+                        };
+                        edgeToCanonical[netEdge.Id] = canonical;
+                        allMergedEdges.Add(canonical);
+                    }
                     if (ReferenceEquals(canonical, last)) continue;
                     result.Add(canonical);
                     last = canonical;
