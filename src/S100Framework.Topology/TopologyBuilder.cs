@@ -18,6 +18,48 @@ namespace S100Framework.Topology
     using System.Linq;
 
 
+
+#if null
+//  Testing TopologyBuilder
+                this._topologyBuilder.Build(this._geometries);
+
+
+                // ✅ Access merged edges
+                var edges = this._topologyBuilder.MergedEdges;
+
+                for (int j = 0; j < edges.Count; j++) {
+                    var e = edges[j];
+                    var txt = e.ToText();
+                    if (test_EdgesText.Contains(txt)) continue;
+
+                    for (int i = 0; i < test_Edges.Length; i++) {
+                        if (e.Overlaps(test_Edges[i])) {
+                            var existing = test_Edges[i];
+                            var overlapping = e;
+
+                            this._interceptor?.Invoke(100, [(existing, $"{existing.ToText()}"), (overlapping, $"{overlapping.ToText()}")]);
+                            System.Diagnostics.Debugger.Break();
+                        }
+                    }
+                    test_EdgesText = [.. test_EdgesText, txt];
+                    test_Edges = [.. test_Edges, e];
+                }
+
+                foreach(var e in this._geometries) {
+                    var _edges = this._topologyBuilder.GetEdgesForInput((LineString)e);
+                    for(int i = 0; i < _edges.Count; i++) {
+                        var v = _edges[i];
+
+                    }
+                }
+
+                this._interceptor?.Invoke(100, [.. edges.Select(e=>(e, $"{e.ToText()}"))]);
+
+                test_EdgesText = [];
+                test_Edges = [];
+                ;
+#endif
+
     public class TopologyGraph : PlanarGraph
     {
         public TopologyGraph() : base() {
