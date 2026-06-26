@@ -6,8 +6,10 @@ using System.Runtime.CompilerServices;
 namespace S100FC.Topology
 {
     using GeoAPI.Geometries;
+    using NetTopologySuite.Algorithm.Match;
     using NetTopologySuite.Operation.Linemerge;
     using NetTopologySuite.Precision;
+    using S100Framework.Topology;
     using S100Framework.Topology.Internal;
 
     public interface IMatrixReloaded : IMatrix
@@ -34,6 +36,8 @@ namespace S100FC.Topology
 
         private readonly MixedTopologyNetwork _mixedTopologyNetwork;
 
+        private readonly TopologyBuilder _topologyBuilder;
+
         private readonly Dictionary<string, PolygonSource> _featureMapperPolygons = [];
         private readonly Dictionary<string, int> _featureMapperLineStrings = [];
 
@@ -42,6 +46,8 @@ namespace S100FC.Topology
         protected Reloaded() {
             //  Protected default constructor            
             this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory!, snapTolerance: Reloaded.Factory!.PrecisionModel.GridSize);
+
+            this._topologyBuilder = new TopologyBuilder();
         }
 
         public static ITopologyBuilder CreateMatrix(Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default) {
@@ -65,6 +71,61 @@ namespace S100FC.Topology
             this._mapping.Clear();
             this._mixedTopologyNetwork.Build();
 
+            string[] test_EdgesText = [];
+            LineString[] test_Edges = [];
+
+            //  Testing TopologyBuilder
+            {
+#if null
+                this._topologyBuilder.Build(this._geometries);
+
+
+                // ✅ Access merged edges
+                var edges = this._topologyBuilder.MergedEdges;
+
+                for (int j = 0; j < edges.Count; j++) {
+                    var e = edges[j];
+                    var txt = e.ToText();
+                    if (test_EdgesText.Contains(txt)) continue;
+
+                    for (int i = 0; i < test_Edges.Length; i++) {
+                        if (e.Overlaps(test_Edges[i])) {
+                            var existing = test_Edges[i];
+                            var overlapping = e;
+
+                            this._interceptor?.Invoke(100, [(existing, $"{existing.ToText()}"), (overlapping, $"{overlapping.ToText()}")]);
+                            System.Diagnostics.Debugger.Break();
+                        }
+                    }
+                    test_EdgesText = [.. test_EdgesText, txt];
+                    test_Edges = [.. test_Edges, e];
+                }
+
+                foreach(var e in this._geometries) {
+                    var _edges = this._topologyBuilder.GetEdgesForInput((LineString)e);
+                    for(int i = 0; i < _edges.Count; i++) {
+                        var v = _edges[i];
+
+                    }
+
+
+                }
+
+
+
+
+
+                this._interceptor?.Invoke(100, [.. edges.Select(e=>(e, $"{e.ToText()}"))]);
+
+                test_EdgesText = [];
+                test_Edges = [];
+                ;
+#endif
+            }
+
+
+
+
             var featureRefs = new Dictionary<ulong, FeatureRef>();
             var featureRefs2Reverse = new Dictionary<ulong, ulong>();
 
@@ -72,6 +133,64 @@ namespace S100FC.Topology
 
             var (allEdges, sourceRefs) = this._mixedTopologyNetwork.BuildEdgeIndex();
 
+
+            for(int j=0;j<allEdges.Count;j++){
+                var e = allEdges[j];
+                var txt = e.Geometry.ToText();
+                if (test_EdgesText.Contains(txt)) continue;
+
+                for (int i = 0; i < test_Edges.Length; i++) {
+                    if (e.Geometry.Overlaps(test_Edges[i])) {
+                        var existing = test_Edges[i];
+                        var overlapping = e.Geometry;
+
+                        this._interceptor?.Invoke(100, [(existing, $"{existing.ToText()}"), (overlapping, $"{overlapping.ToText()}")]);
+                        System.Diagnostics.Debugger.Break();
+                    }
+                }
+                test_EdgesText = [.. test_EdgesText, txt];
+                test_Edges = [.. test_Edges, e.Geometry];
+            }
+            ;
+
+            test_EdgesText = [];
+            test_Edges = [];
+
+            Dictionary<LineString, int> sourceMapper = new();
+
+            foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
+                var edges = sourceRefs[sourceId];
+                if (!edges.Any()) continue;
+                if (edges.Count > 1 && edges[0].Geometry.Equals(edges[^1].Geometry))
+                    edges = edges[..^1];
+
+                foreach (var e in edges) {
+                    var txt = e.Geometry.ToText();
+                    if (test_EdgesText.Contains(txt)) continue;
+
+                    for (int i = 0; i < test_Edges.Length; i++) {
+                        if (e.Geometry.Overlaps(test_Edges[i])) {
+                            var existing = test_Edges[i];
+                            var overlapping = e.Geometry;
+
+                            var ee = sourceMapper[existing];
+
+                            if (sourceId == ee) {
+                                this._interceptor?.Invoke(100, [.. edges.Select(e=>(e.Geometry, $"{e.Geometry.ToText()}"))]);
+                            }
+
+                            this._interceptor?.Invoke(100, [(existing, $"{existing.ToText()}"), (overlapping, $"{overlapping.ToText()}")]);
+                            System.Diagnostics.Debugger.Break();
+                        }
+                    }
+                    test_EdgesText = [.. test_EdgesText, txt];
+                    test_Edges = [.. test_Edges, e.Geometry];
+
+                    sourceMapper.Add(e.Geometry, sourceId);
+                }
+            }
+
+            ;
             foreach (var e in allEdges) {
                 var hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(e.Geometry.AsBinary());
                 if (!featureRefs.ContainsKey(hashGeometry)) {
@@ -108,26 +227,28 @@ namespace S100FC.Topology
                     continue;
                 }
 
+                if (edges.Count > 1 && edges[0].Geometry.Equals(edges[^1].Geometry))
+                    edges = edges[..^1];
+
                 if (edges.Count > 1) {
                     //var lineMerger = new LineMerger();
                     //foreach (var edge in edges) {
-                    //    lineMerger.Add(edge.Edge.Geometry);
+                    //    lineMerger.Add(edge.Geometry);
                     //    if (sourceId == 93)
-                    //        this._interceptor?.Invoke(100, [(edge.Edge.Geometry, $"{edge.Edge.Geometry.ToText()}")]);
+                    //        this._interceptor?.Invoke(100, [(edge.Geometry, $"{edge.Geometry.ToText()}")]);
                     //}                    
+
+                    if (sourceId == 603) {
+                        //this._interceptor?.Invoke(100, [(merged, "93")]);
+                        this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}"))]);
+                        System.Diagnostics.Debugger.Break();
+                    }
 
                     //var mergedLineStrings = lineMerger.GetMergedLineStrings();
                     //if (mergedLineStrings.Count > 1)
                     //    throw new InvalidOperationException("Merged LineString can't be a multipart geometry!");
                     //var merged = (LineString)mergedLineStrings[0];
                     var merged = LineStringBuilder(edges);
-
-                    if (sourceId == 93) {
-                        //this._interceptor?.Invoke(100, [(merged, "93")]);
-                        this._interceptor?.Invoke(100, [.. edges.Select(e=>(e.Edge.Geometry, $"{e.Edge.Geometry.ToText()}"))]);
-                      System.Diagnostics.Debugger.Break();
-                    }
-
 
                     if (this._sourceLineType[sourceId] != LineType.Curve) {
                         var linearRing = Reloaded.Factory!.CreateLinearRing(merged.Coordinates);
@@ -155,15 +276,15 @@ namespace S100FC.Topology
                     var sortedlist = new SortedList<int, FeatureRef>();
 
                     foreach (var e in edges) {
-                        var hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(e.Edge.Geometry.AsBinary());
+                        var hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(e.Geometry.AsBinary());
 
-                        var text = e.Edge.Geometry.ToText().Substring("LINESTRING (".Length).TrimEnd(')');
+                        var text = e.Geometry.ToText().Substring("LINESTRING (".Length).TrimEnd(')');
 
                         var featureRef = featureRefs[hashGeometry];
                         if (ContainsSegment(mergedText, text))
                             sortedlist.Add(IndexOfSegment(mergedText, text), featureRef);
                         else {
-                            text = e.Edge.Geometry.Reverse().ToText().Substring("LINESTRING (".Length).TrimEnd(')');
+                            text = e.Geometry.Reverse().ToText().Substring("LINESTRING (".Length).TrimEnd(')');
                             sortedlist.Add(IndexOfSegment(mergedText, text), featureRefs[featureRefs2Reverse[hashGeometry]]);
                         }
                     }
@@ -185,7 +306,7 @@ namespace S100FC.Topology
                     }
                 }
                 else {
-                    ulong hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(edges[0].Edge.Geometry.AsBinary());
+                    ulong hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(edges[0].Geometry.AsBinary());
 
                     if (this._sourceLineType[sourceId] != LineType.Curve) {
                         var linearRing = Reloaded.Factory!.CreateLinearRing(this._curves[hashGeometry].LineString.Coordinates);
@@ -266,6 +387,7 @@ namespace S100FC.Topology
         public record PolygonSource(int ExteriorRing, int[] InteriorRing);
 
         string[] checks_linestrings = [];
+        
 
         enum LineType : int
         {
@@ -277,8 +399,11 @@ namespace S100FC.Topology
         private readonly Dictionary<int, LineType> _sourceLineType = [];
         private readonly Dictionary<int, double> _sourceSlope = [];
 
+        private int[] checks = [];
+
+        private Geometry[] _geometries = [];
+
         private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
-            int[] checks = [];
             //checks = [1546];
             //checks = [577];
             //checks = [97];
@@ -286,10 +411,13 @@ namespace S100FC.Topology
             //checks = [93, 2336, 3088, 3590, 3628, 1584, 3040, 3683, 3732];
             //checks = [595];
             //checks = [7, 187, 383, 607, 622, 723, 742, 755, 772, 407, 718, 734, 758, 419, 782, 969, 888, 392, 701, 558, 1157, 586, 587, 602, 608, 1163, 1179, 908, 914, 915, 211, 365, 911, 769, 797, 850, 729, 736, 843, 961, 875, 998, 854, 757, 1164, 1171, 1174, 738, 609, 154, 118, 1165, 1177, 1172, 1175, 1178, 773, 180, 750, 416, 390, 754, 420, 385, 417, 716, 359, 362, 614, 424, 615, 896, 882, 740, 415, 418, 761, 374, 714, 405, 776, 753, 735, 400, 703, 422, 398, 715, 368, 395, 698, 382, 770, 376, 713, 421, 414, 707, 401, 375, 710, 397, 372, 721, 386, 495, 402, 455, 391, 442, 393, 460, 364, 1014, 520, 220, 423, 941, 440, 728, 360, 508, 1168, 110, 104, 143, 185, 141, 124, 77, 369, 123, 216, 756, 27, 215, 819, 730, 428, 412, 367, 704, 534, 403, 370, 699, 363, 805, 907, 411, 705, 358, 379, 695, 380, 806, 752, 749, 521, 1003, 446, 478, 67, 410, 413, 722, 371, 790, 473, 158, 171, 81, 186, 408, 533, 763, 766, 396, 388, 696, 399, 378, 717, 409, 406, 709];
-            checks = [93];
+            //checks = [1642];
 
             foreach (var surface in surfaces) {
-                //if (surface.UID.EndsWith("10400010491")) System.Diagnostics.Debugger.Break();
+                //if (surface.UID.EndsWith("10800023700")) System.Diagnostics.Debugger.Break();
+                //if (surface.UID.EndsWith("F10800045684")) System.Diagnostics.Debugger.Break();
+
+                _geometries = [.. _geometries, surface.ExteriorRing];
 
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
@@ -297,6 +425,8 @@ namespace S100FC.Topology
 
                 var idInteriorRings = new int[0];
                 foreach (var interior in surface.InteriorRings) {
+                    _geometries = [.. _geometries, interior];
+
                     var id = this._mixedTopologyNetwork.AddLineString(interior);
                     idInteriorRings = [.. idInteriorRings, id];
 
@@ -320,6 +450,7 @@ namespace S100FC.Topology
 
             foreach (var curve in curves) {
                 //if (curve.UID.EndsWith("10100023030")) System.Diagnostics.Debugger.Break();
+                _geometries = [.. _geometries, curve.LineString];
 
                 var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
                 if (id < 0) continue;
@@ -337,7 +468,7 @@ namespace S100FC.Topology
             }
 
             return this;
-        }        
+        }
 
         private static bool ContainsSegment(string lineString, string segment) {
             if (lineString.Equals(segment)) return true;
@@ -367,10 +498,10 @@ namespace S100FC.Topology
             throw new IndexOutOfRangeException();
         }
 
-        private LineString LineStringBuilder(IList<EdgeReference> edges) {
+        private LineString LineStringBuilder(IList<MergedEdge> edges) {
             var lineMerger = new LineMerger();
             foreach (var edge in edges) {
-                lineMerger.Add(edge.Edge.Geometry);
+                lineMerger.Add(edge.Geometry);
             }
 
             var mergedLineStrings = lineMerger.GetMergedLineStrings();
@@ -379,19 +510,19 @@ namespace S100FC.Topology
             var merged = (LineString)mergedLineStrings[0];
             return merged;
 
-            Coordinate[] coords = [.. edges[0].Edge.Geometry.Coordinates];
-            for(int i=1; i<edges.Count; i++) {
-                var edge = edges.Single(e => e.Edge.Geometry.Coordinates[0].Equals2D(coords[^1]));
-                var index = edges.IndexOf(edge);
+            //Coordinate[] coords = [.. edges[0].Edge.Geometry.Coordinates];
+            //for (int i = 1; i < edges.Count; i++) {
+            //    var edge = edges.Single(e => e.Edge.Geometry.Coordinates[0].Equals2D(coords[^1]));
+            //    var index = edges.IndexOf(edge);
 
-                if (edge.Edge.Geometry.Coordinates[0].Equals2D(coords[^1]))
-                    coords = [.. coords, .. edge.Edge.Geometry.Coordinates];
-                else {
-                    if (!coords[^1].Equals2D(edge.Edge.Geometry.Coordinates[^1])) System.Diagnostics.Debugger.Break();
-                    coords = [.. coords, .. edge.Edge.Geometry.Coordinates.Reverse()];
-                }
-            }
-            return Reloaded.Factory!.CreateLineString(coords);
+            //    if (edge.Edge.Geometry.Coordinates[0].Equals2D(coords[^1]))
+            //        coords = [.. coords, .. edge.Edge.Geometry.Coordinates];
+            //    else {
+            //        if (!coords[^1].Equals2D(edge.Edge.Geometry.Coordinates[^1])) System.Diagnostics.Debugger.Break();
+            //        coords = [.. coords, .. edge.Edge.Geometry.Coordinates.Reverse()];
+            //    }
+            //}
+            //return Reloaded.Factory!.CreateLineString(coords);
         }
     }
 }
