@@ -1015,24 +1015,26 @@ namespace S100Framework.Topology.Internal
                     edgeToCanonical[e.Id] = canonical;
 
             // Pass 2: build per-source ordered lists of canonical MergedEdges.
-            // Uses GetMergedEdgeChainFor for correct traversal order, then maps
-            // each group to its canonical via edgeToCanonical.
-            // Deduplicates consecutive identical canonicals (ring-seam artefact).
+            // Walk the raw NetworkEdge chain for each source (via GetFullEdgeChainFor),
+            // rotate rings to a canonical-group boundary, then map each NetworkEdge to
+            // its canonical MergedEdge and deduplicate consecutive identical canonicals.
             var sourceEdges = new Dictionary<int, List<MergedEdge>>();
 
             foreach (var src in _sources) {
-                var mergedChain = GetMergedEdgeChainFor(src.Id);
+                var chain = GetFullEdgeChainFor(src.Id);
+                if (chain.Count == 0) { sourceEdges[src.Id] = new List<MergedEdge>(); continue; }
+
+                // Rotate ring chains so the seam falls on a canonical-group boundary.
+                if (src.IsRing && chain.Count > 1)
+                    chain = RotateToGroupBoundary(chain, edgeToCanonical);
+
                 var result = new List<MergedEdge>();
                 MergedEdge? last = null;
 
-                foreach (var merged in mergedChain) {
-                    // Map to canonical (handles seam-split sub-groups)
-                    var firstEdgeId = merged.ConstituentEdges[0].Id;
-                    var canonical = edgeToCanonical.TryGetValue(firstEdgeId, out var c) ? c : merged;
-
-                    if (!ReferenceEquals(canonical, last))
-                        result.Add(canonical);
-
+                foreach (var netEdge in chain) {
+                    if (!edgeToCanonical.TryGetValue(netEdge.Id, out var canonical)) continue;
+                    if (ReferenceEquals(canonical, last)) continue;
+                    result.Add(canonical);
                     last = canonical;
                 }
 
