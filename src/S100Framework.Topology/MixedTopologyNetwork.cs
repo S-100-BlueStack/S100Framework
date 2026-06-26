@@ -561,10 +561,14 @@ namespace S100Framework.Topology.Internal
                 var segKey = k0.CompareTo(k1) < 0 ? (k0, k1) : (k1, k0);
                 if (!segSourceCount.TryGetValue(segKey, out int cnt)) continue;
                 // Shared (cnt > 1): union up to sharedRadius.
-                // Private (cnt == 1): only union at exactly _snapTolerance (1 ULP artefacts).
+                // Private (cnt == 1): union up to _dedupeRadius. All genuinely
+                // private short segments in real data are digitizing artefacts on
+                // data boundaries (back-and-forth micro-steps). Legitimate tiny ring
+                // features that need to remain distinct are always shared (cnt > 1)
+                // and are handled by the shared rule above.
                 bool shouldUnion = cnt > 1
                     ? d <= sharedRadius
-                    : d <= _snapTolerance;
+                    : d <= _dedupeRadius;
                 if (shouldUnion) Union(k0, k1);
             }
 
@@ -968,7 +972,11 @@ namespace S100Framework.Topology.Internal
             // Maps each NetworkEdge.Id -> the current largest canonical that contains it
             // (with a given SourceGeometryIds signature).
             // Key: (sorted-source-ids-string, network-edge-id)
-            var edgeIdToLargest = new Dictionary<(string srcSig, int edgeId), MergedEdge>();
+            // Key: (source-sig, producing-source-id, network-edge-id)
+            // Including producingSrcId ensures we only ever replace a canonical with a larger
+            // one from THE SAME producing source (ring-seam-split case). Cross-source
+            // replacement is blocked entirely.
+            var edgeIdToLargest = new Dictionary<(string srcSig, int producingSrcId, int edgeId), MergedEdge>();
 
             foreach (var src in _sources) {
                 foreach (var merged in GetMergedEdgeChainFor(src.Id)) {
@@ -978,30 +986,56 @@ namespace S100Framework.Topology.Internal
                     if (canonicalByKey.ContainsKey(key)) continue; // exact duplicate
 
                     // Check if any constituent edge of this merged group already belongs
-                    // to a LARGER canonical with the same source signature.
+                    // to a LARGER canonical with the same source signature, AND that larger
+                    // canonical contains ALL of this group's edges (true superset).
                     // If so, this merged group is a subset — skip it.
+                    // We require ALL edges to be present to avoid false matches where a
+                    // large canonical from a different source spans across a degree-4 node
+                    // that splits our source's path.
                     bool isSubset = false;
-                    MergedEdge? supersetCanonical = null;
                     foreach (var e in merged.ConstituentEdges) {
-                        if (edgeIdToLargest.TryGetValue((srcSig, e.Id), out var larger) &&
+                        if (edgeIdToLargest.TryGetValue((srcSig, src.Id, e.Id), out var larger) &&
                             larger.ConstituentEdges.Count > merged.ConstituentEdges.Count) {
-                            isSubset = true;
-                            supersetCanonical = larger;
-                            break;
+                            // Verify true superset: all our edges are in the larger canonical
+                            var largerIds = larger.ConstituentEdges.Select(x => x.Id).ToHashSet();
+                            if (merged.ConstituentEdges.All(x => largerIds.Contains(x.Id))) {
+                                isSubset = true;
+                                break;
+                            }
                         }
                     }
                     if (isSubset) continue;
 
                     // Check if any constituent edge belongs to a SMALLER canonical with
-                    // the same source signature — if so, replace the smaller one.
+                    // the same source signature — if so, replace it, but only if the
+                    // candidate smaller canonicals together account for ALL edges of this
+                    // larger canonical. If they only cover PART of it, the larger canonical
+                    // bridges across two separate runs from another source (which visited
+                    // those segs in two disconnected passes), so absorbing would destroy
+                    // that source's connectivity.
                     var toRemove = new HashSet<string>();
+                    var thisIds = merged.ConstituentEdges.Select(e => e.Id).ToHashSet();
+                    var candidatesToAbsorb = new Dictionary<string, MergedEdge>();
+                    var coveredBySmaller = new HashSet<int>();
                     foreach (var e in merged.ConstituentEdges) {
-                        if (edgeIdToLargest.TryGetValue((srcSig, e.Id), out var smaller) &&
+                        if (edgeIdToLargest.TryGetValue((srcSig, src.Id, e.Id), out var smaller) &&
                             smaller.ConstituentEdges.Count < merged.ConstituentEdges.Count) {
-                            var smallerKey = string.Join(",",
-                                smaller.ConstituentEdges.Select(x => x.Id).OrderBy(id => id));
-                            toRemove.Add(smallerKey);
+                            if (smaller.ConstituentEdges.All(x => thisIds.Contains(x.Id))) {
+                                var smallerKey = string.Join(",",
+                                    smaller.ConstituentEdges.Select(x => x.Id).OrderBy(id => id));
+                                if (candidatesToAbsorb.TryAdd(smallerKey, smaller))
+                                    foreach (var se in smaller.ConstituentEdges)
+                                        coveredBySmaller.Add(se.Id);
+                            }
                         }
+                    }
+                    // Only absorb when the candidates together tile the larger exactly:
+                    //   GOOD: src A makes one big canonical that fully covers segs from
+                    //         src B's many small consecutive pieces => coveredBySmaller == thisIds
+                    //   BAD:  src A's big canonical bridges a gap in src B's traversal,
+                    //         spanning two disconnected smaller pieces => partial coverage only
+                    if (candidatesToAbsorb.Count > 0 && coveredBySmaller.SetEquals(thisIds)) {
+                        toRemove.UnionWith(candidatesToAbsorb.Keys);
                     }
                     foreach (var rk in toRemove) {
                         if (canonicalByKey.TryGetValue(rk, out var removed)) {
@@ -1014,7 +1048,7 @@ namespace S100Framework.Topology.Internal
                     canonicalByKey[key] = merged;
                     allMergedEdges.Add(merged);
                     foreach (var e in merged.ConstituentEdges)
-                        edgeIdToLargest[(srcSig, e.Id)] = merged;
+                        edgeIdToLargest[(srcSig, src.Id, e.Id)] = merged;
                 }
             }
 
@@ -1049,18 +1083,29 @@ namespace S100Framework.Topology.Internal
                 var chain = GetFullEdgeChainFor(src.Id);
                 if (chain.Count == 0) { sourceEdges[src.Id] = new List<MergedEdge>(); continue; }
 
-                // Rotate ring chains so the seam falls on a canonical-group boundary.
+                // Build a source-local edgeToCanonical from this source's own merged groups.
+                // This ensures that large foreign canonicals (from other sources sharing some
+                // edges) do not displace this source's natural group boundaries — both for
+                // rotation and for the result list itself. Fall back to the global map for
+                // any edge not covered by this source's own walk.
+                var localEdgeToCanonical = new Dictionary<int, MergedEdge>();
+                foreach (var merged in GetMergedEdgeChainFor(src.Id))
+                    foreach (var e in merged.ConstituentEdges)
+                        if (!localEdgeToCanonical.ContainsKey(e.Id))
+                            localEdgeToCanonical[e.Id] = merged;
+
                 if (src.IsRing && chain.Count > 1)
-                    chain = RotateToGroupBoundary(chain, edgeToCanonical);
+                    chain = RotateToGroupBoundary(chain,
+                        localEdgeToCanonical.Count > 0 ? localEdgeToCanonical : edgeToCanonical);
 
                 var result = new List<MergedEdge>();
                 MergedEdge? last = null;
 
                 foreach (var netEdge in chain) {
-                    // Map to canonical. If this edge was never registered in Pass 1
-                    // (e.g. due to a walk gap), create a single-edge fallback so no
-                    // NetworkEdge is silently dropped from the source's edge list.
-                    if (!edgeToCanonical.TryGetValue(netEdge.Id, out var canonical)) {
+                    // Map to canonical: prefer this source's own canonical (local), falling
+                    // back to the global map so no NetworkEdge is silently dropped.
+                    if (!localEdgeToCanonical.TryGetValue(netEdge.Id, out var canonical) &&
+                        !edgeToCanonical.TryGetValue(netEdge.Id, out canonical)) {
                         canonical = new MergedEdge {
                             Geometry = _factory.CreateLineString(
                                                     new[] { netEdge.StartNode, netEdge.EndNode }),
@@ -1068,6 +1113,21 @@ namespace S100Framework.Topology.Internal
                             ConstituentEdges = new List<NetworkEdge> { netEdge },
                         };
                         edgeToCanonical[netEdge.Id] = canonical;
+                        allMergedEdges.Add(canonical);
+                    }
+                    // Safety check: the canonical must actually contain this NetworkEdge.
+                    // If edgeIdToLargest replacement produced a canonical from a different
+                    // part of the network (e.g. due to a shared split node), fall back to
+                    // a single-edge canonical scoped to this edge only.
+                    else if (!canonical.ConstituentEdges.Any(e => e.Id == netEdge.Id)) {
+                        canonical = new MergedEdge {
+                            Geometry = _factory.CreateLineString(
+                                                    new[] { netEdge.StartNode, netEdge.EndNode }),
+                            SourceGeometryIds = new HashSet<int>(netEdge.SourceGeometryIds),
+                            ConstituentEdges = new List<NetworkEdge> { netEdge },
+                        };
+                        // Don't update edgeToCanonical — the existing canonical may be
+                        // correct for other sources; only this source gets the fallback.
                         allMergedEdges.Add(canonical);
                     }
                     if (ReferenceEquals(canonical, last)) continue;

@@ -1,4 +1,4 @@
-﻿//#define SKIN_OF_THE_EARTH_ONLY
+﻿#define SKIN_OF_THE_EARTH_ONLY
 
 using ArcGIS.Core.Data;
 using ArcGIS.Core.SystemCore;
@@ -97,6 +97,7 @@ namespace ArcGIS.Core.Geometry
 
         //static readonly PrecisionModel precisionModel = new PrecisionModel(100000);
         static readonly PrecisionModel precisionModel = new PrecisionModel(1000000);
+        //static readonly PrecisionModel precisionModel = new PrecisionModel(10000000);
 
         static readonly GeometryFactory factory = new GeometryFactory(precisionModel, srid: 4326); // Or PrecisionModels.Floating        
 
@@ -428,6 +429,10 @@ namespace ArcGIS.Core.Geometry
                             var f = (Feature)cursor.Current;
 
                             if (lookup.Contains(f.GetObjectID())) continue;
+
+#if SKIN_OF_THE_EARTH_ONLY
+                            continue;
+#endif
 
                             var shape = (Polyline)f.GetShape();
 
