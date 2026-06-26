@@ -183,11 +183,10 @@ namespace S100FC.Topology
 //   that don't coincide with any network edge
              */
 
-
-            int[] error_Multipart = [];
-            int[] error_LinearRing = [];
             // TEST CreateLinearRing
-            {
+            if (System.Diagnostics.Debugger.IsAttached) {
+                int[] error_Multipart = [];
+                int[] error_LinearRing = [];
                 foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
                     var edges = sourceRefs[sourceId];
                     if (!edges.Any()) {
@@ -222,11 +221,12 @@ namespace S100FC.Topology
                             }
                         }
                     }
-                }
-            }
 
-            if (error_Multipart.Any() || error_LinearRing.Any()) {
-                System.Diagnostics.Debugger.Break();
+                }
+
+                if (error_Multipart.Any() || error_LinearRing.Any()) {
+                    System.Diagnostics.Debugger.Break();
+                }
             }
 
             int[] empty_sources = [];
@@ -345,7 +345,6 @@ namespace S100FC.Topology
 
                     sourceId2FeatureRef.Add(sourceId, hashGeometry);
                     if (this._featureMapperLineStrings.ContainsValue(sourceId)) {
-                        //var id = $"C{hashGeometry}";// e.Forward ? $"C{forward}" : $"RC{forward}";
                         this._mapping.Add(this._featureMapperLineStrings.Single(e => e.Value == sourceId).Key, id);
                     }
                 }
