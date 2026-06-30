@@ -1013,7 +1013,15 @@ namespace S100Framework.Topology.Internal
             if (edges.Count == 0) return Array.Empty<Coordinate>();
 
             double tol = _snapTolerance;
-            CoordinateKey Snap(Coordinate c) => new CoordinateKey(c, tol);
+            // Use Canonicalize (not just raw snapping) so that endpoints which have
+            // drifted slightly across many StitchChain concatenations still resolve
+            // to the SAME node. Without this, two genuinely-identical network nodes
+            // can end up with different CoordinateKeys after repeated coordinate
+            // copying through canonical-edge construction, splitting the adjacency
+            // graph into disconnected pieces and causing the Hierholzer walk to
+            // jump to an unrelated component when it runs out of edges at a
+            // falsely-isolated node.
+            CoordinateKey Snap(Coordinate c) => new CoordinateKey(Canonicalize(c), tol);
 
             // Build a linked-list adjacency map of directed half-edges.
             // Each undirected edge contributes two half-edges (forward and backward).
@@ -1084,6 +1092,27 @@ namespace S100Framework.Topology.Internal
                 // No unused edges from cur — pop and record the incoming segment
                 var (_, inSeg) = stack.Pop();
                 if (inSeg != null) path.AddFirst(inSeg);
+            }
+
+            // If any edges were never visited, the graph has more than one connected
+            // component under the current node-key equivalence. This happens when an
+            // edge's endpoint, even after Canonicalize, does not match any other
+            // edge's endpoint at that physical location — almost always because the
+            // two MergedEdges were built from canonicals whose StitchChain geometry
+            // was independently snapped/rounded and drifted apart by a tiny amount
+            // beyond _snapTolerance. Rather than silently producing a corrupted single
+            // path (which is what caused edges to appear stitched together when they
+            // are not topologically adjacent), append any leftover components as
+            // SEPARATE trailing segments in their original list order. This keeps the
+            // output deterministic and makes any remaining disconnection visible
+            // (the seam will show as a coordinate jump) instead of hiding it inside
+            // a single LineString that silently cuts across the ring.
+            if (used.Count < edges.Count) {
+                foreach (var e in edges) {
+                    if (used.Contains(e)) continue;
+                    used.Add(e);
+                    path.AddLast(e.Geometry.Coordinates);
+                }
             }
 
             if (path.Count == 0) return Array.Empty<Coordinate>();
