@@ -197,10 +197,10 @@ namespace S100FC.Topology
                         edges = edges[..^1];
 
 
-                    if (sourceId == 2653) {
-                        var ee = edges.Select(e => e.Geometry.ToText()).ToArray();
-                        System.Diagnostics.Debugger.Break();
-                    }
+                    //if (sourceId == 2653) {
+                    //    var ee = edges.Select(e => e.Geometry.ToText()).ToArray();
+                    //    System.Diagnostics.Debugger.Break();
+                    //}
 
                     if (edges.Count > 1) {
                         if (this._sourceLineType[sourceId] != LineType.Curve) {
@@ -230,6 +230,7 @@ namespace S100FC.Topology
             int[] empty_sources = [];
             foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
                 //if (sourceId == 27) System.Diagnostics.Debugger.Break();                
+                if (checks.Contains(sourceId)) System.Diagnostics.Debugger.Break();
 
                 var edges = sourceRefs[sourceId];
                 if (!edges.Any()) {
@@ -271,16 +272,22 @@ namespace S100FC.Topology
                             merged = (LinearRing)merged.Reverse();
                         }
                     }
+                    var merger = new LineMerger();
+                    merger.Add(merged);
+                    var mergedLineStrings = merger.GetMergedLineStrings();
+                    if (mergedLineStrings.Count > 1)
+                        throw new InvalidOperationException("Merged LineString can't be a multipart geometry!");
+                    merged = (LineString)mergedLineStrings[0];
 
                     var mergedText = merged.ToText();
 
-                    if (sourceId == 92) {
-                        var txt = edges.Select(e => e.Geometry.ToText()).ToArray();
+                    //if (sourceId == 92) {
+                    //    var txt = edges.Select(e => e.Geometry.ToText()).ToArray();
 
-                        this._interceptor?.Invoke(100, edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}")).ToArray());
-                        this._interceptor?.Invoke(100, [(merged,$"{merged.ToText()}")]);
-                        System.Diagnostics.Debugger.Break();
-                    }
+                    //    this._interceptor?.Invoke(100, edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}")).ToArray());
+                    //    this._interceptor?.Invoke(100, [(merged,$"{merged.ToText()}")]);
+                    //    System.Diagnostics.Debugger.Break();
+                    //}
 
                     var sortedlist = new SortedList<int, FeatureRef>();
 
@@ -435,11 +442,10 @@ namespace S100FC.Topology
             //checks = [93, 2336, 3088, 3590, 3628, 1584, 3040, 3683, 3732];
             //checks = [595];
             //checks = [7, 187, 383, 607, 622, 723, 742, 755, 772, 407, 718, 734, 758, 419, 782, 969, 888, 392, 701, 558, 1157, 586, 587, 602, 608, 1163, 1179, 908, 914, 915, 211, 365, 911, 769, 797, 850, 729, 736, 843, 961, 875, 998, 854, 757, 1164, 1171, 1174, 738, 609, 154, 118, 1165, 1177, 1172, 1175, 1178, 773, 180, 750, 416, 390, 754, 420, 385, 417, 716, 359, 362, 614, 424, 615, 896, 882, 740, 415, 418, 761, 374, 714, 405, 776, 753, 735, 400, 703, 422, 398, 715, 368, 395, 698, 382, 770, 376, 713, 421, 414, 707, 401, 375, 710, 397, 372, 721, 386, 495, 402, 455, 391, 442, 393, 460, 364, 1014, 520, 220, 423, 941, 440, 728, 360, 508, 1168, 110, 104, 143, 185, 141, 124, 77, 369, 123, 216, 756, 27, 215, 819, 730, 428, 412, 367, 704, 534, 403, 370, 699, 363, 805, 907, 411, 705, 358, 379, 695, 380, 806, 752, 749, 521, 1003, 446, 478, 67, 410, 413, 722, 371, 790, 473, 158, 171, 81, 186, 408, 533, 763, 766, 396, 388, 696, 399, 378, 717, 409, 406, 709];
-            //checks = [465];
+            checks = [1631];
 
             foreach (var surface in surfaces) {
-                //if (surface.UID.EndsWith("10800023700")) System.Diagnostics.Debugger.Break();
-                //if (surface.UID.EndsWith("F10800045684")) System.Diagnostics.Debugger.Break();
+                if (surface.UID.EndsWith("10400000684")) System.Diagnostics.Debugger.Break();                
 
                 if (System.Diagnostics.Debugger.IsAttached)
                     _geometries = [.. _geometries, surface.ExteriorRing];
