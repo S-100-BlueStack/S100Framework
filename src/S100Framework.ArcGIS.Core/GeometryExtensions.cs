@@ -1,4 +1,4 @@
-﻿#define SKIN_OF_THE_EARTH_ONLY
+﻿//#define SKIN_OF_THE_EARTH_ONLY
 
 using ArcGIS.Core.Data;
 using ArcGIS.Core.SystemCore;

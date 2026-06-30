@@ -58,9 +58,9 @@ namespace S100FC.Topology
 
         GeometryFactory IMatrixReloaded.Factory => Reloaded.Factory!;
 
-        ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, curves, true);
+        ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, []/*curves*/, true);
 
-        ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, curves, false);
+        ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, []/*curves*/, false);
 
         public GeometryPrecisionReducer Reducer => new GeometryPrecisionReducer(Factory!.PrecisionModel) {
             Pointwise = true,
@@ -196,30 +196,28 @@ namespace S100FC.Topology
                     if (edges.Count > 1 && edges[0].Geometry.Equals(edges[^1].Geometry))
                         edges = edges[..^1];
 
-                    var lineMerger = new LineMerger();
-                    foreach (var edge in edges) {
-                        lineMerger.Add(edge.Geometry);
-                    }
 
-                    var mergedLineStrings = lineMerger.GetMergedLineStrings();
-                    if (mergedLineStrings.Count > 1) {
-                        error_Multipart = [.. error_Multipart, sourceId];
-                        this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{sourceId} MultiPart: {e.Geometry.ToText()}"))]);
-                        continue;
+                    if (sourceId == 2653) {
+                        var ee = edges.Select(e => e.Geometry.ToText()).ToArray();
+                        System.Diagnostics.Debugger.Break();
                     }
-                    var merged = (LineString)mergedLineStrings[0];
 
                     if (edges.Count > 1) {
                         if (this._sourceLineType[sourceId] != LineType.Curve) {
-                            try {
-                                var linearRing = Reloaded.Factory!.CreateLinearRing(merged.Coordinates);
-                            }
-                            catch {
-                                error_LinearRing = [.. error_LinearRing, sourceId];
-                                this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{sourceId} LinearRing: {e.Geometry.ToText()}"))]);
-                                continue;
-                            }
+                            var merged = this._mixedTopologyNetwork.AssembleLinearRing(edges);
                         }
+                        //        var merged = MergeOrderedLineStrings(edges.Select(e => e.Geometry));
+
+                        //        if (this._sourceLineType[sourceId] != LineType.Curve) {
+                        //            try {
+                        //                var linearRing = Reloaded.Factory!.CreateLinearRing(merged.Coordinates);
+                        //            }
+                        //            catch (System.Exception ex) {
+                        //                error_LinearRing = [.. error_LinearRing, sourceId];
+                        //                this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{sourceId} LinearRing: {e.Geometry.ToText()}"))]);
+                        //                continue;                                
+                        //            }
+                        //        }
                     }
 
                 }
@@ -231,7 +229,7 @@ namespace S100FC.Topology
 
             int[] empty_sources = [];
             foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
-                //if (sourceId == 1211) System.Diagnostics.Debugger.Break();                
+                //if (sourceId == 27) System.Diagnostics.Debugger.Break();                
 
                 var edges = sourceRefs[sourceId];
                 if (!edges.Any()) {
@@ -249,10 +247,12 @@ namespace S100FC.Topology
                         System.Diagnostics.Debugger.Break();
                     }
 
-                    var merged = LineStringBuilder(edges);
+                    //var merged = LineStringBuilder(edges);
+                    var merged = this._mixedTopologyNetwork.AssembleLineString(edges);
 
                     if (this._sourceLineType[sourceId] != LineType.Curve) {
-                        var linearRing = Reloaded.Factory!.CreateLinearRing(merged.Coordinates);
+                        //var linearRing = Reloaded.Factory!.CreateLinearRing(merged.Coordinates);
+                        var linearRing = this._mixedTopologyNetwork.AssembleLinearRing(edges);
                         var isCCW = linearRing.IsCCW;
                         merged = linearRing;
 
@@ -274,8 +274,17 @@ namespace S100FC.Topology
 
                     var mergedText = merged.ToText();
 
+                    if (sourceId == 92) {
+                        var txt = edges.Select(e => e.Geometry.ToText()).ToArray();
+
+                        this._interceptor?.Invoke(100, edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}")).ToArray());
+                        this._interceptor?.Invoke(100, [(merged,$"{merged.ToText()}")]);
+                        System.Diagnostics.Debugger.Break();
+                    }
+
                     var sortedlist = new SortedList<int, FeatureRef>();
 
+                    int count = 0;
                     foreach (var e in edges) {
                         var hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(e.Geometry.AsBinary());
 
@@ -288,6 +297,7 @@ namespace S100FC.Topology
                             text = e.Geometry.Reverse().ToText().Substring("LINESTRING (".Length).TrimEnd(')');
                             sortedlist.Add(IndexOfSegment(mergedText, text), featureRefs[featureRefs2Reverse[hashGeometry]]);
                         }
+                        count += 1;
                     }
                     featureRefUsed = [.. featureRefUsed, .. sortedlist.Values.Select(e => e.Id)];
 
@@ -320,7 +330,8 @@ namespace S100FC.Topology
                             System.Diagnostics.Debugger.Break();
                         }
 
-                        var linearRing = Reloaded.Factory!.CreateLinearRing(this._curves[hashGeometry].LineString.Coordinates);
+                        //var linearRing = Reloaded.Factory!.CreateLinearRing(this._curves[hashGeometry].LineString.Coordinates);
+                        var linearRing = this._mixedTopologyNetwork.AssembleLinearRing(edges);
                         var isCCW = linearRing.IsCCW;
 
                         if (this._sourceLineType[sourceId] == LineType.Exterior) {
@@ -509,31 +520,129 @@ namespace S100FC.Topology
             throw new IndexOutOfRangeException();
         }
 
-        private LineString LineStringBuilder(IList<MergedEdge> edges) {
-            var lineMerger = new LineMerger();
-            foreach (var edge in edges) {
-                lineMerger.Add(edge.Geometry);
+        //private LineString LineStringBuilder(IList<MergedEdge> edges) {
+        //    var lineMerger = new LineMerger();
+        //    foreach (var edge in edges) {
+        //        lineMerger.Add(edge.Geometry);
+        //    }
+
+        //    var mergedLineStrings = lineMerger.GetMergedLineStrings();
+        //    if (mergedLineStrings.Count > 1)
+        //        throw new InvalidOperationException("Merged LineString can't be a multipart geometry!");
+        //    var merged = (LineString)mergedLineStrings[0];
+        //    return merged;
+
+        //    //Coordinate[] coords = [.. edges[0].Edge.Geometry.Coordinates];
+        //    //for (int i = 1; i < edges.Count; i++) {
+        //    //    var edge = edges.Single(e => e.Edge.Geometry.Coordinates[0].Equals2D(coords[^1]));
+        //    //    var index = edges.IndexOf(edge);
+
+        //    //    if (edge.Edge.Geometry.Coordinates[0].Equals2D(coords[^1]))
+        //    //        coords = [.. coords, .. edge.Edge.Geometry.Coordinates];
+        //    //    else {
+        //    //        if (!coords[^1].Equals2D(edge.Edge.Geometry.Coordinates[^1])) System.Diagnostics.Debugger.Break();
+        //    //        coords = [.. coords, .. edge.Edge.Geometry.Coordinates.Reverse()];
+        //    //    }
+        //    //}
+        //    //return Reloaded.Factory!.CreateLineString(coords);
+        //}
+
+        public LineString MergeOrderedLineStrings(IEnumerable<LineString> lines) {
+            var segments = lines.ToList();
+
+            // Build adjacency: map from endpoint coordinate to (segmentIndex, isReversed)
+            // We'll find the correct traversal order via graph walk
+
+            bool CoordEquals(Coordinate a, Coordinate b) => a.Equals2D(b);
+            //a.Distance(b) <= Reloaded.Factory!.PrecisionModel.GridSize;
+
+            // Find a start segment: one whose start point is not 
+            // the end point of any other segment (i.e. a dangling start)
+            // Collect all start and end points
+            var allStarts = segments.Select(s => s.StartPoint.Coordinate).ToList();
+            var allEnds = segments.Select(s => s.EndPoint.Coordinate).ToList();
+
+            // A true start is an endpoint that appears as a start (or end if reversed)
+            // but not as the end of another segment — try each candidate
+            int FindStartSegment(out bool reversed) {
+                for (int i = 0; i < segments.Count; i++) {
+                    var start = segments[i].StartPoint.Coordinate;
+                    var end = segments[i].EndPoint.Coordinate;
+
+                    bool startIsConnectedTo = allEnds
+                        .Where((_, j) => j != i)
+                        .Any(e => CoordEquals(e, start));
+                    bool startIsConnectedFrom = allStarts
+                        .Where((_, j) => j != i)
+                        .Any(s => CoordEquals(s, start));
+
+                    bool endIsConnectedTo = allEnds
+                        .Where((_, j) => j != i)
+                        .Any(e => CoordEquals(e, end));
+                    bool endIsConnectedFrom = allStarts
+                        .Where((_, j) => j != i)
+                        .Any(s => CoordEquals(s, end));
+
+                    // A dangling start: this end is not the destination of any other segment
+                    if (!startIsConnectedTo && !startIsConnectedFrom) {
+                        reversed = false;
+                        return i;
+                    }
+                    if (!endIsConnectedTo && !endIsConnectedFrom) {
+                        reversed = true;
+                        return i;
+                    }
+                }
+                // Closed ring — just pick first segment unreversed
+                reversed = false;
+                return 0;
             }
 
-            var mergedLineStrings = lineMerger.GetMergedLineStrings();
-            if (mergedLineStrings.Count > 1)
-                throw new InvalidOperationException("Merged LineString can't be a multipart geometry!");
-            var merged = (LineString)mergedLineStrings[0];
-            return merged;
+            var used = new bool[segments.Count];
+            var orderedCoords = new List<Coordinate>();
 
-            //Coordinate[] coords = [.. edges[0].Edge.Geometry.Coordinates];
-            //for (int i = 1; i < edges.Count; i++) {
-            //    var edge = edges.Single(e => e.Edge.Geometry.Coordinates[0].Equals2D(coords[^1]));
-            //    var index = edges.IndexOf(edge);
+            bool startReversed;
+            int startIdx = FindStartSegment(out startReversed);
 
-            //    if (edge.Edge.Geometry.Coordinates[0].Equals2D(coords[^1]))
-            //        coords = [.. coords, .. edge.Edge.Geometry.Coordinates];
-            //    else {
-            //        if (!coords[^1].Equals2D(edge.Edge.Geometry.Coordinates[^1])) System.Diagnostics.Debugger.Break();
-            //        coords = [.. coords, .. edge.Edge.Geometry.Coordinates.Reverse()];
-            //    }
-            //}
-            //return Reloaded.Factory!.CreateLineString(coords);
+            var firstSeg = segments[startIdx];
+            var firstCoords = startReversed
+                ? firstSeg.Coordinates.Reverse().ToArray()
+                : firstSeg.Coordinates;
+            orderedCoords.AddRange(firstCoords);
+            used[startIdx] = true;
+
+            // Walk: repeatedly find the next unused segment that connects to current tail
+            for (int step = 1; step < segments.Count; step++) {
+                var tail = orderedCoords[^1];
+                bool found = false;
+
+                for (int i = 0; i < segments.Count; i++) {
+                    if (used[i]) continue;
+
+                    var segStart = segments[i].StartPoint.Coordinate;
+                    var segEnd = segments[i].EndPoint.Coordinate;
+
+                    if (CoordEquals(tail, segStart)) {
+                        orderedCoords.AddRange(segments[i].Coordinates.Skip(1));
+                        used[i] = true;
+                        found = true;
+                        break;
+                    }
+                    if (CoordEquals(tail, segEnd)) {
+                        orderedCoords.AddRange(segments[i].Coordinates.Reverse().Skip(1));
+                        used[i] = true;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                    throw new InvalidOperationException(
+                        $"No connecting segment found at step {step}. " +
+                        $"Tail coordinate: {orderedCoords[^1]}");
+            }
+
+            return Reloaded.Factory!.CreateLineString(orderedCoords.ToArray());
         }
     }
 }
