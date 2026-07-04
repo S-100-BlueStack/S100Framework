@@ -706,6 +706,21 @@ namespace S100Framework.Topology.Internal
                 else { result.Add(BuildMergedEdge(current)); current = new List<NetworkEdge> { chain[i] }; }
             }
             if (current.Count > 0) result.Add(BuildMergedEdge(current));
+
+            // For ring sources, WalkChain seeds from a raw vertex which may sit in the
+            // middle of a canonical group. This causes the first and last groups in the
+            // result to be fragments of the same canonical run (same SourceGeometryIds)
+            // separated by the ring wrap-around. Detect and merge them so each canonical
+            // group appears as one continuous MergedEdge, regardless of where the seed fell.
+            var src = _sources[sourceId];
+            if (src.IsRing && result.Count >= 2 &&
+                result[0].SourceGeometryIds.SetEquals(result[^1].SourceGeometryIds)) {
+                var merged = result[^1].ConstituentEdges.Concat(result[0].ConstituentEdges).ToList();
+                var stitched = BuildMergedEdge(merged);
+                result[^1] = stitched;
+                result.RemoveAt(0);
+            }
+
             return result;
         }
 
