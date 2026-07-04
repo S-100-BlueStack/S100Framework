@@ -811,9 +811,16 @@ namespace S100Framework.Topology.Internal
                     Coordinate? rotationNode = null;
                     var mergedChain = GetMergedEdgeChainFor(src.Id).ToList();
                     if (mergedChain.Count > 1) {
-                        var firstEdge = mergedChain[0].ConstituentEdges.Last();
-                        rotationNode = firstEdge.EndNode.Equals2D(mergedChain[1].ConstituentEdges.First().StartNode)
-                            ? firstEdge.EndNode : firstEdge.StartNode;
+                        // Find the shared endpoint between the last NetworkEdge of mergedChain[0]
+                        // and the first NetworkEdge of mergedChain[1]. We cannot assume canonical
+                        // edge direction matches the source traversal direction, so we compare all
+                        // four endpoint combinations to find the one coordinate in common.
+                        var e0 = mergedChain[0].ConstituentEdges.Last();
+                        var e1 = mergedChain[1].ConstituentEdges.First();
+                        if (e0.EndNode.Equals2D(e1.StartNode) || e0.EndNode.Equals2D(e1.EndNode))
+                            rotationNode = e0.EndNode;
+                        else if (e0.StartNode.Equals2D(e1.StartNode) || e0.StartNode.Equals2D(e1.EndNode))
+                            rotationNode = e0.StartNode;
                     }
                     chain = RotateToNode(chain, rotationNode);
                 }
@@ -930,8 +937,22 @@ namespace S100Framework.Topology.Internal
 
         private List<NetworkEdge> RotateToNode(List<NetworkEdge> chain, Coordinate? targetNode) {
             if (targetNode == null) return chain;
+            // We want the first position i where targetNode is the NODE BETWEEN chain[i-1]
+            // and chain[i] — i.e. where the path arrives at targetNode from chain[i-1] and
+            // then DEPARTS via chain[i]. We detect this by checking that targetNode matches
+            // whichever endpoint of chain[i] faces the incoming direction from chain[i-1].
             for (int i = 1; i < chain.Count; i++) {
-                if (chain[i].StartNode.Equals2D(targetNode) || chain[i].EndNode.Equals2D(targetNode)) {
+                var prev = chain[i - 1];
+                var curr = chain[i];
+                // Determine which endpoint of prev is the "exit" node
+                // (the node shared with curr)
+                Coordinate prevExit;
+                if (curr.StartNode.Equals2D(prev.StartNode) || curr.EndNode.Equals2D(prev.StartNode))
+                    prevExit = prev.StartNode;
+                else
+                    prevExit = prev.EndNode;
+
+                if (prevExit.Equals2D(targetNode)) {
                     var rotated = new List<NetworkEdge>(chain.Count);
                     rotated.AddRange(chain.Skip(i));
                     rotated.AddRange(chain.Take(i));
@@ -976,28 +997,29 @@ namespace S100Framework.Topology.Internal
         }
 
         // -------------------------------------------------------------------
-        // Robust assembly — Hierholzer's Eulerian path/circuit algorithm
+        // Robust assembly — sequential ordered walk
         // -------------------------------------------------------------------
 
         /// <summary>
         /// Assembles a <see cref="LinearRing"/> from an unordered list of <see cref="MergedEdge"/>
-        /// objects using Hierholzer's Eulerian-circuit algorithm. Correctly handles all topologies
-        /// including cases where greedy traversal would get stuck (e.g. a "figure-8" junction or
-        /// a node shared by edges traversed in opposite directions).
+        /// objects. The edge list from BuildEdgeIndex is already in traversal order;
+        /// this method orients each edge (forward or backward) by matching endpoints.
         /// </summary>
         public LinearRing AssembleLinearRing(List<MergedEdge> edges) {
-            var (coords, _) = AssembleOrderedEdges(edges, isRing: true);
+            var start = edges.Count > 0 ? edges[0].Geometry.Coordinates[0] : null;
+            var (coords, _) = AssembleOrderedEdges(edges, isRing: true, startCoord: start);
             if (coords.Length == 0) return _factory.CreateLinearRing(Array.Empty<Coordinate>());
             return _factory.CreateLinearRing(coords);
         }
 
         /// <summary>
         /// Assembles a <see cref="LineString"/> from an unordered list of <see cref="MergedEdge"/>
-        /// objects using Hierholzer's Eulerian-path algorithm. Starts from a degree-1 endpoint when
-        /// one exists (open path), otherwise from any node (closed path).
+        /// objects. The edge list from BuildEdgeIndex is already in traversal order;
+        /// this method orients each edge (forward or backward) by matching endpoints.
         /// </summary>
         public LineString AssembleLineString(List<MergedEdge> edges) {
-            var (coords, _) = AssembleOrderedEdges(edges, isRing: false);
+            var start = edges.Count > 0 ? edges[0].Geometry.Coordinates[0] : null;
+            var (coords, _) = AssembleOrderedEdges(edges, isRing: false, startCoord: start);
             if (coords.Length == 0) return _factory.CreateLineString(Array.Empty<Coordinate>());
             return _factory.CreateLineString(coords);
         }
@@ -1013,7 +1035,8 @@ namespace S100Framework.Topology.Internal
         /// coordinates returned by <see cref="AssembleLineString"/>.
         /// </summary>
         public List<EdgeReference> AssembleEdgeOrderForLineString(List<MergedEdge> edges) {
-            var (_, refs) = AssembleOrderedEdges(edges, isRing: false);
+            var start = edges.Count > 0 ? edges[0].Geometry.Coordinates[0] : null;
+            var (_, refs) = AssembleOrderedEdges(edges, isRing: false, startCoord: start);
             return refs;
         }
 
@@ -1023,144 +1046,91 @@ namespace S100Framework.Topology.Internal
         /// <see cref="AssembleEdgeOrderForLineString"/> for details on the returned references.
         /// </summary>
         public List<EdgeReference> AssembleEdgeOrderForLinearRing(List<MergedEdge> edges) {
-            var (_, refs) = AssembleOrderedEdges(edges, isRing: true);
+            var start = edges.Count > 0 ? edges[0].Geometry.Coordinates[0] : null;
+            var (_, refs) = AssembleOrderedEdges(edges, isRing: true, startCoord: start);
             return refs;
         }
 
         /// <summary>
-        /// Core Hierholzer implementation shared by <see cref="AssembleLinearRing"/>,
-        /// <see cref="AssembleLineString"/>, and their edge-order counterparts. Builds a
-        /// half-edge adjacency map keyed by snapped <see cref="CoordinateKey"/>, selects the
-        /// best start node, then performs the stack-based Hierholzer walk that backtracks
-        /// whenever the current node has no more unused edges, guaranteeing all edges are
-        /// visited regardless of local topology. Returns both the concatenated coordinate
-        /// array and the ordered/oriented <see cref="EdgeReference"/> list in one pass, so the
-        /// two outputs can never disagree with each other.
+        /// <summary>
+        /// Assembles an ordered, oriented sequence of <see cref="EdgeReference"/> objects and
+        /// their concatenated coordinates from a list of <see cref="MergedEdge"/> objects.
+        ///
+        /// The <paramref name="edges"/> list from <see cref="BuildEdgeIndex"/> is already in
+        /// the correct traversal order for the source geometry. This method walks that list
+        /// sequentially: for each edge it determines whether to traverse forward or backward
+        /// by matching the current path endpoint against the edge's two geometry endpoints.
+        /// This is O(n) and always produces the correct order regardless of graph topology.
         /// </summary>
         private (Coordinate[] Coords, List<EdgeReference> Refs) AssembleOrderedEdges(
-            List<MergedEdge> edges, bool isRing) {
+            List<MergedEdge> edges, bool isRing, Coordinate? startCoord = null) {
 
             if (edges.Count == 0) return (Array.Empty<Coordinate>(), new List<EdgeReference>());
 
             double tol = _snapTolerance;
-            // Use Canonicalize (not just raw snapping) so that endpoints which have
-            // drifted slightly across many StitchChain concatenations still resolve
-            // to the SAME node. Without this, two genuinely-identical network nodes
-            // can end up with different CoordinateKeys after repeated coordinate
-            // copying through canonical-edge construction, splitting the adjacency
-            // graph into disconnected pieces and causing the Hierholzer walk to
-            // jump to an unrelated component when it runs out of edges at a
-            // falsely-isolated node.
             CoordinateKey Snap(Coordinate c) => new CoordinateKey(Canonicalize(c), tol);
 
-            // Build a linked-list adjacency map of directed half-edges.
-            // Each undirected edge contributes two half-edges (forward and backward).
-            var adj = new Dictionary<CoordinateKey,
-                          LinkedList<(MergedEdge edge, bool forward)>>();
+            var result = new List<Coordinate>();
+            var refs = new List<EdgeReference>(edges.Count);
+            Coordinate? pathEnd = null;
 
-            void AddHalf(CoordinateKey k, MergedEdge e, bool fwd) {
-                if (!adj.TryGetValue(k, out var lst))
-                    adj[k] = lst = new LinkedList<(MergedEdge, bool)>();
-                lst.AddLast((e, fwd));
-            }
-
-            foreach (var e in edges) {
-                var cs = e.Geometry.Coordinates;
+            for (int ei = 0; ei < edges.Count; ei++) {
+                var edge = edges[ei];
+                var cs = edge.Geometry.Coordinates;
                 var kS = Snap(cs[0]);
                 var kE = Snap(cs[^1]);
-                if (kS.Equals(kE)) {        // self-loop
-                    AddHalf(kS, e, true);
+
+                bool fwd;
+                if (pathEnd == null) {
+                    // First edge: use startCoord hint, or look ahead to the next edge
+                    // to determine which end connects forward.
+                    if (startCoord != null && Snap(startCoord).Equals(kE) && !Snap(startCoord).Equals(kS)) {
+                        fwd = false;
+                    }
+                    else if (ei + 1 < edges.Count) {
+                        var nextCs = edges[ei + 1].Geometry.Coordinates;
+                        var nkS = Snap(nextCs[0]);
+                        var nkE = Snap(nextCs[^1]);
+                        // If our EndNode connects to either endpoint of the next edge, go forward.
+                        // If our StartNode connects instead, go backward.
+                        if (nkS.Equals(kE) || nkE.Equals(kE)) fwd = true;
+                        else if (nkS.Equals(kS) || nkE.Equals(kS)) fwd = false;
+                        else fwd = true;
+                    }
+                    else {
+                        fwd = true;
+                    }
                 }
                 else {
-                    AddHalf(kS, e, true);   // forward  traversal starting from kS
-                    AddHalf(kE, e, false);  // backward traversal starting from kE
-                }
-            }
-
-            // For an open linestring prefer a degree-1 node (odd half-edge count) as start.
-            // For a ring any node works; pick the first one found.
-            CoordinateKey startKey = adj.Keys.First();
-            if (!isRing) {
-                foreach (var kv in adj) {
-                    if (kv.Value.Count % 2 == 1) { startKey = kv.Key; break; }
-                }
-            }
-
-            // Hierholzer's algorithm:
-            //   Push (startNode, null) onto the stack.
-            //   While the stack is non-empty:
-            //     If the top node has an unused outgoing half-edge, consume it and push the next node.
-            //     Otherwise pop and prepend the incoming step to the result path.
-            // Each "step" carries both the oriented coordinate array AND the (edge, forward)
-            // pair that produced it, so the coordinate path and the edge-reference list are
-            // built from exactly the same walk and can never diverge from each other.
-            var used = new HashSet<MergedEdge>(ReferenceEqualityComparer.Instance);
-            var stack = new Stack<(CoordinateKey node, (Coordinate[] cs, MergedEdge edge, bool fwd)? step)>();
-            var path = new LinkedList<(Coordinate[] cs, MergedEdge edge, bool fwd)>();
-
-            stack.Push((startKey, null));
-
-            while (stack.Count > 0) {
-                var (cur, _) = stack.Peek();
-
-                if (adj.TryGetValue(cur, out var halfEdges)) {
-                    LinkedListNode<(MergedEdge edge, bool forward)>? next = null;
-                    for (var n = halfEdges.First; n != null; n = n.Next) {
-                        if (!used.Contains(n.Value.edge)) { next = n; break; }
-                    }
-
-                    if (next != null) {
-                        var (edge, fwd) = next.Value;
-                        used.Add(edge);
-
-                        var cs = edge.Geometry.Coordinates;
-                        if (!fwd) cs = cs.Reverse().ToArray();
-
-                        var kE = fwd ? Snap(cs[^1]) : Snap(cs[0]);
-                        stack.Push((kE, (cs, edge, fwd)));
-                        continue;
+                    var kPrev = Snap(pathEnd);
+                    if (kPrev.Equals(kS)) fwd = true;
+                    else if (kPrev.Equals(kE)) fwd = false;
+                    else {
+                        // pathEnd matches neither endpoint — the MergedEdge geometry was
+                        // built in canonical (lexicographic) direction which may differ from
+                        // the source traversal direction. Look ahead to the next edge to
+                        // determine which end of this edge faces forward.
+                        if (ei + 1 < edges.Count) {
+                            var nextCs = edges[ei + 1].Geometry.Coordinates;
+                            var nkS = Snap(nextCs[0]);
+                            var nkE = Snap(nextCs[^1]);
+                            if (nkS.Equals(kE) || nkE.Equals(kE)) fwd = true;
+                            else if (nkS.Equals(kS) || nkE.Equals(kS)) fwd = false;
+                            else fwd = true;
+                        }
+                        else {
+                            fwd = true;
+                        }
                     }
                 }
 
-                // No unused edges from cur — pop and record the incoming step
-                var (_, inStep) = stack.Pop();
-                if (inStep != null) path.AddFirst(inStep.Value);
-            }
-
-            // If any edges were never visited, the graph has more than one connected
-            // component under the current node-key equivalence. This happens when an
-            // edge's endpoint, even after Canonicalize, does not match any other
-            // edge's endpoint at that physical location — almost always because the
-            // two MergedEdges were built from canonicals whose StitchChain geometry
-            // was independently snapped/rounded and drifted apart by a tiny amount
-            // beyond _snapTolerance. Rather than silently producing a corrupted single
-            // path (which is what caused edges to appear stitched together when they
-            // are not topologically adjacent), append any leftover components as
-            // SEPARATE trailing segments in their original list order, traversed
-            // forward. This keeps the output deterministic and makes any remaining
-            // disconnection visible (the seam will show as a coordinate jump) instead
-            // of hiding it inside a single LineString that silently cuts across the ring.
-            if (used.Count < edges.Count) {
-                foreach (var e in edges) {
-                    if (used.Contains(e)) continue;
-                    used.Add(e);
-                    path.AddLast((e.Geometry.Coordinates, e, true));
-                }
-            }
-
-            if (path.Count == 0) return (Array.Empty<Coordinate>(), new List<EdgeReference>());
-
-            // Concatenate segments, dropping duplicate junction coordinates, and build the
-            // parallel EdgeReference list from the exact same walk.
-            var result = new List<Coordinate>();
-            var refs = new List<EdgeReference>(path.Count);
-            foreach (var (cs, edge, fwd) in path) {
-                int skip = result.Count > 0 && result[^1].Equals2D(cs[0]) ? 1 : 0;
-                result.AddRange(cs.Skip(skip));
+                var oriented = fwd ? cs : cs.Reverse().ToArray();
+                int skip = result.Count > 0 && result[^1].Equals2D(oriented[0]) ? 1 : 0;
+                result.AddRange(oriented.Skip(skip));
                 refs.Add(new EdgeReference { Edge = edge, Forward = fwd });
+                pathEnd = oriented[^1];
             }
 
-            // Force-close for rings
             if (isRing && result.Count > 1 && !result[0].Equals2D(result[^1]))
                 result.Add(new Coordinate(result[0].X, result[0].Y));
 
