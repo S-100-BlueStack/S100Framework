@@ -463,12 +463,12 @@ namespace S100FC.Topology
 
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
-                //if (surface.UID.EndsWith("10800023700")) {
-                //    checks = [.. checks, idExteriorRing];
-                //}
-                //if (surface.UID.EndsWith("10800045684")) {
-                //    checks = [.. checks, idExteriorRing];
-                //}
+                if (surface.UID.EndsWith("10800027198")) {
+                    checks = [.. checks, idExteriorRing];
+                }
+                if (surface.UID.EndsWith("10400030449")) {
+                    checks = [.. checks, idExteriorRing];
+                }
 
                 this._sourceLineType.Add(idExteriorRing, LineType.Exterior);
 
