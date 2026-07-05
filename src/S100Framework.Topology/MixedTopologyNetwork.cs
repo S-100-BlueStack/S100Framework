@@ -701,7 +701,29 @@ namespace S100Framework.Topology.Internal
             var current = new List<NetworkEdge> { chain[0] };
 
             for (int i = 1; i < chain.Count; i++) {
-                if (chain[i].SourceGeometryIds.SetEquals(current[^1].SourceGeometryIds))
+                bool sameSig = chain[i].SourceGeometryIds.SetEquals(current[^1].SourceGeometryIds);
+
+                // A canonical group must also break at any junction node with network
+                // degree >= 3, even when the source signature is unchanged. A degree-3+
+                // node is a genuine topological junction: some other path departs there,
+                // and canonicals from sources using that third branch reference the
+                // junction as an edge endpoint. If we let a group span through it, this
+                // source's canonical overlaps the junction and cannot be aligned with
+                // the canonicals of the other sources meeting at that node.
+                bool junctionOk = true;
+                if (sameSig) {
+                    var prev = current[^1];
+                    var curr = chain[i];
+                    Coordinate junction;
+                    if (curr.StartNode.Equals2D(prev.StartNode) || curr.EndNode.Equals2D(prev.StartNode))
+                        junction = prev.StartNode;
+                    else
+                        junction = prev.EndNode;
+                    var node = GetNode(junction);
+                    if (node != null && node.Degree > 2) junctionOk = false;
+                }
+
+                if (sameSig && junctionOk)
                     current.Add(chain[i]);
                 else { result.Add(BuildMergedEdge(current)); current = new List<NetworkEdge> { chain[i] }; }
             }
@@ -712,13 +734,31 @@ namespace S100Framework.Topology.Internal
             // result to be fragments of the same canonical run (same SourceGeometryIds)
             // separated by the ring wrap-around. Detect and merge them so each canonical
             // group appears as one continuous MergedEdge, regardless of where the seed fell.
+            // Conditions: same signature, the fragments actually share an endpoint, and
+            // the junction between them is NOT a degree-3+ node (same rule as above).
             var src = _sources[sourceId];
             if (src.IsRing && result.Count >= 2 &&
                 result[0].SourceGeometryIds.SetEquals(result[^1].SourceGeometryIds)) {
-                var merged = result[^1].ConstituentEdges.Concat(result[0].ConstituentEdges).ToList();
-                var stitched = BuildMergedEdge(merged);
-                result[^1] = stitched;
-                result.RemoveAt(0);
+                var eL = result[^1].ConstituentEdges.Last();
+                var eF = result[0].ConstituentEdges.First();
+                Coordinate? junction = null;
+                if (eL.EndNode.Equals2D(eF.StartNode) || eL.EndNode.Equals2D(eF.EndNode))
+                    junction = eL.EndNode;
+                else if (eL.StartNode.Equals2D(eF.StartNode) || eL.StartNode.Equals2D(eF.EndNode))
+                    junction = eL.StartNode;
+
+                bool degreeOk = true;
+                if (junction != null) {
+                    var node = GetNode(junction);
+                    if (node != null && node.Degree > 2) degreeOk = false;
+                }
+
+                if (junction != null && degreeOk) {
+                    var merged = result[^1].ConstituentEdges.Concat(result[0].ConstituentEdges).ToList();
+                    var stitched = BuildMergedEdge(merged);
+                    result[^1] = stitched;
+                    result.RemoveAt(0);
+                }
             }
 
             return result;
@@ -1084,6 +1124,48 @@ namespace S100Framework.Topology.Internal
 
             double tol = _snapTolerance;
             CoordinateKey Snap(Coordinate c) => new CoordinateKey(Canonicalize(c), tol);
+
+            // For rings only: prune dangles. A dangle is an edge chain that sticks out
+            // of the ring and comes straight back (e.g. a source doubling back over a
+            // tiny spur). In a valid ring every node has degree 2 within the edge set;
+            // a dangle tip has degree 1. Iteratively remove edges with a degree-1
+            // endpoint until none remain — this peels multi-edge dangle chains too.
+            // Open linestrings are NOT pruned: their two path endpoints are degree-1
+            // by definition.
+            if (isRing && edges.Count > 1) {
+                var degree = new Dictionary<CoordinateKey, int>();
+                void Bump(CoordinateKey k, int d) {
+                    degree.TryGetValue(k, out var v);
+                    degree[k] = v + d;
+                }
+                foreach (var e in edges) {
+                    var cs = e.Geometry.Coordinates;
+                    Bump(Snap(cs[0]), 1);
+                    Bump(Snap(cs[^1]), 1);
+                }
+
+                var pruned = new List<MergedEdge>(edges);
+                bool removedAny = true;
+                while (removedAny && pruned.Count > 1) {
+                    removedAny = false;
+                    for (int i = pruned.Count - 1; i >= 0; i--) {
+                        var cs = pruned[i].Geometry.Coordinates;
+                        var kS = Snap(cs[0]);
+                        var kE = Snap(cs[^1]);
+                        // Self-loops (kS==kE) are never dangles.
+                        if (kS.Equals(kE)) continue;
+                        if (degree[kS] == 1 || degree[kE] == 1) {
+                            Bump(kS, -1);
+                            Bump(kE, -1);
+                            pruned.RemoveAt(i);
+                            removedAny = true;
+                        }
+                    }
+                }
+                edges = pruned;
+                if (edges.Count == 0)
+                    return (Array.Empty<Coordinate>(), new List<EdgeReference>());
+            }
 
             var result = new List<Coordinate>();
             var refs = new List<EdgeReference>(edges.Count);
