@@ -96,8 +96,8 @@ namespace ArcGIS.Core.Geometry
         static readonly SpatialReference spatialReference = SpatialReferenceBuilder.CreateSpatialReference(4326);
 
         //static readonly PrecisionModel precisionModel = new PrecisionModel(100000);
-        static readonly PrecisionModel precisionModel = new PrecisionModel(1000000);
-        //static readonly PrecisionModel precisionModel = new PrecisionModel(10000000);
+        //static readonly PrecisionModel precisionModel = new PrecisionModel(1000000);
+        static readonly PrecisionModel precisionModel = new PrecisionModel(10000000);
 
         static readonly GeometryFactory factory = new GeometryFactory(precisionModel, srid: 4326); // Or PrecisionModels.Floating        
 

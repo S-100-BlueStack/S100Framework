@@ -241,7 +241,7 @@ namespace S100FC.Topology
 
             (MergedEdge[] edges, ulong hashGeometry)[] dictionaryEdges = [];
 
-            (ulong id, HashSet<ulong> hashset)[] dictionaryCompositeCurves = [];
+            (ulong id, HashSet<ulong> hashset, List<MergedEdge> edges)[] dictionaryCompositeCurves = [];
 
             int[] empty_sources = [];
             foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
@@ -257,28 +257,28 @@ namespace S100FC.Topology
                     edges = edges[..^1];
 
                 if (edges.Count > 1) {
-                    bool reverse = false;
+                    //bool reverse = false;
 
-                    if (this._sourceLineType[sourceId] != LineType.Curve) {
-                        var linearRing = this._mixedTopologyNetwork.AssembleLinearRing(edges);
-                        var isCCW = linearRing.IsCCW;
+                    //if (this._sourceLineType[sourceId] != LineType.Curve) {
+                    //    var linearRing = this._mixedTopologyNetwork.AssembleLinearRing(edges);
+                    //    var isCCW = linearRing.IsCCW;
 
-                        if (this._sourceLineType[sourceId] == LineType.Exterior) {
-                            if (isCCW) {
-                                reverse = true;
-                            }
-                        }
-                        else if (!isCCW) {
-                            reverse = true;
-                        }
-                    }
-                    else {
-                        var merged = this._mixedTopologyNetwork.AssembleLineString(edges);
-                        var slope = merged.Slope();
-                        if (Math.Sign(this._sourceSlope[sourceId]) != Math.Sign(slope)) {
-                            reverse = true;
-                        }
-                    }
+                    //    if (this._sourceLineType[sourceId] == LineType.Exterior) {
+                    //        if (isCCW) {
+                    //            reverse = true;
+                    //        }
+                    //    }
+                    //    else if (!isCCW) {
+                    //        reverse = true;
+                    //    }
+                    //}
+                    //else {
+                    //    var merged = this._mixedTopologyNetwork.AssembleLineString(edges);
+                    //    var slope = merged.Slope();
+                    //    if (Math.Sign(this._sourceSlope[sourceId]) != Math.Sign(slope)) {
+                    //        reverse = true;
+                    //    }
+                    //}
 
                     var sortedlist = new SortedList<int, FeatureRef>();
 
@@ -324,16 +324,44 @@ namespace S100FC.Topology
                     }
                     else {
                         var _compositeCurve = new CompositeCurveFeature([.. sortedlist.Values]);
-                        dictionaryCompositeCurves = [.. dictionaryCompositeCurves, (_compositeCurve.Id, hasset)];
+                        dictionaryCompositeCurves = [.. dictionaryCompositeCurves, (_compositeCurve.Id, hasset, edges)];
 
                         this._compositecurves.Add(_compositeCurve.Id, _compositeCurve);
 
                         featureRefs.Add(_compositeCurve.Id, new FeatureRef {
                             Id = _compositeCurve.Id,
-                            Reverse = reverse,
+                            Reverse = false,
                         });
+                        featureRefs.Add(_compositeCurve.Reverse, new FeatureRef {
+                            Id = _compositeCurve.Id,
+                            Reverse = true,
+                        });
+                        featureRefs2Reverse.Add(_compositeCurve.Id, _compositeCurve.Reverse);
+                        featureRefs2Reverse.Add(_compositeCurve.Reverse, _compositeCurve.Id);
 
                         compositeCurveId = _compositeCurve.Id;
+                    }
+
+
+                    if (this._sourceLineType[sourceId] != LineType.Curve) {
+                        var linearRing = this._mixedTopologyNetwork.AssembleLinearRing(dictionaryCompositeCurves.Single(e=>e.id==compositeCurveId).edges);
+                        var isCCW = linearRing.IsCCW;
+
+                        if (this._sourceLineType[sourceId] == LineType.Exterior) {
+                            if (isCCW) {
+                                compositeCurveId = featureRefs2Reverse[compositeCurveId];
+                            }
+                        }
+                        else if (!isCCW) {
+                            compositeCurveId = featureRefs2Reverse[compositeCurveId];
+                        }
+                    }
+                    else {
+                        var merged = this._mixedTopologyNetwork.AssembleLineString(dictionaryCompositeCurves.Single(e => e.id == compositeCurveId).edges);
+                        var slope = merged.Slope();
+                        if (Math.Sign(this._sourceSlope[sourceId]) != Math.Sign(slope)) {
+                            compositeCurveId = featureRefs2Reverse[compositeCurveId];
+                        }
                     }
 
                     sourceId2FeatureRef.Add(sourceId, compositeCurveId);
@@ -469,6 +497,7 @@ namespace S100FC.Topology
             //checks = [0, 10];
             //checks = [.. checks, 1442];
             //checks = [2653];
+            //checks = [28];
 
             foreach (var surface in surfaces) {
                 if (System.Diagnostics.Debugger.IsAttached)
@@ -486,9 +515,9 @@ namespace S100FC.Topology
                 //if (surface.UID.EndsWith("10800061892")) {
                 //    checks = [.. checks, idExteriorRing];
                 //}
-                //if (surface.UID.EndsWith("10800027133")) {
-                //    checks = [.. checks, idExteriorRing];
-                //}
+                if (surface.UID.EndsWith("10800061919")) {
+                    checks = [.. checks, idExteriorRing];
+                }
 
 
 

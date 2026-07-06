@@ -90,8 +90,12 @@ namespace S100FC.Topology
             //base.Id = System.IO.Hashing.XxHash64.HashToUInt64(Encoding.UTF8.GetBytes(string.Join(',', curves.Select(e => e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
             base.Id = System.IO.Hashing.XxHash32.HashToUInt32(Encoding.UTF8.GetBytes(string.Join(',', curves.Select(e => e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
 
-            if (base.Id == 46947589) System.Diagnostics.Debugger.Break();
+            this.Reverse = System.IO.Hashing.XxHash32.HashToUInt32(Encoding.UTF8.GetBytes(string.Join(',', curves.Reverse().Select(e => !e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
+
+            //if (base.Id == 46947589) System.Diagnostics.Debugger.Break();
         }
+
+        public ulong Reverse { get; init; }
 
         public FeatureRef[] Curves { get; init; } = [];
     }
