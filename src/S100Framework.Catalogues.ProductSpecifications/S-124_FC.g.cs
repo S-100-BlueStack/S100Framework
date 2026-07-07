@@ -2510,14 +2510,14 @@ namespace S100FC.S124
 			_ => throw new InvalidOperationException(),
 		};
 		public static definitionReference[] definitionReferenceInformationTypes => [
-			new definitionReference(61, "IHOREG", "References", "References"),
-			new definitionReference(68, "IHOREG", "NavwarnPreamble", "NAVWARN Preamble"),
-			new definitionReference(31, "IHOREG", "SpatialQuality", "Spatial Quality"),
+			new definitionReference(61, "IHOREG", "References", "References", []),
+			new definitionReference(68, "IHOREG", "NavwarnPreamble", "NAVWARN Preamble", []),
+			new definitionReference(31, "IHOREG", "SpatialQuality", "Spatial Quality", []),
 		];
 		public static definitionReference[] definitionReferenceFeatureTypes => [
-			new definitionReference(620, "IHOREG", "NavwarnPart", "NAVWARN Part"),
-			new definitionReference(641, "IHOREG", "NavwarnAreaAffected", "NAVWARN Area Affected"),
-			new definitionReference(662, "IHOREG", "TextPlacement", "Text Placement"),
+			new definitionReference(620, "IHOREG", "NavwarnPart", "NAVWARN Part", [Primitives.point,Primitives.curve,Primitives.surface]),
+			new definitionReference(641, "IHOREG", "NavwarnAreaAffected", "NAVWARN Area Affected", [Primitives.point,Primitives.curve,Primitives.surface]),
+			new definitionReference(662, "IHOREG", "TextPlacement", "Text Placement", [Primitives.point]),
 		];
 	}
 
