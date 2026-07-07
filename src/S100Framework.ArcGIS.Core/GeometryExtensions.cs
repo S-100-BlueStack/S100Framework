@@ -95,9 +95,14 @@ namespace ArcGIS.Core.Geometry
 
         static readonly SpatialReference spatialReference = SpatialReferenceBuilder.CreateSpatialReference(4326);
 
+        const double gridSizeMeters = 0.08;
+        const double scale = 111320.0 / gridSizeMeters; // ≈ 1,391,500
+
         //static readonly PrecisionModel precisionModel = new PrecisionModel(100000);
-        //static readonly PrecisionModel precisionModel = new PrecisionModel(1000000);
-        static readonly PrecisionModel precisionModel = new PrecisionModel(10000000);
+        //static readonly PrecisionModel precisionModel = new PrecisionModel(scale);
+        static readonly PrecisionModel precisionModel = new PrecisionModel(1000000);
+        //static readonly PrecisionModel precisionModel = new PrecisionModel(2000000);
+        //static readonly PrecisionModel precisionModel = new PrecisionModel(10000000);
 
         static readonly GeometryFactory factory = new GeometryFactory(precisionModel, srid: 4326); // Or PrecisionModels.Floating        
 
