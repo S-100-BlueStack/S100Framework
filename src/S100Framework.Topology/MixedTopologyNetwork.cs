@@ -445,6 +445,37 @@ namespace S100Framework.Topology.Internal
                 if (shouldUnion) Union(k0, k1);
             }
 
+            // General proximity clustering: the union above only merges the two ENDS of
+            // a single short/degenerate segment. It does nothing for two *different*
+            // vertices — e.g. an interior vertex on source A's polyline and the
+            // near-coincident interior vertex on source B's polyline — that fall in
+            // different (but adjacent) snap-grid cells. Two sources tracing the same
+            // real-world edge are rarely digitized with bit-identical coordinates, so
+            // without this step near-duplicate vertices from different sources are
+            // treated as distinct nodes, which fragments what should be one shared
+            // MergedEdge into two near-parallel, unshared ones.
+            //
+            // Here we union any two distinct grid cells whose representative points
+            // are within _dedupeRadius of each other, regardless of which segment or
+            // source they came from. This is the same neighbourhood search radius used
+            // by CanonicalizeWithProximity elsewhere, just applied exhaustively across
+            // all registered coordinates up front instead of lazily per new point.
+            int cellRadius = (int)Math.Ceiling(_dedupeRadius / _snapTolerance);
+            foreach (var key in cellValue.Keys) {
+                var pt = cellValue[key];
+                for (int dx = -cellRadius; dx <= cellRadius; dx++) {
+                    for (int dy = -cellRadius; dy <= cellRadius; dy++) {
+                        if (dx == 0 && dy == 0) continue;
+                        var nk = key.Offset(dx, dy);
+                        // Process each unordered pair once (only when nk > key) to avoid
+                        // doing the same Union twice from both directions.
+                        if (nk.CompareTo(key) <= 0) continue;
+                        if (!cellValue.TryGetValue(nk, out var npt)) continue;
+                        if (pt.Distance(npt) <= _dedupeRadius) Union(key, nk);
+                    }
+                }
+            }
+
             var result = new Dictionary<CoordinateKey, Coordinate>();
             foreach (var key in cellValue.Keys) result[key] = cellValue[Find(key)];
             return result;

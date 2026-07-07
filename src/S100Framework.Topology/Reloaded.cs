@@ -500,10 +500,10 @@ namespace S100FC.Topology
                 //    checks = [.. checks, idExteriorRing];
                 //}
 
-                //if (surface.UID.EndsWith("10800061892")) {
-                //    checks = [.. checks, idExteriorRing];
-                //}
-                //if (surface.UID.EndsWith("10800061919")) {
+                if (surface.UID.EndsWith("10800061878")) {
+                    checks = [.. checks, idExteriorRing];
+                }
+                //if (surface.UID.EndsWith("10800027198")) {
                 //    checks = [.. checks, idExteriorRing];
                 //}
 
