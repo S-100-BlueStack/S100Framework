@@ -846,7 +846,7 @@ namespace TestAttributes
                 }
                 roslyn.AppendLine($"\t\tpublic static definitionReference[] definitionReferenceInformationTypes => [");
                 foreach (var e in definitionReferenceInformationTypes) {
-                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\"),");
+                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\", []),");
                 }
                 roslyn.AppendLine("\t\t];");
 
@@ -855,8 +855,8 @@ namespace TestAttributes
                     System.Diagnostics.Debugger.Break();
                 }
                 roslyn.AppendLine($"\t\tpublic static definitionReference[] definitionReferenceFeatureTypes => [");
-                foreach(var e in definitionReferenceFeatureTypes) {
-                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\"),");
+                foreach (var e in definitionReferenceFeatureTypes) {                    
+                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\", [{string.Join(',',e.primitives.Select(e=>$"Primitives.{e}"))}]),");
                 }
                 roslyn.AppendLine("\t\t];");
 
@@ -1003,12 +1003,21 @@ namespace TestAttributes
 
             var code = element.Element(XName.Get("code", scopes["S100FC"]))!.Value;
             var name = element.Element(XName.Get("name", scopes["S100FC"]))!.Value;
+
+            Primitives[] primitives = [];
+
+            var spatialAssociation = element.XPathSelectElements("S100FC:permittedPrimitives", xmlNamespaceManager).Any();
+            if (spatialAssociation) {
+                var permittedValues = element.XPathSelectElements("S100FC:permittedPrimitives", xmlNamespaceManager).Select(e => Enum.Parse<Primitives>(e.Value!));
+                primitives = [.. permittedValues];
+            }
+
             var sourceIdentifier = element.Element(XName.Get("definitionReference", scopes["S100FC"]))?.Element(XName.Get("sourceIdentifier", scopes["S100FC"]))!.Value;
             if (!int.TryParse(sourceIdentifier, out int value))
                 sourceIdentifier = "0";
             else {
                 var definitionSource = element.Element(XName.Get("definitionReference", scopes["S100FC"]))!.Element(XName.Get("definitionSource", scopes["S100FC"]))!.Attribute("ref")!.Value;
-                host.definitionReferences.Add(new definitionReference(value, definitionSource, code, name));
+                host.definitionReferences.Add(new definitionReference(value, definitionSource, code, name, primitives));
             }
             if (host.KnownTypes.Any(a => a.Equals(code, StringComparison.InvariantCultureIgnoreCase)))
                 return true;

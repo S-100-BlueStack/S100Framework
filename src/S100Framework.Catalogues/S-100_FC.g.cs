@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -80,7 +79,7 @@ namespace S100FC
         public int UpperBound = upperBound;
     }
 
-    public record definitionReference(int sourceIdentifier, string? definitionSource, string code, string name);
+    public record definitionReference(int sourceIdentifier, string? definitionSource, string code, string name, Primitives[] primitives);
 }
 
 namespace S100FC.S100
@@ -274,22 +273,6 @@ namespace S100FC
         public override void SetValue(string value) {
             this.value = int.Parse(value);
         }
-
-        public override bool Equals(object? obj) {
-            if (obj is int _int) {
-                return _int == this.value;
-            }
-            if (obj is string _string) {
-                if (int.TryParse(_string, out int result)) {
-                    return result == this.value;
-                }
-            }
-            return false;
-        }
-
-        public override int GetHashCode() {
-            return base.GetHashCode();
-        }
     }
 
     public class RealAttribute : SimpleAttribute
@@ -445,22 +428,6 @@ namespace S100FC
         }
 
         public virtual listedValue[] listedValues { get; init; } = [];
-
-        public override bool Equals(object? obj) {
-            if (obj is int _int) {
-                return _int == this.value;
-            }
-            if (obj is string _string) {
-                if (int.TryParse(_string, out int result)) {
-                    return result == this.value;
-                }
-            }
-            return false;
-        }
-
-        public override int GetHashCode() {
-            return base.GetHashCode();
-        }
     }
 
     public class CodeListAttribute : SimpleAttribute
@@ -478,24 +445,6 @@ namespace S100FC
 
         public override void SetValue(string value) {
             this.value = int.Parse(value);
-        }
-
-        public virtual listedValue[] listedValues { get; init; } = [];
-
-        public override bool Equals(object? obj) {
-            if (obj is int _int) {
-                return _int == this.value;
-            }
-            if (obj is string _string) {
-                if (int.TryParse(_string, out int result)) {
-                    return result == this.value;
-                }
-            }
-            return false;
-        }
-
-        public override int GetHashCode() {
-            return base.GetHashCode();
         }
     }
 
@@ -547,11 +496,12 @@ namespace S100FC
             if (attribute == null) return;
             var binding = attributeBindingsCatalogue!.Single(e => e.attribute.Equals(attribute.S100FC_code));
             if (binding.upper == 1) {
-                var index = Array.FindIndex(this.attributeBindings, e => e.S100FC_code.Equals(attribute.S100FC_code));
-                if (index < 0) {
+                var value = this.attributeBindings.SingleOrDefault(e => e.S100FC_code.Equals(attribute.S100FC_code));
+                if (value == default) {
                     this.attributeBindings = [.. this.attributeBindings, attribute];
                 }
                 else {
+                    var index = Array.IndexOf(this.attributeBindings, value);
                     this.attributeBindings[index] = attribute;
                 }
             }
@@ -653,11 +603,12 @@ namespace S100FC
             if (attribute == null) return;
             var binding = attributeBindingsCatalogue!.Single(e => e.attribute.Equals(attribute.S100FC_code));
             if (binding.upper == 1) {
-                var index = Array.FindIndex(this.attributeBindings, e => e.S100FC_code.Equals(attribute.S100FC_code));
-                if (index < 0) {
+                var value = this.attributeBindings.SingleOrDefault(e => e.S100FC_code.Equals(attribute.S100FC_code));
+                if (value == default) {
                     this.attributeBindings = [.. this.attributeBindings, attribute];
                 }
                 else {
+                    var index = Array.IndexOf(this.attributeBindings, value);
                     this.attributeBindings[index] = attribute;
                 }
             }
@@ -764,11 +715,13 @@ namespace S100FC
             if (attribute == null) return;
             var binding = attributeBindingsCatalogue!.Single(e => e.attribute.Equals(attribute.S100FC_code));
             if (binding.upper == 1) {
-                var index = Array.FindIndex(this.attributeBindings, e => e.S100FC_code.Equals(attribute.S100FC_code));
-                if (index < 0) {
+                var value = this.attributeBindings.SingleOrDefault(e => e.S100FC_code.Equals(attribute.S100FC_code));
+                if (value == default) {
+                    //if (attribute.HasValue) //TODO:  NULL ???
                     this.attributeBindings = [.. this.attributeBindings, attribute];
                 }
                 else {
+                    var index = Array.IndexOf(this.attributeBindings, value);
                     this.attributeBindings[index] = attribute;
                 }
             }
