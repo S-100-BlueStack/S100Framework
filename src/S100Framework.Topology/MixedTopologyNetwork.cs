@@ -284,10 +284,7 @@ namespace S100Framework.Topology.Internal
                 foreach (var sp in kv.Value) RegisterNode(sp.Coord);
 
             foreach (var seg in segments) {
-                // Expand by the dedupe radius (not just snap tolerance): a vertex up to
-                // _dedupeRadius from a segment is considered to lie ON it, consistent with
-                // the coordinate canonicalization which merges nodes within the same radius.
-                var env = seg.Envelope.Copy(); env.ExpandBy(_dedupeRadius);
+                var env = seg.Envelope.Copy(); env.ExpandBy(_snapTolerance);
                 var segP0Key = new CoordinateKey(seg.P0, _snapTolerance);
                 var segP1Key = new CoordinateKey(seg.P1, _snapTolerance);
                 foreach (var nodePt in nodeCoordIndex.Query(env)) {
@@ -445,37 +442,6 @@ namespace S100Framework.Topology.Internal
                 if (shouldUnion) Union(k0, k1);
             }
 
-            // General proximity clustering: the union above only merges the two ENDS of
-            // a single short/degenerate segment. It does nothing for two *different*
-            // vertices — e.g. an interior vertex on source A's polyline and the
-            // near-coincident interior vertex on source B's polyline — that fall in
-            // different (but adjacent) snap-grid cells. Two sources tracing the same
-            // real-world edge are rarely digitized with bit-identical coordinates, so
-            // without this step near-duplicate vertices from different sources are
-            // treated as distinct nodes, which fragments what should be one shared
-            // MergedEdge into two near-parallel, unshared ones.
-            //
-            // Here we union any two distinct grid cells whose representative points
-            // are within _dedupeRadius of each other, regardless of which segment or
-            // source they came from. This is the same neighbourhood search radius used
-            // by CanonicalizeWithProximity elsewhere, just applied exhaustively across
-            // all registered coordinates up front instead of lazily per new point.
-            int cellRadius = (int)Math.Ceiling(_dedupeRadius / _snapTolerance);
-            foreach (var key in cellValue.Keys) {
-                var pt = cellValue[key];
-                for (int dx = -cellRadius; dx <= cellRadius; dx++) {
-                    for (int dy = -cellRadius; dy <= cellRadius; dy++) {
-                        if (dx == 0 && dy == 0) continue;
-                        var nk = key.Offset(dx, dy);
-                        // Process each unordered pair once (only when nk > key) to avoid
-                        // doing the same Union twice from both directions.
-                        if (nk.CompareTo(key) <= 0) continue;
-                        if (!cellValue.TryGetValue(nk, out var npt)) continue;
-                        if (pt.Distance(npt) <= _dedupeRadius) Union(key, nk);
-                    }
-                }
-            }
-
             var result = new Dictionary<CoordinateKey, Coordinate>();
             foreach (var key in cellValue.Keys) result[key] = cellValue[Find(key)];
             return result;
@@ -520,20 +486,11 @@ namespace S100Framework.Topology.Internal
             if (lenSq < _snapTolerance * _snapTolerance) return false;
             double t = ((pt.X - segStart.X) * dx + (pt.Y - segStart.Y) * dy) / lenSq;
             double len = Math.Sqrt(lenSq);
-            // Endpoint exclusion uses the dedupe radius: splitting closer than
-            // _dedupeRadius to an endpoint would create a sub-segment shorter than
-            // the radius the canonical coordinate map merges, producing a degenerate
-            // (zero-length after canonicalization) edge.
-            if (t * len <= _dedupeRadius || (1.0 - t) * len <= _dedupeRadius) return false;
+            if (t * len <= _snapTolerance || (1.0 - t) * len <= _snapTolerance) return false;
             double cx = segStart.X + t * dx;
             double cy = segStart.Y + t * dy;
             double distToLine = Math.Sqrt((pt.X - cx) * (pt.X - cx) + (pt.Y - cy) * (pt.Y - cy));
-            // A vertex within the dedupe radius of the segment is treated as lying ON it —
-            // consistent with the coordinate canonicalization, which considers any two
-            // points within _dedupeRadius to be the same node. Without this, a vertex
-            // hovering just over _snapTolerance from a shared boundary creates a
-            // near-coincident parallel sliver edge instead of splitting the boundary.
-            return distToLine <= _dedupeRadius;
+            return distToLine <= _snapTolerance;
         }
 
         // -------------------------------------------------------------------
@@ -1168,92 +1125,46 @@ namespace S100Framework.Topology.Internal
             double tol = _snapTolerance;
             CoordinateKey Snap(Coordinate c) => new CoordinateKey(Canonicalize(c), tol);
 
-            // For rings only: prune dangles. A dangle is an edge chain that leaves the
-            // ring at a junction and dead-ends (e.g. a source doubling back over a tiny
-            // spur). In a valid ring every node has degree 2 within the edge set; a
-            // dangle tip has degree 1 and the chain re-joins the ring at a node of
-            // degree >= 3.
-            //
-            // CRITICAL: a degree-1 node alone is NOT sufficient evidence of a dangle.
-            // If the ring has a tiny connectivity gap (endpoint drift between two
-            // consecutive canonical geometries), the whole ring becomes an open path
-            // with TWO degree-1 tips — and naive iterative peeling of degree-1 edges
-            // would annihilate the entire edge list, returning an empty result.
-            //
-            // Correct rule: from each degree-1 tip, walk the chain through degree-2
-            // nodes. If the walk reaches a node of degree >= 3, everything walked is a
-            // true dangle — remove it. If the walk reaches another degree-1 node, the
-            // component is an open path (gap case) — leave it untouched.
+            // For rings only: prune dangles. A dangle is an edge chain that sticks out
+            // of the ring and comes straight back (e.g. a source doubling back over a
+            // tiny spur). In a valid ring every node has degree 2 within the edge set;
+            // a dangle tip has degree 1. Iteratively remove edges with a degree-1
+            // endpoint until none remain — this peels multi-edge dangle chains too.
+            // Open linestrings are NOT pruned: their two path endpoints are degree-1
+            // by definition.
             if (isRing && edges.Count > 1) {
                 var degree = new Dictionary<CoordinateKey, int>();
-                var incident = new Dictionary<CoordinateKey, List<MergedEdge>>();
-                void Register(CoordinateKey k, MergedEdge e) {
+                void Bump(CoordinateKey k, int d) {
                     degree.TryGetValue(k, out var v);
-                    degree[k] = v + 1;
-                    if (!incident.TryGetValue(k, out var lst)) incident[k] = lst = new();
-                    lst.Add(e);
+                    degree[k] = v + d;
                 }
                 foreach (var e in edges) {
                     var cs = e.Geometry.Coordinates;
-                    var kS = Snap(cs[0]);
-                    var kE = Snap(cs[^1]);
-                    if (kS.Equals(kE)) continue;    // self-loops are never dangles
-                    Register(kS, e);
-                    Register(kE, e);
+                    Bump(Snap(cs[0]), 1);
+                    Bump(Snap(cs[^1]), 1);
                 }
 
-                var toRemove = new HashSet<MergedEdge>(ReferenceEqualityComparer.Instance);
-                bool foundDangle = true;
-                while (foundDangle) {
-                    foundDangle = false;
-                    foreach (var kv in degree) {
-                        if (kv.Value != 1) continue;
-                        // Walk from this tip through degree-2 nodes.
-                        var walkEdges = new List<MergedEdge>();
-                        var cur = kv.Key;
-                        MergedEdge? prevEdge = null;
-                        bool isDangle = false;
-                        while (true) {
-                            MergedEdge? next = null;
-                            foreach (var cand in incident[cur]) {
-                                if (toRemove.Contains(cand)) continue;
-                                if (ReferenceEquals(cand, prevEdge)) continue;
-                                next = cand; break;
-                            }
-                            if (next == null) break;          // isolated: not a dangle
-                            walkEdges.Add(next);
-                            var ncs = next.Geometry.Coordinates;
-                            var nkS = Snap(ncs[0]);
-                            var nkE = Snap(ncs[^1]);
-                            var far = nkS.Equals(cur) ? nkE : nkS;
-                            if (degree[far] >= 3) { isDangle = true; break; }
-                            if (degree[far] == 1) break;      // open path: NOT a dangle
-                            prevEdge = next;
-                            cur = far;
-                        }
-                        // Geometric guard: a genuine double-back dangle is TINY — it only
-                        // exists because a source reversed over a near-degenerate spur
-                        // (order of the dedupe radius). A ring arm that reaches a junction
-                        // (e.g. when the ring also has a connectivity gap elsewhere) is
-                        // orders of magnitude longer. Only prune short chains, so a gap
-                        // can never cause part of the actual ring to be discarded.
-                        double maxDangleLength = _dedupeRadius * 10;
-                        if (isDangle && walkEdges.Count > 0 &&
-                            walkEdges.Sum(we => we.Geometry.Length) <= maxDangleLength) {
-                            foreach (var we in walkEdges) {
-                                toRemove.Add(we);
-                                var wcs = we.Geometry.Coordinates;
-                                degree[Snap(wcs[0])]--;
-                                degree[Snap(wcs[^1])]--;
-                            }
-                            foundDangle = true;
-                            break;   // degree map changed; restart scan
+                var pruned = new List<MergedEdge>(edges);
+                bool removedAny = true;
+                while (removedAny && pruned.Count > 1) {
+                    removedAny = false;
+                    for (int i = pruned.Count - 1; i >= 0; i--) {
+                        var cs = pruned[i].Geometry.Coordinates;
+                        var kS = Snap(cs[0]);
+                        var kE = Snap(cs[^1]);
+                        // Self-loops (kS==kE) are never dangles.
+                        if (kS.Equals(kE)) continue;
+                        if (degree[kS] == 1 || degree[kE] == 1) {
+                            Bump(kS, -1);
+                            Bump(kE, -1);
+                            pruned.RemoveAt(i);
+                            removedAny = true;
                         }
                     }
                 }
-
-                if (toRemove.Count > 0 && toRemove.Count < edges.Count)
-                    edges = edges.Where(e => !toRemove.Contains(e)).ToList();
+                edges = pruned;
+                if (edges.Count == 0)
+                    return (Array.Empty<Coordinate>(), new List<EdgeReference>());
             }
 
             var result = new List<Coordinate>();

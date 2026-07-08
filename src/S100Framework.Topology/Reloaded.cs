@@ -17,10 +17,8 @@ namespace S100FC.Topology
         GeometryFactory Factory { get; }
     }
 
-    public class Reloaded : ITopologyBuilder, IMatrixReloaded
-    {
-        public class LineStringComparer : IEqualityComparer<LineString>
-        {
+    public class Reloaded : ITopologyBuilder, IMatrixReloaded {
+        public class LineStringComparer : IEqualityComparer<LineString> {
             public bool Equals(LineString? a, LineString? b) {
                 if (a is null || b is null) return a is null && b is null;
                 return a.Equals(b);
@@ -29,8 +27,7 @@ namespace S100FC.Topology
             public int GetHashCode(LineString e) => (int)System.IO.Hashing.XxHash32.HashToUInt32(e.AsBinary());
         }
 
-        private class Surface
-        {
+        private class Surface {
             public int Id { get; init; }
 
             public required string Exterior { get; init; }
@@ -68,9 +65,9 @@ namespace S100FC.Topology
 
         GeometryFactory IMatrixReloaded.Factory => Reloaded.Factory!;
 
-        ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, curves, true);
+        ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, [] /*curves*/, true);
 
-        ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, curves, false);
+        ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, [] /*curves*/, false);
 
         public GeometryPrecisionReducer Reducer => new GeometryPrecisionReducer(Factory!.PrecisionModel) {
             Pointwise = true,
@@ -344,7 +341,7 @@ namespace S100FC.Topology
 
 
                     if (this._sourceLineType[sourceId] != LineType.Curve) {
-                        var linearRing = this._mixedTopologyNetwork.AssembleLinearRing(dictionaryCompositeCurves.Single(e=>e.id==compositeCurveId).edges);
+                        var linearRing = this._mixedTopologyNetwork.AssembleLinearRing(dictionaryCompositeCurves.Single(e => e.id == compositeCurveId).edges);
                         var isCCW = linearRing.IsCCW;
 
                         if (this._sourceLineType[sourceId] == LineType.Exterior) {
@@ -472,8 +469,7 @@ namespace S100FC.Topology
         string[] checks_linestrings = [];
 
 
-        enum LineType : int
-        {
+        enum LineType : int {
             Exterior = 1,
             Interior = 2,
             Curve = 4,
@@ -482,7 +478,7 @@ namespace S100FC.Topology
         private readonly Dictionary<int, LineType> _sourceLineType = [];
         private readonly Dictionary<int, double> _sourceSlope = [];
 
-        private int[] checks = [];
+        private int[] checks = [];  //[92,1384];
 
         private Geometry[] _geometries = [];
 
@@ -500,9 +496,13 @@ namespace S100FC.Topology
                 //    checks = [.. checks, idExteriorRing];
                 //}
 
-                if (surface.UID.EndsWith("10800061878")) {
-                    checks = [.. checks, idExteriorRing];
-                }
+                //if (surface.UID.EndsWith("10800061878")) {
+                //    checks = [.. checks, idExteriorRing];
+
+                //    this._interceptor?.Invoke(100, [(surface.ExteriorRing, $"{surface.UID} {surface.ExteriorRing}")]);
+                //}
+
+
                 //if (surface.UID.EndsWith("10800027198")) {
                 //    checks = [.. checks, idExteriorRing];
                 //}
