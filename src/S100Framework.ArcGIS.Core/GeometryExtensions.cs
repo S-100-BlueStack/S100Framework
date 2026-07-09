@@ -222,7 +222,7 @@ namespace ArcGIS.Core.Geometry
             {
                 var polygons = new List<S100FC.Topology.Polygon>();
 
-                using (var surface = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("topo_surface")).GetName())) {
+                using (var surface = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("surface")).GetName())) {
                     //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA'))";
 
                     foreach (var filter in filters) {
@@ -284,7 +284,7 @@ namespace ArcGIS.Core.Geometry
 
                 var curves = new List<S100FC.Topology.Polyline>();
 
-                using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("topo_curve")).GetName())) {
+                using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("curve")).GetName())) {
                     //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'))";
 
                     foreach (var filter in filters) {
