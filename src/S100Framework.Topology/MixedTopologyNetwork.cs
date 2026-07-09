@@ -2,6 +2,7 @@ using NetTopologySuite;
 using NetTopologySuite.Algorithm;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Index.Strtree;
+using System.Text;
 
 namespace S100Framework.Topology.Internal
 {
@@ -378,6 +379,116 @@ namespace S100Framework.Topology.Internal
         }
 
         // -------------------------------------------------------------------
+        // Ring degeneracy pre-flight check
+        // -------------------------------------------------------------------
+
+        public enum RingCollapseReason
+        {
+            /// <summary>The ring survives snapping and will bound an area.</summary>
+            None,
+            /// <summary>Fewer than three distinct vertices remain after snapping to the grid.</summary>
+            TooFewDistinctVertices,
+            /// <summary>The ring is a sliver: its mean width is below the snap tolerance, so
+            /// noding will fold its vertices onto its own segments and the interior vanishes.</summary>
+            Sliver,
+        }
+
+        public readonly struct RingCollapseCheck
+        {
+            /// <summary>True if the ring will degenerate to a line rather than bound an area.</summary>
+            public bool WillCollapse { get; init; }
+            public RingCollapseReason Reason { get; init; }
+            /// <summary>Distinct grid cells occupied by the ring's vertices after snapping.</summary>
+            public int DistinctVertices { get; init; }
+            /// <summary>Absolute area of the snapped ring, in squared coordinate units.</summary>
+            public double Area { get; init; }
+            /// <summary>2 * Area / Perimeter — for a long thin ring, its effective thickness.</summary>
+            public double MeanWidth { get; init; }
+            /// <summary><see cref="MeanWidth"/> expressed in snap-tolerance units. Below 1.0 collapses.</summary>
+            public double MeanWidthInTolerances { get; init; }
+
+            public override string ToString() => WillCollapse
+                ? $"COLLAPSES ({Reason}): vertices={DistinctVertices} area={Area:E3} " +
+                  $"meanWidth={MeanWidth:E3} ({MeanWidthInTolerances:F3} x tol)"
+                : $"OK: vertices={DistinctVertices} area={Area:E3} " +
+                  $"meanWidth={MeanWidth:E3} ({MeanWidthInTolerances:F3} x tol)";
+        }
+
+        /// <summary>
+        /// Tests whether <paramref name="ring"/> will degenerate into a line rather than bound an
+        /// area once it is snapped into this network's tolerance grid. Call before adding the ring
+        /// as a source.
+        ///
+        /// Two ways a ring collapses. It may lose vertices outright, leaving fewer than three
+        /// distinct grid cells. More insidiously it may keep all its vertices — each landing in its
+        /// own cell — yet be so thin that every vertex falls within the snap tolerance of one of the
+        /// ring's own segments, at which point noding folds it flat. A 4.7 km ring only 2 cm wide
+        /// does exactly this. Vertex count and area alone both miss it; mean width (2 * area /
+        /// perimeter, i.e. the ring's effective thickness) catches it, and does not punish rings
+        /// that are small but properly proportioned.
+        ///
+        /// Note this considers the ring in isolation. It cannot predict collapse caused by
+        /// proximity clustering against OTHER sources, which is only knowable once every source
+        /// is present.
+        /// </summary>
+        public RingCollapseCheck CheckRingCollapse(LinearRing ring) {
+            if (ring == null) throw new ArgumentNullException(nameof(ring));
+
+            // Snap, then drop consecutive duplicates — the same reduction the network performs.
+            var snapped = new List<Coordinate>();
+            var cells = new HashSet<CoordinateKey>();
+            CoordinateKey? prev = null;
+            foreach (var c in ring.Coordinates) {
+                var s = SnapToGrid(c);
+                var k = new CoordinateKey(s, _snapTolerance);
+                if (prev.HasValue && prev.Value.Equals(k)) continue;
+                snapped.Add(s);
+                prev = k;
+            }
+            // Distinct cells, excluding the closing vertex.
+            for (int i = 0; i < snapped.Count - 1; i++)
+                cells.Add(new CoordinateKey(snapped[i], _snapTolerance));
+
+            if (cells.Count < 3) {
+                return new RingCollapseCheck {
+                    WillCollapse = true,
+                    Reason = RingCollapseReason.TooFewDistinctVertices,
+                    DistinctVertices = cells.Count,
+                    Area = 0,
+                    MeanWidth = 0,
+                    MeanWidthInTolerances = 0,
+                };
+            }
+
+            if (snapped.Count > 1 && !snapped[0].Equals2D(snapped[^1]))
+                snapped.Add(new Coordinate(snapped[0].X, snapped[0].Y));
+
+            double area = 0, perimeter = 0;
+            for (int i = 0; i < snapped.Count - 1; i++) {
+                var a = snapped[i]; var b = snapped[i + 1];
+                area += a.X * b.Y - b.X * a.Y;
+                perimeter += a.Distance(b);
+            }
+            area = Math.Abs(area) / 2.0;
+
+            double meanWidth = perimeter > 0 ? 2.0 * area / perimeter : 0.0;
+            double inTol = meanWidth / _snapTolerance;
+            bool collapses = meanWidth < _snapTolerance;
+
+            return new RingCollapseCheck {
+                WillCollapse = collapses,
+                Reason = collapses ? RingCollapseReason.Sliver : RingCollapseReason.None,
+                DistinctVertices = cells.Count,
+                Area = area,
+                MeanWidth = meanWidth,
+                MeanWidthInTolerances = inTol,
+            };
+        }
+
+        /// <summary>Convenience overload: true if the ring will degenerate to a line.</summary>
+        public bool WillRingCollapseToLine(LinearRing ring) => CheckRingCollapse(ring).WillCollapse;
+
+        // -------------------------------------------------------------------
         // Snapping / canonicalization
         // -------------------------------------------------------------------
 
@@ -455,13 +566,16 @@ namespace S100Framework.Topology.Internal
             // keep distinct CoordinateKeys, and any ring passing through that node is severed.
             //
             // So: union any two occupied cells whose representative coordinates lie within
-            // _dedupeRadius of each other. The guard is that both cells must NOT carry the
-            // identical set of source ids. Identical source sets mean each of those sources
-            // contributed both vertices — i.e. a source's own geometry passing close to itself
-            // (a self-touching ring, as in source 1211). Fusing those creates a spurious
-            // junction that dangle-pruning then tears apart. Differing source sets mean the
-            // vertices genuinely come from different geometries describing a shared boundary,
-            // which is exactly the case we want to merge.
+            // _dedupeRadius of each other, PROVIDED their source-id sets are disjoint.
+            //
+            // The disjointness guard is the important part. If any single source contributes a
+            // vertex to both cells, then that source's own geometry passes close to itself here,
+            // and fusing the cells welds its ring to itself — producing a degree-4 node and a
+            // figure-eight that no single walk can traverse (sources 1211, 231). Testing merely
+            // that the two source SETS differ is not enough: a cell {231} adjacent to a cell
+            // {231, 87} has differing sets yet still fuses ring 231 to itself. Disjointness is
+            // the correct condition, and it still admits the case we want, where one source
+            // writes 9.963051 and a disjoint group of others write 9.96305.
             int proxCellRadius = (int)Math.Ceiling(_dedupeRadius / _snapTolerance);
             foreach (var key in cellValue.Keys.OrderBy(k => k).ToList()) {
                 var c0 = cellValue[key];
@@ -472,7 +586,8 @@ namespace S100Framework.Topology.Internal
                         var nk = key.Offset(dx, dy);
                         if (!cellValue.TryGetValue(nk, out var c1)) continue;
                         if (c0.Distance(c1) > _dedupeRadius) continue;
-                        if (s0.SetEquals(cellSources[nk])) continue; // self-proximity, not a shared node
+                        // Any shared source => that source approaches itself here. Never fuse.
+                        if (s0.Overlaps(cellSources[nk])) continue;
                         Union(key, nk);
                     }
             }
@@ -656,19 +771,30 @@ namespace S100Framework.Topology.Internal
             // a gap. Break here so the broken adjacency can be inspected in situ rather
             // than being discovered downstream as a missing edge.
             if (chain.Count != edges.Count && System.Diagnostics.Debugger.IsAttached) {
+                var console = new StringBuilder();
                 var degree1 = adj.Where(kv => kv.Value.Count == 1).ToList();
                 var degree3 = adj.Where(kv => kv.Value.Count > 2).ToList();
-                System.Diagnostics.Debug.WriteLine(
+                console.AppendLine(
                     $"[MixedTopologyNetwork] source {sourceId}: walked {chain.Count} of " +
                     $"{edges.Count} edges; cells={adj.Count} deg1={degree1.Count} " +
                     $"deg3plus={degree3.Count}");
                 foreach (var kv in degree1)
-                    System.Diagnostics.Debug.WriteLine(
+                    console.AppendLine(
                         $"    deg1 cell={kv.Key} edge={kv.Value[0].Id} " +
                         $"[{kv.Value[0].StartNode.X:F7} {kv.Value[0].StartNode.Y:F7}] -> " +
                         $"[{kv.Value[0].EndNode.X:F7} {kv.Value[0].EndNode.Y:F7}] " +
                         $"srcs={string.Join("/", kv.Value[0].SourceGeometryIds)}");
+                foreach (var kv in degree3) {
+                    console.AppendLine(
+                        $"    FUSED cell={kv.Key} degree={kv.Value.Count}");
+                    foreach (var e in kv.Value)
+                        console.AppendLine(
+                            $"        e{e.Id} [{e.StartNode.X:F7} {e.StartNode.Y:F7}] -> " +
+                            $"[{e.EndNode.X:F7} {e.EndNode.Y:F7}] " +
+                            $"srcs={string.Join("/", e.SourceGeometryIds)}");
+                }
                 // Inspect: degree1 (split node) / degree3 (fused node) / chain / edges.
+                var txt = console.ToString();
                 System.Diagnostics.Debugger.Break();
             }
 

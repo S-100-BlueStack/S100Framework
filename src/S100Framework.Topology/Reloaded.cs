@@ -11,6 +11,8 @@ namespace S100FC.Topology
     using NetTopologySuite.Precision;
     using S100Framework.Topology;
     using S100Framework.Topology.Internal;
+    using System.Net;
+    using System.Net.NetworkInformation;
 
     public interface IMatrixReloaded : IMatrix
     {
@@ -487,15 +489,23 @@ namespace S100FC.Topology
         private readonly Dictionary<int, LineType> _sourceLineType = [];
         private readonly Dictionary<int, double> _sourceSlope = [];
 
-        private int[] checks = [817];
+        private int[] checks = [];
 
         private Geometry[] _geometries = [];
+
+        private S100FC.Topology.Polygon[] _excluded = [];
 
         private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
             foreach (var surface in surfaces) {
                 if (System.Diagnostics.Debugger.IsAttached)
                     _geometries = [.. _geometries, surface.ExteriorRing];
 
+                var checkExteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)surface.ExteriorRing);
+                if (checkExteriorRing.WillCollapse) {
+                    //System.Diagnostics.Debugger.Break();
+                    _excluded = [.. _excluded, surface];
+                    continue;                    
+                }
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
                 //if (surface.UID.EndsWith("10800027198")) {
@@ -516,14 +526,18 @@ namespace S100FC.Topology
                 //    checks = [.. checks, idExteriorRing];
                 //}
 
-
-
                 this._sourceLineType.Add(idExteriorRing, LineType.Exterior);
 
                 var idInteriorRings = new int[0];
                 foreach (var interior in surface.InteriorRings) {
                     if (System.Diagnostics.Debugger.IsAttached)
                         _geometries = [.. _geometries, interior];
+
+                    var checkInteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)interior);
+                    if (checkInteriorRing.WillCollapse) {
+                        System.Diagnostics.Debugger.Break();
+                        continue;
+                    }
 
                     var id = this._mixedTopologyNetwork.AddLineString(interior);
                     idInteriorRings = [.. idInteriorRings, id];
