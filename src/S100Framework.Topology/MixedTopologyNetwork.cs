@@ -647,7 +647,32 @@ namespace S100Framework.Topology.Internal
             }
             seed ??= edges.First();
 
-            return WalkChain(seed, edges, adj);
+            var chain = WalkChain(seed, edges, adj);
+
+            // Invariant: the walk must reach every edge belonging to this source. If it
+            // doesn't, the source's edge set is not a single connected path/cycle — some
+            // node that should be shared has been split into two CoordinateKey cells (or
+            // fused into a spurious junction). Either way the assembled geometry will have
+            // a gap. Break here so the broken adjacency can be inspected in situ rather
+            // than being discovered downstream as a missing edge.
+            if (chain.Count != edges.Count && System.Diagnostics.Debugger.IsAttached) {
+                var degree1 = adj.Where(kv => kv.Value.Count == 1).ToList();
+                var degree3 = adj.Where(kv => kv.Value.Count > 2).ToList();
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MixedTopologyNetwork] source {sourceId}: walked {chain.Count} of " +
+                    $"{edges.Count} edges; cells={adj.Count} deg1={degree1.Count} " +
+                    $"deg3plus={degree3.Count}");
+                foreach (var kv in degree1)
+                    System.Diagnostics.Debug.WriteLine(
+                        $"    deg1 cell={kv.Key} edge={kv.Value[0].Id} " +
+                        $"[{kv.Value[0].StartNode.X:F7} {kv.Value[0].StartNode.Y:F7}] -> " +
+                        $"[{kv.Value[0].EndNode.X:F7} {kv.Value[0].EndNode.Y:F7}] " +
+                        $"srcs={string.Join("/", kv.Value[0].SourceGeometryIds)}");
+                // Inspect: degree1 (split node) / degree3 (fused node) / chain / edges.
+                System.Diagnostics.Debugger.Break();
+            }
+
+            return chain;
         }
 
         private List<NetworkEdge> WalkChain(
