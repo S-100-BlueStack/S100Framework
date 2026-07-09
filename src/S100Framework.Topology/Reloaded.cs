@@ -17,8 +17,10 @@ namespace S100FC.Topology
         GeometryFactory Factory { get; }
     }
 
-    public class Reloaded : ITopologyBuilder, IMatrixReloaded {
-        public class LineStringComparer : IEqualityComparer<LineString> {
+    public class Reloaded : ITopologyBuilder, IMatrixReloaded
+    {
+        public class LineStringComparer : IEqualityComparer<LineString>
+        {
             public bool Equals(LineString? a, LineString? b) {
                 if (a is null || b is null) return a is null && b is null;
                 return a.Equals(b);
@@ -27,7 +29,8 @@ namespace S100FC.Topology
             public int GetHashCode(LineString e) => (int)System.IO.Hashing.XxHash32.HashToUInt32(e.AsBinary());
         }
 
-        private class Surface {
+        private class Surface
+        {
             public int Id { get; init; }
 
             public required string Exterior { get; init; }
@@ -305,9 +308,14 @@ namespace S100FC.Topology
 
                         //this._interceptor?.Invoke(100, [.. sortedlist.Select(e => (e.Value.Reverse ? this._curves[e.Value.Id].LineStringReverse : this._curves[e.Value.Id].LineString, $"{e.Value.Reverse} {this._curves[e.Value.Id].LineStringText}"))]);
 
-                        this._interceptor?.Invoke(100, [.. assembleEdges.Select(e => (e.OrientedGeometry, $"{sourceId} {e.OrientedGeometry}"))]);
+                        if (assembleEdges.Any())
+                            this._interceptor?.Invoke(100, [.. assembleEdges.Select(e => (e.OrientedGeometry, $"{sourceId} {e.OrientedGeometry}"))]);
+                        else
+                            this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{sourceId} {e.Geometry}"))]);
 
                         var fullChain = this._mixedTopologyNetwork.GetFullEdgeChainFor(sourceId);
+
+                        //this._interceptor?.Invoke(100, [.. fullChain.Select(e => (e.Geometry, $"{sourceId} {e.Geometry}"))]);
 
                         System.Diagnostics.Debugger.Break();
                     }
@@ -385,7 +393,7 @@ namespace S100FC.Topology
                         if (checks.Contains(sourceId)) {
                             var txt = edges[0].Geometry.ToText();
                             this._interceptor?.Invoke(100, [(edges[0].Geometry, $"{edges[0].Geometry.ToText()}")]);
-                            System.Diagnostics.Debugger.Break();
+                           System.Diagnostics.Debugger.Break();
                         }
 
                         var linearRing = Reloaded.Factory!.CreateLinearRing(this._curves[hashGeometry].LineString.Coordinates);
@@ -469,7 +477,8 @@ namespace S100FC.Topology
         string[] checks_linestrings = [];
 
 
-        enum LineType : int {
+        enum LineType : int
+        {
             Exterior = 1,
             Interior = 2,
             Curve = 4,
@@ -478,7 +487,7 @@ namespace S100FC.Topology
         private readonly Dictionary<int, LineType> _sourceLineType = [];
         private readonly Dictionary<int, double> _sourceSlope = [];
 
-        private int[] checks = [34];  //[92,1384];
+        private int[] checks = [817];
 
         private Geometry[] _geometries = [];
 

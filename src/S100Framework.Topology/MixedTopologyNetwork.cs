@@ -156,6 +156,7 @@ namespace S100Framework.Topology.Internal
             int c = _x.CompareTo(o._x);
             return c != 0 ? c : _y.CompareTo(o._y);
         }
+        public override string ToString() => $"({_x},{_y})";
     }
 
     internal sealed class RawSegment
@@ -399,11 +400,15 @@ namespace S100Framework.Topology.Internal
             List<RawSegment> rawSegments) {
 
             var cellValue = new Dictionary<CoordinateKey, Coordinate>();
+            var cellSources = new Dictionary<CoordinateKey, HashSet<int>>();
             foreach (var seg in rawSegments)
                 foreach (var c in new[] { seg.P0, seg.P1 }) {
                     var snapped = SnapToGrid(c);
                     var key = new CoordinateKey(snapped, _snapTolerance);
                     if (!cellValue.ContainsKey(key)) cellValue[key] = snapped;
+                    if (!cellSources.TryGetValue(key, out var srcs))
+                        cellSources[key] = srcs = new HashSet<int>();
+                    srcs.Add(seg.SourceId);
                 }
 
             var parent = new Dictionary<CoordinateKey, CoordinateKey>();
@@ -439,6 +444,37 @@ namespace S100Framework.Topology.Internal
                 if (!segSourceCount.TryGetValue(segKey, out int cnt)) continue;
                 bool shouldUnion = cnt > 1 ? d <= sharedRadius : d <= _dedupeRadius;
                 if (shouldUnion) Union(k0, k1);
+            }
+
+            // General cross-source proximity clustering.
+            //
+            // The pass above only ever unions the two endpoints OF A SINGLE SHORT SEGMENT.
+            // It cannot see the case where two different sources describe the SAME node with
+            // slightly different coordinates (e.g. 9.963051 vs 9.96305 — a full _snapTolerance
+            // cell apart). No segment joins those two vertices, so no union is attempted, they
+            // keep distinct CoordinateKeys, and any ring passing through that node is severed.
+            //
+            // So: union any two occupied cells whose representative coordinates lie within
+            // _dedupeRadius of each other. The guard is that both cells must NOT carry the
+            // identical set of source ids. Identical source sets mean each of those sources
+            // contributed both vertices — i.e. a source's own geometry passing close to itself
+            // (a self-touching ring, as in source 1211). Fusing those creates a spurious
+            // junction that dangle-pruning then tears apart. Differing source sets mean the
+            // vertices genuinely come from different geometries describing a shared boundary,
+            // which is exactly the case we want to merge.
+            int proxCellRadius = (int)Math.Ceiling(_dedupeRadius / _snapTolerance);
+            foreach (var key in cellValue.Keys.OrderBy(k => k).ToList()) {
+                var c0 = cellValue[key];
+                var s0 = cellSources[key];
+                for (int dx = -proxCellRadius; dx <= proxCellRadius; dx++)
+                    for (int dy = -proxCellRadius; dy <= proxCellRadius; dy++) {
+                        if (dx == 0 && dy == 0) continue;
+                        var nk = key.Offset(dx, dy);
+                        if (!cellValue.TryGetValue(nk, out var c1)) continue;
+                        if (c0.Distance(c1) > _dedupeRadius) continue;
+                        if (s0.SetEquals(cellSources[nk])) continue; // self-proximity, not a shared node
+                        Union(key, nk);
+                    }
             }
 
             var result = new Dictionary<CoordinateKey, Coordinate>();
@@ -573,13 +609,23 @@ namespace S100Framework.Topology.Internal
         // Full edge chain
         // -------------------------------------------------------------------
 
+        /// <summary>
+        /// Node identity for graph traversal. Must go through <see cref="Canonicalize"/>:
+        /// BuildCanonicalCoordinateMap union-finds cells within _dedupeRadius, which spans
+        /// several _snapTolerance cells. Keying adjacency on the raw snapped coordinate
+        /// therefore files two edges that meet at the same canonical node under different
+        /// keys, silently disconnecting the graph at that node.
+        /// </summary>
+        private CoordinateKey NodeKey(Coordinate c) =>
+            new CoordinateKey(Canonicalize(c), _snapTolerance);
+
         public List<NetworkEdge> GetFullEdgeChainFor(int sourceId) {
             var edges = GetEdgesFor(sourceId).ToHashSet();
             if (edges.Count == 0) return new List<NetworkEdge>();
 
             var adj = new Dictionary<CoordinateKey, List<NetworkEdge>>();
             void Touch(Coordinate c, NetworkEdge e) {
-                var key = new CoordinateKey(c, _snapTolerance);
+                var key = NodeKey(c);
                 if (!adj.TryGetValue(key, out var list)) adj[key] = list = new List<NetworkEdge>();
                 list.Add(e);
             }
@@ -588,12 +634,12 @@ namespace S100Framework.Topology.Internal
             var srcCoords = _sources[sourceId].Geometry.Coordinates;
             NetworkEdge? seed = null;
             for (int i = 0; i < srcCoords.Length - 1 && seed == null; i++) {
-                var a = new CoordinateKey(Canonicalize(srcCoords[i]), _snapTolerance);
-                var b = new CoordinateKey(Canonicalize(srcCoords[i + 1]), _snapTolerance);
+                var a = NodeKey(srcCoords[i]);
+                var b = NodeKey(srcCoords[i + 1]);
                 if (!adj.TryGetValue(a, out var atA)) continue;
                 foreach (var candidate in atA) {
-                    var ks = new CoordinateKey(candidate.StartNode, _snapTolerance);
-                    var ke = new CoordinateKey(candidate.EndNode, _snapTolerance);
+                    var ks = NodeKey(candidate.StartNode);
+                    var ke = NodeKey(candidate.EndNode);
                     if ((ks.Equals(a) && ke.Equals(b)) || (ke.Equals(a) && ks.Equals(b))) {
                         seed = candidate; break;
                     }
@@ -613,9 +659,11 @@ namespace S100Framework.Topology.Internal
             var forward = new List<NetworkEdge>();
             var backward = new List<NetworkEdge>();
 
+            var seedStartKey = NodeKey(seed.StartNode);
+
             var coord = seed.EndNode;
             while (true) {
-                var key = new CoordinateKey(coord, _snapTolerance);
+                var key = NodeKey(coord);
                 if (!adj.TryGetValue(key, out var nbrs)) break;
                 var cands = nbrs.Where(e => edgeSet.Contains(e) && !visited.Contains(e.Id)).ToList();
                 if (cands.Count != 1) break;
@@ -625,32 +673,32 @@ namespace S100Framework.Topology.Internal
                 forward.Add(next);
 
                 bool closedAtSeedStart =
-                    next.StartNode.Equals2D(seed.StartNode, _snapTolerance) ||
-                    next.EndNode.Equals2D(seed.StartNode, _snapTolerance);
+                    NodeKey(next.StartNode).Equals(seedStartKey) ||
+                    NodeKey(next.EndNode).Equals(seedStartKey);
                 bool allVisited = visited.Count == edgeSet.Count;
 
                 if (closedAtSeedStart || allVisited) break;
 
-                coord = next.StartNode.Equals2D(coord, _snapTolerance) ? next.EndNode : next.StartNode;
+                coord = NodeKey(next.StartNode).Equals(key) ? next.EndNode : next.StartNode;
             }
 
             bool ringClosed =
                 visited.Count == edgeSet.Count ||
                 (forward.Count > 0 && (
-                    forward[^1].StartNode.Equals2D(seed.StartNode, _snapTolerance) ||
-                    forward[^1].EndNode.Equals2D(seed.StartNode, _snapTolerance)));
+                    NodeKey(forward[^1].StartNode).Equals(seedStartKey) ||
+                    NodeKey(forward[^1].EndNode).Equals(seedStartKey)));
 
             if (!ringClosed) {
                 coord = seed.StartNode;
                 while (true) {
-                    var key = new CoordinateKey(coord, _snapTolerance);
+                    var key = NodeKey(coord);
                     if (!adj.TryGetValue(key, out var nbrs)) break;
                     var cands = nbrs.Where(e => edgeSet.Contains(e) && !visited.Contains(e.Id)).ToList();
                     if (cands.Count != 1) break;
                     var prev = cands[0];
                     visited.Add(prev.Id);
                     backward.Add(prev);
-                    coord = prev.StartNode.Equals2D(coord, _snapTolerance) ? prev.EndNode : prev.StartNode;
+                    coord = NodeKey(prev.StartNode).Equals(key) ? prev.EndNode : prev.StartNode;
                 }
             }
 
@@ -1143,6 +1191,17 @@ namespace S100Framework.Topology.Internal
                     Bump(Snap(cs[^1]), 1);
                 }
 
+                // A real dangle spur is short — a source doubling back on itself for a
+                // few segments. A genuine break in ring continuity (the chain fails to
+                // close) also produces degree-1 tips, but the "dangle" there can be the
+                // entire chain. Without a length guard the loop can't tell these apart
+                // and will happily eat a long, legitimately-connected chain down to
+                // nothing. Only edges short enough to plausibly be a spur are eligible
+                // for removal; anything longer is left in place even if it ends up
+                // degree-1, so a real gap shows up as a visible open path instead of
+                // silently vanishing.
+                double dangleLengthGuard = 10 * _dedupeRadius;
+
                 var pruned = new List<MergedEdge>(edges);
                 bool removedAny = true;
                 while (removedAny && pruned.Count > 1) {
@@ -1153,7 +1212,8 @@ namespace S100Framework.Topology.Internal
                         var kE = Snap(cs[^1]);
                         // Self-loops (kS==kE) are never dangles.
                         if (kS.Equals(kE)) continue;
-                        if (degree[kS] == 1 || degree[kE] == 1) {
+                        if ((degree[kS] == 1 || degree[kE] == 1) &&
+                            pruned[i].Geometry.Length <= dangleLengthGuard) {
                             Bump(kS, -1);
                             Bump(kE, -1);
                             pruned.RemoveAt(i);
