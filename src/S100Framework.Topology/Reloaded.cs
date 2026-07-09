@@ -17,6 +17,8 @@ namespace S100FC.Topology
     public interface IMatrixReloaded : IMatrix
     {
         GeometryFactory Factory { get; }
+
+        ICollection<string> Collapse { get; }
     }
 
     public class Reloaded : ITopologyBuilder, IMatrixReloaded
@@ -55,6 +57,8 @@ namespace S100FC.Topology
 
         private readonly Dictionary<string, string> _mapping = [];
 
+        private S100FC.Topology.Polygon[] _collapse = [];
+
         protected Reloaded() {
             //  Protected default constructor            
             this._mixedTopologyNetwork = new MixedTopologyNetwork(Reloaded.Factory!, snapTolerance: Reloaded.Factory!.PrecisionModel.GridSize);
@@ -81,6 +85,7 @@ namespace S100FC.Topology
 
         IMatrix ITopologyBuilder.BuildTopology() {
             this._mapping.Clear();
+            this._collapse = [];
             this._mixedTopologyNetwork.Build();
 
             var featureRefs = new Dictionary<ulong, FeatureRef>();
@@ -474,6 +479,8 @@ namespace S100FC.Topology
 
         IDictionary<string, string> IMatrix.MappingFOID => this._mapping;
 
+        ICollection<string> IMatrixReloaded.Collapse => [.. this._collapse.Select(e=>e.UID)];
+
         public record PolygonSource(int ExteriorRing, int[] InteriorRing);
 
         string[] checks_linestrings = [];
@@ -491,9 +498,7 @@ namespace S100FC.Topology
 
         private int[] checks = [];
 
-        private Geometry[] _geometries = [];
-
-        private S100FC.Topology.Polygon[] _excluded = [];
+        private Geometry[] _geometries = [];        
 
         private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
             foreach (var surface in surfaces) {
@@ -503,7 +508,7 @@ namespace S100FC.Topology
                 var checkExteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)surface.ExteriorRing);
                 if (checkExteriorRing.WillCollapse) {
                     //System.Diagnostics.Debugger.Break();
-                    _excluded = [.. _excluded, surface];
+                    _collapse = [.. _collapse, surface];
                     continue;                    
                 }
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
