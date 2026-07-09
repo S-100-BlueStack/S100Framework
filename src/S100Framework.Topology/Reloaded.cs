@@ -478,7 +478,7 @@ namespace S100FC.Topology
         private readonly Dictionary<int, LineType> _sourceLineType = [];
         private readonly Dictionary<int, double> _sourceSlope = [];
 
-        private int[] checks = [];  //[92,1384];
+        private int[] checks = [34];  //[92,1384];
 
         private Geometry[] _geometries = [];
 
