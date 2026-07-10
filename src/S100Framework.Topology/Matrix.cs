@@ -197,6 +197,8 @@ namespace S100FC.Topology
         IEnumerable<SurfaceFeature> Surfaces { get; }
 
         IDictionary<string, string> MappingFOID { get; }
+
+        ICollection<string> Collapse { get; }
     }
 
     public class Matrix : ITopologyBuilder, IMatrix
@@ -1112,6 +1114,8 @@ namespace S100FC.Topology
         IEnumerable<SurfaceFeature> IMatrix.Surfaces => this._bagSurfaces;
 
         IDictionary<string, string> IMatrix.MappingFOID => this._mapping;
+
+        ICollection<string> IMatrix.Collapse => [];
 
         //string[] IMatrix.MappingFeature(string name) {
         //    return [.. this._mapping.Where(e => e.Key.Equals(name) || e.Key.StartsWith($"{name}:p")).Select(e => e.Value)];

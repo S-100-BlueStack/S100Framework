@@ -16,9 +16,7 @@ namespace S100FC.Topology
 
     public interface IMatrixReloaded : IMatrix
     {
-        GeometryFactory Factory { get; }
-
-        ICollection<string> Collapse { get; }
+        GeometryFactory Factory { get; }        
     }
 
     public class Reloaded : ITopologyBuilder, IMatrixReloaded
@@ -479,7 +477,7 @@ namespace S100FC.Topology
 
         IDictionary<string, string> IMatrix.MappingFOID => this._mapping;
 
-        ICollection<string> IMatrixReloaded.Collapse => [.. this._collapse.Select(e=>e.UID)];
+        ICollection<string> IMatrix.Collapse => [.. this._collapse.Select(e=>e.UID)];
 
         public record PolygonSource(int ExteriorRing, int[] InteriorRing);
 
