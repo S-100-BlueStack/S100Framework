@@ -223,8 +223,6 @@ namespace ArcGIS.Core.Geometry
                 var polygons = new List<S100FC.Topology.Polygon>();
 
                 using (var surface = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("surface")).GetName())) {
-                    //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA'))";
-
                     foreach (var filter in filters) {
                         filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA','SHORELINECONSTRUCTION'))";
 
@@ -283,8 +281,6 @@ namespace ArcGIS.Core.Geometry
                 var curves = new List<S100FC.Topology.Polyline>();
 
                 using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("curve")).GetName())) {
-                    //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'))";
-
                     foreach (var filter in filters) {
                         filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'))";
 
@@ -362,6 +358,7 @@ namespace ArcGIS.Core.Geometry
 
                             if (lookup.Contains(f.GetObjectID())) continue;
 
+                            //if (Convert.ToString(f["code"]).Equals("SoundingDatum")) System.Diagnostics.Debugger.Break();
 
 #if SKIN_OF_THE_EARTH_ONLY
                             if (!testFeatures.Contains(Convert.ToString(f["code"]))) continue;
@@ -371,6 +368,8 @@ namespace ArcGIS.Core.Geometry
                             var name = Convert.ToString(f["UID"]);
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
+
+                            if("F10400819365".Equals(name)) System.Diagnostics.Debugger.Break();
 
                             shape = (Polygon)clipGeometry(shape);
                             if (shape.IsEmpty) continue;
