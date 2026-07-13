@@ -795,7 +795,8 @@ namespace S100Framework.Topology.Internal
                 }
                 // Inspect: degree1 (split node) / degree3 (fused node) / chain / edges.
                 var txt = console.ToString();
-                System.Diagnostics.Debugger.Break();
+                if (System.Diagnostics.Debugger.IsAttached)
+                    System.Diagnostics.Debugger.Break();
             }
 
             return chain;
