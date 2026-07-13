@@ -1115,7 +1115,7 @@ namespace S100FC.Topology
 
         IDictionary<string, string> IMatrix.MappingFOID => this._mapping;
 
-        ICollection<string> IMatrix.Collapse => [];
+        public ICollection<string> Collapse => [];
 
         //string[] IMatrix.MappingFeature(string name) {
         //    return [.. this._mapping.Where(e => e.Key.Equals(name) || e.Key.StartsWith($"{name}:p")).Select(e => e.Value)];

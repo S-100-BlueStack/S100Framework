@@ -1,6 +1,7 @@
 ﻿//#define SKIN_OF_THE_EARTH_ONLY
 
 using ArcGIS.Core.Data;
+using ArcGIS.Core.Data.Topology;
 using ArcGIS.Core.SystemCore;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Noding;
@@ -166,8 +167,7 @@ namespace ArcGIS.Core.Geometry
 
 
             //var matrix = S100FC.Topology.Matrix.CreateMatrix(interceptor);
-            var matrix = S100FC.Topology.Reloaded.CreateMatrix(interceptor);
-
+            var matrix = S100FC.Topology.Reloaded.CreateMatrix(interceptor);            
 
             S100FC.Topology.ITopologyBuilder? builder = default;
 
@@ -255,21 +255,19 @@ namespace ArcGIS.Core.Geometry
                             //ex.Normalize();
 
                             if (shape.PartCount > 1) {
-                                var interiorRings = new List<LineString>();
+                                var interiorRings = new List<LinearRing>();
 
                                 foreach (var interiorRing in shape.Parts.Skip(1)) {
                                     coordinates = interiorRing.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
                                     var linestring = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
                                     linestring = (LinearRing)matrix.Reducer.Reduce(linestring);
-                                    //linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
-                                    //linestring.Normalize();
 
                                     if (!linestring.IsSelfIntersections())
                                         interiorRings.Add(linestring);
                                     else {
-                                        foreach (var l in SplitAtSelfIntersections(linestring))
-                                            interiorRings.Add(l);
+                                        foreach (var l in SplitAtSelfIntersections(linestring))                                            
+                                            interiorRings.Add(l.Factory.CreateLinearRing(l.Coordinates));
                                     }
                                 }
 
@@ -395,14 +393,12 @@ namespace ArcGIS.Core.Geometry
 
                                     var linestring = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
                                     linestring = (LinearRing)matrix.Reducer.Reduce(linestring);
-                                    //linestring = linestring.RemoveRepeatedVertices().RemoveCollinearVertices();
-                                    //linestring.Normalize();
 
                                     if (!linestring.IsSelfIntersections())
                                         interiorRings.Add(linestring);
                                     else {
                                         foreach (var l in SplitAtSelfIntersections(linestring))
-                                            interiorRings.Add(l);
+                                            interiorRings.Add(l.Factory.CreateLinearRing(l.Coordinates));
                                     }
                                 }
 
@@ -421,8 +417,6 @@ namespace ArcGIS.Core.Geometry
                 var singletonsFeatures = "''";// "'ROAD','RAILWAY'";  //'NAVIGATIONLINE','RECOMMENDEDTRACK'
 
                 using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("curve")).GetName())) {
-                    //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION')) AND (upper(code) NOT IN ({singletonsFeatures}))"; //,'NAVIGATIONLINE','RECOMMENDEDTRACK'
-
                     foreach (var filter in filters) {
                         filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION')) AND (upper(code) NOT IN ({singletonsFeatures}))"; //,'NAVIGATIONLINE','RECOMMENDEDTRACK'
 
@@ -475,9 +469,6 @@ namespace ArcGIS.Core.Geometry
                             }
                         }
                     }
-
-                    //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ({singletonsFeatures}))";
-
 #if Singletons
                     foreach (var filter in filters) {
                         filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ({singletonsFeatures}))";
@@ -525,8 +516,7 @@ namespace ArcGIS.Core.Geometry
                 builder = matrix.AddNavigationalFeatures(polygons, curves);//.AddSingletonFeatures(singletons);
             }
 
-            var result = builder.BuildTopology();
-
+            var result = builder.BuildTopology();            
 
             //interceptor?.Invoke(6001, result.Curves.Select(e => (e.LineString, $"{e.Id}")).ToArray());
 
@@ -597,7 +587,7 @@ namespace ArcGIS.Core.Geometry
             merger.Add(lines);
 
             return merger.GetMergedLineStrings()
-                .Cast<LineString>()
+                .Cast<LineString>()                
                 .ToList();
         }
 

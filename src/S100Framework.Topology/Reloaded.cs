@@ -83,7 +83,6 @@ namespace S100FC.Topology
 
         IMatrix ITopologyBuilder.BuildTopology() {
             this._mapping.Clear();
-            this._collapse = [];
             this._mixedTopologyNetwork.Build();
 
             var featureRefs = new Dictionary<ulong, FeatureRef>();
@@ -477,7 +476,7 @@ namespace S100FC.Topology
 
         IDictionary<string, string> IMatrix.MappingFOID => this._mapping;
 
-        ICollection<string> IMatrix.Collapse => [.. this._collapse.Select(e=>e.UID)];
+        public ICollection<string> Collapse => [.. this._collapse.Select(e=>e.UID)];
 
         public record PolygonSource(int ExteriorRing, int[] InteriorRing);
 
@@ -538,7 +537,6 @@ namespace S100FC.Topology
 
                     var checkInteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)interior);
                     if (checkInteriorRing.WillCollapse) {
-                        System.Diagnostics.Debugger.Break();
                         continue;
                     }
 

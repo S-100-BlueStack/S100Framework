@@ -13,11 +13,11 @@
 		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
 		<AssemblyVersion>4.0.0.0</AssemblyVersion>
 		<Configurations>Debug</Configurations>
-		<Version>4.2.2</Version>
+		<Version>4.2.3</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="NetTopologySuite" Version="2.6.0" />
-		<PackageReference Include="System.IO.Hashing" Version="10.0.8" />
+		<PackageReference Include="System.IO.Hashing" Version="10.0.9" />
 	</ItemGroup>
 </Project>
