@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using NetTopologySuite;
 using NetTopologySuite.Algorithm;
 using NetTopologySuite.Geometries;
@@ -233,8 +234,10 @@ namespace S100Framework.Topology.Internal
         // -------------------------------------------------------------------
         // Build
         // -------------------------------------------------------------------
+        private ILogger? _logger = default;
 
-        public void Build() {
+        public void Build(ILogger? logger = default) {
+            _logger = logger;
             var rawSegments = ExtractRawSegments();
 
             var canonical = BuildCanonicalCoordinateMap(rawSegments);
@@ -795,6 +798,9 @@ namespace S100Framework.Topology.Internal
                 }
                 // Inspect: degree1 (split node) / degree3 (fused node) / chain / edges.
                 var txt = console.ToString();
+
+                _logger?.LogWarning(txt);
+
                 if (System.Diagnostics.Debugger.IsAttached)
                     System.Diagnostics.Debugger.Break();
             }
