@@ -11,6 +11,7 @@ using NetTopologySuite.Operation.Valid;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 using S100FC.Topology;
+using System.Runtime.CompilerServices;
 
 namespace ArcGIS.Core.Data
 {
@@ -371,7 +372,7 @@ namespace ArcGIS.Core.Geometry
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
-                            if ("F10400819365".Equals(name)) System.Diagnostics.Debugger.Break();
+                            //if ("F10400819365".Equals(name)) System.Diagnostics.Debugger.Break();
 
                             shape = (Polygon)clipGeometry(shape);
                             if (shape.IsEmpty) continue;
@@ -389,19 +390,35 @@ namespace ArcGIS.Core.Geometry
                             if (shape.PartCount > 1) {
                                 var interiorRings = new List<LineString>();
 
+                                var index = 1;
                                 foreach (var interiorRing in shape.Parts.Skip(1)) {
                                     coordinates = interiorRing.Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
                                     var linestring = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
                                     linestring = (LinearRing)matrix.Reducer.Reduce(linestring);
 
+                                    if (name.Equals("F10400000191")) {
+                                        interceptor?.Invoke(100, [((linestring, $"{name}::i{index}"))]);
+                                        System.Diagnostics.Debugger.Break();
+                                    }
+
                                     if (!linestring.IsSelfIntersections())
                                         interiorRings.Add(linestring);
                                     else {
-                                        foreach (var l in SplitAtSelfIntersections(linestring))
+                                        foreach (var l in SplitAtSelfIntersections(linestring)) {
+                                            if (l.Coordinates.Length < 3) continue;
                                             interiorRings.Add(l.Factory.CreateLinearRing(l.Coordinates));
+                                        }
                                     }
+                                    index += 1;
                                 }
+
+                                if(name.Equals("F10400000191"))
+                                {
+                                    interceptor?.Invoke(100, [.. interiorRings.Select(l=>(l, $"{name}::i{index}"))]);
+                                    System.Diagnostics.Debugger.Break();
+                                }
+
 
                                 polygons.Add(new S100FC.Topology.Polygon(f.GetObjectID(), name, Convert.ToString(f["code"])!, ex, interiorRings.ToArray()));
                             }
