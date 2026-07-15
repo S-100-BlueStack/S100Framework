@@ -1,5 +1,6 @@
 ﻿using NetTopologySuite.Geometries;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 
 [assembly: InternalsVisibleTo("TestTopology")]
 
@@ -45,6 +46,7 @@ namespace S100FC.Topology
         public static GeometryFactory? Factory { get; set; } = default; // new GeometryFactory(new PrecisionModel(10000000), srid: 4326); // Or PrecisionModels.Floating
 
         private Action<int, ICollection<(LineString lineString, string message)>>? _interceptor;
+        private ILogger<Reloaded>? _logger;
 
         private readonly MixedTopologyNetwork _mixedTopologyNetwork;
 
@@ -64,9 +66,10 @@ namespace S100FC.Topology
             this._topologyBuilder = new TopologyBuilder();
         }
 
-        public static ITopologyBuilder CreateMatrix(Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default) {
+        public static ITopologyBuilder CreateMatrix(Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default, ILogger<Reloaded>? logger = default) {
             return new Reloaded() {
                 _interceptor = interceptor,
+                _logger = logger,
             };
         }
 

@@ -9,7 +9,8 @@ using NetTopologySuite.Noding.Snapround;
 using NetTopologySuite.Operation.Linemerge;
 using NetTopologySuite.Operation.Valid;
 using System.Globalization;
-
+using Microsoft.Extensions.Logging;
+using S100FC.Topology;
 
 namespace ArcGIS.Core.Data
 {
@@ -107,7 +108,7 @@ namespace ArcGIS.Core.Geometry
 
         static readonly GeometryFactory factory = new GeometryFactory(precisionModel, srid: 4326); // Or PrecisionModels.Floating        
 
-        public static (S100FC.Topology.IMatrix matrix, IDictionary<string, string> mapper) BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default) {
+        public static (S100FC.Topology.IMatrix matrix, IDictionary<string, string> mapper) BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default, ILoggerFactory? loggerFactory = default) {
             var syntax = geodatabase.GetSQLSyntax();
 
             QueryFilter[] filters = [];
@@ -166,8 +167,9 @@ namespace ArcGIS.Core.Geometry
             var definitions = geodatabase.GetDefinitions<FeatureClassDefinition>();
 
 
+            var logger = loggerFactory?.CreateLogger<Reloaded>();
             //var matrix = S100FC.Topology.Matrix.CreateMatrix(interceptor);
-            var matrix = S100FC.Topology.Reloaded.CreateMatrix(interceptor);            
+            var matrix = S100FC.Topology.Reloaded.CreateMatrix(interceptor, logger);
 
             S100FC.Topology.ITopologyBuilder? builder = default;
 
@@ -264,7 +266,7 @@ namespace ArcGIS.Core.Geometry
                                     if (!linestring.IsSelfIntersections())
                                         interiorRings.Add(linestring);
                                     else {
-                                        foreach (var l in SplitAtSelfIntersections(linestring))                                            
+                                        foreach (var l in SplitAtSelfIntersections(linestring))
                                             interiorRings.Add(l.Factory.CreateLinearRing(l.Coordinates));
                                     }
                                 }
@@ -369,7 +371,7 @@ namespace ArcGIS.Core.Geometry
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
-                            if("F10400819365".Equals(name)) System.Diagnostics.Debugger.Break();
+                            if ("F10400819365".Equals(name)) System.Diagnostics.Debugger.Break();
 
                             shape = (Polygon)clipGeometry(shape);
                             if (shape.IsEmpty) continue;
@@ -515,7 +517,7 @@ namespace ArcGIS.Core.Geometry
                 builder = matrix.AddNavigationalFeatures(polygons, curves);//.AddSingletonFeatures(singletons);
             }
 
-            var result = builder.BuildTopology();            
+            var result = builder.BuildTopology();
 
             //interceptor?.Invoke(6001, result.Curves.Select(e => (e.LineString, $"{e.Id}")).ToArray());
 
@@ -586,7 +588,7 @@ namespace ArcGIS.Core.Geometry
             merger.Add(lines);
 
             return merger.GetMergedLineStrings()
-                .Cast<LineString>()                
+                .Cast<LineString>()
                 .ToList();
         }
 
