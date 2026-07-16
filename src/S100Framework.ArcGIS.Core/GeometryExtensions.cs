@@ -246,13 +246,22 @@ namespace ArcGIS.Core.Geometry
                                 name = string.Empty;
 
                             shape = (Polygon)clipGeometry(shape);
-                            if (shape.IsEmpty) continue;
+                            if (shape.IsEmpty) continue;                            
 
                             var exteriorRing = shape.GetExteriorRing(0);
                             var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
                             var ex = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
-                            ex = (LinearRing)matrix.Reducer.Reduce(ex);
+
+
+                            //if (name.Equals("F10400009459")) {
+                            //    interceptor?.Invoke(100, [((LineString)matrix.Reducer.Reduce(ex), name)]);
+                            //    System.Diagnostics.Debugger.Break();
+                            //}
+
+                            var reduced = matrix.Reducer.Reduce(ex);
+                            if (!(reduced is LinearRing linear)) continue;
+                            ex = (LinearRing)reduced;
                             //ex = ex.RemoveRepeatedVertices().RemoveCollinearVertices();
                             //ex.Normalize();
 

@@ -82,7 +82,8 @@ namespace S100FC.Topology
 
         public GeometryPrecisionReducer Reducer => new GeometryPrecisionReducer(Factory!.PrecisionModel) {
             Pointwise = false,
-            RemoveCollapsedComponents = true,            
+            RemoveCollapsedComponents = true,
+            ChangePrecisionModel = true,
         };
 
         IMatrix ITopologyBuilder.BuildTopology() {
@@ -174,7 +175,7 @@ namespace S100FC.Topology
                             Id = hashGeometry,
                             Reverse = false,
                         };
-                        featureRefs.Add(hashGeometry, featureRef1);                        
+                        featureRefs.Add(hashGeometry, featureRef1);
 
                         var curve = new CurveFeature(e.Geometry, hashGeometry);
                         this._curves.Add(featureRef1.Id, curve);
@@ -187,7 +188,7 @@ namespace S100FC.Topology
                             Id = hashGeometry,
                             Reverse = true,
                         };
-                        featureRefs.Add(hashGeometryReverse, featureRef2);                        
+                        featureRefs.Add(hashGeometryReverse, featureRef2);
                     }
                     if (!featureRefs2Reverse.ContainsKey(hashGeometry))
                         featureRefs2Reverse.Add(hashGeometry, hashGeometryReverse);
@@ -448,7 +449,7 @@ namespace S100FC.Topology
             }
 
             //this._interceptor?.Invoke(6000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
-            //this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
+            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
 
             return this;
         }
@@ -477,6 +478,7 @@ namespace S100FC.Topology
             Exterior = 1,
             Interior = 2,
             Curve = 4,
+            Ring = 8,
         };
 
         private readonly Dictionary<int, LineType> _sourceLineType = [];
@@ -542,13 +544,17 @@ namespace S100FC.Topology
 
                 var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
                 if (id < 0) continue;
-                this._sourceLineType.Add(id, LineType.Curve);
+
+                if (curve.LineString is LinearRing linearring)
+                    this._sourceLineType.Add(id, LineType.Ring);
+                else
+                    this._sourceLineType.Add(id, LineType.Curve);
 
                 this._sourceSlope.Add(id, curve.LineString.Slope());
 
-                if (curve.UID.EndsWith("10100008571")) {
-                    checks = [.. checks, id];
-                }
+                //if (curve.UID.EndsWith("10100008571")) {
+                //    checks = [.. checks, id];
+                //}
 
                 if (checks.Contains(id)) {
                     this.checks_linestrings = [.. this.checks_linestrings, curve.LineString.ToText()];

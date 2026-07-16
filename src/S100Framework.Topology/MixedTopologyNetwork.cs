@@ -499,8 +499,10 @@ namespace S100Framework.Topology.Internal
             area = Math.Abs(area) / 2.0;
 
             double meanWidth = perimeter > 0 ? 2.0 * area / perimeter : 0.0;
-            double inTol = meanWidth / _snapTolerance;
-            bool collapses = meanWidth < _snapTolerance;
+            //double inTol = meanWidth / _snapTolerance;
+            //bool collapses = meanWidth < _snapTolerance;
+            double inTol = meanWidth / _dedupeRadius;
+            bool collapses = meanWidth < _dedupeRadius;
 
             return new RingCollapseCheck {
                 WillCollapse = collapses,
