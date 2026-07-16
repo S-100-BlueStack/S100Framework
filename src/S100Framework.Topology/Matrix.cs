@@ -34,7 +34,7 @@ namespace S100FC.Topology
             base.Id = hash;
 
             //if (base.Id == 52672787 || base.Id == 3587297466) System.Diagnostics.Debugger.Break();
-            if (base.Id == 2933884953) System.Diagnostics.Debugger.Break();
+            //if (base.Id == 2933884953) System.Diagnostics.Debugger.Break();
         }
 
         public CurveFeature(LineString lineString) {
@@ -44,8 +44,8 @@ namespace S100FC.Topology
             this.LineStringText = lineString.ToString();
             this.LineStringReverseText = this.LineStringReverse.ToString();
 
-            //base.Id = System.IO.Hashing.XxHash64.HashToUInt64(LineString.ToBinary());
-            base.Id = System.IO.Hashing.XxHash32.HashToUInt32(this.LineString.ToBinary());
+            base.Id = System.IO.Hashing.XxHash64.HashToUInt64(LineString.ToBinary());
+            //base.Id = System.IO.Hashing.XxHash32.HashToUInt32(this.LineString.ToBinary());
 
             //if (base.Id == 11123348237682635517 || base.Id == 8819474955002669271) System.Diagnostics.Debugger.Break();
         }
@@ -78,7 +78,7 @@ namespace S100FC.Topology
         }
 
         public override int GetHashCode() {
-            return (int)System.IO.Hashing.XxHash32.HashToUInt32(this.LineString.ToBinary());
+            return (int)System.IO.Hashing.XxHash64.HashToUInt64(this.LineString.ToBinary());
         }
     }
 
@@ -87,10 +87,10 @@ namespace S100FC.Topology
         public CompositeCurveFeature(FeatureRef[] curves) {
             this.Curves = curves;
 
-            //base.Id = System.IO.Hashing.XxHash64.HashToUInt64(Encoding.UTF8.GetBytes(string.Join(',', curves.Select(e => e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
-            base.Id = System.IO.Hashing.XxHash32.HashToUInt32(Encoding.UTF8.GetBytes(string.Join(',', curves.Select(e => e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
+            base.Id = System.IO.Hashing.XxHash64.HashToUInt64(Encoding.UTF8.GetBytes(string.Join(',', curves.Select(e => e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
+            //base.Id = System.IO.Hashing.XxHash32.HashToUInt32(Encoding.UTF8.GetBytes(string.Join(',', curves.Select(e => e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
 
-            this.Reverse = System.IO.Hashing.XxHash32.HashToUInt32(Encoding.UTF8.GetBytes(string.Join(',', curves.Reverse().Select(e => !e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
+            this.Reverse = System.IO.Hashing.XxHash64.HashToUInt64(Encoding.UTF8.GetBytes(string.Join(',', curves.Reverse().Select(e => !e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
 
             //if (base.Id == 46947589) System.Diagnostics.Debugger.Break();
         }
@@ -117,34 +117,6 @@ namespace S100FC.Topology
     public record Polyline(long ObjectId, string Name, string Code, LineString LineString, string UID);
 
     public record Polygon(long ObjectId, string Name, string Code, LineString ExteriorRing, LineString[] InteriorRings) : Polyline(ObjectId, Name, Code, ExteriorRing, Name);
-
-
-    //public class CurveContainer
-    //{
-    //    private readonly Dictionary<UInt64, CurveFeature> _feature = [];
-    //    private readonly Dictionary<ulong, (UInt64 Id, bool Reverse)> _keys = [];
-
-    //    public ICollection<CurveFeature> CurveFeatures => this._feature.Values;
-
-    //    public (UInt64 Id, bool Reverse) AddOrGet(LineString lineString) {
-    //        var keyStraight = System.IO.Hashing.XxHash3.HashToUInt64(lineString.AsBinary());
-    //        var keyReverse = System.IO.Hashing.XxHash3.HashToUInt64(lineString.Reverse().AsBinary());
-
-    //        var curve = new CurveFeature(lineString);
-
-    //        lock (this) {
-    //            if (this._keys.ContainsKey(keyStraight)) {
-    //                var value = this._keys[keyStraight];
-    //                return (value.Id, value.Reverse);
-    //            }
-    //            this._feature.Add(curve.Id, curve);
-    //            this._keys.Add(keyStraight, (curve.Id, false));
-    //            this._keys.Add(keyReverse, (curve.Id, true));
-
-    //            return (curve.Id, false);
-    //        }
-    //    }
-    //}
 
     public class CompositeCurveContainer
     {
@@ -199,6 +171,8 @@ namespace S100FC.Topology
         IDictionary<string, string> MappingFOID { get; }
 
         ICollection<string> Collapse { get; }
+
+        string[] Network { get; }
     }
 
     public class Matrix : ITopologyBuilder, IMatrix
@@ -1116,6 +1090,8 @@ namespace S100FC.Topology
         IDictionary<string, string> IMatrix.MappingFOID => this._mapping;
 
         public ICollection<string> Collapse => [];
+
+        public string[] Network => [];
 
         //string[] IMatrix.MappingFeature(string name) {
         //    return [.. this._mapping.Where(e => e.Key.Equals(name) || e.Key.StartsWith($"{name}:p")).Select(e => e.Value)];

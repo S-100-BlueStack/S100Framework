@@ -167,13 +167,16 @@ namespace S100Framework.Topology.Internal
         public readonly Coordinate P0, P1;
         public readonly int SourceId;
         public readonly Envelope Envelope;
+        /// <summary>True when P0/P1 were swapped into canonical order during extraction,
+        /// i.e. the source traverses this segment P1 -> P0.</summary>
+        public readonly bool Swapped;
 
-        public RawSegment(int segId, Coordinate p0, Coordinate p1, int sourceId) {
-            SegId = segId; P0 = p0; P1 = p1; SourceId = sourceId;
+        public RawSegment(int segId, Coordinate p0, Coordinate p1, int sourceId, bool swapped = false) {
+            SegId = segId; P0 = p0; P1 = p1; SourceId = sourceId; Swapped = swapped;
             Envelope = new Envelope(p0, p1);
         }
-        public RawSegment WithCoordinates(Coordinate p0, Coordinate p1) => new(SegId, p0, p1, SourceId);
-        public RawSegment WithSegId(int segId) => new(segId, P0, P1, SourceId);
+        public RawSegment WithCoordinates(Coordinate p0, Coordinate p1) => new(SegId, p0, p1, SourceId, Swapped);
+        public RawSegment WithSegId(int segId) => new(segId, P0, P1, SourceId, Swapped);
     }
 
     internal readonly struct SplitPoint
@@ -202,6 +205,11 @@ namespace S100Framework.Topology.Internal
         private readonly Dictionary<int, List<NetworkEdge>> _edgesBySource = new();
         private STRtree<NetworkEdge> _edgeIndex = new();
         private Dictionary<CoordinateKey, Coordinate>? _canonicalMap;
+        /// <summary>Per-source NetworkEdge chains in exact raw traversal order,
+        /// recorded during <see cref="Build"/>. Immune to graph-walk ambiguity at
+        /// nodes the source passes through more than once (e.g. narrow features
+        /// where interior splitting makes a ring touch itself).</summary>
+        private readonly Dictionary<int, List<NetworkEdge>> _orderedEdgesBySource = new();
 
         public IReadOnlyList<NetworkEdge> Edges => _edges;
         public IReadOnlyCollection<NetworkNode> Nodes => _nodes.Values;
@@ -236,8 +244,11 @@ namespace S100Framework.Topology.Internal
         // -------------------------------------------------------------------
         private ILogger? _logger = default;
 
-        public void Build(ILogger? logger = default) {
-            _logger = logger;
+        internal ILogger Logger {
+            set => _logger = value;
+        }
+
+        public void Build() {
             var rawSegments = ExtractRawSegments();
 
             var canonical = BuildCanonicalCoordinateMap(rawSegments);
@@ -303,6 +314,7 @@ namespace S100Framework.Topology.Internal
             }
 
             _nodes.Clear(); _edges.Clear(); _edgesBySource.Clear();
+            _orderedEdgesBySource.Clear();
             var edgeMap = new Dictionary<(CoordinateKey, CoordinateKey), NetworkEdge>();
 
             foreach (var seg in segments) {
@@ -312,10 +324,21 @@ namespace S100Framework.Topology.Internal
                     if (!sp.Coord.Equals2D(coords[^1], _snapTolerance)) coords.Add(sp.Coord);
                 if (!seg.P1.Equals2D(coords[^1], _snapTolerance)) coords.Add(seg.P1);
 
+                // Collect this segment's sub-edges, then append them to the source's
+                // ordered chain in RAW TRAVERSAL order. Segments were canonicalized
+                // (endpoints swapped) during extraction; the Swapped flag restores
+                // the original direction here.
+                var segEdges = new List<NetworkEdge>(coords.Count - 1);
                 for (int i = 0; i < coords.Count - 1; i++) {
-                    if (!coords[i].Equals2D(coords[i + 1], _snapTolerance))
-                        InsertEdge(coords[i], coords[i + 1], seg.SourceId, edgeMap);
+                    if (!coords[i].Equals2D(coords[i + 1], _snapTolerance)) {
+                        var e = InsertEdge(coords[i], coords[i + 1], seg.SourceId, edgeMap);
+                        if (e != null) segEdges.Add(e);
+                    }
                 }
+                if (seg.Swapped) segEdges.Reverse();
+                if (!_orderedEdgesBySource.TryGetValue(seg.SourceId, out var chainList))
+                    _orderedEdgesBySource[seg.SourceId] = chainList = new List<NetworkEdge>();
+                chainList.AddRange(segEdges);
             }
 
             _edgeIndex = new STRtree<NetworkEdge>();
@@ -370,8 +393,9 @@ namespace S100Framework.Topology.Internal
             for (int i = 0; i < snapped.Count - 1; i++) {
                 var p0 = snapped[i]; var p1 = snapped[i + 1];
                 if (p0.Equals2D(p1)) continue;
-                if (CompareCoords(p0, p1) > 0) (p0, p1) = (p1, p0);
-                result.Add(new RawSegment(segId++, p0, p1, sourceId));
+                bool swapped = CompareCoords(p0, p1) > 0;
+                if (swapped) (p0, p1) = (p1, p0);
+                result.Add(new RawSegment(segId++, p0, p1, sourceId, swapped));
             }
             return segId;
         }
@@ -650,11 +674,11 @@ namespace S100Framework.Topology.Internal
         // Graph insertion
         // -------------------------------------------------------------------
 
-        private void InsertEdge(
+        private NetworkEdge? InsertEdge(
             Coordinate c0, Coordinate c1, int sourceId,
             Dictionary<(CoordinateKey, CoordinateKey), NetworkEdge> edgeMap) {
 
-            if (c0.Equals2D(c1, _snapTolerance)) return;
+            if (c0.Equals2D(c1, _snapTolerance)) return null;
 
             var k0 = new CoordinateKey(c0, _snapTolerance);
             var k1 = new CoordinateKey(c1, _snapTolerance);
@@ -675,6 +699,7 @@ namespace S100Framework.Topology.Internal
             if (!_edgesBySource.TryGetValue(sourceId, out var list))
                 _edgesBySource[sourceId] = list = new List<NetworkEdge>();
             if (!list.Contains(edge)) list.Add(edge);
+            return edge;
         }
 
         private NetworkNode GetOrCreateNode(Coordinate coord) {
@@ -738,6 +763,21 @@ namespace S100Framework.Topology.Internal
             new CoordinateKey(Canonicalize(c), _snapTolerance);
 
         public List<NetworkEdge> GetFullEdgeChainFor(int sourceId) {
+            // Preferred path: the exact traversal-order chain recorded during Build.
+            // This is deterministic and immune to walk ambiguity at nodes the source
+            // passes through more than once (e.g. src605-style figure-eight touches
+            // where a ring's closing segment is split at a node the ring also visits
+            // as a vertex). Edges traversed multiple times (doubling back over a
+            // spur) are kept once - first occurrence - matching the visited-once
+            // semantics of the graph walk below, which remains only as a fallback.
+            if (_orderedEdgesBySource.TryGetValue(sourceId, out var recorded)) {
+                var seen = new HashSet<int>();
+                var chain0 = new List<NetworkEdge>(recorded.Count);
+                foreach (var e in recorded)
+                    if (seen.Add(e.Id)) chain0.Add(e);
+                if (chain0.Count > 0) return chain0;
+            }
+
             var edges = GetEdgesFor(sourceId).ToHashSet();
             if (edges.Count == 0) return new List<NetworkEdge>();
 
@@ -799,10 +839,10 @@ namespace S100Framework.Topology.Internal
                 // Inspect: degree1 (split node) / degree3 (fused node) / chain / edges.
                 var txt = console.ToString();
 
-                _logger?.LogWarning(txt);
+                _logger?.LogWarning($"src{sourceId}" + Environment.NewLine + txt);
 
-                if (System.Diagnostics.Debugger.IsAttached)
-                    System.Diagnostics.Debugger.Break();
+                //if (System.Diagnostics.Debugger.IsAttached)
+                //    System.Diagnostics.Debugger.Break();
             }
 
             return chain;

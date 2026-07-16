@@ -14,10 +14,11 @@ namespace S100FC.Topology
     using S100Framework.Topology.Internal;
     using System.Net;
     using System.Net.NetworkInformation;
+    using System.Text;
 
     public interface IMatrixReloaded : IMatrix
     {
-        GeometryFactory Factory { get; }        
+        GeometryFactory Factory { get; }
     }
 
     public class Reloaded : ITopologyBuilder, IMatrixReloaded
@@ -29,7 +30,7 @@ namespace S100FC.Topology
                 return a.Equals(b);
             }
 
-            public int GetHashCode(LineString e) => (int)System.IO.Hashing.XxHash32.HashToUInt32(e.AsBinary());
+            public int GetHashCode(LineString e) => (int)System.IO.Hashing.XxHash64.HashToUInt64(e.AsBinary());
         }
 
         private class Surface
@@ -80,12 +81,14 @@ namespace S100FC.Topology
         ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddTopologyFeatures(surfaces, curves, false);
 
         public GeometryPrecisionReducer Reducer => new GeometryPrecisionReducer(Factory!.PrecisionModel) {
-            Pointwise = true,
-            RemoveCollapsedComponents = true,
+            Pointwise = false,
+            RemoveCollapsedComponents = true,            
         };
 
         IMatrix ITopologyBuilder.BuildTopology() {
             this._mapping.Clear();
+            if (_logger is not null)
+                this._mixedTopologyNetwork.Logger = _logger;
             this._mixedTopologyNetwork.Build();
 
             var featureRefs = new Dictionary<ulong, FeatureRef>();
@@ -164,27 +167,27 @@ namespace S100FC.Topology
                 if (!edges.Any()) continue;
 
                 foreach (var e in edges) {
-                    var hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(e.Geometry.AsBinary());
+                    var hashGeometry = System.IO.Hashing.XxHash64.HashToUInt64(e.Geometry.AsBinary());
+                    //if (hashGeometry == 4112964597) System.Diagnostics.Debugger.Break();
                     if (!featureRefs.ContainsKey(hashGeometry)) {
                         var featureRef1 = new FeatureRef {
                             Id = hashGeometry,
                             Reverse = false,
                         };
-                        featureRefs.Add(hashGeometry, featureRef1);
+                        featureRefs.Add(hashGeometry, featureRef1);                        
 
                         var curve = new CurveFeature(e.Geometry, hashGeometry);
                         this._curves.Add(featureRef1.Id, curve);
-
-                        //if (curve.Id == 1471310191) System.Diagnostics.Debugger.Break();
                     }
 
-                    var hashGeometryReverse = System.IO.Hashing.XxHash32.HashToUInt32(e.Geometry.Reverse().AsBinary());
+                    var hashGeometryReverse = System.IO.Hashing.XxHash64.HashToUInt64(e.Geometry.Reverse().AsBinary());
+                    //if (hashGeometryReverse == 4112964597) System.Diagnostics.Debugger.Break();
                     if (!featureRefs.ContainsKey(hashGeometryReverse)) {
                         var featureRef2 = new FeatureRef {
                             Id = hashGeometry,
                             Reverse = true,
                         };
-                        featureRefs.Add(hashGeometryReverse, featureRef2);
+                        featureRefs.Add(hashGeometryReverse, featureRef2);                        
                     }
                     if (!featureRefs2Reverse.ContainsKey(hashGeometry))
                         featureRefs2Reverse.Add(hashGeometry, hashGeometryReverse);
@@ -264,29 +267,6 @@ namespace S100FC.Topology
                     edges = edges[..^1];
 
                 if (edges.Count > 1) {
-                    //bool reverse = false;
-
-                    //if (this._sourceLineType[sourceId] != LineType.Curve) {
-                    //    var linearRing = this._mixedTopologyNetwork.AssembleLinearRing(edges);
-                    //    var isCCW = linearRing.IsCCW;
-
-                    //    if (this._sourceLineType[sourceId] == LineType.Exterior) {
-                    //        if (isCCW) {
-                    //            reverse = true;
-                    //        }
-                    //    }
-                    //    else if (!isCCW) {
-                    //        reverse = true;
-                    //    }
-                    //}
-                    //else {
-                    //    var merged = this._mixedTopologyNetwork.AssembleLineString(edges);
-                    //    var slope = merged.Slope();
-                    //    if (Math.Sign(this._sourceSlope[sourceId]) != Math.Sign(slope)) {
-                    //        reverse = true;
-                    //    }
-                    //}
-
                     var sortedlist = new SortedList<int, FeatureRef>();
 
                     List<EdgeReference> assembleEdges = [];
@@ -304,7 +284,7 @@ namespace S100FC.Topology
 
                     int count = 0;
                     foreach (var e in assembleEdges) {
-                        ulong hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(e.OrientedGeometry.AsBinary());
+                        ulong hashGeometry = System.IO.Hashing.XxHash64.HashToUInt64(e.OrientedGeometry.AsBinary());
 
                         sortedlist.Add(count++, featureRefs[hashGeometry]);
                     }
@@ -339,6 +319,9 @@ namespace S100FC.Topology
                         dictionaryCompositeCurves = [.. dictionaryCompositeCurves, (_compositeCurve.Id, hasset, edges)];
 
                         this._compositecurves.Add(_compositeCurve.Id, _compositeCurve);
+
+                        //if (_compositeCurve.Id == 4112964597) System.Diagnostics.Debugger.Break();
+                        //if (_compositeCurve.Reverse == 3210164099) System.Diagnostics.Debugger.Break();                        
 
                         featureRefs.Add(_compositeCurve.Id, new FeatureRef {
                             Id = _compositeCurve.Id,
@@ -376,14 +359,16 @@ namespace S100FC.Topology
                         }
                     }
 
+                    featureRefUsed = [.. featureRefUsed, featureRefs[compositeCurveId].Id];
+
                     sourceId2FeatureRef.Add(sourceId, compositeCurveId);
                     if (this._featureMapperLineStrings.ContainsValue(sourceId)) {
-                        var id = $"C{compositeCurveId}";
+                        var id = featureRefs[compositeCurveId].Reverse ? $"RC{featureRefs[compositeCurveId].Id}" : $"C{featureRefs[compositeCurveId].Id}";
                         this._mapping.Add(this._featureMapperLineStrings.Single(e => e.Value == sourceId).Key, id);
                     }
                 }
                 else {
-                    ulong hashGeometry = System.IO.Hashing.XxHash32.HashToUInt32(edges[0].Geometry.AsBinary());
+                    ulong hashGeometry = System.IO.Hashing.XxHash64.HashToUInt64(edges[0].Geometry.AsBinary());
                     hashGeometry = featureRefs[hashGeometry].Id;
 
                     foreach (var e in dictionaryEdges) {
@@ -400,7 +385,7 @@ namespace S100FC.Topology
                         if (checks.Contains(sourceId)) {
                             var txt = edges[0].Geometry.ToText();
                             this._interceptor?.Invoke(100, [(edges[0].Geometry, $"{edges[0].Geometry.ToText()}")]);
-                           System.Diagnostics.Debugger.Break();
+                            System.Diagnostics.Debugger.Break();
                         }
 
                         var linearRing = Reloaded.Factory!.CreateLinearRing(this._curves[hashGeometry].LineString.Coordinates);
@@ -421,20 +406,21 @@ namespace S100FC.Topology
                             hashGeometry = featureRefs2Reverse[hashGeometry];
                         }
                     }
-                    featureRefUsed = [.. featureRefUsed, hashGeometry];
-
-                    var id = featureRefs[hashGeometry].Reverse ? $"RC{featureRefs[hashGeometry].Id}" : $"C{featureRefs[hashGeometry].Id}";
+                    //featureRefUsed = [.. featureRefUsed, hashGeometry];                    
+                    featureRefUsed = [.. featureRefUsed, featureRefs[hashGeometry].Id];
 
                     sourceId2FeatureRef.Add(sourceId, hashGeometry);
                     if (this._featureMapperLineStrings.ContainsValue(sourceId)) {
+                        var id = featureRefs[hashGeometry].Reverse ? $"RC{featureRefs[hashGeometry].Id}" : $"C{featureRefs[hashGeometry].Id}";
                         this._mapping.Add(this._featureMapperLineStrings.Single(e => e.Value == sourceId).Key, id);
                     }
                 }
             }
-
+            ;
             // Get real hash values for used curves
-            var _ = featureRefs.Where(e => featureRefUsed.Contains(e.Key)).Select(e => e.Value.Id);
-            this._curves = this._curves.Where(e => _.Contains(e.Key)).ToDictionary(e => e.Key, e => e.Value);
+            //var _ = featureRefs.Where(e => featureRefUsed.Contains(e.Key)).Select(e => e.Value.Id);
+            var idSet = featureRefUsed.ToHashSet(); ;
+            this._curves = this._curves.Where(e => idSet.Contains(e.Key)).ToDictionary(e => e.Key, e => e.Value);
 
             foreach (var polygon in this._featureMapperPolygons) {
                 var uid = polygon.Key;
@@ -462,7 +448,7 @@ namespace S100FC.Topology
             }
 
             //this._interceptor?.Invoke(6000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
-            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
+            //this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
 
             return this;
         }
@@ -479,7 +465,7 @@ namespace S100FC.Topology
 
         IDictionary<string, string> IMatrix.MappingFOID => this._mapping;
 
-        public ICollection<string> Collapse => [.. this._collapse.Select(e=>e.UID)];
+        public ICollection<string> Collapse => [.. this._collapse.Select(e => e.UID)];
 
         public record PolygonSource(int ExteriorRing, int[] InteriorRing);
 
@@ -498,7 +484,9 @@ namespace S100FC.Topology
 
         private int[] checks = [];
 
-        private Geometry[] _geometries = [];        
+        private Geometry[] _geometries = [];
+
+        public string[] Network => [.. _geometries.Select(e => e.ToText())];
 
         private ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
             foreach (var surface in surfaces) {
@@ -509,25 +497,11 @@ namespace S100FC.Topology
                 if (checkExteriorRing.WillCollapse) {
                     //System.Diagnostics.Debugger.Break();
                     _collapse = [.. _collapse, surface];
-                    continue;                    
+                    continue;
                 }
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
-                //if (surface.UID.EndsWith("10800027198")) {
-                //    //checks = [.. checks, idExteriorRing];
-                //}
-                //if (surface.UID.EndsWith("10400030449")) {
-                //    checks = [.. checks, idExteriorRing];
-                //}
-
-                //if (surface.UID.EndsWith("10800061878")) {
-                //    checks = [.. checks, idExteriorRing];
-
-                //    this._interceptor?.Invoke(100, [(surface.ExteriorRing, $"{surface.UID} {surface.ExteriorRing}")]);
-                //}
-
-
-                //if (surface.UID.EndsWith("10800027198")) {
+                //if (surface.UID.EndsWith("10100001347")) {
                 //    checks = [.. checks, idExteriorRing];
                 //}
 
@@ -571,6 +545,10 @@ namespace S100FC.Topology
                 this._sourceLineType.Add(id, LineType.Curve);
 
                 this._sourceSlope.Add(id, curve.LineString.Slope());
+
+                if (curve.UID.EndsWith("10100008571")) {
+                    checks = [.. checks, id];
+                }
 
                 if (checks.Contains(id)) {
                     this.checks_linestrings = [.. this.checks_linestrings, curve.LineString.ToText()];
