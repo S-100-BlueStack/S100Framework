@@ -499,10 +499,8 @@ namespace S100Framework.Topology.Internal
             area = Math.Abs(area) / 2.0;
 
             double meanWidth = perimeter > 0 ? 2.0 * area / perimeter : 0.0;
-            //double inTol = meanWidth / _snapTolerance;
-            //bool collapses = meanWidth < _snapTolerance;
-            double inTol = meanWidth / _dedupeRadius;
-            bool collapses = meanWidth < _dedupeRadius;
+            double inTol = meanWidth / _snapTolerance;
+            bool collapses = meanWidth < _snapTolerance;
 
             return new RingCollapseCheck {
                 WillCollapse = collapses,
@@ -764,18 +762,67 @@ namespace S100Framework.Topology.Internal
         private CoordinateKey NodeKey(Coordinate c) =>
             new CoordinateKey(Canonicalize(c), _snapTolerance);
 
+        /// <summary>
+        /// Removes degenerate out-and-back spurs from a recorded traversal chain.
+        ///
+        /// A source can traverse the SAME network edge twice in immediate succession:
+        /// its raw geometry spikes out to a vertex and comes straight back, and the
+        /// return segment is then split at the spike's base (because the base vertex
+        /// lies on it), producing edge X followed by edge X again. Such a spur has
+        /// zero width and contributes nothing to the source's shape.
+        ///
+        /// Both traversals must be dropped together. Keeping one - as a plain
+        /// first-occurrence dedupe does - leaves that edge attached to the chain by
+        /// one end only: a dangle. That breaks chain continuity, which corrupts the
+        /// stitched canonical geometry in GetMergedEdgeChainFor and, downstream, the
+        /// assembled ring.
+        ///
+        /// For rings the chain is cyclic, so a spur straddling the seam appears as
+        /// first==last rather than as an adjacent pair; that case is collapsed too.
+        /// Passes repeat until stable, which unwinds nested spurs.
+        /// </summary>
+        private static List<NetworkEdge> CollapseSpurs(List<NetworkEdge> recorded, bool isRing) {
+            var work = recorded;
+            bool changed = true;
+            while (changed) {
+                changed = false;
+
+                var next = new List<NetworkEdge>(work.Count);
+                for (int i = 0; i < work.Count; i++) {
+                    if (i + 1 < work.Count && work[i].Id == work[i + 1].Id) {
+                        i++;                 // skip BOTH members of the pair
+                        changed = true;
+                        continue;
+                    }
+                    next.Add(work[i]);
+                }
+                work = next;
+
+                // Ring seam straddle: the two traversals sit at opposite ends of the
+                // chain because the source's raw start vertex fell inside the spur.
+                if (isRing && work.Count >= 2 && work[0].Id == work[^1].Id) {
+                    work = work.GetRange(1, work.Count - 2);
+                    changed = true;
+                }
+            }
+            return work;
+        }
+
         public List<NetworkEdge> GetFullEdgeChainFor(int sourceId) {
             // Preferred path: the exact traversal-order chain recorded during Build.
             // This is deterministic and immune to walk ambiguity at nodes the source
             // passes through more than once (e.g. src605-style figure-eight touches
             // where a ring's closing segment is split at a node the ring also visits
-            // as a vertex). Edges traversed multiple times (doubling back over a
-            // spur) are kept once - first occurrence - matching the visited-once
-            // semantics of the graph walk below, which remains only as a fallback.
+            // as a vertex). Degenerate out-and-back spurs are collapsed first (see
+            // CollapseSpurs); any remaining repeat - an edge the source genuinely
+            // reuses in two separate places - is kept once, first occurrence,
+            // matching the visited-once semantics of the graph walk below, which
+            // remains only as a fallback.
             if (_orderedEdgesBySource.TryGetValue(sourceId, out var recorded)) {
+                var collapsed = CollapseSpurs(recorded, _sources[sourceId].IsRing);
                 var seen = new HashSet<int>();
-                var chain0 = new List<NetworkEdge>(recorded.Count);
-                foreach (var e in recorded)
+                var chain0 = new List<NetworkEdge>(collapsed.Count);
+                foreach (var e in collapsed)
                     if (seen.Add(e.Id)) chain0.Add(e);
                 if (chain0.Count > 0) return chain0;
             }
