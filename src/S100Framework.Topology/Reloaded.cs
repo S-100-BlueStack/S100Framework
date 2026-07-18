@@ -92,6 +92,14 @@ namespace S100FC.Topology
                 this._mixedTopologyNetwork.Logger = _logger;
             this._mixedTopologyNetwork.Build();
 
+            if (this.checks.Any()) System.Diagnostics.Debugger.Break();
+            foreach (var sourceId in this.checks) {
+                var edges = this._mixedTopologyNetwork.GetEdgesFor(sourceId);
+                var wkt = edges.Select(e => e.Geometry.ToText()).ToArray();
+
+                this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}"))]);
+            }
+
             var featureRefs = new Dictionary<ulong, FeatureRef>();
             var featureRefs2Reverse = new Dictionary<ulong, ulong>();
 
@@ -168,7 +176,7 @@ namespace S100FC.Topology
                 if (!edges.Any()) continue;
 
                 foreach (var e in edges) {
-                    var hashGeometry = System.IO.Hashing.XxHash64.HashToUInt64(e.Geometry.AsBinary());                   
+                    var hashGeometry = System.IO.Hashing.XxHash64.HashToUInt64(e.Geometry.AsBinary());
                     if (!featureRefs.ContainsKey(hashGeometry)) {
                         var featureRef1 = new FeatureRef {
                             Id = hashGeometry,
@@ -211,7 +219,7 @@ namespace S100FC.Topology
             int[] empty_sources = [];
 
 
-            void BuildSource(int sourceId, List< MergedEdge> edges) {
+            void BuildSource(int sourceId, List<MergedEdge> edges) {
                 if (edges.Count > 1 && edges[0].Geometry.Equals(edges[^1].Geometry))
                     edges = edges[..^1];
 
@@ -415,7 +423,7 @@ namespace S100FC.Topology
 
             //    BuildSource(geometry.Id, edges);
             //}
-            
+
             ;
             // Get real hash values for used curves
             //var _ = featureRefs.Where(e => featureRefUsed.Contains(e.Key)).Select(e => e.Value.Id);
@@ -511,9 +519,14 @@ namespace S100FC.Topology
                     }
                     var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
-                    //if (surface.UID.EndsWith("10400001121")) {
-                    //    checks = [.. checks, idExteriorRing];
-                    //}
+                    if (surface.UID.EndsWith("10400000015")) {
+                        checks = [.. checks, idExteriorRing];
+                    }
+                    if (surface.UID.EndsWith("10400001741")) {
+                        checks = [.. checks, idExteriorRing];
+                        //this._interceptor?.Invoke(6000, [(surface.ExteriorRing, "F10400001741")]);
+                    }
+
 
                     this._sourceLineType.Add(idExteriorRing, LineType.Exterior);
 
@@ -619,159 +632,6 @@ namespace S100FC.Topology
                 }
             }
             return this;
-        }
-
-        private static bool ContainsSegment(string lineString, string segment) {
-            if (lineString.Equals(segment)) return true;
-
-            if (lineString.Contains(segment + ",")) return true;
-            if (lineString.Contains(", " + segment)) return true;
-
-            //  MultiLineString
-            if (lineString.Contains(segment + ")")) return true;
-            if (lineString.Contains(segment + "),")) return true;
-            if (lineString.Contains("), " + segment)) return true;
-
-            return false;
-        }
-
-        private static int IndexOfSegment(string lineString, string segment) {
-            if (lineString.Equals(segment)) return 0;
-
-            if (lineString.Contains(segment + ",")) return lineString.IndexOf(segment + ",");
-            if (lineString.Contains(", " + segment)) return lineString.IndexOf(", " + segment);
-
-            //  MultiLineString
-            if (lineString.Contains(segment + ")")) return lineString.IndexOf(segment + ")");
-            if (lineString.Contains(segment + "),")) return lineString.IndexOf(segment + "),");
-            if (lineString.Contains("), " + segment)) return lineString.IndexOf("), " + segment);
-
-            throw new IndexOutOfRangeException();
-        }
-
-        //private LineString LineStringBuilder(IList<MergedEdge> edges) {
-        //    var lineMerger = new LineMerger();
-        //    foreach (var edge in edges) {
-        //        lineMerger.Add(edge.Geometry);
-        //    }
-
-        //    var mergedLineStrings = lineMerger.GetMergedLineStrings();
-        //    if (mergedLineStrings.Count > 1)
-        //        throw new InvalidOperationException("Merged LineString can't be a multipart geometry!");
-        //    var merged = (LineString)mergedLineStrings[0];
-        //    return merged;
-
-        //    //Coordinate[] coords = [.. edges[0].Edge.Geometry.Coordinates];
-        //    //for (int i = 1; i < edges.Count; i++) {
-        //    //    var edge = edges.Single(e => e.Edge.Geometry.Coordinates[0].Equals2D(coords[^1]));
-        //    //    var index = edges.IndexOf(edge);
-
-        //    //    if (edge.Edge.Geometry.Coordinates[0].Equals2D(coords[^1]))
-        //    //        coords = [.. coords, .. edge.Edge.Geometry.Coordinates];
-        //    //    else {
-        //    //        if (!coords[^1].Equals2D(edge.Edge.Geometry.Coordinates[^1])) System.Diagnostics.Debugger.Break();
-        //    //        coords = [.. coords, .. edge.Edge.Geometry.Coordinates.Reverse()];
-        //    //    }
-        //    //}
-        //    //return Reloaded.Factory!.CreateLineString(coords);
-        //}
-
-        public LineString MergeOrderedLineStrings(IEnumerable<LineString> lines) {
-            var segments = lines.ToList();
-
-            // Build adjacency: map from endpoint coordinate to (segmentIndex, isReversed)
-            // We'll find the correct traversal order via graph walk
-
-            bool CoordEquals(Coordinate a, Coordinate b) => a.Equals2D(b);
-            //a.Distance(b) <= Reloaded.Factory!.PrecisionModel.GridSize;
-
-            // Find a start segment: one whose start point is not 
-            // the end point of any other segment (i.e. a dangling start)
-            // Collect all start and end points
-            var allStarts = segments.Select(s => s.StartPoint.Coordinate).ToList();
-            var allEnds = segments.Select(s => s.EndPoint.Coordinate).ToList();
-
-            // A true start is an endpoint that appears as a start (or end if reversed)
-            // but not as the end of another segment — try each candidate
-            int FindStartSegment(out bool reversed) {
-                for (int i = 0; i < segments.Count; i++) {
-                    var start = segments[i].StartPoint.Coordinate;
-                    var end = segments[i].EndPoint.Coordinate;
-
-                    bool startIsConnectedTo = allEnds
-                        .Where((_, j) => j != i)
-                        .Any(e => CoordEquals(e, start));
-                    bool startIsConnectedFrom = allStarts
-                        .Where((_, j) => j != i)
-                        .Any(s => CoordEquals(s, start));
-
-                    bool endIsConnectedTo = allEnds
-                        .Where((_, j) => j != i)
-                        .Any(e => CoordEquals(e, end));
-                    bool endIsConnectedFrom = allStarts
-                        .Where((_, j) => j != i)
-                        .Any(s => CoordEquals(s, end));
-
-                    // A dangling start: this end is not the destination of any other segment
-                    if (!startIsConnectedTo && !startIsConnectedFrom) {
-                        reversed = false;
-                        return i;
-                    }
-                    if (!endIsConnectedTo && !endIsConnectedFrom) {
-                        reversed = true;
-                        return i;
-                    }
-                }
-                // Closed ring — just pick first segment unreversed
-                reversed = false;
-                return 0;
-            }
-
-            var used = new bool[segments.Count];
-            var orderedCoords = new List<Coordinate>();
-
-            bool startReversed;
-            int startIdx = FindStartSegment(out startReversed);
-
-            var firstSeg = segments[startIdx];
-            var firstCoords = startReversed
-                ? firstSeg.Coordinates.Reverse().ToArray()
-                : firstSeg.Coordinates;
-            orderedCoords.AddRange(firstCoords);
-            used[startIdx] = true;
-
-            // Walk: repeatedly find the next unused segment that connects to current tail
-            for (int step = 1; step < segments.Count; step++) {
-                var tail = orderedCoords[^1];
-                bool found = false;
-
-                for (int i = 0; i < segments.Count; i++) {
-                    if (used[i]) continue;
-
-                    var segStart = segments[i].StartPoint.Coordinate;
-                    var segEnd = segments[i].EndPoint.Coordinate;
-
-                    if (CoordEquals(tail, segStart)) {
-                        orderedCoords.AddRange(segments[i].Coordinates.Skip(1));
-                        used[i] = true;
-                        found = true;
-                        break;
-                    }
-                    if (CoordEquals(tail, segEnd)) {
-                        orderedCoords.AddRange(segments[i].Coordinates.Reverse().Skip(1));
-                        used[i] = true;
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found)
-                    throw new InvalidOperationException(
-                        $"No connecting segment found at step {step}. " +
-                        $"Tail coordinate: {orderedCoords[^1]}");
-            }
-
-            return Reloaded.Factory!.CreateLineString(orderedCoords.ToArray());
         }
     }
 }

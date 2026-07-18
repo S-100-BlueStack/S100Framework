@@ -1,3 +1,4 @@
+#define FLOOR
 using Microsoft.Extensions.Logging;
 using NetTopologySuite;
 using NetTopologySuite.Algorithm;
@@ -144,8 +145,13 @@ namespace S100Framework.Topology.Internal
 
         public CoordinateKey(Coordinate snappedCoord, double tolerance) {
             double inv = 1.0 / tolerance;
+#if FLOOR
             _x = (long)Math.Floor(snappedCoord.X * inv);
             _y = (long)Math.Floor(snappedCoord.Y * inv);
+#else
+            _x = (long)Math.Round(snappedCoord.X * inv);
+            _y = (long)Math.Round(snappedCoord.Y * inv);
+#endif
         }
 
         private CoordinateKey(long x, long y) { _x = x; _y = y; }
@@ -521,8 +527,14 @@ namespace S100Framework.Topology.Internal
 
         private Coordinate SnapToGrid(Coordinate c) {
             double inv = 1.0 / _snapTolerance;
+#if FLOOR
             double x = Math.Floor(c.X * inv) / inv;
             double y = Math.Floor(c.Y * inv) / inv;
+#else
+            double x = Math.Round(c.X * inv) / inv;
+            double y = Math.Round(c.Y * inv) / inv;
+#endif
+
             var coord = double.IsNaN(c.Z) ? new Coordinate(x, y) : new CoordinateZ(x, y, c.Z);
             return coord;
         }
@@ -549,6 +561,36 @@ namespace S100Framework.Topology.Internal
                     srcs.Add(seg.SourceId);
                 }
 
+            // Incident unit directions per cell, used to tell a boundary node the
+            // geometry passes straight THROUGH from a private turning tip. When two
+            // cells are fused (below), the representative should be the pass-through
+            // node so it stays on the shared boundary line, not the tip 0.x m off it.
+            var cellDirs = new Dictionary<CoordinateKey, List<(double X, double Y)>>();
+            void AddDir(CoordinateKey k, double dx, double dy) {
+                double len = Math.Sqrt(dx * dx + dy * dy);
+                if (len < _snapTolerance) return;
+                if (!cellDirs.TryGetValue(k, out var lst)) cellDirs[k] = lst = new List<(double, double)>();
+                lst.Add((dx / len, dy / len));
+            }
+            foreach (var seg in rawSegments) {
+                var ka = new CoordinateKey(SnapToGrid(seg.P0), _snapTolerance);
+                var kb = new CoordinateKey(SnapToGrid(seg.P1), _snapTolerance);
+                if (ka.Equals(kb)) continue;
+                AddDir(ka, seg.P1.X - seg.P0.X, seg.P1.Y - seg.P0.Y);
+                AddDir(kb, seg.P0.X - seg.P1.X, seg.P0.Y - seg.P1.Y);
+            }
+            // A cell is a pass-through when two of its incident directions are very
+            // nearly opposite (collinear line running through the node).
+            const double passThroughCos = -0.99619;   // cos(175 deg): within ~5 deg of straight
+            bool IsPassThrough(CoordinateKey k) {
+                if (!cellDirs.TryGetValue(k, out var lst)) return false;
+                for (int i = 0; i < lst.Count; i++)
+                    for (int j = i + 1; j < lst.Count; j++)
+                        if (lst[i].X * lst[j].X + lst[i].Y * lst[j].Y <= passThroughCos)
+                            return true;
+                return false;
+            }
+
             var parent = new Dictionary<CoordinateKey, CoordinateKey>();
             foreach (var key in cellValue.Keys) parent[key] = key;
 
@@ -559,7 +601,19 @@ namespace S100Framework.Topology.Internal
             void Union(CoordinateKey a, CoordinateKey b) {
                 var ra = Find(a); var rb = Find(b);
                 if (ra.Equals(rb)) return;
-                if (ra.CompareTo(rb) < 0) parent[rb] = ra; else parent[ra] = rb;
+                // Representative selection. Default is lexicographic (stable), but when
+                // exactly one root is a pass-through node, keep THAT one: it sits on a
+                // boundary line the geometry runs straight through, whereas the other is
+                // a private turning tip a fraction of a metre off the line. Choosing the
+                // tip would pull a shared boundary node off the line and drop the ring's
+                // first segment (src1195: start node -50.5,63.067925 lost to the tip
+                // -50.500002,63.067926). Both-or-neither pass-through falls back to lex.
+                bool pa = IsPassThrough(ra), pb = IsPassThrough(rb);
+                CoordinateKey keep, drop;
+                if (pa != pb) { if (pa) { keep = ra; drop = rb; } else { keep = rb; drop = ra; } }
+                else if (ra.CompareTo(rb) < 0) { keep = ra; drop = rb; }
+                else { keep = rb; drop = ra; }
+                parent[drop] = keep;
             }
 
             var segSourceCount = new Dictionary<(CoordinateKey, CoordinateKey), int>();
