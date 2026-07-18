@@ -94,7 +94,7 @@ namespace S100FC.Topology
             return this;
         }
 
-        ITopologyBuilder ITopologyBuilder.AddNavigationalFeatures(IList<Polygon> surfaces, IList<S100FC.Topology.Polyline> curves) {
+        ITopologyBuilder ITopologyBuilder.AddGroup2Features(IList<Polygon> surfaces, IList<S100FC.Topology.Polyline> curves) {
             this._surfacesNavigational = MakePrecise(surfaces);
             this._curvesNavigational = MakePrecise(curves);
 
@@ -925,7 +925,9 @@ namespace S100FC.Topology
 
         public ICollection<string> Collapse => [];
 
-        public string[] Network => [];
+        public string[] NetworkTopology => [];
+
+        public string[] Geometries => [];
 
         //string[] IMatrix.MappingFeature(string name) {
         //    return [.. this._mapping.Where(e => e.Key.Equals(name) || e.Key.StartsWith($"{name}:p")).Select(e => e.Value)];

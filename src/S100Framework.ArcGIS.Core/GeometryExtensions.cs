@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using S100FC.Topology;
 using System.Runtime.CompilerServices;
 using GeoAPI.Geometries;
+using NetTopologySuite.Simplify;
 
 namespace ArcGIS.Core.Data
 {
@@ -109,6 +110,10 @@ namespace ArcGIS.Core.Geometry
         //static readonly PrecisionModel precisionModel = new PrecisionModel(10000000);
 
         static readonly GeometryFactory factory = new GeometryFactory(precisionModel, srid: 4326); // Or PrecisionModels.Floating        
+
+        //private const string surfaceGROUP1 = "'DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA','SHORELINECONSTRUCTION','DATACOVERAGE','VERTICALDATUMOFDATA','QUALITYOFBATHYMETRICDATA','SOUNDINGDATUM','NAVIGATIONALSYSTEMOFMARKS'";
+        private const string surfaceTopologyFeatures = "'DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA','SHORELINECONSTRUCTION'";
+        private const string curveTopologyFeatures = "'COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'";
 
         public static (S100FC.Topology.IMatrix matrix, IDictionary<string, string> mapper) BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default, ILoggerFactory? loggerFactory = default) {
             var syntax = geodatabase.GetSQLSyntax();
@@ -228,7 +233,7 @@ namespace ArcGIS.Core.Geometry
 
                 using (var surface = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("surface")).GetName())) {
                     foreach (var filter in filters) {
-                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA','SHORELINECONSTRUCTION'))";
+                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ({surfaceTopologyFeatures}))";
 
                         using var cursor = surface.Search(filter);
 
@@ -253,14 +258,9 @@ namespace ArcGIS.Core.Geometry
 
                             var ex = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
 
-
-                            //if (name.Equals("F10400009459")) {
-                            //    interceptor?.Invoke(100, [((LineString)matrix.Reducer.Reduce(ex), name)]);
-                            //    System.Diagnostics.Debugger.Break();
-                            //}
-
                             var reduced = matrix.Reducer.Reduce(ex);
                             if (!(reduced is LinearRing linear)) continue;
+                            reduced = TopologyPreservingSimplifier.Simplify(reduced, 0.0);
                             ex = (LinearRing)reduced;
                             //ex = ex.RemoveRepeatedVertices().RemoveCollinearVertices();
                             //ex.Normalize();
@@ -273,12 +273,17 @@ namespace ArcGIS.Core.Geometry
 
                                     var linestring = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
                                     linestring = (LinearRing)matrix.Reducer.Reduce(linestring);
+                                    linestring = (LinearRing)TopologyPreservingSimplifier.Simplify(linestring, 0.0);
 
                                     if (!linestring.IsSelfIntersections())
                                         interiorRings.Add(linestring);
                                     else {
-                                        foreach (var l in SplitAtSelfIntersections(linestring))
-                                            interiorRings.Add(l.Factory.CreateLinearRing(l.Coordinates));
+                                        foreach (var l in SplitAtSelfIntersections(linestring)) {
+                                            if (l.IsRing)
+                                                interiorRings.Add(l.Factory.CreateLinearRing(l.Coordinates));
+                                            else //if(l.Coordinates.Length>3)
+                                                System.Diagnostics.Debugger.Break();
+                                        }
                                     }
                                 }
 
@@ -295,7 +300,7 @@ namespace ArcGIS.Core.Geometry
 
                 using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("curve")).GetName())) {
                     foreach (var filter in filters) {
-                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'))";
+                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) IN ({curveTopologyFeatures}))";
 
                         using var cursor = curve.Search(filter);
 
@@ -315,7 +320,7 @@ namespace ArcGIS.Core.Geometry
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
-                            //if ("F10500070853".Equals(name)) System.Diagnostics.Debugger.Break();
+                            //if ("F10100001235".Equals(name)) System.Diagnostics.Debugger.Break();
 
                             LineString[] parts = [];
                             foreach (var part in shape.Parts) {
@@ -325,6 +330,7 @@ namespace ArcGIS.Core.Geometry
 
                                 var linestring = factory.CreateLineString([.. coordinates]);
                                 linestring = (LineString)matrix.Reducer.Reduce(linestring);
+                                linestring = (LineString)TopologyPreservingSimplifier.Simplify(linestring, 0.0);
 
                                 if (!linestring.IsSelfIntersections())
                                     parts = [.. parts, linestring];
@@ -360,7 +366,7 @@ namespace ArcGIS.Core.Geometry
                     //queryFilter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA'))";
 
                     foreach (var filter in filters) {
-                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA','SHORELINECONSTRUCTION'))";
+                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ({surfaceTopologyFeatures}))";
 
                         using var cursor = surface.Search(filter);
 
@@ -394,7 +400,12 @@ namespace ArcGIS.Core.Geometry
                             //    coordinates[_] = SnapToGrid(coordinates[_]);
 
                             var ex = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
-                            ex = (LinearRing)matrix.Reducer.Reduce(ex);
+
+                            var reduced = matrix.Reducer.Reduce(ex);
+                            if (!(reduced is LinearRing linear)) continue;
+                            reduced = TopologyPreservingSimplifier.Simplify(reduced, 0.0);
+                            ex = (LinearRing)reduced;
+
                             //ex = ex.RemoveRepeatedVertices().RemoveCollinearVertices();
 
                             if (shape.PartCount > 1) {
@@ -406,6 +417,7 @@ namespace ArcGIS.Core.Geometry
 
                                     var linestring = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
                                     linestring = (LinearRing)matrix.Reducer.Reduce(linestring);
+                                    linestring = (LinearRing)TopologyPreservingSimplifier.Simplify(linestring, 0.0);
 
                                     if (!linestring.IsSelfIntersections())
                                         interiorRings.Add(linestring);
@@ -413,7 +425,7 @@ namespace ArcGIS.Core.Geometry
                                         foreach (var l in SplitAtSelfIntersections(linestring)) {
                                             if (l.IsRing)
                                                 interiorRings.Add(l.Factory.CreateLinearRing(l.Coordinates));
-                                            else if(l.Coordinates.Length>3)
+                                            else //if(l.Coordinates.Length>3)
                                                 System.Diagnostics.Debugger.Break();
                                         }
                                     }
@@ -446,7 +458,7 @@ namespace ArcGIS.Core.Geometry
 
                 using (var curve = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("curve")).GetName())) {
                     foreach (var filter in filters) {
-                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ('COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION')) AND (upper(code) NOT IN ({singletonsFeatures}))"; //,'NAVIGATIONLINE','RECOMMENDEDTRACK'
+                        filter.WhereClause = (!string.IsNullOrEmpty(whereClause) ? $"{whereClause} AND " : "") + $"(upper(code) NOT IN ({curveTopologyFeatures})) AND (upper(code) NOT IN ({singletonsFeatures}))"; //,'NAVIGATIONLINE','RECOMMENDEDTRACK'
 
                         using var cursor = curve.Search(filter);
 
@@ -470,6 +482,8 @@ namespace ArcGIS.Core.Geometry
                             if (string.IsNullOrEmpty(name))
                                 name = string.Empty;
 
+                            //if ("F10100001235".Equals(name)) System.Diagnostics.Debugger.Break();
+
                             LineString[] parts = [];
                             foreach (var part in shape.Parts) {
                                 var p = PolylineBuilderEx.CreatePolyline(part);
@@ -478,6 +492,7 @@ namespace ArcGIS.Core.Geometry
 
                                 var linestring = factory.CreateLineString([.. coordinates]);
                                 linestring = (LineString)matrix.Reducer.Reduce(linestring);
+                                linestring = (LineString)TopologyPreservingSimplifier.Simplify(linestring, 0.0);
 
                                 if (!linestring.IsSelfIntersections())
                                     parts = [.. parts, linestring];
@@ -541,7 +556,7 @@ namespace ArcGIS.Core.Geometry
 #endif
                 }
 
-                builder = matrix.AddNavigationalFeatures(polygons, curves);//.AddSingletonFeatures(singletons);
+                builder = matrix.AddGroup2Features(polygons, curves);//.AddSingletonFeatures(singletons);
             }
 
 

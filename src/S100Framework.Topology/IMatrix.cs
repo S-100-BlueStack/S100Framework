@@ -7,7 +7,7 @@ namespace S100FC.Topology
     public interface ITopologyBuilder
     {
         ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<S100FC.Topology.Polyline> curves);
-        ITopologyBuilder AddNavigationalFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<S100FC.Topology.Polyline> curves);
+        ITopologyBuilder AddGroup2Features(IList<S100FC.Topology.Polygon> surfaces, IList<S100FC.Topology.Polyline> curves);
 
 #if Singletons
         ITopologyBuilder AddSingletonFeatures(ICollection<S100FC.Topology.Polyline> curves);
@@ -30,7 +30,9 @@ namespace S100FC.Topology
 
         ICollection<string> Collapse { get; }
 
-        string[] Network { get; }
+        string[] NetworkTopology { get; }
+
+        string[] Geometries { get; }
     }
 }
 
