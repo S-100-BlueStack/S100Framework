@@ -425,8 +425,12 @@ namespace ArcGIS.Core.Geometry
                                         foreach (var l in SplitAtSelfIntersections(linestring)) {
                                             if (l.IsRing)
                                                 interiorRings.Add(l.Factory.CreateLinearRing(l.Coordinates));
-                                            else //if(l.Coordinates.Length>3)
+                                            else if (l.Count <= 3) {
+                                                ;
+                                            }else {//if(l.Coordinates.Length>3)
                                                 System.Diagnostics.Debugger.Break();
+                                                interceptor?.Invoke(100, [.. SplitAtSelfIntersections(linestring).Select(e => (e, name))]);
+                                            }
                                         }
                                     }
 

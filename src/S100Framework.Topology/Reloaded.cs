@@ -97,7 +97,7 @@ namespace S100FC.Topology
                 var edges = this._mixedTopologyNetwork.GetEdgesFor(sourceId);
                 var wkt = edges.Select(e => e.Geometry.ToText()).ToArray();
 
-                this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}"))]);
+                //this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}"))]);
             }
 
             var featureRefs = new Dictionary<ulong, FeatureRef>();
@@ -508,21 +508,22 @@ namespace S100FC.Topology
         private ITopologyBuilder AddFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
             if (isTopology) {
                 foreach (var surface in surfaces) {
-                    if (System.Diagnostics.Debugger.IsAttached)
-                        _geometriesTopology = [.. _geometriesTopology, surface.ExteriorRing];
-
                     var checkExteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)surface.ExteriorRing);
                     if (checkExteriorRing.WillCollapse) {
                         //System.Diagnostics.Debugger.Break();
                         _collapse = [.. _collapse, surface];
                         continue;
                     }
+                    if (System.Diagnostics.Debugger.IsAttached)
+                        _geometriesTopology = [.. _geometriesTopology, surface.ExteriorRing];
+
+
                     var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
-                    if (surface.UID.EndsWith("10400000015")) {
+                    if (surface.UID.EndsWith("10400001261")) {
                         checks = [.. checks, idExteriorRing];
                     }
-                    if (surface.UID.EndsWith("10400001741")) {
+                    if (surface.UID.EndsWith("10400001560")) {
                         checks = [.. checks, idExteriorRing];
                         //this._interceptor?.Invoke(6000, [(surface.ExteriorRing, "F10400001741")]);
                     }
@@ -532,13 +533,12 @@ namespace S100FC.Topology
 
                     var idInteriorRings = new int[0];
                     foreach (var interior in surface.InteriorRings) {
-                        if (System.Diagnostics.Debugger.IsAttached)
-                            _geometriesTopology = [.. _geometriesTopology, interior];
-
                         var checkInteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)interior);
                         if (checkInteriorRing.WillCollapse) {
                             continue;
                         }
+                        if (System.Diagnostics.Debugger.IsAttached)
+                            _geometriesTopology = [.. _geometriesTopology, interior];
 
                         var id = this._mixedTopologyNetwork.AddLineString(interior);
                         idInteriorRings = [.. idInteriorRings, id];
@@ -560,11 +560,10 @@ namespace S100FC.Topology
 
                 foreach (var curve in curves) {
                     //if (curve.UID.EndsWith("10100081766")) System.Diagnostics.Debugger.Break();
-                    if (System.Diagnostics.Debugger.IsAttached)
-                        _geometriesTopology = [.. _geometriesTopology, curve.LineString];
-
                     var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
                     if (id < 0) continue;
+                    if (System.Diagnostics.Debugger.IsAttached)
+                        _geometriesTopology = [.. _geometriesTopology, curve.LineString];
 
                     if (curve.LineString is LinearRing linearring)
                         this._sourceLineType.Add(id, LineType.Ring);
@@ -586,27 +585,27 @@ namespace S100FC.Topology
             }
             else {
                 foreach (var surface in surfaces) {
-                    if (System.Diagnostics.Debugger.IsAttached)
-                        _geometries = [.. _geometries, surface.ExteriorRing];
-
                     var checkExteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)surface.ExteriorRing);
                     if (checkExteriorRing.WillCollapse) {
                         _collapse = [.. _collapse, surface];
                         continue;
                     }
+                    if (System.Diagnostics.Debugger.IsAttached)
+                        _geometries = [.. _geometries, surface.ExteriorRing];
+
+
                     var exteriorRing = new NetworkGeometry { Id = _id--, Geometry = surface.ExteriorRing, Kind = GeometryKind.LineString };
                     _group2Geometries.Add(exteriorRing);
                     this._sourceLineType.Add(exteriorRing.Id, LineType.Exterior);
 
                     var idInteriorRings = new int[0];
                     foreach (var interior in surface.InteriorRings) {
+                        var checkInteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)interior);
+                        if (checkInteriorRing.WillCollapse)
+                            continue;                        
                         if (System.Diagnostics.Debugger.IsAttached)
                             _geometries = [.. _geometries, interior];
 
-                        var checkInteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)interior);
-                        if (checkInteriorRing.WillCollapse) {
-                            continue;
-                        }
                         var interiorRing = new NetworkGeometry { Id = _id--, Geometry = surface.ExteriorRing, Kind = GeometryKind.LineString };
                         _group2Geometries.Add(interiorRing);
                         idInteriorRings = [.. idInteriorRings, interiorRing.Id];

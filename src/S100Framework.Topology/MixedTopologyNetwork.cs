@@ -617,12 +617,26 @@ namespace S100Framework.Topology.Internal
             }
 
             var segSourceCount = new Dictionary<(CoordinateKey, CoordinateKey), int>();
+            // Distinct snapped cells per source, and the owning sources of each short
+            // segment. Used below to refuse a fuse that would degenerate a small ring:
+            // removing a node from a triangle leaves two points - a line, not a polygon.
+            var sourceCells = new Dictionary<int, HashSet<CoordinateKey>>();
+            var segOwners = new Dictionary<(CoordinateKey, CoordinateKey), HashSet<int>>();
             foreach (var seg in rawSegments) {
                 var k0 = new CoordinateKey(SnapToGrid(seg.P0), _snapTolerance);
                 var k1 = new CoordinateKey(SnapToGrid(seg.P1), _snapTolerance);
                 var segKey = k0.CompareTo(k1) < 0 ? (k0, k1) : (k1, k0);
                 segSourceCount.TryGetValue(segKey, out int cnt);
                 segSourceCount[segKey] = cnt + 1;
+
+                if (!sourceCells.TryGetValue(seg.SourceId, out var cells))
+                    sourceCells[seg.SourceId] = cells = new HashSet<CoordinateKey>();
+                cells.Add(k0); cells.Add(k1);
+                if (!k0.Equals(k1)) {
+                    if (!segOwners.TryGetValue(segKey, out var owners))
+                        segOwners[segKey] = owners = new HashSet<int>();
+                    owners.Add(seg.SourceId);
+                }
             }
 
             double sharedRadius = _dedupeRadius * 1.04;
@@ -634,8 +648,34 @@ namespace S100Framework.Topology.Internal
                 var k1 = new CoordinateKey(SnapToGrid(seg.P1), _snapTolerance);
                 var segKey = k0.CompareTo(k1) < 0 ? (k0, k1) : (k1, k0);
                 if (!segSourceCount.TryGetValue(segKey, out int cnt)) continue;
-                bool shouldUnion = cnt > 1 ? d <= sharedRadius : d <= _dedupeRadius;
-                if (shouldUnion) Union(k0, k1);
+                // Only fuse a short segment when MORE THAN ONE source describes it.
+                // A short segment present in several sources is a cross-source sliver:
+                // the same shared boundary run digitised slightly differently, and
+                // welding its endpoints reconciles the disagreement. But a short segment
+                // belonging to a SINGLE source is that source's OWN geometry - a genuine,
+                // if tiny, feature. Fusing it would delete a real edge and can collapse
+                // a whole small ring (e.g. a sub-metre triangle whose shortest side is
+                // under _dedupeRadius). Single-source micro-segments are therefore left
+                // intact; _snapTolerance alone governs a source's own outline.
+                if (!(cnt > 1 && d <= sharedRadius)) continue;
+
+                // Degeneracy guard: fusing k0,k1 removes one node from every ring that
+                // uses this segment. That is harmless on a large boundary, but a ring
+                // with only three distinct nodes (a triangle) would drop to two - a
+                // line, not a polygon. When any owning source is that small, the short
+                // segment is a structural side of a real feature, not a sliver to weld,
+                // so it is kept. (0.33 m triangle sides sit below _dedupeRadius yet are
+                // genuine geometry.)
+                bool wouldDegenerate = false;
+                if (segOwners.TryGetValue(segKey, out var segSrcs)) {
+                    foreach (var sid in segSrcs)
+                        if (sourceCells.TryGetValue(sid, out var cells) && cells.Count <= 3) {
+                            wouldDegenerate = true; break;
+                        }
+                }
+                if (wouldDegenerate) continue;
+
+                Union(k0, k1);
             }
 
             // General cross-source proximity clustering.
