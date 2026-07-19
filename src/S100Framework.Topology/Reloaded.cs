@@ -92,13 +92,13 @@ namespace S100FC.Topology
                 this._mixedTopologyNetwork.Logger = _logger;
             this._mixedTopologyNetwork.Build();
 
-            if (this.checks.Any()) System.Diagnostics.Debugger.Break();
-            foreach (var sourceId in this.checks) {
-                var edges = this._mixedTopologyNetwork.GetEdgesFor(sourceId);
-                var wkt = edges.Select(e => e.Geometry.ToText()).ToArray();
+            //if (this.checks.Any()) System.Diagnostics.Debugger.Break();
+            //foreach (var sourceId in this.checks) {
+            //    var edges = this._mixedTopologyNetwork.GetEdgesFor(sourceId);
+            //    var wkt = edges.Select(e => e.Geometry.ToText()).ToArray();
 
-                //this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}"))]);
-            }
+            //    //this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}"))]);
+            //}
 
             var featureRefs = new Dictionary<ulong, FeatureRef>();
             var featureRefs2Reverse = new Dictionary<ulong, ulong>();
@@ -523,7 +523,7 @@ namespace S100FC.Topology
                     if (surface.UID.EndsWith("10400000009")) {
                         checks = [.. checks, idExteriorRing];
                     }
-                    //if (surface.UID.EndsWith("10400001560")) {
+                    //if (surface.UID.EndsWith("10400000007")) {
                     //    checks = [.. checks, idExteriorRing];
                     //    //this._interceptor?.Invoke(6000, [(surface.ExteriorRing, "F10400001741")]);
                     //}

@@ -278,6 +278,20 @@ namespace S100Framework.Topology.Internal
             var segIndex = new STRtree<RawSegment>();
             foreach (var seg in segments) segIndex.Insert(seg.Envelope, seg);
 
+            // Index of every real raw vertex (all sources). A computed intersection
+            // that lands near one of these should snap onto it rather than stand as a
+            // separate node - see SnapToRealNode below.
+            var vertexIndex = new STRtree<Coordinate>();
+            {
+                var seen = new HashSet<CoordinateKey>();
+                foreach (var seg in segments)
+                    foreach (var v in new[] { seg.P0, seg.P1 }) {
+                        var vk = new CoordinateKey(v, _snapTolerance);
+                        if (seen.Add(vk)) vertexIndex.Insert(new Envelope(v), v);
+                    }
+                if (seen.Count > 0) vertexIndex.Build();
+            }
+
             var splitPoints = new Dictionary<int, SortedSet<SplitPoint>>(segments.Count);
             for (int i = 0; i < segments.Count; i++)
                 splitPoints[i] = new SortedSet<SplitPoint>(SplitPoint.Comparer);
@@ -292,7 +306,16 @@ namespace S100Framework.Topology.Internal
                     for (int k = 0; k < li.IntersectionNum; k++) {
                         var pt = SnapToGrid(li.GetIntersection(k));
                         pt = CanonicalizeWithProximity(pt, canonical);
+                        // Fold the computed point onto a real node if one is close. First
+                        // the two segments' own endpoints, then - crucially - ANY real raw
+                        // vertex within _dedupeRadius. NTS robust arithmetic can report an
+                        // intersection a few centimetres off a genuine shared junction (a
+                        // phantom node); at a fine precision model that offset exceeds
+                        // _snapTolerance and would survive as its own node, splitting an
+                        // unrelated passing segment that has no vertex there. Snapping to
+                        // the real vertex dissolves the phantom.
                         pt = SnapToEndpoint(pt, seg, other);
+                        pt = SnapToRealNode(pt, vertexIndex);
                         splitPoints[seg.SegId].Add(new SplitPoint(pt, seg.P0));
                         splitPoints[other.SegId].Add(new SplitPoint(pt, other.P0));
                     }
@@ -310,15 +333,55 @@ namespace S100Framework.Topology.Internal
             foreach (var kv in splitPoints)
                 foreach (var sp in kv.Value) RegisterNode(sp.Coord);
 
+            // Per-source spatial index of its OWN raw vertices. Used to refuse a split
+            // that would fold a source onto itself (see the self-fold guard below). A
+            // coordinate list per source is enough; the neighbourhoods queried are tiny.
+            var sourceVertices = new Dictionary<int, STRtree<Coordinate>>();
+            var sourceVertRaw = new Dictionary<int, List<Coordinate>>();
+            foreach (var seg in segments) {
+                if (!sourceVertRaw.TryGetValue(seg.SourceId, out var lst))
+                    sourceVertRaw[seg.SourceId] = lst = new List<Coordinate>();
+                lst.Add(seg.P0); lst.Add(seg.P1);
+            }
+            foreach (var kv in sourceVertRaw) {
+                var tree = new STRtree<Coordinate>();
+                foreach (var v in kv.Value) tree.Insert(new Envelope(v), v);
+                if (kv.Value.Count > 0) tree.Build();
+                sourceVertices[kv.Key] = tree;
+            }
+
             foreach (var seg in segments) {
                 var env = seg.Envelope.Copy(); env.ExpandBy(_snapTolerance);
                 var segP0Key = new CoordinateKey(seg.P0, _snapTolerance);
                 var segP1Key = new CoordinateKey(seg.P1, _snapTolerance);
+                var ownTree = sourceVertices[seg.SourceId];
                 foreach (var nodePt in nodeCoordIndex.Query(env)) {
                     var k = new CoordinateKey(nodePt, _snapTolerance);
                     if (k.Equals(segP0Key) || k.Equals(segP1Key)) continue;
                     if (IsInteriorPoint(nodePt, seg.P0, seg.P1)) {
                         var canonPt = CanonicalizeWithProximity(nodePt, canonical);
+
+                        // Self-fold guard. Splitting seg here introduces a node on
+                        // seg's interior. If that node lies within _dedupeRadius of a
+                        // DIFFERENT raw vertex of seg's OWN source (not seg's own two
+                        // endpoints), the split makes the source pass through this spot
+                        // twice: once via the vertex it already owns, once via the new
+                        // split. For a ring that is a self-touch (a pinch) - an invalid
+                        // outer boundary produced purely by a near-miss between two arms
+                        // of the SAME ring that never actually cross. (The node may be a
+                        // computed intersection a few centimetres off the real vertex, so
+                        // the test is proximity, not exact key equality.) A source must
+                        // only fold where its raw geometry genuinely self-intersects, so
+                        // this split is skipped, leaving the source's own outline intact.
+                        bool selfFold = false;
+                        var qenv = new Envelope(canonPt); qenv.ExpandBy(_dedupeRadius);
+                        foreach (var ov in ownTree.Query(qenv)) {
+                            if (ov.Equals2D(seg.P0, _snapTolerance) ||
+                                ov.Equals2D(seg.P1, _snapTolerance)) continue;
+                            if (canonPt.Distance(ov) <= _dedupeRadius) { selfFold = true; break; }
+                        }
+                        if (selfFold) continue;
+
                         splitPoints[seg.SegId].Add(new SplitPoint(canonPt, seg.P0));
                     }
                 }
@@ -759,6 +822,27 @@ namespace S100Framework.Topology.Internal
             foreach (var ep in new[] { seg.P0, seg.P1, other.P0, other.P1 })
                 if (pt.Distance(ep) <= _snapTolerance) return ep;
             return pt;
+        }
+
+        /// <summary>
+        /// Snap a computed intersection point onto the nearest REAL raw vertex within
+        /// _dedupeRadius, if any. Where <see cref="SnapToEndpoint"/> only considers the
+        /// four endpoints of the two intersecting segments (and at grid resolution),
+        /// this considers every source's raw vertices at the coarser reconciliation
+        /// radius. A near-degenerate intersection reported a few centimetres off a real
+        /// shared junction thus collapses onto that junction instead of surviving as a
+        /// phantom node that splits unrelated passing segments. It only ever moves the
+        /// point onto an existing real vertex, never merges two distinct real nodes.
+        /// </summary>
+        private Coordinate SnapToRealNode(Coordinate pt, STRtree<Coordinate> vertexIndex) {
+            var env = new Envelope(pt); env.ExpandBy(_dedupeRadius);
+            Coordinate? best = null;
+            double bestDist = double.MaxValue;
+            foreach (var v in vertexIndex.Query(env)) {
+                double d = pt.Distance(v);
+                if (d <= _dedupeRadius && d < bestDist) { bestDist = d; best = v; }
+            }
+            return best ?? pt;
         }
 
         private bool IsInteriorPoint(Coordinate pt, Coordinate segStart, Coordinate segEnd) {
@@ -1495,9 +1579,71 @@ namespace S100Framework.Topology.Internal
         }
 
         /// <summary>
+        /// A node where an assembled ring touches itself: the boundary passes through
+        /// the same canonical node more than once, pinching the ring into lobes that
+        /// meet at a single point. Such a ring is not a valid simple outer boundary.
+        /// </summary>
+        public sealed class RingSelfTouch
+        {
+            /// <summary>The canonical coordinate the ring passes through more than once.</summary>
+            public Coordinate Node { get; init; } = default!;
+            /// <summary>How many times the ring's boundary passes through the node
+            /// (2 = a simple pinch; the boundary visits it twice).</summary>
+            public int Visits { get; init; }
+        }
+
+        /// <summary>
+        /// Reports any nodes where the assembled ring touches itself (a pinch). An empty
+        /// list means the ring is simple - every node is entered and left exactly once.
+        /// A non-empty list means the ring, at the current precision, folds through one
+        /// or more shared points and is not a valid outer boundary; the caller decides
+        /// how to handle it (reject the source, treat the lobes as separate parts, etc.).
+        /// Detection is on canonical-node identity, matching how the edges connect.
+        /// </summary>
+        public List<RingSelfTouch> FindRingSelfTouches(List<EdgeReference> orderedEdges) {
+            var result = new List<RingSelfTouch>();
+            if (orderedEdges == null || orderedEdges.Count < 2) return result;
+
+            // A simple ring visits every node with degree 2 - one edge in, one edge
+            // out. A self-touch (pinch) is a node where the boundary passes through
+            // MORE than twice: the ring folds and two arms meet at one point, giving
+            // that node an incident-edge degree of 4 (or higher). Degree is counted on
+            // canonical-node identity over the edges' ENDPOINTS - not a coordinate walk,
+            // which would also flag a harmless reversed two-point edge as a repeat.
+            var degree = new Dictionary<CoordinateKey, int>();
+            var repr = new Dictionary<CoordinateKey, Coordinate>();
+            void Incident(Coordinate c) {
+                var k = new CoordinateKey(Canonicalize(c), _snapTolerance);
+                degree.TryGetValue(k, out var n);
+                degree[k] = n + 1;
+                if (!repr.ContainsKey(k)) repr[k] = c;
+            }
+            foreach (var er in orderedEdges) {
+                var cs = er.OrientedGeometry.Coordinates;
+                Incident(cs[0]);
+                Incident(cs[^1]);
+            }
+
+            foreach (var kv in degree)
+                if (kv.Value > 2)
+                    result.Add(new RingSelfTouch {
+                        Node = repr[kv.Key],
+                        // Each pass through the node contributes 2 incident endpoints
+                        // (an arrival and a departure), so visits = degree / 2.
+                        Visits = kv.Value / 2
+                    });
+            return result;
+        }
+
+        /// <summary>
         /// Returns the same ordered, correctly-oriented edge list that
         /// <see cref="AssembleLinearRing"/> uses internally to build its geometry. See
         /// <see cref="AssembleEdgeOrderForLineString"/> for details on the returned references.
+        ///
+        /// The returned order may contain a self-touch (a pinch) when the source ring,
+        /// at the active precision, folds through a shared node - two arms meeting at a
+        /// single point. Call <see cref="FindRingSelfTouches"/> on the result to detect
+        /// this before treating the order as a valid simple outer boundary.
         /// </summary>
         public List<EdgeReference> AssembleEdgeOrderForLinearRing(List<MergedEdge> edges) {
             var start = edges.Count > 0 ? edges[0].Geometry.Coordinates[0] : null;
