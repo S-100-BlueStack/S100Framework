@@ -456,7 +456,7 @@ namespace S100FC.Topology
             }
 
             //this._interceptor?.Invoke(6000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
-            this._interceptor?.Invoke(9000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
+            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
 
             return this;
         }
@@ -520,13 +520,13 @@ namespace S100FC.Topology
 
                     var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
-                    if (surface.UID.EndsWith("10400001261")) {
+                    if (surface.UID.EndsWith("10400000009")) {
                         checks = [.. checks, idExteriorRing];
                     }
-                    if (surface.UID.EndsWith("10400001560")) {
-                        checks = [.. checks, idExteriorRing];
-                        //this._interceptor?.Invoke(6000, [(surface.ExteriorRing, "F10400001741")]);
-                    }
+                    //if (surface.UID.EndsWith("10400001560")) {
+                    //    checks = [.. checks, idExteriorRing];
+                    //    //this._interceptor?.Invoke(6000, [(surface.ExteriorRing, "F10400001741")]);
+                    //}
 
 
                     this._sourceLineType.Add(idExteriorRing, LineType.Exterior);

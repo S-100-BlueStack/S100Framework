@@ -1,4 +1,3 @@
-#define FLOOR
 using Microsoft.Extensions.Logging;
 using NetTopologySuite;
 using NetTopologySuite.Algorithm;
@@ -145,13 +144,9 @@ namespace S100Framework.Topology.Internal
 
         public CoordinateKey(Coordinate snappedCoord, double tolerance) {
             double inv = 1.0 / tolerance;
-#if FLOOR
-            _x = (long)Math.Floor(snappedCoord.X * inv);
-            _y = (long)Math.Floor(snappedCoord.Y * inv);
-#else
+            // Round-half to the grid, matching NTS PrecisionModel(1/tolerance).
             _x = (long)Math.Round(snappedCoord.X * inv);
             _y = (long)Math.Round(snappedCoord.Y * inv);
-#endif
         }
 
         private CoordinateKey(long x, long y) { _x = x; _y = y; }
@@ -223,11 +218,21 @@ namespace S100Framework.Topology.Internal
 
         public MixedTopologyNetwork(
             GeometryFactory? factory = null,
-            double snapTolerance = 0.000001,
+            double snapTolerance = 0.0000001,
             double dedupeRadius = -1) {
-            _factory = factory ?? NtsGeometryServices.Instance.CreateGeometryFactory();
             _snapTolerance = snapTolerance;
             _dedupeRadius = dedupeRadius > 0 ? dedupeRadius : snapTolerance * 5;
+            // Build geometries on a fixed precision grid that matches the snapping
+            // grid (PrecisionModel scale = 1 / snapTolerance, e.g. 1e7 for 1e-7).
+            // A caller-supplied factory is honoured as-is; otherwise the grid-aligned
+            // factory keeps NTS coordinate rounding consistent with SnapToGrid.
+            if (factory != null) {
+                _factory = factory;
+            }
+            else {
+                var pm = new PrecisionModel(1.0 / snapTolerance);
+                _factory = new GeometryFactory(pm);
+            }
         }
 
         // -------------------------------------------------------------------
@@ -527,13 +532,9 @@ namespace S100Framework.Topology.Internal
 
         private Coordinate SnapToGrid(Coordinate c) {
             double inv = 1.0 / _snapTolerance;
-#if FLOOR
-            double x = Math.Floor(c.X * inv) / inv;
-            double y = Math.Floor(c.Y * inv) / inv;
-#else
+            // Round-half to the grid, matching NTS PrecisionModel(1/_snapTolerance).
             double x = Math.Round(c.X * inv) / inv;
             double y = Math.Round(c.Y * inv) / inv;
-#endif
 
             var coord = double.IsNaN(c.Z) ? new Coordinate(x, y) : new CoordinateZ(x, y, c.Z);
             return coord;
@@ -660,16 +661,26 @@ namespace S100Framework.Topology.Internal
                 if (!(cnt > 1 && d <= sharedRadius)) continue;
 
                 // Degeneracy guard: fusing k0,k1 removes one node from every ring that
-                // uses this segment. That is harmless on a large boundary, but a ring
-                // with only three distinct nodes (a triangle) would drop to two - a
-                // line, not a polygon. When any owning source is that small, the short
-                // segment is a structural side of a real feature, not a sliver to weld,
-                // so it is kept. (0.33 m triangle sides sit below _dedupeRadius yet are
-                // genuine geometry.)
+                // uses this segment. Harmless on a large boundary, but a ring with
+                // EXACTLY three distinct nodes (a triangle - the minimal valid polygon)
+                // would drop to two: a line. When an owning source is a triangle, this
+                // short segment is a structural side of a real feature, not a sliver to
+                // weld, so it is kept. (0.33 m triangle sides sit below _dedupeRadius
+                // yet are genuine geometry.)
+                //
+                // The test is == 3, not <= 3. A source ALREADY below three distinct
+                // nodes is a degenerate 2-point sliver, not a polygon; shielding it
+                // would wrongly block a legitimate fusion and leave a shared boundary
+                // split across a node the neighbours disagree on. That split is exactly
+                // what makes AssembleEdgeOrderForLinearRing return an edge list with a
+                // gap: the reused canonical edge ends at one near-duplicate node while
+                // the source's own chain expects the other. Fusing them into one node
+                // makes the edge geometries share the endpoint, closing the gap.
+                // (src903/src1408 were torn this way by the 2-vertex source src1897.)
                 bool wouldDegenerate = false;
                 if (segOwners.TryGetValue(segKey, out var segSrcs)) {
                     foreach (var sid in segSrcs)
-                        if (sourceCells.TryGetValue(sid, out var cells) && cells.Count <= 3) {
+                        if (sourceCells.TryGetValue(sid, out var cells) && cells.Count == 3) {
                             wouldDegenerate = true; break;
                         }
                 }
@@ -1622,8 +1633,33 @@ namespace S100Framework.Topology.Internal
                 }
 
                 var oriented = fwd ? cs : cs.Reverse().ToArray();
-                int skip = result.Count > 0 && result[^1].Equals2D(oriented[0]) ? 1 : 0;
-                result.AddRange(oriented.Skip(skip));
+
+                // Weld the join. The orientation logic above uses canonical-node
+                // identity (Snap), so two consecutive edges can be "connected" through
+                // a shared canonical node while their raw endpoint coordinates differ
+                // by up to the dedupe radius (near-duplicate cells that were unioned,
+                // or that the neighbour digitised a fraction of a metre apart). A plain
+                // Equals2D test misses that sub-tolerance offset and appends BOTH points,
+                // leaving a visible gap between consecutive edges in the assembled ring.
+                // Decide the join on the canonical node the path is already at, and when
+                // they match, drop the incoming duplicate AND pin the segment to the
+                // running coordinate so the output is geometrically continuous - no gap,
+                // regardless of how the two edges' endpoints were snapped.
+                if (result.Count > 0) {
+                    bool sameNode = Snap(result[^1]).Equals(Snap(oriented[0]));
+                    if (sameNode) {
+                        // Skip the incoming endpoint entirely; the path continues from
+                        // result[^1], which already represents this node.
+                        for (int ci = 1; ci < oriented.Length; ci++)
+                            result.Add(oriented[ci]);
+                    }
+                    else {
+                        result.AddRange(oriented);
+                    }
+                }
+                else {
+                    result.AddRange(oriented);
+                }
                 refs.Add(new EdgeReference { Edge = edge, Forward = fwd });
                 pathEnd = oriented[^1];
             }
