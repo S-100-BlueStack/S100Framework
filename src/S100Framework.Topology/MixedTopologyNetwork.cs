@@ -262,66 +262,21 @@ namespace S100Framework.Topology.Internal
         public void Build() {
             var rawSegments = ExtractRawSegments();
 
-            var canonical = BuildCanonicalCoordinateMap(rawSegments);
-            _canonicalMap = canonical;
-
-            var cleaned = new List<RawSegment>(rawSegments.Count);
-            foreach (var seg in rawSegments) {
-                var p0 = CanonicalizeWithProximity(SnapToGrid(seg.P0), canonical, registerIfNew: false);
-                var p1 = CanonicalizeWithProximity(SnapToGrid(seg.P1), canonical, registerIfNew: false);
-                if (!p0.Equals2D(p1)) cleaned.Add(seg.WithCoordinates(p0, p1));
-            }
-
-            var segments = new List<RawSegment>(cleaned.Count);
-            for (int i = 0; i < cleaned.Count; i++) segments.Add(cleaned[i].WithSegId(i));
-
-            var segIndex = new STRtree<RawSegment>();
-            foreach (var seg in segments) segIndex.Insert(seg.Envelope, seg);
-
-            // Index of every real raw vertex (all sources). A computed intersection
-            // that lands near one of these should snap onto it rather than stand as a
-            // separate node - see SnapToRealNode below.
-            var vertexIndex = new STRtree<Coordinate>();
+            // Nodes are ONLY the snapped input vertices - _snapTolerance is the sole
+            // resolution. Segment endpoints were already grid-snapped in extraction, so
+            // every segment's P0/P1 is a real node. No intersection points are computed
+            // and no proximity clustering invents coordinates, so phantom nodes (a
+            // near-degenerate intersection landing a few centimetres off a real vertex)
+            // can never form and can never split an unrelated passing segment.
+            var segments = new List<RawSegment>(rawSegments.Count);
             {
-                var seen = new HashSet<CoordinateKey>();
-                foreach (var seg in segments)
-                    foreach (var v in new[] { seg.P0, seg.P1 }) {
-                        var vk = new CoordinateKey(v, _snapTolerance);
-                        if (seen.Add(vk)) vertexIndex.Insert(new Envelope(v), v);
-                    }
-                if (seen.Count > 0) vertexIndex.Build();
+                int sid = 0;
+                foreach (var seg in rawSegments)
+                    if (!seg.P0.Equals2D(seg.P1, _snapTolerance))
+                        segments.Add(seg.WithSegId(sid++));
             }
 
-            var splitPoints = new Dictionary<int, SortedSet<SplitPoint>>(segments.Count);
-            for (int i = 0; i < segments.Count; i++)
-                splitPoints[i] = new SortedSet<SplitPoint>(SplitPoint.Comparer);
-
-            var li = new RobustLineIntersector();
-            foreach (var seg in segments) {
-                var qe = seg.Envelope.Copy(); qe.ExpandBy(_snapTolerance);
-                foreach (var other in segIndex.Query(qe)) {
-                    if (other.SegId >= seg.SegId) continue;
-                    li.ComputeIntersection(seg.P0, seg.P1, other.P0, other.P1);
-                    if (!li.HasIntersection) continue;
-                    for (int k = 0; k < li.IntersectionNum; k++) {
-                        var pt = SnapToGrid(li.GetIntersection(k));
-                        pt = CanonicalizeWithProximity(pt, canonical);
-                        // Fold the computed point onto a real node if one is close. First
-                        // the two segments' own endpoints, then - crucially - ANY real raw
-                        // vertex within _dedupeRadius. NTS robust arithmetic can report an
-                        // intersection a few centimetres off a genuine shared junction (a
-                        // phantom node); at a fine precision model that offset exceeds
-                        // _snapTolerance and would survive as its own node, splitting an
-                        // unrelated passing segment that has no vertex there. Snapping to
-                        // the real vertex dissolves the phantom.
-                        pt = SnapToEndpoint(pt, seg, other);
-                        pt = SnapToRealNode(pt, vertexIndex);
-                        splitPoints[seg.SegId].Add(new SplitPoint(pt, seg.P0));
-                        splitPoints[other.SegId].Add(new SplitPoint(pt, other.P0));
-                    }
-                }
-            }
-
+            // The set of distinct real nodes: every snapped segment endpoint.
             var nodeCoordIndex = new STRtree<Coordinate>();
             var nodeCoordSet = new Dictionary<CoordinateKey, Coordinate>();
             void RegisterNode(Coordinate pt) {
@@ -330,60 +285,73 @@ namespace S100Framework.Topology.Internal
                     nodeCoordIndex.Insert(new Envelope(pt), pt);
             }
             foreach (var seg in segments) { RegisterNode(seg.P0); RegisterNode(seg.P1); }
-            foreach (var kv in splitPoints)
-                foreach (var sp in kv.Value) RegisterNode(sp.Coord);
+            if (nodeCoordSet.Count > 0) nodeCoordIndex.Build();
 
-            // Per-source spatial index of its OWN raw vertices. Used to refuse a split
-            // that would fold a source onto itself (see the self-fold guard below). A
-            // coordinate list per source is enough; the neighbourhoods queried are tiny.
-            var sourceVertices = new Dictionary<int, STRtree<Coordinate>>();
-            var sourceVertRaw = new Dictionary<int, List<Coordinate>>();
-            foreach (var seg in segments) {
-                if (!sourceVertRaw.TryGetValue(seg.SourceId, out var lst))
-                    sourceVertRaw[seg.SourceId] = lst = new List<Coordinate>();
-                lst.Add(seg.P0); lst.Add(seg.P1);
+            // Off-line artifact nodes. A node that is a raw vertex of some source AND
+            // lies on a DIFFERENT segment of that SAME source is not a real point on any
+            // boundary - it is a vertex whose owner's outline passes within a vertex-
+            // diameter of it without actually touching (two arms of one ring running
+            // close). Such a node must not split ANY segment:
+            //   - Splitting its OWN source folds that ring into a self-touch pinch.
+            //   - Splitting a NEIGHBOUR that shares the same boundary run would cut that
+            //     neighbour where the owner is NOT cut, so the two stop sharing canonical
+            //     edges along a line they trace identically (a boundary mismatch).
+            // Detect these once: for each source, any of its own vertices lying on its
+            // own segments' interiors. They are then excluded from all insertion below.
+            var offLineArtifacts = new HashSet<CoordinateKey>();
+            {
+                var bySource = new Dictionary<int, List<RawSegment>>();
+                foreach (var seg in segments) {
+                    if (!bySource.TryGetValue(seg.SourceId, out var lst))
+                        bySource[seg.SourceId] = lst = new List<RawSegment>();
+                    lst.Add(seg);
+                }
+                foreach (var kv in bySource) {
+                    var own = kv.Value;
+                    var vtree = new STRtree<Coordinate>();
+                    var vseen = new HashSet<CoordinateKey>();
+                    foreach (var s in own)
+                        foreach (var v in new[] { s.P0, s.P1 }) {
+                            var vk = new CoordinateKey(v, _snapTolerance);
+                            if (vseen.Add(vk)) vtree.Insert(new Envelope(v), v);
+                        }
+                    if (vseen.Count == 0) continue;
+                    vtree.Build();
+                    foreach (var s in own) {
+                        var qe = s.Envelope.Copy(); qe.ExpandBy(_snapTolerance);
+                        var p0k = new CoordinateKey(s.P0, _snapTolerance);
+                        var p1k = new CoordinateKey(s.P1, _snapTolerance);
+                        foreach (var v in vtree.Query(qe)) {
+                            var vk = new CoordinateKey(v, _snapTolerance);
+                            if (vk.Equals(p0k) || vk.Equals(p1k)) continue;
+                            if (IsInteriorPoint(v, s.P0, s.P1)) offLineArtifacts.Add(vk);
+                        }
+                    }
+                }
             }
-            foreach (var kv in sourceVertRaw) {
-                var tree = new STRtree<Coordinate>();
-                foreach (var v in kv.Value) tree.Insert(new Envelope(v), v);
-                if (kv.Value.Count > 0) tree.Build();
-                sourceVertices[kv.Key] = tree;
-            }
+
+            // Vertex insertion: split a segment wherever a REAL node (a snapped vertex
+            // of some other edge) lies directly on it. "On it" means the node is within
+            // _snapTolerance of the segment's interior - one vertex-diameter, the same
+            // resolution that defines the grid. This is the only splitting that happens.
+            // Two boundaries digitised with DIFFERENT vertices that trace the same line
+            // connect here: each one's vertices are inserted onto the other's segments,
+            // producing shared nodes exactly where a real vertex sits on a real line.
+            var splitPoints = new Dictionary<int, SortedSet<SplitPoint>>(segments.Count);
+            for (int i = 0; i < segments.Count; i++)
+                splitPoints[i] = new SortedSet<SplitPoint>(SplitPoint.Comparer);
 
             foreach (var seg in segments) {
                 var env = seg.Envelope.Copy(); env.ExpandBy(_snapTolerance);
                 var segP0Key = new CoordinateKey(seg.P0, _snapTolerance);
                 var segP1Key = new CoordinateKey(seg.P1, _snapTolerance);
-                var ownTree = sourceVertices[seg.SourceId];
                 foreach (var nodePt in nodeCoordIndex.Query(env)) {
                     var k = new CoordinateKey(nodePt, _snapTolerance);
                     if (k.Equals(segP0Key) || k.Equals(segP1Key)) continue;
-                    if (IsInteriorPoint(nodePt, seg.P0, seg.P1)) {
-                        var canonPt = CanonicalizeWithProximity(nodePt, canonical);
-
-                        // Self-fold guard. Splitting seg here introduces a node on
-                        // seg's interior. If that node lies within _dedupeRadius of a
-                        // DIFFERENT raw vertex of seg's OWN source (not seg's own two
-                        // endpoints), the split makes the source pass through this spot
-                        // twice: once via the vertex it already owns, once via the new
-                        // split. For a ring that is a self-touch (a pinch) - an invalid
-                        // outer boundary produced purely by a near-miss between two arms
-                        // of the SAME ring that never actually cross. (The node may be a
-                        // computed intersection a few centimetres off the real vertex, so
-                        // the test is proximity, not exact key equality.) A source must
-                        // only fold where its raw geometry genuinely self-intersects, so
-                        // this split is skipped, leaving the source's own outline intact.
-                        bool selfFold = false;
-                        var qenv = new Envelope(canonPt); qenv.ExpandBy(_dedupeRadius);
-                        foreach (var ov in ownTree.Query(qenv)) {
-                            if (ov.Equals2D(seg.P0, _snapTolerance) ||
-                                ov.Equals2D(seg.P1, _snapTolerance)) continue;
-                            if (canonPt.Distance(ov) <= _dedupeRadius) { selfFold = true; break; }
-                        }
-                        if (selfFold) continue;
-
-                        splitPoints[seg.SegId].Add(new SplitPoint(canonPt, seg.P0));
-                    }
+                    // An off-line artifact node never splits anything (see above).
+                    if (offLineArtifacts.Contains(k)) continue;
+                    if (IsInteriorPoint(nodePt, seg.P0, seg.P1))
+                        splitPoints[seg.SegId].Add(new SplitPoint(nodeCoordSet[k], seg.P0));
                 }
             }
 

@@ -46,7 +46,7 @@ namespace S100FC.Topology
 
         public static GeometryFactory? Factory { get; set; } = default; // new GeometryFactory(new PrecisionModel(10000000), srid: 4326); // Or PrecisionModels.Floating
 
-        private Action<int, ICollection<(LineString lineString, string message)>>? _interceptor;
+        private Action<int, ICollection<(LineString lineString, string message)>, bool>? _interceptor;
         private ILogger<Reloaded>? _logger;
 
         private readonly MixedTopologyNetwork _mixedTopologyNetwork;
@@ -67,7 +67,7 @@ namespace S100FC.Topology
             this._topologyBuilder = new TopologyBuilder();
         }
 
-        public static ITopologyBuilder CreateMatrix(Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default, ILogger<Reloaded>? logger = default) {
+        public static ITopologyBuilder CreateMatrix(Action<int, ICollection<(LineString lineString, string message)>, bool>? interceptor = default, ILogger<Reloaded>? logger = default) {
             return new Reloaded() {
                 _interceptor = interceptor,
                 _logger = logger,
@@ -122,7 +122,7 @@ namespace S100FC.Topology
                             var existing = test_Edges[i];
                             var overlapping = e.Geometry;
 
-                            this._interceptor?.Invoke(100, [(existing, $"{existing.ToText()}"), (overlapping, $"{overlapping.ToText()}")]);
+                            this._interceptor?.Invoke(100, [(existing, $"{existing.ToText()}"), (overlapping, $"{overlapping.ToText()}")], true);
                             System.Diagnostics.Debugger.Break();
                         }
                     }
@@ -153,10 +153,10 @@ namespace S100FC.Topology
                                 var ee = sourceMapper[existing];
 
                                 if (sourceId == ee) {
-                                    this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}"))]);
+                                    this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}"))], true);
                                 }
 
-                                this._interceptor?.Invoke(100, [(existing, $"{existing.ToText()}"), (overlapping, $"{overlapping.ToText()}")]);
+                                this._interceptor?.Invoke(100, [(existing, $"{existing.ToText()}"), (overlapping, $"{overlapping.ToText()}")], true);
                                 System.Diagnostics.Debugger.Break();
                             }
                         }
@@ -253,9 +253,9 @@ namespace S100FC.Topology
                         //this._interceptor?.Invoke(100, [.. sortedlist.Select(e => (e.Value.Reverse ? this._curves[e.Value.Id].LineStringReverse : this._curves[e.Value.Id].LineString, $"{e.Value.Reverse} {this._curves[e.Value.Id].LineStringText}"))]);
 
                         if (assembleEdges.Any())
-                            this._interceptor?.Invoke(100, [.. assembleEdges.Select(e => (e.OrientedGeometry, $"{sourceId} {e.OrientedGeometry}"))]);
+                            this._interceptor?.Invoke(100, [.. assembleEdges.Select(e => (e.OrientedGeometry, $"{sourceId} {e.OrientedGeometry}"))], true);
                         else
-                            this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{sourceId} {e.Geometry}"))]);
+                            this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{sourceId} {e.Geometry}"))], true);
 
                         var fullChain = this._mixedTopologyNetwork.GetFullEdgeChainFor(sourceId);
 
@@ -341,7 +341,7 @@ namespace S100FC.Topology
                     if (this._sourceLineType[sourceId] != LineType.Curve) {
                         if (checks.Contains(sourceId)) {
                             var txt = edges[0].Geometry.ToText();
-                            this._interceptor?.Invoke(100, [(edges[0].Geometry, $"{edges[0].Geometry.ToText()}")]);
+                            this._interceptor?.Invoke(100, [(edges[0].Geometry, $"{edges[0].Geometry.ToText()}")], true);
                             System.Diagnostics.Debugger.Break();
                         }
 
@@ -455,8 +455,8 @@ namespace S100FC.Topology
                 this._mapping.Add(uid, $"S{surface.Id}");
             }
 
-            //this._interceptor?.Invoke(6000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
-            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))]);
+            //this._interceptor?.Invoke(6000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))],false);
+            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))], false);
 
             return this;
         }
@@ -520,9 +520,9 @@ namespace S100FC.Topology
 
                     var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
-                    if (surface.UID.EndsWith("10400000009")) {
-                        checks = [.. checks, idExteriorRing];
-                    }
+                    //if (surface.UID.EndsWith("10400000009")) {
+                    //    checks = [.. checks, idExteriorRing];
+                    //}
                     //if (surface.UID.EndsWith("10400000007")) {
                     //    checks = [.. checks, idExteriorRing];
                     //    //this._interceptor?.Invoke(6000, [(surface.ExteriorRing, "F10400001741")]);
@@ -602,7 +602,7 @@ namespace S100FC.Topology
                     foreach (var interior in surface.InteriorRings) {
                         var checkInteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)interior);
                         if (checkInteriorRing.WillCollapse)
-                            continue;                        
+                            continue;
                         if (System.Diagnostics.Debugger.IsAttached)
                             _geometries = [.. _geometries, interior];
 

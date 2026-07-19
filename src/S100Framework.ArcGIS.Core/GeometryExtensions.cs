@@ -117,7 +117,7 @@ namespace ArcGIS.Core.Geometry
         private const string surfaceTopologyFeatures = "'DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA','SHORELINECONSTRUCTION'";
         private const string curveTopologyFeatures = "'COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'";
 
-        public static (S100FC.Topology.IMatrix matrix, IDictionary<string, string> mapper) BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default, ILoggerFactory? loggerFactory = default) {
+        public static (S100FC.Topology.IMatrix matrix, IDictionary<string, string> mapper) BuildTopology(this Geodatabase geodatabase, QueryFilter? queryFilter = default, Action<int, ICollection<(LineString lineString, string message)>, bool>? interceptor = default, ILoggerFactory? loggerFactory = default) {
             var syntax = geodatabase.GetSQLSyntax();
 
             QueryFilter[] filters = [];
@@ -431,7 +431,7 @@ namespace ArcGIS.Core.Geometry
                                                 ;
                                             }else {//if(l.Coordinates.Length>3)
                                                 System.Diagnostics.Debugger.Break();
-                                                interceptor?.Invoke(100, [.. SplitAtSelfIntersections(linestring).Select(e => (e, name))]);
+                                                interceptor?.Invoke(100, [.. SplitAtSelfIntersections(linestring).Select(e => (e, name))],true);
                                             }
                                         }
                                     }
