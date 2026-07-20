@@ -456,7 +456,7 @@ namespace S100FC.Topology
             }
 
             //this._interceptor?.Invoke(6000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))],false);
-            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))], false);
+            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"#{e.Value.Id} {e.Value.LineStringText}"))], false);
 
             return this;
         }
@@ -491,7 +491,7 @@ namespace S100FC.Topology
         private readonly Dictionary<int, LineType> _sourceLineType = [];
         private readonly Dictionary<int, double> _sourceSlope = [];
 
-        private int[] checks = [];
+        private int[] checks = [598, 805];
 
         private Geometry[] _geometriesTopology = [];
 
@@ -547,11 +547,15 @@ namespace S100FC.Topology
 
                         if (checks.Contains(id)) {
                             this.checks_linestrings = [.. this.checks_linestrings, interior.ToText()];
+
+                            var reverse = interior.Reverse().ToText();
                         }
                     }
 
                     if (checks.Contains(idExteriorRing)) {
                         this.checks_linestrings = [.. this.checks_linestrings, surface.ExteriorRing.ToText()];
+
+                        var reverse = surface.ExteriorRing.Reverse().ToText();
                     }
 
                     var p = new PolygonSource(idExteriorRing, idInteriorRings);

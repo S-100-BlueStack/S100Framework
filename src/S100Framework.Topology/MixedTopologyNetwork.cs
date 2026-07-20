@@ -361,10 +361,23 @@ namespace S100Framework.Topology.Internal
 
             foreach (var seg in segments) {
                 var splits = splitPoints[seg.SegId];
+                // These coordinates are already snapped grid nodes. Two DISTINCT grid
+                // cells must never be treated as equal - even adjacent cells exactly
+                // _snapTolerance apart are different nodes. Comparing with a tolerance
+                // of _snapTolerance (NTS Equals2D uses |dx|<=tol && |dy|<=tol, which is
+                // inclusive) would collapse a genuine one-cell micro-segment and, when
+                // two sources traverse that pair in opposite directions, each would keep
+                // a different endpoint - producing edges that should be identical yet
+                // differ by one vertex (src598 vs its reverse src805). Compare by exact
+                // grid-cell identity via CoordinateKey instead.
                 var coords = new List<Coordinate>(splits.Count + 2) { seg.P0 };
-                foreach (var sp in splits)
-                    if (!sp.Coord.Equals2D(coords[^1], _snapTolerance)) coords.Add(sp.Coord);
-                if (!seg.P1.Equals2D(coords[^1], _snapTolerance)) coords.Add(seg.P1);
+                var lastKey = new CoordinateKey(seg.P0, _snapTolerance);
+                foreach (var sp in splits) {
+                    var spk = new CoordinateKey(sp.Coord, _snapTolerance);
+                    if (!spk.Equals(lastKey)) { coords.Add(sp.Coord); lastKey = spk; }
+                }
+                var p1k = new CoordinateKey(seg.P1, _snapTolerance);
+                if (!p1k.Equals(lastKey)) { coords.Add(seg.P1); lastKey = p1k; }
 
                 // Collect this segment's sub-edges, then append them to the source's
                 // ordered chain in RAW TRAVERSAL order. Segments were canonicalized
@@ -372,7 +385,9 @@ namespace S100Framework.Topology.Internal
                 // the original direction here.
                 var segEdges = new List<NetworkEdge>(coords.Count - 1);
                 for (int i = 0; i < coords.Count - 1; i++) {
-                    if (!coords[i].Equals2D(coords[i + 1], _snapTolerance)) {
+                    var ki = new CoordinateKey(coords[i], _snapTolerance);
+                    var kj = new CoordinateKey(coords[i + 1], _snapTolerance);
+                    if (!ki.Equals(kj)) {
                         var e = InsertEdge(coords[i], coords[i + 1], seg.SourceId, edgeMap);
                         if (e != null) segEdges.Add(e);
                     }
@@ -835,10 +850,13 @@ namespace S100Framework.Topology.Internal
             Coordinate c0, Coordinate c1, int sourceId,
             Dictionary<(CoordinateKey, CoordinateKey), NetworkEdge> edgeMap) {
 
-            if (c0.Equals2D(c1, _snapTolerance)) return null;
-
+            // Reject only a TRUE zero-length edge: both ends in the same grid cell.
+            // A tolerance compare (Equals2D with _snapTolerance) would also reject a
+            // genuine one-cell micro-edge whose ends are exactly _snapTolerance apart,
+            // dropping real geometry; use exact grid-cell identity.
             var k0 = new CoordinateKey(c0, _snapTolerance);
             var k1 = new CoordinateKey(c1, _snapTolerance);
+            if (k0.Equals(k1)) return null;
             bool swap = k0.CompareTo(k1) > 0;
             var key = swap ? (k1, k0) : (k0, k1);
 
@@ -1123,16 +1141,25 @@ namespace S100Framework.Topology.Internal
 
             var coords = new List<Coordinate>();
             var e0 = chain[0]; var e1 = chain[1];
-            bool e0Fwd = e0.EndNode.Equals2D(e1.StartNode, _snapTolerance)
-                      || e0.EndNode.Equals2D(e1.EndNode, _snapTolerance);
+            // Orientation is decided on EXACT grid-cell identity, never a tolerance.
+            // Two nodes exactly _snapTolerance apart (adjacent cells - e.g. the ends of
+            // a genuine one-cell micro-edge) both satisfy an Equals2D(_snapTolerance)
+            // test, so a tolerance match is ambiguous and can orient the micro-edge the
+            // wrong way. The wrong orientation then makes Skip(1) drop the wrong end,
+            // so a source and its reverse keep DIFFERENT endpoints of the pair (the
+            // src598 / src805 one-vertex mismatch). CoordinateKey compares exact cells.
+            CoordinateKey NK(Coordinate c) => new CoordinateKey(c, _snapTolerance);
+            var e0End = NK(e0.EndNode);
+            bool e0Fwd = e0End.Equals(NK(e1.StartNode)) || e0End.Equals(NK(e1.EndNode));
             var first = e0Fwd ? e0.Geometry.Coordinates : e0.Geometry.Coordinates.Reverse().ToArray();
             foreach (var c in first) coords.Add(Canonicalize(c));
 
             for (int i = 1; i < chain.Count; i++) {
                 var edge = chain[i]; var prevEnd = coords[^1];
+                var prevKey = NK(prevEnd);
                 bool fwd;
-                if (edge.StartNode.Equals2D(prevEnd, _snapTolerance)) fwd = true;
-                else if (edge.EndNode.Equals2D(prevEnd, _snapTolerance)) fwd = false;
+                if (NK(edge.StartNode).Equals(prevKey)) fwd = true;
+                else if (NK(edge.EndNode).Equals(prevKey)) fwd = false;
                 else fwd = edge.StartNode.Distance(prevEnd) <= edge.EndNode.Distance(prevEnd);
                 var ec = fwd ? edge.Geometry.Coordinates : edge.Geometry.Coordinates.Reverse().ToArray();
                 foreach (var c in ec.Skip(1)) coords.Add(Canonicalize(c));

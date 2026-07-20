@@ -61,21 +61,10 @@ namespace S100FC.Topology
             this.LineStringReverseText = this.LineStringReverse.ToString();
             base.Id = hash;
 
-            //if (base.Id == 52672787 || base.Id == 3587297466) System.Diagnostics.Debugger.Break();
-            //if (base.Id == 2933884953) System.Diagnostics.Debugger.Break();
+            if (base.Id == 14887968679845058476 || base.Id == 1293010403767941132) System.Diagnostics.Debugger.Break();
         }
 
-        public CurveFeature(LineString lineString) {
-            this.LineString = lineString;
-            this.LineStringReverse = lineString.Factory.CreateLineString([.. lineString.Coordinates.Reverse()]);
-
-            this.LineStringText = lineString.ToString();
-            this.LineStringReverseText = this.LineStringReverse.ToString();
-
-            base.Id = System.IO.Hashing.XxHash64.HashToUInt64(LineString.ToBinary());
-            //base.Id = System.IO.Hashing.XxHash32.HashToUInt32(this.LineString.ToBinary());
-
-            //if (base.Id == 11123348237682635517 || base.Id == 8819474955002669271) System.Diagnostics.Debugger.Break();
+        public CurveFeature(LineString lineString) : this(lineString, System.IO.Hashing.XxHash64.HashToUInt64(lineString.ToBinary())) {
         }
 
         public LineString LineString { get; set; }
@@ -116,11 +105,10 @@ namespace S100FC.Topology
             this.Curves = curves;
 
             base.Id = System.IO.Hashing.XxHash64.HashToUInt64(Encoding.UTF8.GetBytes(string.Join(',', curves.Select(e => e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
-            //base.Id = System.IO.Hashing.XxHash32.HashToUInt32(Encoding.UTF8.GetBytes(string.Join(',', curves.Select(e => e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
 
             this.Reverse = System.IO.Hashing.XxHash64.HashToUInt64(Encoding.UTF8.GetBytes(string.Join(',', curves.Reverse().Select(e => !e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
 
-            //if (base.Id == 46947589) System.Diagnostics.Debugger.Break();
+            if (base.Id == 14887968679845058476 || base.Id == 1293010403767941132) System.Diagnostics.Debugger.Break();
         }
 
         public ulong Reverse { get; init; }
