@@ -1,6 +1,4 @@
 using Microsoft.Extensions.Logging;
-using NetTopologySuite;
-using NetTopologySuite.Algorithm;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Index.Strtree;
 using System.Text;

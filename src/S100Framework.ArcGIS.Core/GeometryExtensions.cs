@@ -1,19 +1,16 @@
 ﻿//#define SKIN_OF_THE_EARTH_ONLY
 
 using ArcGIS.Core.Data;
-using ArcGIS.Core.Data.Topology;
 using ArcGIS.Core.SystemCore;
+using Microsoft.Extensions.Logging;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Noding;
 using NetTopologySuite.Noding.Snapround;
 using NetTopologySuite.Operation.Linemerge;
 using NetTopologySuite.Operation.Valid;
-using System.Globalization;
-using Microsoft.Extensions.Logging;
-using S100FC.Topology;
-using System.Runtime.CompilerServices;
-using GeoAPI.Geometries;
 using NetTopologySuite.Simplify;
+using S100FC.Topology;
+using System.Globalization;
 
 namespace ArcGIS.Core.Data
 {
@@ -105,9 +102,9 @@ namespace ArcGIS.Core.Geometry
 
         //static readonly PrecisionModel precisionModel = new PrecisionModel(100000);
         //static readonly PrecisionModel precisionModel = new PrecisionModel(scale);
-        
+
         //static readonly PrecisionModel precisionModel = new PrecisionModel(1000000);    //ENC
-        
+
         //static readonly PrecisionModel precisionModel = new PrecisionModel(2000000);
         static readonly PrecisionModel precisionModel = new PrecisionModel(10000000);
 
@@ -253,7 +250,7 @@ namespace ArcGIS.Core.Geometry
                                 name = string.Empty;
 
                             shape = (Polygon)clipGeometry(shape);
-                            if (shape.IsEmpty) continue;                            
+                            if (shape.IsEmpty) continue;
 
                             var exteriorRing = shape.GetExteriorRing(0);
                             var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
@@ -429,9 +426,10 @@ namespace ArcGIS.Core.Geometry
                                                 interiorRings.Add(l.Factory.CreateLinearRing(l.Coordinates));
                                             else if (l.Count <= 3) {
                                                 ;
-                                            }else {//if(l.Coordinates.Length>3)
+                                            }
+                                            else {//if(l.Coordinates.Length>3)
                                                 System.Diagnostics.Debugger.Break();
-                                                interceptor?.Invoke(100, [.. SplitAtSelfIntersections(linestring).Select(e => (e, name))],true);
+                                                interceptor?.Invoke(100, [.. SplitAtSelfIntersections(linestring).Select(e => (e, name))], true);
                                             }
                                         }
                                     }

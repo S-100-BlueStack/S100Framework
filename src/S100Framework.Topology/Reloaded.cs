@@ -1,20 +1,15 @@
-﻿using NetTopologySuite.Geometries;
+﻿using Microsoft.Extensions.Logging;
+using NetTopologySuite.Geometries;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Logging;
 
 [assembly: InternalsVisibleTo("TestTopology")]
 
 namespace S100FC.Topology
 {
     using GeoAPI.Geometries;
-    using NetTopologySuite.Algorithm.Match;
-    using NetTopologySuite.Operation.Linemerge;
     using NetTopologySuite.Precision;
     using S100Framework.Topology;
     using S100Framework.Topology.Internal;
-    using System.Net;
-    using System.Net.NetworkInformation;
-    using System.Text;
 
     public interface IMatrixReloaded : IMatrix
     {

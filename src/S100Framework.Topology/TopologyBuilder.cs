@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace S100Framework.Topology
+﻿namespace S100Framework.Topology
 {
     using NetTopologySuite.Geometries;
     using NetTopologySuite.Noding;
@@ -12,7 +8,6 @@ namespace S100Framework.Topology
     using NetTopologySuite.Operation.Union;
     using NetTopologySuite.Planargraph;
     using NetTopologySuite.Precision;
-    using S100Framework.Topology.Internal;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -167,7 +162,7 @@ namespace S100Framework.Topology
 
         public List<(LineString edge, bool forward)> GetEdgesForInput(LineString input) {
 
-            input = NormalizeInput(input);            
+            input = NormalizeInput(input);
 
 
             var result = new List<(LineString, bool)>();
