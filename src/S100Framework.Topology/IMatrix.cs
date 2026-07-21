@@ -7,11 +7,8 @@ namespace S100FC.Topology
     public interface ITopologyBuilder
     {
         ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<S100FC.Topology.Polyline> curves);
-        ITopologyBuilder AddGroup2Features(IList<S100FC.Topology.Polygon> surfaces, IList<S100FC.Topology.Polyline> curves);
 
-#if Singletons
-        ITopologyBuilder AddSingletonFeatures(ICollection<S100FC.Topology.Polyline> curves);
-#endif
+        ITopologyBuilder AddSingletonFeatures(IList<S100FC.Topology.Polyline> curves);
 
         GeometryPrecisionReducer Reducer { get; }
 

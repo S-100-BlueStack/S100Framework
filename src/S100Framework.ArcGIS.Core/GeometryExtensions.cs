@@ -562,7 +562,7 @@ namespace ArcGIS.Core.Geometry
 #endif
                 }
 
-                builder = matrix.AddGroup2Features(polygons, curves);//.AddSingletonFeatures(singletons);
+                builder = matrix.AddTopologyFeatures(polygons, curves).AddSingletonFeatures(singletons);
             }
 
 

@@ -76,9 +76,11 @@ namespace S100FC.Topology
 
         GeometryFactory IMatrixReloaded.Factory => Reloaded.Factory!;
 
-        ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddFeatures(surfaces, curves, true);
+        ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddFeatures(surfaces, curves);
 
-        ITopologyBuilder ITopologyBuilder.AddGroup2Features(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddFeatures(surfaces, []/*curves*/, true);
+        //ITopologyBuilder ITopologyBuilder.AddGroup2Features(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddFeatures(surfaces, curves, true);
+
+        ITopologyBuilder ITopologyBuilder.AddSingletonFeatures(IList<S100FC.Topology.Polyline> curves) => this.AddSingletonFeatures(curves);
 
         public GeometryPrecisionReducer Reducer => new GeometryPrecisionReducer(Factory!.PrecisionModel) {
             Pointwise = false,
@@ -505,135 +507,90 @@ namespace S100FC.Topology
 
         private List<NetworkGeometry> _group2Geometries = [];
 
-        private ITopologyBuilder AddFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves, bool isTopology) {
-            if (isTopology) {
-                foreach (var surface in surfaces) {
-                    var checkExteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)surface.ExteriorRing);
-                    if (checkExteriorRing.WillCollapse) {
-                        //System.Diagnostics.Debugger.Break();
-                        _collapse = [.. _collapse, surface];
+        private ITopologyBuilder AddFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) {
+            foreach (var surface in surfaces) {
+                var checkExteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)surface.ExteriorRing);
+                if (checkExteriorRing.WillCollapse) {
+                    //System.Diagnostics.Debugger.Break();
+                    _collapse = [.. _collapse, surface];
+                    continue;
+                }
+                if (System.Diagnostics.Debugger.IsAttached)
+                    _geometriesTopology = [.. _geometriesTopology, surface.ExteriorRing];
+
+
+                var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
+
+                //if (surface.UID.EndsWith("10400000009")) {
+                //    checks = [.. checks, idExteriorRing];
+                //}
+                //if (surface.UID.EndsWith("10400000007")) {
+                //    checks = [.. checks, idExteriorRing];
+                //    //this._interceptor?.Invoke(6000, [(surface.ExteriorRing, "F10400001741")]);
+                //}
+
+
+                this._sourceLineType.Add(idExteriorRing, LineType.Exterior);
+
+                if (checks.Contains(idExteriorRing)) {
+                    this.checks_linestrings = [.. this.checks_linestrings, surface.ExteriorRing.ToText()];
+
+                    var reverse = surface.ExteriorRing.Reverse().ToText();
+                }
+
+                var idInteriorRings = new int[0];
+                foreach (var interior in surface.InteriorRings) {
+                    var checkInteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)interior);
+                    if (checkInteriorRing.WillCollapse) {
                         continue;
                     }
                     if (System.Diagnostics.Debugger.IsAttached)
-                        _geometriesTopology = [.. _geometriesTopology, surface.ExteriorRing];
+                        _geometriesTopology = [.. _geometriesTopology, interior];
 
+                    var id = this._mixedTopologyNetwork.AddLineString(interior);
+                    idInteriorRings = [.. idInteriorRings, id];
 
-                    var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
-
-                    //if (surface.UID.EndsWith("10400000009")) {
-                    //    checks = [.. checks, idExteriorRing];
-                    //}
-                    //if (surface.UID.EndsWith("10400000007")) {
-                    //    checks = [.. checks, idExteriorRing];
-                    //    //this._interceptor?.Invoke(6000, [(surface.ExteriorRing, "F10400001741")]);
-                    //}
-
-
-                    this._sourceLineType.Add(idExteriorRing, LineType.Exterior);
-
-                    if (checks.Contains(idExteriorRing)) {
-                        this.checks_linestrings = [.. this.checks_linestrings, surface.ExteriorRing.ToText()];
-
-                        var reverse = surface.ExteriorRing.Reverse().ToText();
-                    }
-
-                    var idInteriorRings = new int[0];
-                    foreach (var interior in surface.InteriorRings) {
-                        var checkInteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)interior);
-                        if (checkInteriorRing.WillCollapse) {
-                            continue;
-                        }
-                        if (System.Diagnostics.Debugger.IsAttached)
-                            _geometriesTopology = [.. _geometriesTopology, interior];
-
-                        var id = this._mixedTopologyNetwork.AddLineString(interior);
-                        idInteriorRings = [.. idInteriorRings, id];
-
-                        this._sourceLineType.Add(id, LineType.Interior);
-
-                        if (checks.Contains(id)) {
-                            this.checks_linestrings = [.. this.checks_linestrings, interior.ToText()];
-
-                            var reverse = interior.Reverse().ToText();
-                        }
-                    }
-
-                    var p = new PolygonSource(idExteriorRing, idInteriorRings);
-                    this._featureMapperPolygons.Add(surface.Name, p);
-                }
-
-                foreach (var curve in curves) {
-                    //if (curve.UID.EndsWith("10100081766")) System.Diagnostics.Debugger.Break();
-                    var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
-                    if (id < 0) continue;
-                    if (System.Diagnostics.Debugger.IsAttached)
-                        _geometriesTopology = [.. _geometriesTopology, curve.LineString];
-
-                    if (curve.LineString is LinearRing linearring)
-                        this._sourceLineType.Add(id, LineType.Ring);
-                    else
-                        this._sourceLineType.Add(id, LineType.Curve);
-
-                    this._sourceSlope.Add(id, curve.LineString.Slope());
-
-                    //if (curve.UID.EndsWith("10100001235")) {
-                    //    checks = [.. checks, id];
-                    //}
+                    this._sourceLineType.Add(id, LineType.Interior);
 
                     if (checks.Contains(id)) {
-                        this.checks_linestrings = [.. this.checks_linestrings, curve.LineString.ToText()];
-                    }
+                        this.checks_linestrings = [.. this.checks_linestrings, interior.ToText()];
 
-                    this._featureMapperLineStrings.Add(curve.Name, id);
+                        var reverse = interior.Reverse().ToText();
+                    }
                 }
+
+                var p = new PolygonSource(idExteriorRing, idInteriorRings);
+                this._featureMapperPolygons.Add(surface.Name, p);
             }
-            else {
-                foreach (var surface in surfaces) {
-                    var checkExteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)surface.ExteriorRing);
-                    if (checkExteriorRing.WillCollapse) {
-                        _collapse = [.. _collapse, surface];
-                        continue;
-                    }
-                    if (System.Diagnostics.Debugger.IsAttached)
-                        _geometries = [.. _geometries, surface.ExteriorRing];
 
+            foreach (var curve in curves) {
+                //if (curve.UID.EndsWith("10100081766")) System.Diagnostics.Debugger.Break();
+                var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
+                if (id < 0) continue;
+                if (System.Diagnostics.Debugger.IsAttached)
+                    _geometriesTopology = [.. _geometriesTopology, curve.LineString];
 
-                    var exteriorRing = new NetworkGeometry { Id = _id--, Geometry = surface.ExteriorRing, Kind = GeometryKind.LineString };
-                    _group2Geometries.Add(exteriorRing);
-                    this._sourceLineType.Add(exteriorRing.Id, LineType.Exterior);
+                if (curve.LineString is LinearRing linearring)
+                    this._sourceLineType.Add(id, LineType.Ring);
+                else
+                    this._sourceLineType.Add(id, LineType.Curve);
 
-                    var idInteriorRings = new int[0];
-                    foreach (var interior in surface.InteriorRings) {
-                        var checkInteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)interior);
-                        if (checkInteriorRing.WillCollapse)
-                            continue;
-                        if (System.Diagnostics.Debugger.IsAttached)
-                            _geometries = [.. _geometries, interior];
+                this._sourceSlope.Add(id, curve.LineString.Slope());
 
-                        var interiorRing = new NetworkGeometry { Id = _id--, Geometry = surface.ExteriorRing, Kind = GeometryKind.LineString };
-                        _group2Geometries.Add(interiorRing);
-                        idInteriorRings = [.. idInteriorRings, interiorRing.Id];
-                        this._sourceLineType.Add(interiorRing.Id, LineType.Interior);
-                    }
+                //if (curve.UID.EndsWith("10100001235")) {
+                //    checks = [.. checks, id];
+                //}
 
-                    var p = new PolygonSource(exteriorRing.Id, idInteriorRings);
-                    this._featureMapperPolygons.Add(surface.Name, p);
+                if (checks.Contains(id)) {
+                    this.checks_linestrings = [.. this.checks_linestrings, curve.LineString.ToText()];
                 }
 
-                foreach (var curve in curves) {
-                    if (System.Diagnostics.Debugger.IsAttached)
-                        _geometries = [.. _geometries, curve.LineString];
-
-                    var linestring = new NetworkGeometry { Id = _id--, Geometry = curve.LineString, Kind = GeometryKind.LineString };
-                    _group2Geometries.Add(linestring);
-                    if (curve.LineString is LinearRing linearring)
-                        this._sourceLineType.Add(linestring.Id, LineType.Ring);
-                    else
-                        this._sourceLineType.Add(linestring.Id, LineType.Curve);
-                    this._sourceSlope.Add(linestring.Id, curve.LineString.Slope());
-                    this._featureMapperLineStrings.Add(curve.Name, linestring.Id);
-                }
+                this._featureMapperLineStrings.Add(curve.Name, id);
             }
+            return this;
+        }
+
+        private ITopologyBuilder AddSingletonFeatures(IList<Polyline> curves) {
             return this;
         }
     }

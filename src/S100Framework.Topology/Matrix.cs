@@ -94,22 +94,20 @@ namespace S100FC.Topology
             return this;
         }
 
-        ITopologyBuilder ITopologyBuilder.AddGroup2Features(IList<Polygon> surfaces, IList<S100FC.Topology.Polyline> curves) {
-            this._surfacesNavigational = MakePrecise(surfaces);
-            this._curvesNavigational = MakePrecise(curves);
+        //ITopologyBuilder ITopologyBuilder.AddGroup2Features(IList<Polygon> surfaces, IList<S100FC.Topology.Polyline> curves) {
+        //    this._surfacesNavigational = MakePrecise(surfaces);
+        //    this._curvesNavigational = MakePrecise(curves);
 
-            return this;
-        }
+        //    return this;
+        //}
 
         GeometryPrecisionReducer ITopologyBuilder.Reducer => new GeometryPrecisionReducer(Factory.PrecisionModel);
 
-#if Singletons
-        ITopologyBuilder ITopologyBuilder.AddSingletonFeatures(IList<Polyline> curves) {
-            this._curvesSingleton = MakePrecise(curves);
+        ITopologyBuilder ITopologyBuilder.AddSingletonFeatures(IList<S100FC.Topology.Polyline> curves) {
+            //this._curvesSingleton = MakePrecise(curves);
 
             return this;
         }
-#endif
 
         IMatrix ITopologyBuilder.BuildTopology() {
             IEnumerable<S100FC.Topology.Polygon> surfaces = Enumerable.Empty<S100FC.Topology.Polygon>();
