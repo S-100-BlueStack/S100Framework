@@ -13,14 +13,14 @@
 		<AssemblyVersion>3.0.0.0</AssemblyVersion>
 		<Configurations>Debug</Configurations>
 		<Version>3.7.1901</Version>
-		<PackageVersion>3.7.1901.3</PackageVersion>
+		<PackageVersion>3.7.1901.4</PackageVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="NetTopologySuite" Version="2.6.0" />
 		<PackageReference Include="NetTopologySuite.IO.GeoJSON" Version="4.0.0" />
 		<PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
-		<PackageReference Include="System.IO.Hashing" Version="10.0.9" />
+		<PackageReference Include="System.IO.Hashing" Version="10.0.10" />
 		<PackageReference Include="YamlDotNet" Version="18.1.0" />
 	</ItemGroup>
 
