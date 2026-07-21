@@ -491,7 +491,7 @@ namespace S100FC.Topology
         private readonly Dictionary<int, LineType> _sourceLineType = [];
         private readonly Dictionary<int, double> _sourceSlope = [];
 
-        private int[] checks = [598, 805];
+        private int[] checks = [];
 
         private Geometry[] _geometriesTopology = [];
 
@@ -531,6 +531,12 @@ namespace S100FC.Topology
 
                     this._sourceLineType.Add(idExteriorRing, LineType.Exterior);
 
+                    if (checks.Contains(idExteriorRing)) {
+                        this.checks_linestrings = [.. this.checks_linestrings, surface.ExteriorRing.ToText()];
+
+                        var reverse = surface.ExteriorRing.Reverse().ToText();
+                    }
+
                     var idInteriorRings = new int[0];
                     foreach (var interior in surface.InteriorRings) {
                         var checkInteriorRing = this._mixedTopologyNetwork.CheckRingCollapse((LinearRing)interior);
@@ -550,12 +556,6 @@ namespace S100FC.Topology
 
                             var reverse = interior.Reverse().ToText();
                         }
-                    }
-
-                    if (checks.Contains(idExteriorRing)) {
-                        this.checks_linestrings = [.. this.checks_linestrings, surface.ExteriorRing.ToText()];
-
-                        var reverse = surface.ExteriorRing.Reverse().ToText();
                     }
 
                     var p = new PolygonSource(idExteriorRing, idInteriorRings);

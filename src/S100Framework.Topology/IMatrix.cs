@@ -61,7 +61,9 @@ namespace S100FC.Topology
             this.LineStringReverseText = this.LineStringReverse.ToString();
             base.Id = hash;
 
-            if (base.Id == 14887968679845058476 || base.Id == 1293010403767941132) System.Diagnostics.Debugger.Break();
+            //if (base.Id == 14887968679845058476 || base.Id == 1293010403767941132) System.Diagnostics.Debugger.Break();
+            //if (base.Id == 5507670652314516459) System.Diagnostics.Debugger.Break();
+            
         }
 
         public CurveFeature(LineString lineString) : this(lineString, System.IO.Hashing.XxHash64.HashToUInt64(lineString.ToBinary())) {

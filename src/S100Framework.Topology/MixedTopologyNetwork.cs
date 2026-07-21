@@ -199,6 +199,12 @@ namespace S100Framework.Topology.Internal
         private readonly GeometryFactory _factory;
         private readonly double _snapTolerance;
         private readonly double _dedupeRadius;
+        // Maps a snapped-vertex grid cell to the canonical coordinate it normalizes to.
+        // Populated once at the start of Build() by NormalizeVertices(); collapses
+        // near-duplicate input vertices (distinct coordinates that land in adjacent grid
+        // cells but denote the same physical point) so every source uses ONE coordinate
+        // for one vertex. Empty until Build() runs.
+        private Dictionary<CoordinateKey, Coordinate> _vertexNormalization = new();
 
         private readonly List<NetworkGeometry> _sources = new();
         private readonly List<NetworkEdge> _edges = new();
@@ -260,6 +266,7 @@ namespace S100Framework.Topology.Internal
         }
 
         public void Build() {
+            NormalizeVertices();
             var rawSegments = ExtractRawSegments();
 
             // Nodes are ONLY the snapped input vertices - _snapTolerance is the sole
@@ -439,9 +446,18 @@ namespace S100Framework.Topology.Internal
                 if (snapped.Count == 0 || !sc.Equals2D(snapped[^1])) snapped.Add(sc);
             }
 
+            // Re-close a ring whose first and last snapped vertices are the SAME grid
+            // cell but not byte-identical (sub-cell wobble at the seam). The threshold
+            // is _snapTolerance, NOT _dedupeRadius: a last vertex more than one cell
+            // from the first is a DISTINCT real vertex, and overwriting it with the
+            // first destroys geometry. That is exactly what corrupted a ring here - a
+            // genuine vertex ~46 mm from the seam (well inside _dedupeRadius) sat last
+            // in the reversed ring and was clobbered, so a ring and its reverse produced
+            // different edge lists. Distinct near-seam vertices are kept; the ring is
+            // closed below by APPENDING the first vertex, not by moving the last.
             if (isRing && snapped.Count > 1 &&
                 !snapped[0].Equals2D(snapped[^1]) &&
-                snapped[0].Distance(snapped[^1]) <= _dedupeRadius)
+                snapped[0].Distance(snapped[^1]) <= _snapTolerance)
                 snapped[^1] = snapped[0];
 
             if (isRing && snapped.Count > 2 && !snapped[0].Equals2D(snapped[^1]))
@@ -583,8 +599,98 @@ namespace S100Framework.Topology.Internal
             double y = Math.Round(c.Y * inv) / inv;
 
             var coord = double.IsNaN(c.Z) ? new Coordinate(x, y) : new CoordinateZ(x, y, c.Z);
+
+            // Apply cross-source vertex normalization: if this snapped cell was folded
+            // into a near-duplicate cluster, return the cluster's canonical coordinate
+            // so the same physical vertex is identical everywhere. No-op before Build().
+            if (_vertexNormalization.Count > 0 &&
+                _vertexNormalization.TryGetValue(new CoordinateKey(coord, _snapTolerance), out var canon)) {
+                return double.IsNaN(c.Z) ? canon : new CoordinateZ(canon.X, canon.Y, c.Z);
+            }
             return coord;
         }
+
+        // -------------------------------------------------------------------
+        // Vertex normalization
+        // -------------------------------------------------------------------
+
+        /// <summary>
+        /// Builds <see cref="_vertexNormalization"/>: a map that collapses near-duplicate
+        /// input vertices to a single canonical coordinate before any segment is built.
+        ///
+        /// Two vertices that snap to ADJACENT grid cells (Chebyshev distance 1 - i.e. the
+        /// coordinates differ by at most one cell in X and Y) are indistinguishable at the
+        /// grid resolution: they denote the same physical point digitised twice with a
+        /// sub-cell wobble. Left alone, one source may carry cell A and another cell B for
+        /// the same vertex - or a single ring may carry both as a spurious one-cell micro-
+        /// segment - so a shared boundary and its reverse produce edges that differ by that
+        /// one vertex. Cell adjacency (not floating distance) is the test on purpose: two
+        /// cells exactly _snapTolerance apart can compute to a hair OVER the tolerance in
+        /// double precision, so a distance compare misses exactly the pairs that matter.
+        ///
+        /// Adjacent cells are unioned (union-find); each cluster elects the lexicographically
+        /// smallest cell's coordinate as its representative, so the choice is deterministic
+        /// and independent of source order. Every cell in a multi-cell cluster then maps to
+        /// that representative. Singletons are omitted (they map to themselves).
+        ///
+        /// The pass never merges vertices that would fold a ring: only genuinely adjacent
+        /// cells are unioned, and adjacent cells are - by construction - a sub-resolution
+        /// apart, so collapsing them only removes spurious micro-segments, never a real span.
+        /// </summary>
+        private void NormalizeVertices() {
+            // Collect every distinct snapped-vertex cell across all sources. Snap here is
+            // the raw grid snap (normalization map is still empty, so SnapToGrid is plain).
+            var cellCoord = new Dictionary<CoordinateKey, Coordinate>();
+            foreach (var src in _sources)
+                foreach (var c in src.Geometry.Coordinates) {
+                    var sc = SnapToGrid(c);
+                    var k = new CoordinateKey(sc, _snapTolerance);
+                    if (!cellCoord.ContainsKey(k)) cellCoord[k] = sc;
+                }
+            if (cellCoord.Count == 0) return;
+
+            // Union-find over cells. Adjacency uses CoordinateKey.Offset(dx, dy) with
+            // |dx| <= 1 && |dy| <= 1; the cluster root is the CompareTo-smallest cell.
+            var parent = new Dictionary<CoordinateKey, CoordinateKey>();
+            foreach (var k in cellCoord.Keys) parent[k] = k;
+            CoordinateKey Find(CoordinateKey x) {
+                var r = x;
+                while (!parent[r].Equals(r)) r = parent[r];
+                while (!parent[x].Equals(r)) { var nx = parent[x]; parent[x] = r; x = nx; }
+                return r;
+            }
+            void Union(CoordinateKey a, CoordinateKey b) {
+                var ra = Find(a); var rb = Find(b);
+                if (ra.Equals(rb)) return;
+                // Deterministic: the lexicographically smaller cell becomes the root.
+                if (ra.CompareTo(rb) < 0) parent[rb] = ra; else parent[ra] = rb;
+            }
+
+            var cells = new List<CoordinateKey>(cellCoord.Keys);
+            var present = new HashSet<CoordinateKey>(cells);
+            foreach (var k in cells) {
+                // Only look forward/at the four 'greater-or-equal' neighbours to avoid
+                // doing every pair twice; union is symmetric so this covers all adjacencies.
+                for (int dx = 0; dx <= 1; dx++)
+                    for (int dy = -1; dy <= 1; dy++) {
+                        if (dx == 0 && dy <= 0) continue;
+                        var nk = k.Offset(dx, dy);
+                        if (present.Contains(nk)) Union(k, nk);
+                    }
+            }
+
+            // Emit only the cells that actually normalize to a DIFFERENT representative.
+            var map = new Dictionary<CoordinateKey, Coordinate>();
+            foreach (var k in cells) {
+                var r = Find(k);
+                if (!r.Equals(k)) map[k] = cellCoord[r];
+            }
+            _vertexNormalization = map;
+            _logger?.LogInformation(
+                "Vertex normalization: {Merged} near-duplicate cells folded into representatives.",
+                map.Count);
+        }
+
 
         private Coordinate Canonicalize(Coordinate c) {
             var snapped = SnapToGrid(c);
