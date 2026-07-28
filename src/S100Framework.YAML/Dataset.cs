@@ -22,7 +22,9 @@ namespace S100FC.YAML
         public string ENCVer { get; set; } = "INT.IHO.S-101.2.0";
         public string? FCVer { get; set; } = default;
         [YamlMember(Alias = "verticalDatum", ApplyNamingConventions = false)]
-        public string? verticalDatum { get; set; } = default;
+        public string? VerticalDatum { get; set; } = default;
+        [YamlMember(Alias = "soundingDatum", ApplyNamingConventions = false)]
+        public string? SoundingDatum { get; set; } = default;
 
         public Metadata Metadata { get; set; } = new Metadata();
 
@@ -194,6 +196,9 @@ namespace S100FC.YAML
         public string? FCVer { get; set; }
         [YamlMember(Alias = "verticalDatum ", ApplyNamingConventions = false)]
         public string? VerticalDatum { get; set; }
+        [YamlMember(Alias = "soundingDatum", ApplyNamingConventions = false)]
+        public string? SoundingDatum { get; set; } = default;
+
 
         public MetadataUpdate? Metadata { get; set; }
 
@@ -369,6 +374,7 @@ namespace S100FC.YAML
             rawDictionary.TryGetValue("encver", out var encver);
             rawDictionary.TryGetValue("FCVer", out var fcver);
             rawDictionary.TryGetValue("verticalDatum", out var verticalDatum);
+            rawDictionary.TryGetValue("soundingDatum", out var soundingDatum);
 
             delta.CellName = cellName?.ToString();
             delta.Comment = comment?.ToString();
@@ -377,6 +383,7 @@ namespace S100FC.YAML
             delta.ENCVer = encver?.ToString();
             delta.FCVer = fcver?.ToString();
             delta.VerticalDatum = verticalDatum?.ToString();
+            delta.SoundingDatum = soundingDatum?.ToString();
         }
 
         private static DatasetUpdate ReadDataset(string dataset) {

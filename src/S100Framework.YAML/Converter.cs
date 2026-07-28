@@ -328,7 +328,10 @@ namespace S100FC.YAML
                         dataset.FCVer = value;
                         break;
                     case "verticalDatum":
-                        dataset.verticalDatum = value;
+                        dataset.VerticalDatum = value;
+                        break;
+                    case "soundingDatum":
+                        dataset.SoundingDatum = value;
                         break;
                 }
             }
