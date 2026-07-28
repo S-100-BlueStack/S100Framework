@@ -30,8 +30,6 @@ namespace S100FC.Topology
         bool IsCollapsed(string uid) => Collapse.Contains(uid);
 
         string[] NetworkTopology { get; }
-
-        string[] Geometries { get; }
     }
 }
 

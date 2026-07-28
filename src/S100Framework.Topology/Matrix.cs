@@ -925,8 +925,6 @@ namespace S100FC.Topology
 
         public string[] NetworkTopology => [];
 
-        public string[] Geometries => [];
-
         //string[] IMatrix.MappingFeature(string name) {
         //    return [.. this._mapping.Where(e => e.Key.Equals(name) || e.Key.StartsWith($"{name}:p")).Select(e => e.Value)];
         //}

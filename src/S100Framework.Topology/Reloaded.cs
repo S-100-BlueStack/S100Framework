@@ -492,11 +492,7 @@ namespace S100FC.Topology
 
         private Geometry[] _geometriesTopology = [];
 
-        private Geometry[] _geometries = [];
-
         public string[] NetworkTopology => [.. _geometriesTopology.Select(e => e.ToText())];
-
-        public string[] Geometries => [.. _geometries.Select(e => e.ToText())];
 
         private int _id = int.MaxValue;
 
