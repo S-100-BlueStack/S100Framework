@@ -427,6 +427,7 @@ namespace S100FC
             this.value = int.Parse(value);
         }
 
+        [JsonIgnore]
         public virtual listedValue[] listedValues { get; init; } = [];
     }
 
