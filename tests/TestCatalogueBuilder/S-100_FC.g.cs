@@ -410,8 +410,7 @@ namespace S100FC
         }
     }
 
-    public class EnumerationAttribute : SimpleAttribute
-    {
+    public abstract class EnumerationAttribute : SimpleAttribute {
         [JsonIgnore]
         public override string valueType => "enumeration";
 
@@ -427,7 +426,7 @@ namespace S100FC
             this.value = int.Parse(value);
         }
 
-        public virtual listedValue[] listedValues { get; init; } = [];
+        public abstract listedValue[] listedValues { get; }
     }
 
     public class CodeListAttribute : SimpleAttribute

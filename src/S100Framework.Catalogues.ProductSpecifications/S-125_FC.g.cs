@@ -62,8 +62,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Virtual AIS Aid to Navigation Type";
 		[JsonIgnore]
 		public override int sourceIdentifier => 983;
-		public virtualAISAidToNavigationType() {
-			base.listedValues = [
+		public virtualAISAidToNavigationType() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("North Cardinal", "Indicates that it should be passed to the north side of the aid.",1),
 				new listedValue("East Cardinal", "Indicates that it should be passed to the east side of the aid.",2),
 				new listedValue("South Cardinal", "Indicates that it should be passed to the south side of the aid.",3),
@@ -76,8 +77,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Safe Water", "Indicates that there is navigable water around the mark.",10),
 				new listedValue("Special Purpose", "A special purpose aid is primarily used to indicate an area or feature, the nature of which is apparent from reference to a chart, Sailing Directions or Notice to Mariners.",11),
 				new listedValue("New Danger Marking", "A mark used to indicate the existence of a recently identified new danger, such as a wreck.",12),
-				];
-			}
+			];
 
 		public static implicit operator virtualAISAidToNavigationType(int? value) => new virtualAISAidToNavigationType { value = value };
 	}
@@ -93,8 +93,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Aton Commissioning";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public atonCommissioning() {
-			base.listedValues = [
+		public atonCommissioning() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Buoy Establishment", "A new buoy has been or will be established.",1),
 				new listedValue("Light Establishment", "A new light has been or will be established.",2),
 				new listedValue("Beacon Establishment", "A new beacon has been or will be established.",3),
@@ -108,8 +109,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("DGLONASS Station Establishment", "A new DGLONASS station has been or will be established.",11),
 				new listedValue("E-Chayka Station Establishment", "A new e-Chayka station has been or will be established.",12),
 				new listedValue("EGNOS Station Establishment", "A new EGNOS station has been or will be established.",13),
-				];
-			}
+			];
 
 		public static implicit operator atonCommissioning(int? value) => new atonCommissioning { value = value };
 	}
@@ -125,8 +125,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Aton Removal";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public atonRemoval() {
-			base.listedValues = [
+		public atonRemoval() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Buoy Removal", "Buoy has been or will be permanently removed from service.",1),
 				new listedValue("Buoy Temporary Removal", "Buoy has been or will be temporarily removed from service.",2),
 				new listedValue("Light Removal", "Light has been or will be permanently removed from service.",3),
@@ -153,8 +154,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Chayka Station Removal", "Chayka station has been or will be permanently removed from service.",25),
 				new listedValue("Chayka Station Temporary Removal", "Chayka station has been or will be temporarily removed from service.",26),
 				new listedValue("E-Chayka Station Removal", "The e-Chayka station has been or will be permanently removed from service.",27),
-				];
-			}
+			];
 
 		public static implicit operator atonRemoval(int? value) => new atonRemoval { value = value };
 	}
@@ -170,8 +170,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Aton Replacement";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public atonReplacement() {
-			base.listedValues = [
+		public atonReplacement() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Buoy Change", "The characteristics of the buoy have been or will be changed.",1),
 				new listedValue("Buoy Temporary Change", "The characteristics of the buoy have been or will be temporarily changed.",2),
 				new listedValue("Light Change", "The characteristics of the light have been or will be changed.",3),
@@ -188,8 +189,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("V-AIS Temporary Change", "The characteristics of the V-AIS have been or will be temporarily changed.",14),
 				new listedValue("RACON Change", "The characteristics of the RACON have been or will be changed.",15),
 				new listedValue("RACON Temporary Change", "The characteristics of the RACON have been or will be temporarily changed.",16),
-				];
-			}
+			];
 
 		public static implicit operator atonReplacement(int? value) => new atonReplacement { value = value };
 	}
@@ -205,8 +205,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Fixed Aton Change";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public fixedAtonChange() {
-			base.listedValues = [
+		public fixedAtonChange() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Beacon Missing", "No beacon at the advertised position.",1),
 				new listedValue("Beacon Damaged", "The beacon has sustained damage due to external factors (wind, sea state, collision with a vessel).",2),
 				new listedValue("Lighted Beacon - Light Unlit", "The light of the beacon is extinguished.",3),
@@ -218,8 +219,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Beacon Daymark Unreliable", "Colour of the beacon daymark is not visible due to damage or fading of colours (out of tolerance with colour recommendations).",9),
 				new listedValue("Floodlit Beacon - Unlit", "The flood light illuminating the beacon is inoperative.",10),
 				new listedValue("Beacon Restored To Normal", "The beacon has been restored to normal condition.",11),
-				];
-			}
+			];
 
 		public static implicit operator fixedAtonChange(int? value) => new fixedAtonChange { value = value };
 	}
@@ -265,8 +265,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Floating Aton Change";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public floatingAtonChange() {
-			base.listedValues = [
+		public floatingAtonChange() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Buoy Adrift", "The buoy is no longer secured to its moorings and is adrift.",1),
 				new listedValue("Buoy Damaged", "The buoy has been damaged due to external factors (wind, sea state, collision with a vessel).",2),
 				new listedValue("Buoy Daymark Unreliable", "Colour of the buoy daymark is not visible due to damage or fading of colours (out of tolerance with colour recommendations).",3),
@@ -293,8 +294,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Seasonal Decommissioning in Progress", "The commencement of the process to remove summer buoys (and possibly replace some with winter spar buoys).",24),
 				new listedValue("Seasonal Commissioning Complete", "The completion of the process to place summer buoys (and the removal of any winter spar buoys).",25),
 				new listedValue("Seasonal Commissioning in Progress", "The commencement of the process to place summer buoys (and the removal of any winter spar buoys).",26),
-				];
-			}
+			];
 
 		public static implicit operator floatingAtonChange(int? value) => new floatingAtonChange { value = value };
 	}
@@ -325,14 +325,14 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Audible Signal Aton Change";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public audibleSignalAtonChange() {
-			base.listedValues = [
+		public audibleSignalAtonChange() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Audible Signal Out Of Service", "The audible signal (device activated by e.g. sea state or wind, irrespective of visibility) is inoperative.",1),
 				new listedValue("Fog Signal Out Of Service", "The fog signal is inoperative.",2),
 				new listedValue("Audible Signal Operating Properly", "The audible signal (device activated by e.g. sea state or wind, irrespective of visibility) is operating as advertised.",3),
 				new listedValue("Fog Signal Operating Properly", "The fog signal is operating as advertised.",4),
-				];
-			}
+			];
 
 		public static implicit operator audibleSignalAtonChange(int? value) => new audibleSignalAtonChange { value = value };
 	}
@@ -348,12 +348,12 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Signal Status";
 		[JsonIgnore]
 		public override int sourceIdentifier => 164;
-		public signalStatus() {
-			base.listedValues = [
+		public signalStatus() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Lit/Sound", "The indication of an element of a signal sequence being a period of light or sound.",1),
 				new listedValue("Eclipsed/Silent", "The indication of an element of a signal sequence being a period of eclipse or silence.",2),
-				];
-			}
+			];
 
 		public static implicit operator signalStatus(int? value) => new signalStatus { value = value };
 	}
@@ -399,8 +399,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Lighted Aton Change";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public lightedAtonChange() {
-			base.listedValues = [
+		public lightedAtonChange() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Light Unlit", "The light is extinguished.",1),
 				new listedValue("Light Unreliable", "The light is unreliable due to technical problems.",2),
 				new listedValue("Light Re-Establishment", "The re-establishment of a light which was previously announced as either destroyed or temporarily removed.",3),
@@ -425,8 +426,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Rear Light is Operating Properly", "The rear leading light is operating as advertised. / The rear range light is operating as advertised.",22),
 				new listedValue("Front Beacon Restored to Normal", "The front leading beacon has been restored to normal condition. / The front range beacon has been restored to normal condition.",23),
 				new listedValue("Rear Beacon Restored to Normal", "The rear leading beacon has been restored to normal condition. / The rear range beacon has been restored to normal condition.",24),
-				];
-			}
+			];
 
 		public static implicit operator lightedAtonChange(int? value) => new lightedAtonChange { value = value };
 	}
@@ -607,8 +607,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Electronic Aton Change";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public electronicAtonChange() {
-			base.listedValues = [
+		public electronicAtonChange() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("AIS Transmitter Out Of Service", "The terrestrial AIS transmitter is inoperative due to a technical issue.",1),
 				new listedValue("AIS Transmitter Unreliable", "The terrestrial AIS transmitter is unreliable due to a technical issue or maintenance.",2),
 				new listedValue("AIS Transmitter Operating Properly", "The terrestrial AIS transmitter is operating as advertised.",3),
@@ -639,8 +640,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("EGNOS Operating Properly", "The EGNOS station is operating as advertised.",28),
 				new listedValue("EGNOS Unreliable", "The EGNOS station is unreliable due to a technical issue or maintenance.",29),
 				new listedValue("EGNOS Out Of Service", "The EGNOS station is inoperative due to a technical issue.",30),
-				];
-			}
+			];
 
 		public static implicit operator electronicAtonChange(int? value) => new electronicAtonChange { value = value };
 	}
@@ -706,12 +706,12 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Installation Buoy";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public categoryOfInstallationBuoy() {
-			base.listedValues = [
+		public categoryOfInstallationBuoy() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Catenary Anchor Leg Mooring", "Incorporates a large buoy which remains on the surface at all times and is moored by 4 or more anchors. Mooring hawsers and cargo hoses lead from a turntable on top of the buoy, so that the buoy does not turn as the ship swings to wind and stream.",1),
 				new listedValue("Catenary Anchor Leg Mooring", "Incorporates a large buoy which remains on the surface at all times and is moored by 4 or more anchors. Mooring hawsers and cargo hoses lead from a turntable on top of the buoy, so that the buoy does not turn as the ship swings to wind and stream.",2),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfInstallationBuoy(int? value) => new categoryOfInstallationBuoy { value = value };
 	}
@@ -727,8 +727,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Light Characteristic";
 		[JsonIgnore]
 		public override int sourceIdentifier => 122;
-		public lightCharacteristic() {
-			base.listedValues = [
+		public lightCharacteristic() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Fixed", "A signal light that shows continuously, in any given direction, with constant luminous intensity and colour.",1),
 				new listedValue("Flashing", "A rhythmic light in which the total duration of light in a period is clearly shorter than the total duration of darkness and all the appearances of light are of equal duration.",2),
 				new listedValue("Long-Flashing", "A single-flashing light in which an appearance of light of not less than two seconds duration is regularly repeated.",3),
@@ -760,8 +761,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Composite Group-Flashing Light", "A light similar to a group-flashing light except that successive groups in a period have different numbers of flashes.",4),
 				new listedValue("Group Quick Light", "A light in which flashes are combined in groups including the same number of quick flashes (repetition rate : 50-79 per minute) and in which groups are repeated at regular intervals.",5),
 				new listedValue("Group Very Quick Light", "A light in which very quick flashes are combined in groups including the same number of flashes (repetition rate : 80-159 per minute) and in which groups are repeated at regular intervals.",6),
-				];
-			}
+			];
 
 		public static implicit operator lightCharacteristic(int? value) => new lightCharacteristic { value = value };
 	}
@@ -972,13 +972,13 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Navigation Line";
 		[JsonIgnore]
 		public override int sourceIdentifier => 39;
-		public categoryOfNavigationLine() {
-			base.listedValues = [
+		public categoryOfNavigationLine() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Clearing Line", "A straight line that marks the boundary between a safe and a dangerous area or that passes clear of a navigational danger.",1),
 				new listedValue("Transit Line", "A line passing through one or more fixed marks.",2),
 				new listedValue("Leading Line Bearing a Recommended Track", "A line passing through one or more clearly defined objects, along the path of which a vessel can approach safely up to a certain distance off.",3),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfNavigationLine(int? value) => new categoryOfNavigationLine { value = value };
 	}
@@ -1039,8 +1039,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Quality of Vertical Measurement";
 		[JsonIgnore]
 		public override int sourceIdentifier => 145;
-		public qualityOfVerticalMeasurement() {
-			base.listedValues = [
+		public qualityOfVerticalMeasurement() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Depth Known", "The depth from the chart datum to the seabed (or to the top of a drying feature) is known.",1),
 				new listedValue("Depth or Least Depth Unknown", "The depth from chart datum to the seabed, or the shoalest depth of the feature is unknown.",2),
 				new listedValue("Doubtful Sounding", "A depth that may be less than indicated.",3),
@@ -1052,8 +1053,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Value Reported (Not Confirmed)", "Depth value obtained from a report, which it has not been possible to confirm.",9),
 				new listedValue("Maintained Depth", "The depth at which a channel is kept by human influence, usually by dredging.",10),
 				new listedValue("Not Regularly Maintained", "Depths may be altered by human influence, but will not be routinely maintained.",11),
-				];
-			}
+			];
 
 		public static implicit operator qualityOfVerticalMeasurement(int? value) => new qualityOfVerticalMeasurement { value = value };
 	}
@@ -1069,8 +1069,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Status";
 		[JsonIgnore]
 		public override int sourceIdentifier => 725;
-		public status() {
-			base.listedValues = [
+		public status() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Permanent", "Intended to last or function indefinitely.",1),
 				new listedValue("Occasional", "Acting on special occasions; happening irregularly.",2),
 				new listedValue("Recommended", "Presented as worthy of confidence, acceptance, use, etc.",3),
@@ -1112,8 +1113,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Under Removal / Deletion", "Item in the process of being removed or deleted.",41),
 				new listedValue("Removed / Deleted", "Item that has been removed or deleted.",42),
 				new listedValue("Candidate for Modification", "Item selected for modification.",43),
-				];
-			}
+			];
 
 		public static implicit operator status(int? value) => new status { value = value };
 	}
@@ -1174,8 +1174,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Technique of Vertical Measurement";
 		[JsonIgnore]
 		public override int sourceIdentifier => 1138;
-		public techniqueOfVerticalMeasurement() {
-			base.listedValues = [
+		public techniqueOfVerticalMeasurement() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Found by Echo Sounder", "The depth was measured by using an instrument that determines depth of water by measuring the time interval between emission of a sonic or ultrasonic signal and return of its echo from the bottom.",1),
 				new listedValue("Found by Side Scan Sonar", "The depth was computed from a record produced by active sonar in which fixed acoustic beams are directed into the water perpendicularly to the direction of travel to scan the seabed and generate a record of the seabed configuration.",2),
 				new listedValue("Found by Multi Beam", "The depth was measured by using a wide swath echo sounder that uses multiple beams to measure depths directly below and transverse to the ship's track.",3),
@@ -1194,8 +1195,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Synthetic Aperture Radar", "A radar with a synthetic aperture antenna which is composed of a large number of elementary transducing elements. The signals are electronically combined into a resulting signal equivalent to that of a single antenna of a given aperture in a given direction.",16),
 				new listedValue("Hyperspectral Imagery", "Term used to describe the imagery derived from subdividing the electromagnetic spectrum into very narrow bandwidths. These narrow bandwidths may be combined with or subtracted from each other in various ways to form images useful in precise terrain or target analysis.",17),
 				new listedValue("Mechanically Swept", "The given area was determined to be free from navigational dangers to a certain depth by towing a line or object below the surface at the desired depth; or least depth(s) and position(s) within an area was identified using the same technique.",18),
-				];
-			}
+			];
 
 		public static implicit operator techniqueOfVerticalMeasurement(int? value) => new techniqueOfVerticalMeasurement { value = value };
 	}
@@ -1211,14 +1211,14 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Traffic Flow";
 		[JsonIgnore]
 		public override int sourceIdentifier => 184;
-		public trafficFlow() {
-			base.listedValues = [
+		public trafficFlow() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Inbound", "Traffic flow in a general direction toward a port or similar destination.",1),
 				new listedValue("Outbound", "Traffic flow in a general direction away from a port or similar point of origin.",2),
 				new listedValue("One-Way", "Traffic flow in one general direction only.",3),
 				new listedValue("Two-Way", "Traffic flow in two generally opposite directions.",4),
-				];
-			}
+			];
 
 		public static implicit operator trafficFlow(int? value) => new trafficFlow { value = value };
 	}
@@ -1234,8 +1234,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Vertical Datum";
 		[JsonIgnore]
 		public override int sourceIdentifier => 996;
-		public verticalDatum() {
-			base.listedValues = [
+		public verticalDatum() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Mean Low Water Springs", "The average height of the low waters of spring tides. This level is used as a tidal datum in some areas.",1),
 				new listedValue("Mean Lower Low Water Springs", "The average height of lower low water springs at a place.",2),
 				new listedValue("Mean Sea Level", "The average height of the surface of the sea at a tide station for all stages of the tide over a 19-year period, usually determined from hourly height readings measured from a fixed predetermined reference level.",3),
@@ -1284,8 +1285,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Sea Floor", "The bottom of the ocean and seas where there is a generally smooth gentle gradient. Also referred to as sea bed (sometimes seabed or sea-bed), and sea bottom.",47),
 				new listedValue("Sea Surface", "A two-dimensional (in the horizontal plane) field representing the air-sea interface, with high-frequency fluctuations such as wind waves and swell, but not astronomical tides, filtered out.",48),
 				new listedValue("Hydrographic Zero", "A vertical reference near the lowest astronomical tide (LAT), below which the sea level falls only very exceptionally.",49),
-				];
-			}
+			];
 
 		public static implicit operator verticalDatum(int? value) => new verticalDatum { value = value };
 	}
@@ -1316,8 +1316,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Buoy Shape";
 		[JsonIgnore]
 		public override int sourceIdentifier => 3;
-		public buoyShape() {
-			base.listedValues = [
+		public buoyShape() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Conical", "The upper part of the body above the water-line, or the greater part of the superstructure, has approximately the shape or the appearance of a pointed cone with the point upwards.",1),
 				new listedValue("Can", "The upper part of the body above the water-line, or the greater part of the superstructure, has the shape of a cylinder, or a truncated cone that approximates to a cylinder, with a flat end uppermost.",2),
 				new listedValue("Spherical", "Shaped like a sphere, which is a body the surface of which is at all points equidistant from the centre.",3),
@@ -1326,8 +1327,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Barrel", "The upper part of the body above the water-line, or the greater part of the superstructure, has the form of a barrel or cylinder floating horizontally.",6),
 				new listedValue("Superbuoy", "A very large buoy designed to carry a signal light of high luminous intensity at a high elevation.",7),
 				new listedValue("Ice Buoy", "A specially constructed shuttle shaped buoy which is used in ice conditions.",8),
-				];
-			}
+			];
 
 		public static implicit operator buoyShape(int? value) => new buoyShape { value = value };
 	}
@@ -1343,8 +1343,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Colour";
 		[JsonIgnore]
 		public override int sourceIdentifier => 72;
-		public colour() {
-			base.listedValues = [
+		public colour() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("White", "The achromatic object colour of greatest lightness characteristically perceived to belong to objects that reflect diffusely nearly all incident energy throughout the visible spectrum.",1),
 				new listedValue("Black", "The achromatic color of least lightness characteristically perceived to belong to objects that neither reflect nor transmit light.",2),
 				new listedValue("Red", "A color whose hue resembles that of blood or of the ruby or is that of the long-wave extreme of the visible spectrum.",3),
@@ -1358,8 +1359,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Orange", "Any of a group of colors that are between red and yellow in hue.",11),
 				new listedValue("Magenta", "A deep purplish red.",12),
 				new listedValue("Pink", "Any of a group of colors bluish red to red in hue, of medium to high lightness, and of low to moderate saturation.",13),
-				];
-			}
+			];
 
 		public static implicit operator colour(int? value) => new colour { value = value };
 	}
@@ -1375,12 +1375,12 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category Of Synthetic AIS Aid To Navigation";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public categoryOfSyntheticAISAidToNavigation() {
-			base.listedValues = [
+		public categoryOfSyntheticAISAidToNavigation() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Predicted Synthetic AIS Aid to Navigation", "A Synthetic AIS AtoN that is not equipped with a monitoring device to confirm its position and status.",1),
 				new listedValue("Monitored Synthetic AIS Aid to Navigation", "A Synthetic AIS AtoN equipped with a communication link that confirms the position and status of the AtoN.",2),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfSyntheticAISAidToNavigation(int? value) => new categoryOfSyntheticAISAidToNavigation { value = value };
 	}
@@ -1396,13 +1396,13 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category Of Physical AIS Aid To Navigation";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public categoryOfPhysicalAISAidToNavigation() {
-			base.listedValues = [
+		public categoryOfPhysicalAISAidToNavigation() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Physical AIS Type 1", "Simple transmission of static, pre-programmed information",1),
 				new listedValue("Physical AIS Type 2", "Transmission of dynamic, real-time updated information via connected sensors.",2),
 				new listedValue("Physical AIS Type 3", "Full two-way communication including transmission, remote control and configuration",3),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfPhysicalAISAidToNavigation(int? value) => new categoryOfPhysicalAISAidToNavigation { value = value };
 	}
@@ -1418,8 +1418,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Colour Pattern";
 		[JsonIgnore]
 		public override int sourceIdentifier => 73;
-		public colourPattern() {
-			base.listedValues = [
+		public colourPattern() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Horizontal Stripes", "Straight bands or stripes of differing colours oriented horizontally.",1),
 				new listedValue("Vertical Stripes", "Straight bands or stripes of differing colours oriented vertically.",2),
 				new listedValue("Diagonal Stripes", "Straight bands or stripes of differing colours oriented diagonally (that is, not horizontally or vertically).",3),
@@ -1429,8 +1430,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Single Colour", "One solid colour of uniform coverage.",7),
 				new listedValue("Rectangle", "A four-sided shape that is made up of two pairs of parallel lines and that has four right angles, on a different coloured background.",8),
 				new listedValue("Triangle", "A shape that is made up of three lines and three angles, on a different coloured background.",9),
-				];
-			}
+			];
 
 		public static implicit operator colourPattern(int? value) => new colourPattern { value = value };
 	}
@@ -1461,8 +1461,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Marks Navigational - System Of";
 		[JsonIgnore]
 		public override int sourceIdentifier => 1238;
-		public marksNavigationalSystemOf() {
-			base.listedValues = [
+		public marksNavigationalSystemOf() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("IALA A", "Navigational aids conform to the International Association of Lighthouse Authorities - IALA A system.",1),
 				new listedValue("IALA B", "Navigational aids conform to the International Association of Lighthouse Authorities - IALA B system.",2),
 				new listedValue("No System", "Navigational aids do not conform to any defined system.",9),
@@ -1471,8 +1472,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Russian Inland Waterway Regulations", "Navigational aids conform to the Russian inland waterway regulations.",12),
 				new listedValue("Brazilian National Inland Waterway Regulation", "Navigational aids conform to the Brazilian national inland waterway regulation",13),
 				new listedValue("Paraguay-Parana Waterway - Brazilian Complementary Aids", "Navigational aids conform to the Brazilian complementary aids on the Paraguay-Parana waterway.",15),
-				];
-			}
+			];
 
 		public static implicit operator marksNavigationalSystemOf(int? value) => new marksNavigationalSystemOf { value = value };
 	}
@@ -1488,8 +1488,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Nature of Construction";
 		[JsonIgnore]
 		public override int sourceIdentifier => 137;
-		public natureOfConstruction() {
-			base.listedValues = [
+		public natureOfConstruction() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Masonry", "Constructed of stones or bricks, usually quarried, shaped, and mortared.",1),
 				new listedValue("Concreted", "Constructed of concrete, a material made of sand and gravel that is united by cement into a hardened mass used for roads, foundations, etc.",2),
 				new listedValue("Loose Boulders", "Constructed from large stones or blocks of concrete, often placed loosely for protection against waves or water turbulence.",3),
@@ -1504,8 +1505,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Glass", "[1] Any artificial or natural substance having similar properties and composition, as fused borax, obsidian, or the like.   [2] Something made of such a substance, as a windowpane.",12),
 				new listedValue("Fiberglass", "Constructed from fiberglass.",13),
 				new listedValue("Plastic", "Constructed from plastic.",14),
-				];
-			}
+			];
 
 		public static implicit operator natureOfConstruction(int? value) => new natureOfConstruction { value = value };
 	}
@@ -1536,8 +1536,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Beacon Shape";
 		[JsonIgnore]
 		public override int sourceIdentifier => 2;
-		public beaconShape() {
-			base.listedValues = [
+		public beaconShape() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Stake, Pole, Perch, Post", "An elongated wood or metal pole, driven into the ground or seabed, which serves as a navigational aid or a support for a navigational aid.",1),
 				new listedValue("Withy", "A tree without roots stuck or spoiled into the bottom of the sea to serve as a navigational aid.",2),
 				new listedValue("Beacon Tower", "A solid structure of the order of 10 metres in height used as a navigational aid.",3),
@@ -1545,8 +1546,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Pile Beacon", "A long heavy timber(s) or section(s) of steel, wood, concrete, etc., forced into the seabed to serve as an aid to navigation or as a support for an aid to navigation.",5),
 				new listedValue("Cairn", "A mound of stones, usually conical or pyramidal, raised as a landmark or to designate a point of importance in surveying.",6),
 				new listedValue("Buoyant Beacon", "A tall spar-like beacon fitted with a permanently submerged buoyancy chamber, the lower end of the body is secured to seabed sinker either by a flexible joint or by a cable under tension.",7),
-				];
-			}
+			];
 
 		public static implicit operator beaconShape(int? value) => new beaconShape { value = value };
 	}
@@ -1562,13 +1562,13 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Visual Prominence";
 		[JsonIgnore]
 		public override int sourceIdentifier => 201;
-		public visualProminence() {
-			base.listedValues = [
+		public visualProminence() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Visually Conspicuous", "Term applied to an object either natural or artificial which is distinctly and notably visible from seaward.",1),
 				new listedValue("Not Visually Conspicuous", "An object that may be visible from seaward, but cannot be used as a fixing mark and is not conspicuous.",2),
 				new listedValue("Prominent", "Objects which are easily identifiable, but do not justify being classed as conspicuous.",3),
-				];
-			}
+			];
 
 		public static implicit operator visualProminence(int? value) => new visualProminence { value = value };
 	}
@@ -1614,8 +1614,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Landmark";
 		[JsonIgnore]
 		public override int sourceIdentifier => 987;
-		public categoryOfLandmark() {
-			base.listedValues = [
+		public categoryOfLandmark() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Cairn", "A mound of stones, usually conical or pyramidal, raised as a landmark or to designate a point of importance in surveying.",1),
 				new listedValue("Cemetery", "A site and associated structures devoted to the burial of the dead.",2),
 				new listedValue("Chimney", "A vertical structure containing a passage or flue for discharging smoke and gases of combustion.",3),
@@ -1643,8 +1644,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Torii", "A form of decorative gateway or portal, consisting of two upright wooden posts connected at the top by two horizontal crosspieces, commonly found at the entrance to Shinto temples.",25),
 				new listedValue("Bridge", "(1) An elevated structure extending across or over the weather deck of a vessel, or part of such a structure. The term is sometimes modified to indicate the intended use, such as navigating bridge or signal bridge.  (2) A structure erected over a depression or an obstacle such as a body of water, railroad, etc., to provide a roadway for vehicles or pedestrians.",26),
 				new listedValue("Dam", "A barrier to check or confine anything in motion; particularly one constructed to hold back water and raise its level to form a reservoir, or to prevent flooding.",27),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfLandmark(int? value) => new categoryOfLandmark { value = value };
 	}
@@ -1660,8 +1660,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Function";
 		[JsonIgnore]
 		public override int sourceIdentifier => 107;
-		public function() {
-			base.listedValues = [
+		public function() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Harbour-Masters Office", "A local official who has charge of mooring and berthing of vessels, collecting harbour fees, etc.",2),
 				new listedValue("Customs Office", "Serves as a government office where customs duties are collected, the flow of goods are regulated and restrictions enforced, and shipments or vehicles are cleared for entering or leaving a country.",3),
 				new listedValue("Health Office", "The office which is charged with the administration of health laws and sanitary inspections.",4),
@@ -1711,8 +1712,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Pumping Station", "A facility to move solids, liquids or gases by means of pressure or suction.",48),
 				new listedValue("Roof Above Navigable Water", "A roof that is extending above navigable water, e.g. to protect open cargo holds from rain during loading and unloading. Depending on the vertical clearance vessels can pass under the roof above navigable water.",49),
 				new listedValue("Building Above Navigable Water", "The part of a building on land that is extending above navigable water. Depending on the vertical clearance vessels can pass under the building above navigable water.",50),
-				];
-			}
+			];
 
 		public static implicit operator function(int? value) => new function { value = value };
 	}
@@ -1728,8 +1728,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Special Purpose Mark";
 		[JsonIgnore]
 		public override int sourceIdentifier => 92;
-		public categoryOfSpecialPurposeMark() {
-			base.listedValues = [
+		public categoryOfSpecialPurposeMark() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Firing Danger Area Mark", "A mark used to indicate a firing danger area, usually at sea.",1),
 				new listedValue("Target Mark", "Any object toward which something is directed. The distinctive marking or instrumentation of a ground point to aid its identification on a photograph.",2),
 				new listedValue("Marker Ship Mark", "A mark marking the position of a ship which is used as a target during some military exercise.",3),
@@ -1793,8 +1794,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Causeway Mark", "A mark used to indicate the existence of a causeway.",62),
 				new listedValue("Wave Recorder", "A surface following buoy or fixed device used to measure wave activity.",63),
 				new listedValue("Jetski Prohibited", "A mark indicating a jetski prohibited area.",64),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfSpecialPurposeMark(int? value) => new categoryOfSpecialPurposeMark { value = value };
 	}
@@ -1810,8 +1810,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Topmark/Daymark Shape";
 		[JsonIgnore]
 		public override int sourceIdentifier => 202;
-		public topmarkDaymarkShape() {
-			base.listedValues = [
+		public topmarkDaymarkShape() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Cone (Point Up)", "Is where the vertex points up.",1),
 				new listedValue("Cone (Point Down)", "Is where the vertex points down.",2),
 				new listedValue("Sphere", "A curved surface all points of which are equidistant from a fixed point within, called the centre.",3),
@@ -1846,8 +1847,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Circle Over a Triangle Pointing Up", "A circle located over a triangle, vertex uppermost.",32),
 				new listedValue("Other Shape (See Shape Information)", "An uncommon and/or non-standardized shape as textually described using an associated attribute.",33),
 				new listedValue("Tubular", "Having the form of or consisting of a tube.",34),
-				];
-			}
+			];
 
 		public static implicit operator topmarkDaymarkShape(int? value) => new topmarkDaymarkShape { value = value };
 	}
@@ -1863,8 +1863,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Fog Signal";
 		[JsonIgnore]
 		public override int sourceIdentifier => 23;
-		public categoryOfFogSignal() {
-			base.listedValues = [
+		public categoryOfFogSignal() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Explosive", "A signal produced by the firing of explosive charges.",1),
 				new listedValue("Diaphone", "A diaphone uses compressed air and generally emits a powerful low-pitched sound, which often concludes with a brief sound of suddenly lowered pitch, termed the 'grunt'.",2),
 				new listedValue("Siren", "A type of fog signal apparatus which produces sound by virtue of the passage of air through slots or holes in a revolving disk.",3),
@@ -1875,8 +1876,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Whistle", "A distinctive sound made by a jet of air passing through an orifice. The apparatus may be operated automatically, by hand or by air being forced up a tube by waves acting on a buoy.",8),
 				new listedValue("Gong", "A sound produced by vibration of a disc when struck.",9),
 				new listedValue("Horn", "A horn uses compressed air or electricity to vibrate a diaphragm and exists in a variety of types which differ greatly in their sound and power.",10),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfFogSignal(int? value) => new categoryOfFogSignal { value = value };
 	}
@@ -1892,13 +1892,13 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Radar Transponder Beacon";
 		[JsonIgnore]
 		public override int sourceIdentifier => 51;
-		public categoryOfRadarTransponderBeacon() {
-			base.listedValues = [
+		public categoryOfRadarTransponderBeacon() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Ramark, Radar Beacon Transmitting Continuously", "A radar marker beacon which continuously transmits a signal appearing as a radial line on a radar screen, the line indicating the direction of the beacon. Ramarks are intended primarily for marine use. The name 'ramark' is derived from the words radar marker.",1),
 				new listedValue("Racon, Radar Transponder Beacon", "A radar beacon which returns a coded signal which provides identification of the beacon, as well as range and bearing. The range and bearing are indicated by the location of the first character received on the radar screen. The name 'racon' is derived from the words radar beacon.",2),
 				new listedValue("Leading Racon/Radar Transponder Beacon", "A radar beacon that may be used (in conjunction with at least one other radar beacon) to indicate a leading line.",3),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfRadarTransponderBeacon(int? value) => new categoryOfRadarTransponderBeacon { value = value };
 	}
@@ -1959,8 +1959,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Radio Station";
 		[JsonIgnore]
 		public override int sourceIdentifier => 52;
-		public categoryOfRadioStation() {
-			base.listedValues = [
+		public categoryOfRadioStation() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Circular (Non-Directional) Marine or Aero-Marine Radiobeacon", "A radio station which need not necessarily be manned, the emissions of which, radiated around the horizon, enable its bearing to be determined by means of the radio direction finder of a ship.",1),
 				new listedValue("Directional Radiobeacon", "A special type of radiobeacon station the emissions of which are intended to provide a definite track for guidance.",2),
 				new listedValue("Rotating Pattern Radiobeacon", "A special type of radiobeacon station emitting a beam of waves to which a uniform turning movement is given, the bearing of the station being determined by means of an ordinary listening receiver and a stop watch. Also referred to as a rotating loop radiobeacon.",3),
@@ -1977,8 +1978,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Chaika", "A low frequency electronic position fixing system using pulsed transmissions at 100 Khz.",14),
 				new listedValue("Radio Telephone Station", "The equipment needed at one station to carry on two way voice communication by radio waves only.",19),
 				new listedValue("AIS Base Station", "An AIS shore station for use by competent authorities to provide AIS service, manage the data link and enable effective ship to shore / shore to ship transmission of information.",20),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfRadioStation(int? value) => new categoryOfRadioStation { value = value };
 	}
@@ -2024,8 +2024,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Light Visibility";
 		[JsonIgnore]
 		public override int sourceIdentifier => 123;
-		public lightVisibility() {
-			base.listedValues = [
+		public lightVisibility() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("High Intensity", "Non-marine lights with a higher power than marine lights and visible from well off shore (often 'Aero' lights).",1),
 				new listedValue("Low Intensity", "Non-marine lights with lower power than marine lights.",2),
 				new listedValue("Faint", "A decrease in the apparent intensity of a light which may occur in the case of partial obstructions.",3),
@@ -2035,8 +2036,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Obscured", "Said of the arc of a light sector designated by its limiting bearings in which the light is not visible from seaward.",7),
 				new listedValue("Partially Obscured", "This value specifies that parts of the sector are obscured.",8),
 				new listedValue("Visible in Line of Range", "Lights that must be in line to be visible.",9),
-				];
-			}
+			];
 
 		public static implicit operator lightVisibility(int? value) => new lightVisibility { value = value };
 	}
@@ -2052,14 +2052,14 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Exhibition Condition of Light";
 		[JsonIgnore]
 		public override int sourceIdentifier => 99;
-		public exhibitionConditionOfLight() {
-			base.listedValues = [
+		public exhibitionConditionOfLight() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Light Shown Without Change of Character", "A light shown throughout the 24 hours without change of character.",1),
 				new listedValue("Daytime Light", "A light which is only exhibited by day.",2),
 				new listedValue("Fog Light", "A light which is exhibited in fog or conditions of reduced visibility.",3),
 				new listedValue("Night Light", "A light which is only exhibited at night.",4),
-				];
-			}
+			];
 
 		public static implicit operator exhibitionConditionOfLight(int? value) => new exhibitionConditionOfLight { value = value };
 	}
@@ -2090,16 +2090,16 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Signal Generation";
 		[JsonIgnore]
 		public override int sourceIdentifier => 161;
-		public signalGeneration() {
-			base.listedValues = [
+		public signalGeneration() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Automatically", "Signal generation is initiated by a self regulating mechanism such as a timer or light sensor.",1),
 				new listedValue("By Wave Action", "The signal is generated by the motion of the sea surface such as a bell in a buoy.",2),
 				new listedValue("By Hand", "The signal is generated by a manually operated mechanism such as a hand cranked siren.",3),
 				new listedValue("By Wind", "The signal is generated by the motion of air such as a wind driven whistle.",4),
 				new listedValue("Radio Activated", "Activated by radio signal.",5),
 				new listedValue("Call Activated", "Activated by making a call to a manned station.",6),
-				];
-			}
+			];
 
 		public static implicit operator signalGeneration(int? value) => new signalGeneration { value = value };
 	}
@@ -2130,8 +2130,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Light";
 		[JsonIgnore]
 		public override int sourceIdentifier => 88;
-		public categoryOfLight() {
-			base.listedValues = [
+		public categoryOfLight() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Directional Function", "A light illuminating a sector of very narrow angle and intended to mark a direction to follow.",1),
 				new listedValue("Leading Light", "A light associated with other lights so as to form a leading line to be followed.",4),
 				new listedValue("Aero Light", "An aero light is established for aeronautical navigation and may be of higher power than marine lights and visible from well offshore.",5),
@@ -2148,8 +2149,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Bearing Light", "A light which enables its approximate bearing to be obtained without the use of a compass.",18),
 				new listedValue("Horizontally Disposed", "A group of lights of identical character and almost identical position, that are disposed horizontally.",19),
 				new listedValue("Vertically Disposed", "A group of lights of identical character and almost identical position, that are disposed vertically.",20),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfLight(int? value) => new categoryOfLight { value = value };
 	}
@@ -2165,8 +2165,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Offshore Platform";
 		[JsonIgnore]
 		public override int sourceIdentifier => 41;
-		public categoryOfOffshorePlatform() {
-			base.listedValues = [
+		public categoryOfOffshorePlatform() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Oil Rig", "A temporary mobile structure, either fixed or floating, used in the exploration stages of oil and gas fields.",1),
 				new listedValue("Production Platform", "A term used to indicate a permanent offshore structure equipped to control the flow of oil or gas. It does not include entirely submarine structures.",2),
 				new listedValue("Observation/Research Platform", "A platform from which one's surroundings or events can be observed, noted or recorded such as for scientific study.",3),
@@ -2178,8 +2179,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Accommodation Platform", "A platform used primarily for eating, sleeping and recreation purposes.",9),
 				new listedValue("Navigation, Communication and Control Buoy", "A floating structure with control room, power and storage facilities, attached to the seabed by a flexible pipeline and cables.",10),
 				new listedValue("Floating Oil Tank", "A floating structure, anchored to the seabed, for storing oil.",11),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfOffshorePlatform(int? value) => new categoryOfOffshorePlatform { value = value };
 	}
@@ -2195,15 +2195,15 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Condition";
 		[JsonIgnore]
 		public override int sourceIdentifier => 75;
-		public condition() {
-			base.listedValues = [
+		public condition() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Under Construction", "Being built but not yet capable of function.",1),
 				new listedValue("Ruined", "A structure in a decayed or deteriorated condition resulting from neglect or disuse, or a damaged structure in need of repair.",2),
 				new listedValue("Under Reclamation", "An area of the sea, a lake or the navigable part of a river that is being reclaimed as land, usually by the dumping of earth and other material.",3),
 				new listedValue("Wingless", "A windmill or wind turbine from which the vanes or turbine blades are missing.",4),
 				new listedValue("Planned Construction", "Detailed planning has been completed but construction has not been initiated.",5),
-				];
-			}
+			];
 
 		public static implicit operator condition(int? value) => new condition { value = value };
 	}
@@ -2219,8 +2219,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Pile";
 		[JsonIgnore]
 		public override int sourceIdentifier => 44;
-		public categoryOfPile() {
-			base.listedValues = [
+		public categoryOfPile() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Stake", "An elongated wood or metal pole embedded in the seabed to serve as a marker or support.",1),
 				new listedValue("Post", "A vertical piece of timber, metal or concrete forced into the earth or seabed.",3),
 				new listedValue("Tripodal", "A single structure comprising 3 or more piles held together (sections of heavy timber, steel or concrete), and forced into the earth or seabed.",4),
@@ -2228,8 +2229,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Area of Piles", "A number of piles, usually in a straight line, but not connected by structural members.",6),
 				new listedValue("Pipe", "A vertical hollow cylinder of metal, wood, or other material forced into the earth or seabed.",7),
 				new listedValue("Mooring Post", "A post where to which something (such as a craft) can be moored.",8),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfPile(int? value) => new categoryOfPile { value = value };
 	}
@@ -2245,15 +2245,15 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Building Shape";
 		[JsonIgnore]
 		public override int sourceIdentifier => 79;
-		public buildingShape() {
-			base.listedValues = [
+		public buildingShape() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("High-Rise Building", "A building having many storeys.",5),
 				new listedValue("Pyramid", "A polyhedron of which one face is a polygon of any number of sides, and the other faces are triangles with a common vertex.",6),
 				new listedValue("Cylindrical", "Shaped like a cylinder, which is a solid geometrical figure generated by straight lines fixed in direction and describing with one of its points a closed curve, especially a circle.",7),
 				new listedValue("Spherical", "Shaped like a sphere, which is a body the surface of which is at all points equidistant from the centre.",8),
 				new listedValue("Cubic", "A shape the sides of which are six equal squares; a regular hexahedron.",9),
-				];
-			}
+			];
 
 		public static implicit operator buildingShape(int? value) => new buildingShape { value = value };
 	}
@@ -2269,14 +2269,14 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Silo/Tank";
 		[JsonIgnore]
 		public override int sourceIdentifier => 62;
-		public categoryOfSiloTank() {
-			base.listedValues = [
+		public categoryOfSiloTank() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Silo in General", "A large storage structure used for storing loose materials.",1),
 				new listedValue("Tank in General", "A fixed structure for storing liquids.",2),
 				new listedValue("Grain Elevator", "A storage building for grain. Usually a tall frame, metal or concrete structure with an especially compartmented interior.",3),
 				new listedValue("Water Tower", "A tower supporting an elevated storage tank of water.",4),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfSiloTank(int? value) => new categoryOfSiloTank { value = value };
 	}
@@ -2292,8 +2292,9 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Lateral Mark";
 		[JsonIgnore]
 		public override int sourceIdentifier => 34;
-		public categoryOfLateralMark() {
-			base.listedValues = [
+		public categoryOfLateralMark() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Port-Hand Lateral Mark", "Indicates the port boundary of a navigational channel or suggested route when proceeding in the \"conventional direction of buoyage\".",1),
 				new listedValue("Starboard-Hand Lateral Mark", "Indicates the starboard boundary of a navigational channel or suggested route when proceeding in the \"conventional direction of buoyage\".",2),
 				new listedValue("Preferred Channel to Starboard Lateral Mark", "At a point where a channel divides, when proceeding in the \"conventional direction of buoyage\", the preferred channel (or primary route) is indicated by a modified port-hand lateral mark.",3),
@@ -2321,8 +2322,7 @@ namespace S100FC.S125.SimpleAttributes
 				new listedValue("Entry From a Lake to a Narrower Waterway, Left Bank", "Indicates the left bank of the entry from a lake or a lake-like expansion to a section of the waterway which is narrower.",25),
 				new listedValue("Change Bank", "Change bank.",26),
 				new listedValue("Continue Along Bank", "Continue along bank.",27),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfLateralMark(int? value) => new categoryOfLateralMark { value = value };
 	}
@@ -2338,14 +2338,14 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Cardinal Mark";
 		[JsonIgnore]
 		public override int sourceIdentifier => 11;
-		public categoryOfCardinalMark() {
-			base.listedValues = [
+		public categoryOfCardinalMark() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("North Cardinal Mark", "Quadrant bounded by the true bearing NW-NE taken from the point of interest; it should be passed to the north side of the mark.",1),
 				new listedValue("East Cardinal Mark", "Quadrant bounded by the true bearing NE-SE taken from the point of interest. It should be passed to the east side of the mark.",2),
 				new listedValue("South Cardinal Mark", "Quadrant bounded by the true bearing SE-SW taken from the point of interest; it should be passed to the south side of the mark.",3),
 				new listedValue("West Cardinal Mark", "Quadrant bounded by the true bearing SW-NW taken from the point of interest; it should be passed to the west side of the mark.",4),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfCardinalMark(int? value) => new categoryOfCardinalMark { value = value };
 	}
@@ -2406,16 +2406,16 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Category of Temporal Variation";
 		[JsonIgnore]
 		public override int sourceIdentifier => 200;
-		public categoryOfTemporalVariation() {
-			base.listedValues = [
+		public categoryOfTemporalVariation() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Extreme Event", "Indication of the possible impact of a significant event (for example hurricane, earthquake, volcanic eruption, landslide, etc), which is considered likely to have changed the seafloor or landscape significantly.",1),
 				new listedValue("Likely to Change and Significant Shoaling Expected", "Continuous or frequent change (for example river siltation, sand waves, seasonal storms, icebergs, etc) that is likely to result in new significant shoaling.",2),
 				new listedValue("Likely to Change But Significant Shoaling Not Expected", "Continuous or frequent change (for example sand wave shift, seasonal storms, icebergs, etc) that is not likely to result in new significant shoaling.",3),
 				new listedValue("Likely to Change", "Continuous or frequent change to non-bathymetric features (for example river siltation, glacier creep/recession, sand dunes, buoys, marine farms, etc).",4),
 				new listedValue("Unlikely to Change", "Significant change to the seafloor is not expected.",5),
 				new listedValue("Unassessed", "Not having been assessed.",6),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfTemporalVariation(int? value) => new categoryOfTemporalVariation { value = value };
 	}
@@ -2461,15 +2461,15 @@ namespace S100FC.S125.SimpleAttributes
 		public override string S100FC_name => "Change Types";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public changeTypes() {
-			base.listedValues = [
+		public changeTypes() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Advance Notice of Change", "Advance notice of a change to an established Aid to Navigation or establishment of a new Aid to Navigation.",1),
 				new listedValue("Discrepancy", "(1) A difference between results of duplicate or comparable measures of a quantity.  (2) The difference in computed values of a quantity obtained by different processes using data from the same survey.",2),
 				new listedValue("Proposed Change", "Proposed change to an established Aid to Navigation or the establishment of a new Aid to Navigation.",3),
 				new listedValue("Temporary Change", "Temporary change to established or newly established Aid to Navigation to mark a hazard, etc.",4),
 				new listedValue("Permanent Change", "A permanent change to an established Aid to Navigation or establishment of a new Aid to Navigation.",5),
-				];
-			}
+			];
 
 		public static implicit operator changeTypes(int? value) => new changeTypes { value = value };
 	}

@@ -92,8 +92,9 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Catalogue Element Classification";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public catalogueElementClassification() {
-			base.listedValues = [
+		public catalogueElementClassification() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("ENC", "Electronic Navigational Chart",1),
 				new listedValue("Bathymetric Chart", "A topographic chart of the bed of a body of water, or a part of it. Generally, bathymetric charts show depths by contour lines and gradient tints.",2),
 				new listedValue("Water Level Product", "Water Level Information for Surface Navigation",3),
@@ -107,8 +108,7 @@ namespace S100FC.S128.SimpleAttributes
 				new listedValue("Special Purpose Chart", "Any chart designed primarily to meet specific requirements.",11),
 				new listedValue("Nautical Publication", "A (nautical chart or) nautical publication is a \"a special-purpose map or book, or a specially compiled database from which such a map or book is derived, that is issued officially by or on the authority of a Government, authorized Hydrographic Office or other relevant government institution and is designed to meet the requirements of marine navigation\".",12),
 				new listedValue("Printed Nautical Chart", "A printed nautical chart is a \"a special-purpose map , that is issued officially by or on the authority of a Government, authorized Hydrographic Office or other relevant government institution and is designed to meet the requirements of marine navigation\".",13),
-				];
-			}
+			];
 
 		public static implicit operator catalogueElementClassification(int? value) => new catalogueElementClassification { value = value };
 	}
@@ -169,8 +169,9 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Category of Authority";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public categoryOfAuthority() {
-			base.listedValues = [
+		public categoryOfAuthority() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Border Control", "The administration to prevent or detect and prosecute violations of rules and regulations at international boundaries.",2),
 				new listedValue("Police", "The department of government, or civil force, charged with maintaining public order.",3),
 				new listedValue("Port", "Person or corporation, owners of, or entrusted with or invested with the power of managing a port. May be called a Harbour Board, Port Trust, Port Commission, Harbour Commission, Marine Department.",4),
@@ -189,8 +190,7 @@ namespace S100FC.S128.SimpleAttributes
 				new listedValue("Hydrographic Office", "State agency in charge of marine surveys and hydrography.",17),
 				new listedValue("RENC", "Regional ENC Coordination Centre.",18),
 				new listedValue("VARs", "Value Added Resellers (VARs), who are able to offer comprehensive end-use services that bring together various navigational products into one package.",19),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfAuthority(int? value) => new categoryOfAuthority { value = value };
 	}
@@ -416,12 +416,12 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Digital Signature Value";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public digitalSignatureValue() {
-			base.listedValues = [
+		public digitalSignatureValue() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("ID", "Meta data record identifier for QualityOfBathymetric Coverage",1),
 				new listedValue("Digital Signature Reference", "Specifies the algorithm used to compute digital signature value.",2),
-				];
-			}
+			];
 
 		public static implicit operator digitalSignatureValue(int? value) => new digitalSignatureValue { value = value };
 	}
@@ -437,13 +437,13 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Name Usage";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public nameUsage() {
-			base.listedValues = [
+		public nameUsage() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Default Name Display", "The name is intended to be displayed when the end-user system is set to the default name/text display setting.",1),
 				new listedValue("Alternate Name Display", "The name is intended to be displayed when the end-user system is set to an alternate name/text display setting, for example an alternate language.",2),
 				new listedValue("No Chart Display", "The name or text is not intended to be displayed.",3),
-				];
-			}
+			];
 
 		public static implicit operator nameUsage(int? value) => new nameUsage { value = value };
 	}
@@ -459,12 +459,12 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Distribution Status";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public distributionStatus() {
-			base.listedValues = [
+		public distributionStatus() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Production", "A product or service that is currently in production.",1),
 				new listedValue("Withdrawn", "A product or service that has been withdrawn.",2),
-				];
-			}
+			];
 
 		public static implicit operator distributionStatus(int? value) => new distributionStatus { value = value };
 	}
@@ -615,8 +615,9 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "IMO Maritime Service";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public iMOMaritimeService() {
-			base.listedValues = [
+		public iMOMaritimeService() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Vessel Traffic Service", "Any service implemented by a relevant authority primarily designed to improve safety and efficiency of traffic flow and the protection of the environment. It may range from simple information messages, to extensive organization of the traffic involving national or regional schemes.",1),
 				new listedValue("Aids to Navigation Service", "A service providing up-to-date information of Aids to Navigation.",2),
 				new listedValue("Reserved for Future Use", "An option that is reserved for future use",3),
@@ -633,8 +634,7 @@ namespace S100FC.S128.SimpleAttributes
 				new listedValue("Meteorological Information Service", "A service to provide meteorological information (digitally) to ships.",14),
 				new listedValue("Real-Time Hydrographic and Environmental Information Service", "A service providing hydrographic and environmental observations and forecasts, such as water level and surface current information.",15),
 				new listedValue("Search and Rescue Service", "A service aimed at providing information about and assist with Search and Rescue functions.",16),
-				];
-			}
+			];
 
 		public static implicit operator iMOMaritimeService(int? value) => new iMOMaritimeService { value = value };
 	}
@@ -680,8 +680,9 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "ISO 216";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public iSO216() {
-			base.listedValues = [
+		public iSO216() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("A0", "The paper size A0, as defined in ISO 216.",1),
 				new listedValue("A1", "The first size as output size on nautical paper chart. Referring to ISO 216.",2),
 				new listedValue("A2", "The paper size A2, as defined in ISO 216.",3),
@@ -690,8 +691,7 @@ namespace S100FC.S128.SimpleAttributes
 				new listedValue("A5", "The sixth size as output size on nautical paper chart. Referring to ISO 216.",6),
 				new listedValue("A6", "The seventh size as output size on nautical paper chart. Referring to ISO 216.",7),
 				new listedValue("A7", "The eighth size as output size on nautical paper chart. Referring to ISO 216.",8),
-				];
-			}
+			];
 
 		public static implicit operator iSO216(int? value) => new iSO216 { value = value };
 	}
@@ -782,14 +782,14 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Category Of Product Mapping";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public categoryOfProductMapping() {
-			base.listedValues = [
+		public categoryOfProductMapping() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Higher Priority Alternative", "A higher prioritized or recommended alternative product or service, that can fully replace another.",1),
 				new listedValue("Lower Priority Alternative", "A lower prioritized or not recommended alternative product or service, that can fully replace another.",2),
 				new listedValue("Recommended Enhancement Provider", "A recommended additional product or service, that provides added value to another.",3),
 				new listedValue("Recommended Enhancement User", "A product or service, that is recommended to make use of added value provided by another product or service.",4),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfProductMapping(int? value) => new categoryOfProductMapping { value = value };
 	}
@@ -1135,11 +1135,11 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Digital Signature Reference";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public digitalSignatureReference() {
-			base.listedValues = [
+		public digitalSignatureReference() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("ECDSA-384-SHA2", "Elliptic Curve Digital Signature Algorithm (ECDSA) that uses signatures based on the issuing certificate and generated using the issuer’s P-384 elliptic curve key.",8),
-				];
-			}
+			];
 
 		public static implicit operator digitalSignatureReference(int? value) => new digitalSignatureReference { value = value };
 	}
@@ -1155,13 +1155,13 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Navigation Purpose";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public navigationPurpose() {
-			base.listedValues = [
+		public navigationPurpose() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Port", "For port and near shore operations.",1),
 				new listedValue("Transit", "For coast and planning purposes.",2),
 				new listedValue("Overview", "For ocean crossing and planning purposes.",3),
-				];
-			}
+			];
 
 		public static implicit operator navigationPurpose(int? value) => new navigationPurpose { value = value };
 	}
@@ -1177,8 +1177,9 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Support File Format";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public supportFileFormat() {
-			base.listedValues = [
+		public supportFileFormat() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("ASCII", "UTF-8 text excluding control codes.",1),
 				new listedValue("JPEG2000", "JPEG2000 format.",2),
 				new listedValue("HTML", "Hypertext Markup Language.",3),
@@ -1189,8 +1190,7 @@ namespace S100FC.S128.SimpleAttributes
 				new listedValue("PDF/A Or U/A", "Portable Document Format.",8),
 				new listedValue("LUA", "Lua programming language.",9),
 				new listedValue("Other", "Being the one or ones distinct from that or those first mentioned or implied.",100),
-				];
-			}
+			];
 
 		public static implicit operator supportFileFormat(int? value) => new supportFileFormat { value = value };
 	}
@@ -1206,13 +1206,13 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Support File Purpose";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public supportFilePurpose() {
-			base.listedValues = [
+		public supportFilePurpose() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("New", "A file which is new.",1),
 				new listedValue("Replacement", "A file which replaces an existing file.",2),
 				new listedValue("Deletion", "Deletes an existing file.",3),
-				];
-			}
+			];
 
 		public static implicit operator supportFilePurpose(int? value) => new supportFilePurpose { value = value };
 	}
@@ -1243,14 +1243,14 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Service Status";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public serviceStatus() {
-			base.listedValues = [
+		public serviceStatus() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Provisional", "Indicates a temporary, preliminary, or interim status. A provisional item is not yet finalized or fully approved.",1),
 				new listedValue("Released", "Indicates a finalized, officially approved, or publicly available status. A released item is ready for general use or distribution.",2),
 				new listedValue("Deprecated", "Indicates that a feature, method, product, or component is no longer recommended for use but is still available.",3),
 				new listedValue("Deleted", "Indicates that a feature, method, product, or component is no longer available or has been permanently removed.",4),
-				];
-			}
+			];
 
 		public static implicit operator serviceStatus(int? value) => new serviceStatus { value = value };
 	}
@@ -1296,8 +1296,9 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Source Type";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public sourceType() {
-			base.listedValues = [
+		public sourceType() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Law or Regulation", "Treaty, convention, or international agreement; law or regulation issued by a national or other authority.",1),
 				new listedValue("Official Publication", "Publication not having the force of law, issued by an international organisation or a national or local administration.",2),
 				new listedValue("Mariner Report, Confirmed", "Reported by mariner(s) and confirmed by another source.",7),
@@ -1309,8 +1310,7 @@ namespace S100FC.S128.SimpleAttributes
 				new listedValue("News Media", "Information obtained from news media.",13),
 				new listedValue("Traffic Data", "Information obtained from the analysis of traffic data.",14),
 				new listedValue("Maritime", "A national or regional authority charged with administration of maritime affairs.",15),
-				];
-			}
+			];
 
 		public static implicit operator sourceType(int? value) => new sourceType { value = value };
 	}
@@ -1326,16 +1326,16 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Specific Usage";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public specificUsage() {
-			base.listedValues = [
+		public specificUsage() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Navigational Purpose Overview", "For use in the study of the characteristics of maritime zones, in the formulation of plans, in the selection of routes, etc., showing only relevant elements of the coastline, harbours, islands, principal navigational marks and obstructions, and submarine landforms.",1),
 				new listedValue("Navigational Purpose General", "A nautical chart with universality (i.e., generality) in use, characterized by the requirement that the chart must comprehensively describe various natural elements and socioeconomic elements, and that each element of the subject matter expressed is universal.",2),
 				new listedValue("Navigational Purpose Coastal", "Used for marine navigation, mainly displaying submarine landforms, navigational marks, navigational obstacles and other elements related to navigation.",3),
 				new listedValue("Navigational Purpose Approach", "Used for near-shore navigation, mainly showing the marine elements close to coastal areas.",4),
 				new listedValue("Navigational Purpose Harbour", "Used for entering and leaving harbours, selecting anchorage, studying harbour topography, and carrying out the construction of harbours.",5),
 				new listedValue("Navigational Purpose Berthing", "For ships berthing.",6),
-				];
-			}
+			];
 
 		public static implicit operator specificUsage(int? value) => new specificUsage { value = value };
 	}
@@ -1366,8 +1366,9 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Telecommunication Service";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public telecommunicationService() {
-			base.listedValues = [
+		public telecommunicationService() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Voice", "The transfer or exchange of information by using sounds that are being made by mouth and throat when speaking.",1),
 				new listedValue("Facsimile", "A system of transmitting and reproducing graphic matter (as printing or still pictures) by means of signals sent over telephone lines.",2),
 				new listedValue("SMS", "Short Message Service is a form of text messaging communication on phones and mobile phones.",3),
@@ -1376,8 +1377,7 @@ namespace S100FC.S128.SimpleAttributes
 				new listedValue("Telex", "A system of communication in which messages are sent over long distances by using a telephone system and are printed by using a special machine (called a teletypewriter).",6),
 				new listedValue("Telegraph", "An apparatus, system or process for communication at a distance by electric transmission over wire.",7),
 				new listedValue("Email", "Messages and other data exchanged between individuals using computers in a network.",8),
-				];
-			}
+			];
 
 		public static implicit operator telecommunicationService(int? value) => new telecommunicationService { value = value };
 	}
@@ -1423,8 +1423,9 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Type Of Product Format";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public typeOfProductFormat() {
-			base.listedValues = [
+		public typeOfProductFormat() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("GML", "Geography Markup Language. An XML-based geographic information encoding language developed by the Open GIS Consortium (OGC) to enhance the interoperability of geographic information.",1),
 				new listedValue("ISO/IEC 8211", "Specification for a data descriptive file for information interchange.",2),
 				new listedValue("PDF", "Portable Document Format. A file format developed by Adobe in 1993 to present documents, including text formatting and images, in a manner independent of application software, hardware, and operating systems.",3),
@@ -1437,8 +1438,7 @@ namespace S100FC.S128.SimpleAttributes
 				new listedValue("Application", "Provision of data in a format including operational functionality, such as a software program designed to perform specific tasks or functions for the user.",10),
 				new listedValue("XML", "Extensible Markup Language.",11),
 				new listedValue("PNG", "Portable Network Graphics format.",12),
-				];
-			}
+			];
 
 		public static implicit operator typeOfProductFormat(int? value) => new typeOfProductFormat { value = value };
 	}
@@ -1454,14 +1454,14 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Type Of Time Interval Unit";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public typeOfTimeIntervalUnit() {
-			base.listedValues = [
+		public typeOfTimeIntervalUnit() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Hour", "A unit of time equal to 60 minutes or 3600 seconds.",1),
 				new listedValue("Day", "(1) The duration of one rotation of the earth, or occasionally another celestial body, on its axis. It is measured by successive transits of a reference point on the celestial sphere over the meridian, and each type takes its name from the reference used.  (2) The period of daylight, as distinguished from night.",2),
 				new listedValue("Month", "A measure of time based on the motion of the moon in its orbit.",3),
 				new listedValue("Year", "A period of one revolution of the earth around the sun.",4),
-				];
-			}
+			];
 
 		public static implicit operator typeOfTimeIntervalUnit(int? value) => new typeOfTimeIntervalUnit { value = value };
 	}
@@ -1630,8 +1630,9 @@ namespace S100FC.S128.SimpleAttributes
 		public override string S100FC_name => "Vertical Datum";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public verticalDatum() {
-			base.listedValues = [
+		public verticalDatum() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Mean Low Water Springs", "The average height of the low waters of spring tides. This level is used as a tidal datum in some areas.",1),
 				new listedValue("Mean Lower Low Water Springs", "The average height of lower low water springs at a place.",2),
 				new listedValue("Mean Sea Level", "The average height of the surface of the sea at a tide station for all stages of the tide over a 19-year period, usually determined from hourly height readings measured from a fixed predetermined reference level.",3),
@@ -1680,8 +1681,7 @@ namespace S100FC.S128.SimpleAttributes
 				new listedValue("Sea Floor", "The bottom of the ocean and seas where there is a generally smooth gentle gradient. Also referred to as sea bed (sometimes seabed or sea-bed), and sea bottom.",47),
 				new listedValue("Sea Surface", "A two-dimensional (in the horizontal plane) field representing the air-sea interface, with high-frequency fluctuations such as wind waves and swell, but not astronomical tides, filtered out.",48),
 				new listedValue("Hydrographic Zero", "A vertical reference near the lowest astronomical tide (LAT), below which the sea level falls only very exceptionally.",49),
-				];
-			}
+			];
 
 		public static implicit operator verticalDatum(int? value) => new verticalDatum { value = value };
 	}
@@ -4785,7 +4785,7 @@ namespace S100FC.S128
 		public static JsonSerializerOptions AppendTypeInfoResolver(this JsonSerializerOptions jsonSerializerOptions) {
 			var resolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver();
 			resolver.Modifiers.Add(typeInfo => {
-				/*
+                /*
 				if (typeInfo.Type == typeof(S100FC.informationBinding)) {
 					typeInfo.PolymorphismOptions = new System.Text.Json.Serialization.Metadata.JsonPolymorphismOptions {
 						TypeDiscriminatorPropertyName = "code",
@@ -4808,8 +4808,8 @@ namespace S100FC.S128
 					typeInfo.PolymorphismOptions.DerivedTypes.Add(new System.Text.Json.Serialization.Metadata.JsonDerivedType(typeof(featureBinding<FeatureAssociation.ProductMapping>), typeDiscriminator: "ProductMapping"));
 					typeInfo.PolymorphismOptions.DerivedTypes.Add(new System.Text.Json.Serialization.Metadata.JsonDerivedType(typeof(featureBinding<FeatureAssociation.Correlated>), typeDiscriminator: "Correlated"));
 				}
-				*/
-				if (typeInfo.Type == typeof(S100FC.attributeBinding)) {
+                */
+                if (typeInfo.Type == typeof(S100FC.attributeBinding)) {
 					typeInfo.PolymorphismOptions = new System.Text.Json.Serialization.Metadata.JsonPolymorphismOptions {
 						TypeDiscriminatorPropertyName = "code",
 						IgnoreUnrecognizedTypeDiscriminators = true,

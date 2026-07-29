@@ -62,12 +62,12 @@ namespace S100FC.S124.SimpleAttributes
 		public override string S100FC_name => "Name Usage";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public nameUsage() {
-			base.listedValues = [
+		public nameUsage() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Default Name Display", "The name is intended to be displayed when the end-user system is set to the default name/text display setting.",1),
 				new listedValue("Alternate Name Display", "The name is intended to be displayed when the end-user system is set to an alternate name/text display setting, for example an alternate language.",2),
-				];
-			}
+			];
 
 		public static implicit operator nameUsage(int? value) => new nameUsage { value = value };
 	}
@@ -98,8 +98,9 @@ namespace S100FC.S124.SimpleAttributes
 		public override string S100FC_name => "Warning Type";
 		[JsonIgnore]
 		public override int sourceIdentifier => 1006;
-		public warningType() {
-			base.listedValues = [
+		public warningType() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Local Navigational Warning", "Message containing urgent information relevant to safe navigation broadcast to ships in a local area, in accordance with the provisions of the International Convention for the Safety of Life at Sea, 1974, as amended.(Adopted from S-53, 2.2.23)" +
 										"Local warning means a navigational warning which covers inshore waters, often within the limits of jurisdiction of a harbour or port authority. (Adopted from S-53, 2.2.10)",1),
 				new listedValue("Coastal Navigational Warning", "Message containing urgent information relevant to safe navigation broadcast to ships in a coastal  area, in accordance with the provisions of the International Convention for the Safety of Life at Sea, 1974, as amended." +
@@ -116,8 +117,7 @@ namespace S100FC.S124.SimpleAttributes
 				new listedValue("Sub-Area In-Force Bulletin", "A list of serial numbers of sub-area warnings which are in-force.",10),
 				new listedValue("Coastal In-Force Bulletin", "A list of serial numbers of coastal warnings which are in- force.",11),
 				new listedValue("Local In-Force Bulletin", "A list of serial numbers of local warnings which are in- force.",12),
-				];
-			}
+			];
 
 		public static implicit operator warningType(int? value) => new warningType { value = value };
 	}
@@ -448,13 +448,13 @@ namespace S100FC.S124.SimpleAttributes
 		public override string S100FC_name => "Reference Category";
 		[JsonIgnore]
 		public override int sourceIdentifier => 1007;
-		public referenceCategory() {
-			base.listedValues = [
+		public referenceCategory() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Warning Cancellation", "Cancellation of warning which is no longer valid.",1),
 				new listedValue("Warning Reference", "Reference to relevant warning.",2),
 				new listedValue("In-Force", "Reference to warnings or notices that are considered in-force.",3),
-				];
-			}
+			];
 
 		public static implicit operator referenceCategory(int? value) => new referenceCategory { value = value };
 	}
@@ -560,15 +560,15 @@ namespace S100FC.S124.SimpleAttributes
 		public override string S100FC_name => "Restriction";
 		[JsonIgnore]
 		public override int sourceIdentifier => 155;
-		public restriction() {
-			base.listedValues = [
+		public restriction() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Entry Prohibited", "[1] An area shown on charts within which navigation and/or anchoring is prohibited. [2] In aviation terminology, a specified area within the land areas of a state or territorial waters adjacent thereto over which the flight of aircraft is prohibi­ted.",7),
 				new listedValue("Entry Restricted", "A specified area designated by appropriate authority, within which navigation is restricted in accordance with certain specified conditions.",8),
 				new listedValue("Area To Be Avoided", "An IMO declared routeing measure comprising an area within defined limits in which either navigation is particularly hazardous or it is exceptionally important to avoid casualties and which should be avoided by all ships, or certain classes of ships.",14),
 				new listedValue("Stopping Prohibited", "An area in which a vessel is prohibited from stopping.",25),
 				new listedValue("Speed Restricted", "An area within which speed is restricted.",27),
-				];
-			}
+			];
 
 		public static implicit operator restriction(int? value) => new restriction { value = value };
 	}
@@ -979,8 +979,9 @@ namespace S100FC.S124.SimpleAttributes
 		public override string S100FC_name => "Quality of Horizontal Measurement";
 		[JsonIgnore]
 		public override int sourceIdentifier => 215;
-		public qualityOfHorizontalMeasurement() {
-			base.listedValues = [
+		public qualityOfHorizontalMeasurement() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Surveyed", "The position(s) was(were) determined by the operation of making measurements for determining the relative position of points on, above or beneath the earth's surface. Survey implies a regular, controlled survey of any date.",1),
 				new listedValue("Unsurveyed", "Survey data is does not exist or is very poor.",2),
 				new listedValue("Inadequately Surveyed", "Not surveyed to modern standards; or due to its age, scale, or positional or vertical uncertainties is not suitable to the type of navigation expected in the area.",3),
@@ -992,8 +993,7 @@ namespace S100FC.S124.SimpleAttributes
 				new listedValue("Estimated", "The most probable position of an object determined from incomplete data or data of questionable accuracy.",9),
 				new listedValue("Precisely Known", "A position that is of a known value, such as the position of an anchor berth or other defined object.",10),
 				new listedValue("Calculated", "A position that is computed from data.",11),
-				];
-			}
+			];
 
 		public static implicit operator qualityOfHorizontalMeasurement(int? value) => new qualityOfHorizontalMeasurement { value = value };
 	}

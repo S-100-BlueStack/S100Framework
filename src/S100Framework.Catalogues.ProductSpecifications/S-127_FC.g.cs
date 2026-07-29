@@ -77,8 +77,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Cardinal Direction";
 		[JsonIgnore]
 		public override int sourceIdentifier => 397;
-		public cardinalDirection() {
-			base.listedValues = [
+		public cardinalDirection() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("North", "348.75-011.25 degrees (true north).",1),
 				new listedValue("North Northeast", "011.25 - 033.75 degrees.",2),
 				new listedValue("Northeast", "033.75 - 056.25 degrees.",3),
@@ -95,8 +96,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("West Northwest", "281.25-303.75 degrees.",14),
 				new listedValue("Northwest", "303.75 - 326.25 degrees.",15),
 				new listedValue("North Northwest", "326.25 - 348.75 degrees.",16),
-				];
-			}
+			];
 
 		public static implicit operator cardinalDirection(int? value) => new cardinalDirection { value = value };
 	}
@@ -112,8 +112,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Authority";
 		[JsonIgnore]
 		public override int sourceIdentifier => 398;
-		public categoryOfAuthority() {
-			base.listedValues = [
+		public categoryOfAuthority() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Border Control", "The administration to prevent or detect and prosecute violations of rules and regulations at international boundaries.",2),
 				new listedValue("Police", "The department of government, or civil force, charged with maintaining public order.",3),
 				new listedValue("Port", "Person or corporation, owners of, or entrusted with or invested with the power of managing a port. May be called a Harbour Board, Port Trust, Port Commission, Harbour Commission, Marine Department.",4),
@@ -129,8 +130,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Finance", "An authority with responsibility for the control and movement of money.",14),
 				new listedValue("Maritime", "A national or regional authority charged with administration of maritime affairs.",15),
 				new listedValue("Customs", "The agency or establishment for collecting duties, tolls.",16),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfAuthority(int? value) => new categoryOfAuthority { value = value };
 	}
@@ -146,14 +146,14 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Communication Preference";
 		[JsonIgnore]
 		public override int sourceIdentifier => 402;
-		public categoryOfCommunicationPreference() {
-			base.listedValues = [
+		public categoryOfCommunicationPreference() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Preferred Calling", "The first choice channel or frequency to be used when calling a radio station.",1),
 				new listedValue("Alternate Calling", "A channel or frequency to be used for calling a radio station when the preferred channel or frequency is busy or is suffering from interference.",2),
 				new listedValue("Preferred Working", "The first choice channel or frequency to be used when working with a radio station.",3),
 				new listedValue("Alternate Working", "A channel or frequency to be used for working with a radio station when the preferred working channel or frequency is busy or is suffering from interference.",4),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfCommunicationPreference(int? value) => new categoryOfCommunicationPreference { value = value };
 	}
@@ -169,8 +169,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Cargo";
 		[JsonIgnore]
 		public override int sourceIdentifier => 401;
-		public categoryOfCargo() {
-			base.listedValues = [
+		public categoryOfCargo() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Bulk", "Unpacked homogenous cargo poured loose in a certain space of a vessel, for example oil or grain.",1),
 				new listedValue("Container", "One of a number of standard sized cargo carrying units, secured using standard corner attachments and bar.",2),
 				new listedValue("General", "Break bulk cargo normally loaded by crane.",3),
@@ -186,8 +187,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Ro-Ro Cargo", "Wheeled cargo, such as cars, busses, trucks, agricultural vehicles and cranes, that are driven on and off the ship on their own wheels or using a platform vehicle, such as a self-propelled modular transporter.",13),
 				new listedValue("Project Cargo", "Project cargo is a term used to broadly describe the national or international transportation of large, heavy, high value, or critical (to the project they are intended for) pieces of equipment. Also commonly referred to as heavy lift, this includes shipments made of various components which need disassembly for shipment and reassembly after delivery.",14),
 				new listedValue("Break Bulk Cargo", "Goods that are stowed on board ship in individually counted units, and not in intermodal containers nor in bulk as with oil or grain.",15),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfCargo(int? value) => new categoryOfCargo { value = value };
 	}
@@ -203,14 +203,14 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Concentration of Shipping Hazard Area";
 		[JsonIgnore]
 		public override int sourceIdentifier => 403;
-		public categoryOfConcentrationOfShippingHazardArea() {
-			base.listedValues = [
+		public categoryOfConcentrationOfShippingHazardArea() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Concentration of Merchant Shipping", "Concentration of vessels whose primary purpose is to engage in commerce, including ferries.",1),
 				new listedValue("Concentration of Recreational Vessels", "Concentration of powered or sailing vessels principally engaged in recreation, leisure, or sporting competition.",2),
 				new listedValue("Concentration of Fishing Vessels", "Concentration of vessels whose primary purpose is to hunt, trap or process fish. The concentration could be on the fishing ground, in transit or in the approaches to home bases or fish markets.",3),
 				new listedValue("Concentration of Military Vessels", "Concentration of vessels principally engaged in military activities. This includes activities based on mandate of international organizations (for example, UN). The concentration is in areas others than military exercise areas.",4),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfConcentrationOfShippingHazardArea(int? value) => new categoryOfConcentrationOfShippingHazardArea { value = value };
 	}
@@ -226,8 +226,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category Of Dangerous Or Hazardous Cargo";
 		[JsonIgnore]
 		public override int sourceIdentifier => 406;
-		public categoryOfDangerousOrHazardousCargo() {
-			base.listedValues = [
+		public categoryOfDangerousOrHazardousCargo() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("IMDG Code Class 1 Div. 1.1", "Explosives, Division 1: Substances and articles which have a mass explosion hazard.",1),
 				new listedValue("IMDG Code Class 1 Div. 1.2", "Explosives, Division 2: Substances and articles which have a projection hazard but not a mass explosion hazard.",2),
 				new listedValue("IMDG Code Class 1 Div. 1.3", "Explosives, Division 3: Substances and articles which have a fire hazard and either a minor blast hazard or a minor projection hazard or both, but not a mass explosion hazard.",3),
@@ -249,8 +250,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("IMDG Code Class 8", "Corrosive substances.",19),
 				new listedValue("IMDG Code Class 9", "Miscellaneous dangerous substances and articles.",20),
 				new listedValue("Harmful Substances in Packaged Form", "Harmful substances are those substances which are identified as marine pollutants in the International Maritime Dangerous Goods Code (IMDG Code). Packaged form is defined as the forms of containment specified for harmful substances in the IMDG Code.",21),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfDangerousOrHazardousCargo(int? value) => new categoryOfDangerousOrHazardousCargo { value = value };
 	}
@@ -266,15 +266,15 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Military Practice Area";
 		[JsonIgnore]
 		public override int sourceIdentifier => 37;
-		public categoryOfMilitaryPracticeArea() {
-			base.listedValues = [
+		public categoryOfMilitaryPracticeArea() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Torpedo Exercise Area", "An area within which exercises are carried out with torpedoes.",2),
 				new listedValue("Submarine Exercise Area", "An area within which submarine exercises are carried out.",3),
 				new listedValue("Firing Danger Area", "Areas for bombing and missile exercises.",4),
 				new listedValue("Mine-Laying Practice Area", "An area within which mine laying exercises are carried out.",5),
 				new listedValue("Small Arms Firing Range", "An area for shooting pistols, rifles and machine guns etc. at a target.",6),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfMilitaryPracticeArea(int? value) => new categoryOfMilitaryPracticeArea { value = value };
 	}
@@ -290,13 +290,13 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Navigation Line";
 		[JsonIgnore]
 		public override int sourceIdentifier => 39;
-		public categoryOfNavigationLine() {
-			base.listedValues = [
+		public categoryOfNavigationLine() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Clearing Line", "A straight line that marks the boundary between a safe and a dangerous area or that passes clear of a navigational danger.",1),
 				new listedValue("Transit Line", "A line passing through one or more fixed marks.",2),
 				new listedValue("Leading Line Bearing a Recommended Track", "A line passing through one or more clearly defined objects, along the path of which a vessel can approach safely up to a certain distance off.",3),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfNavigationLine(int? value) => new categoryOfNavigationLine { value = value };
 	}
@@ -312,8 +312,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Pilot";
 		[JsonIgnore]
 		public override int sourceIdentifier => 416;
-		public categoryOfPilot() {
-			base.listedValues = [
+		public categoryOfPilot() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Pilot", "Pilot licenced to conduct vessels during approach from sea to a specified place which may be a handover place, an anchorage or alongside.",1),
 				new listedValue("Deep Sea", "Pilot licenced to conduct vessels over extensive sea areas.",2),
 				new listedValue("Harbour", "A reporting point of a harbour.",3),
@@ -321,8 +322,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("River", "A relatively large natural stream of water.",5),
 				new listedValue("Channel", "Pilot licensed to conduct vessels from and to specified places, along the course of a channel. (For example as used in Rio Amazonas and Rio de La Plata.)",6),
 				new listedValue("Lake", "A large body of water entirely surrounded by land.",7),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfPilot(int? value) => new categoryOfPilot { value = value };
 	}
@@ -338,13 +338,13 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Pilot Boarding Place";
 		[JsonIgnore]
 		public override int sourceIdentifier => 45;
-		public categoryOfPilotBoardingPlace() {
-			base.listedValues = [
+		public categoryOfPilotBoardingPlace() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Boarding by Pilot-Cruising Vessel", "Pilot boards from a cruising vessel.",1),
 				new listedValue("Boarding by Helicopter", "Pilot boards by helicopter which comes out from the shore.",2),
 				new listedValue("Pilot Comes Out from Shore", "Pilot embarks from a vessel or disembarks on a vessel which comes out from the shore on request.",3),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfPilotBoardingPlace(int? value) => new categoryOfPilotBoardingPlace { value = value };
 	}
@@ -360,12 +360,12 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Preference";
 		[JsonIgnore]
 		public override int sourceIdentifier => 47;
-		public categoryOfPreference() {
-			base.listedValues = [
+		public categoryOfPreference() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Primary", "The preferred first choice used in normal conditions.",1),
 				new listedValue("Alternate", "The preferred choice in extraordinary conditions.",2),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfPreference(int? value) => new categoryOfPreference { value = value };
 	}
@@ -381,8 +381,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Relationship";
 		[JsonIgnore]
 		public override int sourceIdentifier => 422;
-		public categoryOfRelationship() {
-			base.listedValues = [
+		public categoryOfRelationship() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Prohibited", "Use of facility, waterway or service is forbidden.",1),
 				new listedValue("Not Recommended", "Use of facility, waterway or service is not recommended.",2),
 				new listedValue("Permitted", "Use of facility, waterway, or service is permitted but not required.",3),
@@ -390,8 +391,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Required", "Use of facility, waterway, or service is required.",5),
 				new listedValue("Not Required", "Use of facility, waterway, or service is not required.",6),
 				new listedValue("Exclusively Permitted", "Only vessels of the specified characteristics may use the facility, waterway, or service.",7),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfRelationship(int? value) => new categoryOfRelationship { value = value };
 	}
@@ -407,8 +407,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Restricted Area";
 		[JsonIgnore]
 		public override int sourceIdentifier => 90;
-		public categoryOfRestrictedArea() {
-			base.listedValues = [
+		public categoryOfRestrictedArea() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Offshore Safety Zone", "The area around an offshore installation within which vessels are prohibited from entering without permission. Special regulations protect installations within a safety zone and vessels of all nationalities are required to respect the zone.",1),
 				new listedValue("Nature Reserve", "A tract of land or water managed so as to preserve its flora, fauna, physical features, etc.",4),
 				new listedValue("Bird Sanctuary", "A place where birds are bred and protected.",5),
@@ -430,8 +431,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Port Security Area", "An area in which defence, law and treaty enforcement, and counter-terrorism activities that fall within the port and maritime domain apply.",30),
 				new listedValue("Coral Sanctuary", "A place where coral is protected.",31),
 				new listedValue("Recreation Area", "An area within which recreational activities regularly take place and therefore vessel movement may be restricted.",32),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfRestrictedArea(int? value) => new categoryOfRestrictedArea { value = value };
 	}
@@ -447,16 +447,16 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Routeing Measure";
 		[JsonIgnore]
 		public override int sourceIdentifier => 427;
-		public categoryOfRouteingMeasure() {
-			base.listedValues = [
+		public categoryOfRouteingMeasure() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Archipelagic Sea Lane", "Sea lanes designated by an archipelagic State for the passage of ships and aircraft.  The Archipelagic Sea Lane aggregates all component parts of an Archipelagic Sea Lane system.",1),
 				new listedValue("Deep Water Route", "A route within defined limits which has been accurately surveyed for clearance of sea bottom and submerged obstacles as indicated on the chart.",2),
 				new listedValue("Fairway System", "That part of a river, harbour and so on, where the main navigable channel for vessels of larger size lies. It is also the usual course followed by vessels entering or leaving harbours, called ship channel. A fairway system is an aggregation of connected fairway features making up a complex fairway system.",3),
 				new listedValue("Recommended Route", "A navigation line, range system, or a recommended track, lane, or route.",4),
 				new listedValue("Traffic Separation Scheme", "A routeing measure aimed at the separation of opposing streams of traffic by appropriate means and by the establishment of traffic lanes.",5),
 				new listedValue("Two-Way Route", "A route within defined limits inside which two way traffic is established, aimed at providing safe passage of ships through waters where navigation is difficult or dangerous.",6),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfRouteingMeasure(int? value) => new categoryOfRouteingMeasure { value = value };
 	}
@@ -472,13 +472,13 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Schedule";
 		[JsonIgnore]
 		public override int sourceIdentifier => 57;
-		public categoryOfSchedule() {
-			base.listedValues = [
+		public categoryOfSchedule() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Normal Operation", "The service, office, is open, fully manned, and operating normally, or the area is accessible as usual.",1),
 				new listedValue("Closure", "The service, office, or area is closed.",2),
 				new listedValue("Unmanned Operation", "The service is available but not manned.",3),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfSchedule(int? value) => new categoryOfSchedule { value = value };
 	}
@@ -494,8 +494,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Ship Report";
 		[JsonIgnore]
 		public override int sourceIdentifier => 428;
-		public categoryOfShipReport() {
-			base.listedValues = [
+		public categoryOfShipReport() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Sailing Plan", "Before or as near as possible to the time of departure from a port within a system or when entering the area covered by a system (for instance A, B, J, X etc).",1),
 				new listedValue("Position Report", "When necessary to ensure effective operation of the system.",2),
 				new listedValue("Deviation Report", "When the ships position varies significantly from the position that would have been predicted from previous reports; when changing the reported route; or as decided by the master.",3),
@@ -504,8 +505,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Harmful Substances Report", "Report submitted when an incident takes place involving the discharge or probable discharge of oil or noxious liquid substances in bulk.",6),
 				new listedValue("Marine Pollutants Report", "In the case of the loss or likely loss overboard of harmful substances in packaged form, including those in freight containers, portable tanks, road and rail vehicles and ship-borne barges identified in the International Maritime Goods Code as marine pollutants.",7),
 				new listedValue("Any Other Report", "Any other type of non-defined report that is made in accordance with the system procedures as notified in accordance with paragraph 9 of the general principles.",8),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfShipReport(int? value) => new categoryOfShipReport { value = value };
 	}
@@ -521,8 +521,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Signal Station, Traffic";
 		[JsonIgnore]
 		public override int sourceIdentifier => 60;
-		public categoryOfSignalStationTraffic() {
-			base.listedValues = [
+		public categoryOfSignalStationTraffic() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Port Control", "A signal station for the control of vessels within a port.",1),
 				new listedValue("Port Entry and Departure", "A signal station for the control of vessels entering or leaving a port.",2),
 				new listedValue("International Port Traffic", "A signal station displaying International Port Traffic signals.",3),
@@ -534,8 +535,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Dredging", "A signal station indicating when dredging is in progress.",9),
 				new listedValue("Traffic Control Light", "Visual signal lights placed in a waterway to indicate to shipping the movements authorized at the time at which they are shown.",10),
 				new listedValue("Oncoming Traffic Indication", "Indicates the oncoming traffic on an inland waterway.",13),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfSignalStationTraffic(int? value) => new categoryOfSignalStationTraffic { value = value };
 	}
@@ -551,8 +551,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Signal Station, Warning";
 		[JsonIgnore]
 		public override int sourceIdentifier => 61;
-		public categoryOfSignalStationWarning() {
-			base.listedValues = [
+		public categoryOfSignalStationWarning() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Danger", "A signal or message warning of the presence of a danger to navigation.",1),
 				new listedValue("Maritime Obstruction", "A signal or message warning of the presence of a maritime obstruction.",2),
 				new listedValue("Cable", "A signal or message warning of the presence of a cable.",3),
@@ -571,8 +572,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Vertical Clearance Indication", "An indication of the vertical clearance of a bridge, overhead cable, etc.",16),
 				new listedValue("High Water Mark", "An indication of the official high water level.",17),
 				new listedValue("Depth Indication", "An indication of the local depth.",18),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfSignalStationWarning(int? value) => new categoryOfSignalStationWarning { value = value };
 	}
@@ -588,14 +588,14 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Temporal Variation";
 		[JsonIgnore]
 		public override int sourceIdentifier => 200;
-		public categoryOfTemporalVariation() {
-			base.listedValues = [
+		public categoryOfTemporalVariation() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Extreme Event", "Indication of the possible impact of a significant event (for example hurricane, earthquake, volcanic eruption, landslide, etc), which is considered likely to have changed the seafloor or landscape significantly.",1),
 				new listedValue("Likely to Change", "Continuous or frequent change to non-bathymetric features (for example river siltation, glacier creep/recession, sand dunes, buoys, marine farms, etc).",4),
 				new listedValue("Unlikely to Change", "Significant change to the seafloor is not expected.",5),
 				new listedValue("Unassessed", "Not having been assessed.",6),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfTemporalVariation(int? value) => new categoryOfTemporalVariation { value = value };
 	}
@@ -611,13 +611,13 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Text";
 		[JsonIgnore]
 		public override int sourceIdentifier => 429;
-		public categoryOfText() {
-			base.listedValues = [
+		public categoryOfText() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Abstract or Summary", "A statement summarizing the important points of a text.",1),
 				new listedValue("Extract", "An excerpt or excerpts from a text.",2),
 				new listedValue("Full Text", "The whole text.",3),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfText(int? value) => new categoryOfText { value = value };
 	}
@@ -633,12 +633,12 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Traffic Separation Scheme";
 		[JsonIgnore]
 		public override int sourceIdentifier => 274;
-		public categoryOfTrafficSeparationScheme() {
-			base.listedValues = [
+		public categoryOfTrafficSeparationScheme() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("IMO Adopted", "A defined maritime traffic route that has been adopted as an IMO routeing measure.",1),
 				new listedValue("Not IMO - Adopted", "A defined Traffic Separation Scheme that has not been adopted as an IMO routing measure.",2),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfTrafficSeparationScheme(int? value) => new categoryOfTrafficSeparationScheme { value = value };
 	}
@@ -654,12 +654,12 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Category of Vessel Registry";
 		[JsonIgnore]
 		public override int sourceIdentifier => 430;
-		public categoryOfVesselRegistry() {
-			base.listedValues = [
+		public categoryOfVesselRegistry() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Domestic", "The vessel is registered or enrolled under the same national flag as the port, harbour, territorial sea, exclusive economic zone, or administrative area in which the object that possesses this attribute applies or is located.",1),
 				new listedValue("Foreign", "The vessel is registered or enrolled under a national flag different from the port, harbour, territorial sea, exclusive economic zone, or other administrative area in which the object that possesses this attribute applies or is located.",2),
-				];
-			}
+			];
 
 		public static implicit operator categoryOfVesselRegistry(int? value) => new categoryOfVesselRegistry { value = value };
 	}
@@ -705,16 +705,16 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Comparison Operator";
 		[JsonIgnore]
 		public override int sourceIdentifier => 441;
-		public comparisonOperator() {
-			base.listedValues = [
+		public comparisonOperator() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Greater Than", "The value of the left value is greater than that of the right.",1),
 				new listedValue("Greater Than or Equal To", "The value of the left expression is greater than or equal to that of the right.",2),
 				new listedValue("Less Than", "The value of the left expression is less than that of the right.",3),
 				new listedValue("Less Than or Equal To", "The value of the left expression is less than or equal to that of the right.",4),
 				new listedValue("Equal To", "The two values are equivalent.",5),
 				new listedValue("Not Equal To", "The two values are not equivalent.",6),
-				];
-			}
+			];
 
 		public static implicit operator comparisonOperator(int? value) => new comparisonOperator { value = value };
 	}
@@ -730,13 +730,13 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Condition";
 		[JsonIgnore]
 		public override int sourceIdentifier => 75;
-		public condition() {
-			base.listedValues = [
+		public condition() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Under Construction", "Being built but not yet capable of function.",1),
 				new listedValue("Under Reclamation", "An area of the sea, a lake or the navigable part of a river that is being reclaimed as land, usually by the dumping of earth and other material.",3),
 				new listedValue("Planned Construction", "Detailed planning has been completed but construction has not been initiated.",5),
-				];
-			}
+			];
 
 		public static implicit operator condition(int? value) => new condition { value = value };
 	}
@@ -842,8 +842,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Day of Week";
 		[JsonIgnore]
 		public override int sourceIdentifier => 83;
-		public dayOfWeek() {
-			base.listedValues = [
+		public dayOfWeek() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Sunday", "The first day of the week.",1),
 				new listedValue("Monday", "The second day of the week.",2),
 				new listedValue("Tuesday", "The third day of the week.",3),
@@ -851,8 +852,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Thursday", "The fifth day of the week.",5),
 				new listedValue("Friday", "The sixth day of the week.",6),
 				new listedValue("Saturday", "The seventh day of the week.",7),
-				];
-			}
+			];
 
 		public static implicit operator dayOfWeek(int? value) => new dayOfWeek { value = value };
 	}
@@ -928,14 +928,14 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Dynamic Resource";
 		[JsonIgnore]
 		public override int sourceIdentifier => 471;
-		public dynamicResource() {
-			base.listedValues = [
+		public dynamicResource() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Static", "The information is static, or a source of up-to-date information is unavailable or unknown.",1),
 				new listedValue("Mandatory External Dynamic", "An external source of up-to-date information is available and interaction with it to obtain up-to-date information is required.",2),
 				new listedValue("Optional External Dynamic", "An external source of up-to-date information is available but interaction with it to obtain up-to-date information is not required.",3),
 				new listedValue("Onboard Dynamic", "Up-to-date information may be computed using only onboard resources.",4),
-				];
-			}
+			];
 
 		public static implicit operator dynamicResource(int? value) => new dynamicResource { value = value };
 	}
@@ -1073,13 +1073,13 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "ISPS level";
 		[JsonIgnore]
 		public override int sourceIdentifier => 533;
-		public iSPSLevel() {
-			base.listedValues = [
+		public iSPSLevel() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("ISPS Level 1", "The level for which minimum appropriate protective security measures shall be maintained at all times.",1),
 				new listedValue("ISPS Level 2", "The level for which appropriate additional protective security measures shall be maintained for a period of time as a result of heightened risk of a security incident.",2),
 				new listedValue("ISPS Level 3", "The level for which further specific protective security measures shall be maintained for a limited period of time when a security incident is probable or imminent, although it may not be possible to identify the specific target.",3),
-				];
-			}
+			];
 
 		public static implicit operator iSPSLevel(int? value) => new iSPSLevel { value = value };
 	}
@@ -1140,12 +1140,12 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Membership";
 		[JsonIgnore]
 		public override int sourceIdentifier => 556;
-		public membership() {
-			base.listedValues = [
+		public membership() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Included", "Vessels with these characteristics are included in the regulation/restriction/recommendation/nautical information.",1),
 				new listedValue("Excluded", "Vessels with these characteristics are excluded from the regulation/restriction/recommendation/nautical information.",2),
-				];
-			}
+			];
 
 		public static implicit operator membership(int? value) => new membership { value = value };
 	}
@@ -1161,13 +1161,13 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Name Usage";
 		[JsonIgnore]
 		public override int sourceIdentifier => 1143;
-		public nameUsage() {
-			base.listedValues = [
+		public nameUsage() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Default Name Display", "The name is intended to be displayed when the end-user system is set to the default name/text display setting.",1),
 				new listedValue("Alternate Name Display", "The name is intended to be displayed when the end-user system is set to an alternate name/text display setting, for example an alternate language.",2),
 				new listedValue("No Chart Display", "The name or text is not intended to be displayed.",3),
-				];
-			}
+			];
 
 		public static implicit operator nameUsage(int? value) => new nameUsage { value = value };
 	}
@@ -1183,12 +1183,12 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Logical Connectives";
 		[JsonIgnore]
 		public override int sourceIdentifier => 547;
-		public logicalConnectives() {
-			base.listedValues = [
+		public logicalConnectives() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Logical Conjunction", "All the conditions described by the other attributes of the object, or sub-attributes of the same complex attribute, are true.",1),
 				new listedValue("Logical Disjunction", "At least one of the conditions described by the other attributes of the object, or sub-attributes of the same complex attributes, is true.",2),
-				];
-			}
+			];
 
 		public static implicit operator logicalConnectives(int? value) => new logicalConnectives { value = value };
 	}
@@ -1329,8 +1329,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Online Function";
 		[JsonIgnore]
 		public override int sourceIdentifier => 577;
-		public onlineFunction() {
-			base.listedValues = [
+		public onlineFunction() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Download", "Online instructions for transferring data from one storage device or system to another.",1),
 				new listedValue("Offline Access", "Online instructions for requesting the resource from the provider.",3),
 				new listedValue("Order", "Online order process for obtaining the resource.",4),
@@ -1341,8 +1342,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Email Service", "Online email service provided.",9),
 				new listedValue("Browsing", "Online browsing provided.",10),
 				new listedValue("File Access", "Online file access provided.",11),
-				];
-			}
+			];
 
 		public static implicit operator onlineFunction(int? value) => new onlineFunction { value = value };
 	}
@@ -1373,12 +1373,12 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Operation";
 		[JsonIgnore]
 		public override int sourceIdentifier => 583;
-		public operation() {
-			base.listedValues = [
+		public operation() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Largest Value", "The numerically largest value computed from the applicable attributes or sub-attributes.",1),
 				new listedValue("Smallest Value", "The numerically smallest value computed from the applicable attributes or sub-attributes.",2),
-				];
-			}
+			];
 
 		public static implicit operator operation(int? value) => new operation { value = value };
 	}
@@ -1489,13 +1489,13 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Pilot Movement";
 		[JsonIgnore]
 		public override int sourceIdentifier => 143;
-		public pilotMovement() {
-			base.listedValues = [
+		public pilotMovement() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Embarkation", "The place where vessels not being navigated according to a pilot's instructions pick up a pilot while in transit from sea to a port or constricted waters for future navigation under pilot instructions.",1),
 				new listedValue("Disembarkation", "The place where vessels being navigated under a pilot's instructions in transit from sea to a port or constricted waters drop the pilot and proceed without being subject to pilot instructions.",2),
 				new listedValue("Pilot Change", "The place where vessels being navigated under a pilot's instructions drop off the pilot and pick up a different pilot for future navigation under pilot's instructions.",3),
-				];
-			}
+			];
 
 		public static implicit operator pilotMovement(int? value) => new pilotMovement { value = value };
 	}
@@ -1511,8 +1511,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Pilot Qualification";
 		[JsonIgnore]
 		public override int sourceIdentifier => 595;
-		public pilotQualification() {
-			base.listedValues = [
+		public pilotQualification() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Government Pilot", "A pilot service carried out by government pilots.",1),
 				new listedValue("Pilot Approved by Government", "A pilot service carried out by pilots who are approved by government.",2),
 				new listedValue("State Pilot", "A pilot that is licensed by the State (USA) and/or their respective pilot association, required for all foreign vessels and all American vessels under registry, bound for a port with compulsory State pilotage. A federal licence is not sufficient to pilot such vessels into the port.",3),
@@ -1521,8 +1522,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Local Pilot", "A pilot with local knowledge but who does not hold a qualification as a pilot.",6),
 				new listedValue("Citizen With Sufficient Local Knowledge", "A pilot service carried out by a citizen with sufficient local knowledge.",7),
 				new listedValue("Citizen With Doubtful Local Knowledge", "A pilot service carried out by a citizen whose local knowledge is uncertain.",8),
-				];
-			}
+			];
 
 		public static implicit operator pilotQualification(int? value) => new pilotQualification { value = value };
 	}
@@ -1613,8 +1613,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Quality of Horizontal Measurement";
 		[JsonIgnore]
 		public override int sourceIdentifier => 215;
-		public qualityOfHorizontalMeasurement() {
-			base.listedValues = [
+		public qualityOfHorizontalMeasurement() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Surveyed", "The position(s) was(were) determined by the operation of making measurements for determining the relative position of points on, above or beneath the earth's surface. Survey implies a regular, controlled survey of any date.",1),
 				new listedValue("Unsurveyed", "Survey data is does not exist or is very poor.",2),
 				new listedValue("Inadequately Surveyed", "Not surveyed to modern standards; or due to its age, scale, or positional or vertical uncertainties is not suitable to the type of navigation expected in the area.",3),
@@ -1626,8 +1627,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Estimated", "The most probable position of an object determined from incomplete data or data of questionable accuracy.",9),
 				new listedValue("Precisely Known", "A position that is of a known value, such as the position of an anchor berth or other defined object.",10),
 				new listedValue("Calculated", "A position that is computed from data.",11),
-				];
-			}
+			];
 
 		public static implicit operator qualityOfHorizontalMeasurement(int? value) => new qualityOfHorizontalMeasurement { value = value };
 	}
@@ -1688,8 +1688,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Restriction";
 		[JsonIgnore]
 		public override int sourceIdentifier => 155;
-		public restriction() {
-			base.listedValues = [
+		public restriction() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Anchoring Prohibited", "An area within which anchoring is not permitted.",1),
 				new listedValue("Anchoring Restricted", "A specified area designated by appropriate authority, within which anchoring is restricted in accordance with certain specified conditions.",2),
 				new listedValue("Fishing Prohibited", "An area within which fishing is not permitted.",3),
@@ -1733,8 +1734,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("NOx Emission Restricted", "An area within which the emission of NOx is restricted.",41),
 				new listedValue("Power-Driven Vessels Prohibited", "An area within which any vessel propelled by machinery is prohibited.",42),
 				new listedValue("Passing or Overtaking of Convoys by Convoys Prohibited", "A specified area designated by appropriate authority, within which passing or overtaking of convoys by convoys is prohibited",43),
-				];
-			}
+			];
 
 		public static implicit operator restriction(int? value) => new restriction { value = value };
 	}
@@ -1825,8 +1825,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "SRS Format Code";
 		[JsonIgnore]
 		public override int sourceIdentifier => 0;
-		public sRSFormatCode() {
-			base.listedValues = [
+		public sRSFormatCode() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("IMO Ship Reporting Format A", "IMO Ship Reporting Format A-Ship (alpha); Information required: Name, call sign or ship station identity, and flag",1),
 				new listedValue("IMO Ship Reporting Format B", "IMO Ship Reporting Format B-Time (bravo); Information required: A 6-digit group giving day of month (first two digits), hours and minutes (last four digits). If other than UTC state time zone used",2),
 				new listedValue("IMO Ship Reporting Format C", "IMO Ship Reporting Format C-Position (charlie); Information required: A 4-digit group giving latitude in degrees and minutes suffixed with N (north) or S (south) and a 5-digit group giving longitude in degrees and minutes suffixed with E (east) or W (west)",3),
@@ -1853,8 +1854,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("IMO Ship Reporting Format X", "IMO Ship Reporting Format X-Remarks (x-ray); Information required: Any other information-including, as appropriate, brief details of incident and of other ships involved either in incident, assistance or salvage (See detailed reporting requirements)",24),
 				new listedValue("IMO Ship Reporting Format Y", "IMO Ship Reporting Format Y-Relay (yankee); Information required: Content of report",25),
 				new listedValue("IMO Ship Reporting Format Z", "IMO Ship Reporting Format Z-End of report (zulu); Information required: No further information required",26),
-				];
-			}
+			];
 
 		public static implicit operator sRSFormatCode(int? value) => new sRSFormatCode { value = value };
 	}
@@ -1870,8 +1870,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Source Type";
 		[JsonIgnore]
 		public override int sourceIdentifier => 724;
-		public sourceType() {
-			base.listedValues = [
+		public sourceType() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Law or Regulation", "Treaty, convention, or international agreement; law or regulation issued by a national or other authority.",1),
 				new listedValue("Official Publication", "Publication not having the force of law, issued by an international organisation or a national or local administration.",2),
 				new listedValue("Mariner Report, Confirmed", "Reported by mariner(s) and confirmed by another source.",7),
@@ -1882,8 +1883,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Products Issued by HO Services", "Information obtained from products issued by Hydrographic Offices.",12),
 				new listedValue("News Media", "Information obtained from news media.",13),
 				new listedValue("Traffic Data", "Information obtained from the analysis of traffic data.",14),
-				];
-			}
+			];
 
 		public static implicit operator sourceType(int? value) => new sourceType { value = value };
 	}
@@ -1899,8 +1899,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Status";
 		[JsonIgnore]
 		public override int sourceIdentifier => 725;
-		public status() {
-			base.listedValues = [
+		public status() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Permanent", "Intended to last or function indefinitely.",1),
 				new listedValue("Occasional", "Acting on special occasions; happening irregularly.",2),
 				new listedValue("Recommended", "Presented as worthy of confidence, acceptance, use, etc.",3),
@@ -1917,8 +1918,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Unwatched", "Usually automatic in operation, without any permanently-stationed personnel to superintend it.",17),
 				new listedValue("Existence Doubtful", "A feature that has been reported but has not been definitely determined to exist.",18),
 				new listedValue("Buoyed", "Marked by buoys.",28),
-				];
-			}
+			];
 
 		public static implicit operator status(int? value) => new status { value = value };
 	}
@@ -1964,8 +1964,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Telecommunication Service";
 		[JsonIgnore]
 		public override int sourceIdentifier => 175;
-		public telecommunicationService() {
-			base.listedValues = [
+		public telecommunicationService() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Voice", "The transfer or exchange of information by using sounds that are being made by mouth and throat when speaking.",1),
 				new listedValue("Facsimile", "A system of transmitting and reproducing graphic matter (as printing or still pictures) by means of signals sent over telephone lines.",2),
 				new listedValue("SMS", "Short Message Service is a form of text messaging communication on phones and mobile phones.",3),
@@ -1974,8 +1975,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Telex", "A system of communication in which messages are sent over long distances by using a telephone system and are printed by using a special machine (called a teletypewriter).",6),
 				new listedValue("Telegraph", "An apparatus, system or process for communication at a distance by electric transmission over wire.",7),
 				new listedValue("Email", "Messages and other data exchanged between individuals using computers in a network.",8),
-				];
-			}
+			];
 
 		public static implicit operator telecommunicationService(int? value) => new telecommunicationService { value = value };
 	}
@@ -2053,11 +2053,11 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Text Type";
 		[JsonIgnore]
 		public override int sourceIdentifier => 179;
-		public textType() {
-			base.listedValues = [
+		public textType() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Name", "The individual name of a feature.",1),
-				];
-			}
+			];
 
 		public static implicit operator textType(int? value) => new textType { value = value };
 	}
@@ -2120,14 +2120,14 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Traffic Flow";
 		[JsonIgnore]
 		public override int sourceIdentifier => 184;
-		public trafficFlow() {
-			base.listedValues = [
+		public trafficFlow() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Inbound", "Traffic flow in a general direction toward a port or similar destination.",1),
 				new listedValue("Outbound", "Traffic flow in a general direction away from a port or similar point of origin.",2),
 				new listedValue("One-Way", "Traffic flow in one general direction only.",3),
 				new listedValue("Two-Way", "Traffic flow in two generally opposite directions.",4),
-				];
-			}
+			];
 
 		public static implicit operator trafficFlow(int? value) => new trafficFlow { value = value };
 	}
@@ -2239,8 +2239,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Vessels Characteristics";
 		[JsonIgnore]
 		public override int sourceIdentifier => 711;
-		public vesselsCharacteristics() {
-			base.listedValues = [
+		public vesselsCharacteristics() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Length Overall", "The maximum length of the ship.",1),
 				new listedValue("Length at Waterline", "The ship's length measured at the waterline.",2),
 				new listedValue("Breadth", "The width or beam of the vessel.",3),
@@ -2253,8 +2254,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Net Tonnage", "Obtained from the gross tonnage by deducting crew and navigating spaces and allowances for propulsion machinery.",11),
 				new listedValue("Panama Canal/Universal Measurement System Net Tonnage", "The Panama Canal/Universal Measurement System (PC/UMS) is based on net tonnage, modified for Panama Canal purposes. PC/UMS is based on a mathematical formula to calculate a vessel's total volume; a PC/UMS net ton is equivalent to 100 cubic feet of capacity.",12),
 				new listedValue("Suez Canal Net Tonnage", "The Suez Canal Net Tonnage (SCNT) is derived with a number of modifications from the former net register tonnage of the Moorsom System and was established by the International Commission of Constantinople in its Protocol of 18 December 1873. It is still in use, as amended by the Rules of Navigation of the Suez Canal Authority, and is registered in the Suez Canal Tonnage Certificate.",13),
-				];
-			}
+			];
 
 		public static implicit operator vesselsCharacteristics(int? value) => new vesselsCharacteristics { value = value };
 	}
@@ -2270,8 +2270,9 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Vessels Characteristics Unit";
 		[JsonIgnore]
 		public override int sourceIdentifier => 1106;
-		public vesselsCharacteristicsUnit() {
-			base.listedValues = [
+		public vesselsCharacteristicsUnit() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Metres", "The basic unit of length in the International System of Units (SI) system.",1),
 				new listedValue("Metric Ton", "The tonne or metric ton (U.S.), often redundantly referred to as a metric tonne, is a unit of mass equal to 1,000 kg (2,205 lb) or approximately the mass of one cubic metre of water at four degrees Celsius. It is sometimes abbreviated as mt in the United States, but this conflicts with other SI symbols. The tonne is not a unit in the International System of Units (SI), but is accepted for use with the SI. In SI units and prefixes, the tonne is a megagram (Mg). The Imperial and US customary units comparable to the tonne are both spelled ton in English, though they differ in mass. Pronunciation of tonne (the word used in the UK) and ton is usually identical, but is not too confusing unless accuracy is important as the tonne and UK long ton differ by only 1.6.",3),
 				new listedValue("Ton", "Long ton (weight ton or imperial ton) is the name for the unit called the \"ton\" in the avoirdupois or Imperial system of measurements, as used in the United Kingdom and several other Commonwealth countries. It has been mostly replaced by the tonne, and in the United States by the short ton. One long ton is equal to 2,240 pounds (1,016 kg) or 35 cubic feet (0.9911 m³) of salt water with a density of 64 lb/ft³(1.025 g/ml). It has some limited use in the United States, most commonly in measuring the displacement of ships, and was the unit prescribed for warships by the Washington Naval Treaty for example battleships were limited to a mass of 35,000 long tons (36,000 t; 39,000 ST).",4),
@@ -2279,8 +2280,7 @@ namespace S100FC.S127.SimpleAttributes
 				new listedValue("Gross Ton", "Gross tonnage (GT) is a function of the volume of all ship's enclosed spaces (from keel to funnel) measured to the outside of the hull framing. There is a sliding scale factor. So GT is a kind of capacity-derived index that is used to rank a ship for purposes of determining manning, safety and other statutory requirements and is expressed simply as GT, which is a unitless entity, even though its derivation is tied to the cubic meter unit of volumetric capacity.Tonnage measurements are now governed by an IMO Convention (International Convention on Tonnage Measurement of Ships, 1969 (London-Rules)), which applies to all ships built after July 1982. In accordance with the Convention, the correct term to use now is GT, which is a function of the moulded volume of all enclosed spaces of the ship.",6),
 				new listedValue("Net Ton", "Net tonnage (NT) is based on a calculation of the volume of all cargo spaces of the ship. It indicates a vessel's earning space and is a function of the moulded volume of all cargo spaces of the ship.",7),
 				new listedValue("Suez Canal Net Tonnage", "The Suez Canal Net Tonnage (SCNT) is derived with a number of modifications from the former net register tonnage of the Moorsom System and was established by the International Commission of Constantinople in its Protocol of 18 December 1873. It is still in use, as amended by the Rules of Navigation of the Suez Canal Authority, and is registered in the Suez Canal Tonnage Certificate.",9),
-				];
-			}
+			];
 
 		public static implicit operator vesselsCharacteristicsUnit(int? value) => new vesselsCharacteristicsUnit { value = value };
 	}
@@ -2311,13 +2311,13 @@ namespace S100FC.S127.SimpleAttributes
 		public override string S100FC_name => "Water Level Trend";
 		[JsonIgnore]
 		public override int sourceIdentifier => 378;
-		public waterLevelTrend() {
-			base.listedValues = [
+		public waterLevelTrend() {}
+		[JsonIgnore]
+		public override listedValue[] listedValues => [
 				new listedValue("Decreasing", "Becoming smaller in magnitude.",1),
 				new listedValue("Increasing", "Becoming larger in magnitude.",2),
 				new listedValue("Steady", "Constant.",3),
-				];
-			}
+			];
 
 		public static implicit operator waterLevelTrend(int? value) => new waterLevelTrend { value = value };
 	}
