@@ -57,6 +57,7 @@ namespace S100FC.Topology
         //private CurveContainer _curveContainer = new CurveContainer();
         private readonly CompositeCurveContainer _compositeCurveContainer = new CompositeCurveContainer();
 
+        [Obsolete($"Use {nameof(Reloaded.CreateMatrix)} as the new Matrix.",false)]
         public static ITopologyBuilder CreateMatrix(Action<int, ICollection<(LineString lineString, string message)>>? interceptor = default) {
             return new Matrix() {
                 _interceptor = interceptor,

@@ -103,10 +103,10 @@ namespace ArcGIS.Core.Geometry
         //static readonly PrecisionModel precisionModel = new PrecisionModel(100000);
         //static readonly PrecisionModel precisionModel = new PrecisionModel(scale);
 
-        //static readonly PrecisionModel precisionModel = new PrecisionModel(1000000);    //ENC
+        //static readonly PrecisionModel precisionModel = new PrecisionModel(1000000);
 
         //static readonly PrecisionModel precisionModel = new PrecisionModel(2000000);
-        static readonly PrecisionModel precisionModel = new PrecisionModel(10000000);
+        static readonly PrecisionModel precisionModel = new PrecisionModel(10000000);    //ENC
 
         static readonly GeometryFactory factory = new GeometryFactory(precisionModel, srid: 4326); // Or PrecisionModels.Floating        
 
@@ -257,9 +257,30 @@ namespace ArcGIS.Core.Geometry
 
                             var ex = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
 
+
+
+                            //if (name.EndsWith("10400004587")) {
+                            //    interceptor?.Invoke(6000, [(ex, name)], true);
+                            //    System.Diagnostics.Debugger.Break();
+                            //}
+                            //if (name.EndsWith("10400004776")) {
+                            //    interceptor?.Invoke(6000, [(ex, name)], true);
+                            //    System.Diagnostics.Debugger.Break();
+                            //}
+
+
+
+
                             var reduced = matrix.Reducer.Reduce(ex);
                             if (!(reduced is LinearRing linear)) continue;
-                            reduced = TopologyPreservingSimplifier.Simplify(reduced, 0.0);
+
+                            //if (name.EndsWith("10400004587")) {
+                            //    interceptor?.Invoke(6000, [((LineString)reduced, name)], false);
+                            //    System.Diagnostics.Debugger.Break();
+                            //}
+
+
+                            //////reduced = TopologyPreservingSimplifier.Simplify(reduced, 0.0);
                             ex = (LinearRing)reduced;
                             //ex = ex.RemoveRepeatedVertices().RemoveCollinearVertices();
                             //ex.Normalize();
@@ -400,9 +421,21 @@ namespace ArcGIS.Core.Geometry
 
                             var ex = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
 
+
+                            //////if (name.EndsWith("10400004587")) {
+                            //////    interceptor?.Invoke(6000, [(ex, name)], true);
+                            //////    System.Diagnostics.Debugger.Break();
+                            //////}
+                            //////if (name.EndsWith("10400004776")) {
+                            //////    interceptor?.Invoke(6000, [(ex, name)], true);
+                            //////    System.Diagnostics.Debugger.Break();
+                            //////}
+
+
+
                             var reduced = matrix.Reducer.Reduce(ex);
                             if (!(reduced is LinearRing linear)) continue;
-                            reduced = TopologyPreservingSimplifier.Simplify(reduced, 0.0);
+                            ////reduced = TopologyPreservingSimplifier.Simplify(reduced, 0.0);
                             ex = (LinearRing)reduced;
 
                             //ex = ex.RemoveRepeatedVertices().RemoveCollinearVertices();

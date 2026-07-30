@@ -512,13 +512,14 @@ namespace S100FC.Topology
 
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
-                //if (surface.UID.EndsWith("10400000009")) {
-                //    checks = [.. checks, idExteriorRing];
-                //}
-                //if (surface.UID.EndsWith("10400000007")) {
-                //    checks = [.. checks, idExteriorRing];
-                //    //this._interceptor?.Invoke(6000, [(surface.ExteriorRing, "F10400001741")]);
-                //}
+                ////if (surface.UID.EndsWith("10400004587")) {
+                ////    checks = [.. checks, idExteriorRing];
+                ////    //this._interceptor?.Invoke(6000, [(surface.ExteriorRing, surface.UID)], true);
+                ////}
+                ////if (surface.UID.EndsWith("10400004776")) {
+                ////    checks = [.. checks, idExteriorRing];
+                ////    //this._interceptor?.Invoke(6000, [(surface.ExteriorRing, surface.UID)], true);
+                ////}
 
 
                 this._sourceLineType.Add(idExteriorRing, LineType.Exterior);
