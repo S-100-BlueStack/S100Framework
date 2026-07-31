@@ -30,6 +30,13 @@ namespace S100FC.Topology
         bool IsCollapsed(string uid) => Collapse.Contains(uid);
 
         string[] NetworkTopology { get; }
+
+
+        const string DE9IM_Contains = "T*****FF*";
+
+        const string DE9IM_Crosses = "T*T***T**";
+
+        const string DE9IM_Equals = "T*F**FFF*";
     }
 }
 
