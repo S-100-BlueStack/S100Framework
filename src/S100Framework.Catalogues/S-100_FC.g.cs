@@ -481,6 +481,8 @@ namespace S100FC
         [JsonIgnore]
         public virtual attributeBindingDefinition[] attributeBindingsCatalogue { get; set; } = [];
 
+        public attributeBindingDefinition? attributeBindingDefinition(string attribute) => attributeBindingsCatalogue.SingleOrDefault(e => e.attribute.Equals(attribute));
+
         public attributeBindingDefinition[] mandatoryBindings() {
             return [.. attributeBindingsCatalogue!.Where(e => e.lower > 0)];
         }
