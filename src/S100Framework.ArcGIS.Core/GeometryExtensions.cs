@@ -11,6 +11,7 @@ using NetTopologySuite.Operation.Linemerge;
 using NetTopologySuite.Operation.Valid;
 using NetTopologySuite.Simplify;
 using S100FC.Topology;
+using System.Data;
 using System.Globalization;
 
 namespace ArcGIS.Core.Data
@@ -115,7 +116,7 @@ namespace ArcGIS.Core.Geometry
         private const string surfaceTopologyFeatures = "'DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA','SHORELINECONSTRUCTION'";
         private const string curveTopologyFeatures = "'COASTLINE','DEPTHCONTOUR','SHORELINECONSTRUCTION'";
 
-        public delegate IEnumerable<(long objectid, string UID, Geometry shape)> FeatureQuery(string tablename, string whereClause, string de9im);
+        public delegate IEnumerable<(long objectid, string UID, string code, Geometry shape)> FeatureQuery(string tablename, string whereClause, string de9im);
 
         public static (S100FC.Topology.IMatrix matrix, IDictionary<string, string> mapper) BuildTopology(this Geodatabase geodatabase, FeatureQuery features, Action<int, ICollection<(LineString lineString, string message)>, bool>? interceptor = default, ILoggerFactory? loggerFactory = default) {
             S100FC.Topology.Matrix.Factory = S100FC.Topology.Reloaded.Factory = factory;
@@ -148,8 +149,8 @@ namespace ArcGIS.Core.Geometry
                         if (string.IsNullOrEmpty(name))
                             name = string.Empty;
 
-                        shape = (Polygon)clipGeometry(shape);
-                        if (shape.IsEmpty) continue;
+                        //shape = (Polygon)clipGeometry(shape);
+                        //if (shape.IsEmpty) continue;
 
                         var exteriorRing = shape.GetExteriorRing(0);
                         var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
@@ -183,10 +184,10 @@ namespace ArcGIS.Core.Geometry
                                 }
                             }
 
-                            polygons.Add(new S100FC.Topology.Polygon(f.GetObjectID(), name, Convert.ToString(f["code"])!, ex, interiorRings.ToArray()));
+                            polygons.Add(new S100FC.Topology.Polygon(f.objectid, name, f.code, ex, interiorRings.ToArray()));
                         }
                         else {
-                            polygons.Add(new S100FC.Topology.Polygon(f.GetObjectID(), name, Convert.ToString(f["code"])!, ex, []));
+                            polygons.Add(new S100FC.Topology.Polygon(f.objectid, name, f.code, ex, []));
                         }
                     }
                 }
@@ -197,14 +198,14 @@ namespace ArcGIS.Core.Geometry
                     var lookup = curves.ToLookup(e => e.ObjectId, e => e);
 
                     foreach (var f in features.Invoke("curve", $"(upper(code) IN ({curveTopologyFeatures}))", de9im[j])) {
-                        if (lookup.Contains(f.GetObjectID())) continue;
+                        if (lookup.Contains(f.objectid)) continue;
 
-                        var shape = (Polyline)f.GetShape();
+                        var shape = (Polyline)f.shape;
 
-                        shape = (Polyline)clipGeometry(shape);
-                        if (shape.IsEmpty) continue;
+                        //shape = (Polyline)clipGeometry(shape);
+                        //if (shape.IsEmpty) continue;
 
-                        var name = Convert.ToString(f["UID"]);
+                        var name = f.UID;
                         if (string.IsNullOrEmpty(name))
                             name = string.Empty;
 
@@ -226,11 +227,11 @@ namespace ArcGIS.Core.Geometry
                             }
                         }
                         if (parts.Length == 1) {
-                            curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, parts[0], name));
+                            curves.Add(new S100FC.Topology.Polyline(f.objectid, name, f.code, parts[0], name));
                         }
                         else {
                             for (int i = 0; i < parts.Length; i++) {
-                                curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), $"{name}:{i}", Convert.ToString(f["code"])!, parts[i], name));
+                                curves.Add(new S100FC.Topology.Polyline(f.objectid, $"{name}:{i}", f.code, parts[i], name));
                                 mapper.Add($"{name}:{i}", name);
                             }
                         }
@@ -249,19 +250,19 @@ namespace ArcGIS.Core.Geometry
                     var lookup = polygons.ToLookup(e => e.ObjectId, e => e);
 
                     foreach (var f in features.Invoke("surface", $"(upper(code) NOT IN ({surfaceTopologyFeatures}))", de9im[j])) {
-                        if (lookup.Contains(f.GetObjectID())) continue;
+                        if (lookup.Contains(f.objectid)) continue;
 
 #if SKIN_OF_THE_EARTH_ONLY
                             if (!testFeatures.Contains(Convert.ToString(f["code"]))) continue;
 #endif
-                        var shape = (ArcGIS.Core.Geometry.Polygon)f.GetShape();
+                        var shape = (ArcGIS.Core.Geometry.Polygon)f.shape;
 
-                        var name = Convert.ToString(f["UID"]);
+                        var name = f.UID;
                         if (string.IsNullOrEmpty(name))
                             name = string.Empty;
 
-                        shape = (Polygon)clipGeometry(shape);
-                        if (shape.IsEmpty) continue;
+                        //shape = (Polygon)clipGeometry(shape);
+                        //if (shape.IsEmpty) continue;
 
                         var exteriorRing = shape.GetExteriorRing(0);
                         var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
@@ -312,10 +313,10 @@ namespace ArcGIS.Core.Geometry
 
                                 index += 1;
                             }
-                            polygons.Add(new S100FC.Topology.Polygon(f.GetObjectID(), name, Convert.ToString(f["code"])!, ex, interiorRings.ToArray()));
+                            polygons.Add(new S100FC.Topology.Polygon(f.objectid, name, f.code, ex, interiorRings.ToArray()));
                         }
                         else {
-                            polygons.Add(new S100FC.Topology.Polygon(f.GetObjectID(), name, Convert.ToString(f["code"])!, ex, []));
+                            polygons.Add(new S100FC.Topology.Polygon(f.objectid, name, f.code, ex, []));
                         }
                     }
                 }
@@ -330,18 +331,18 @@ namespace ArcGIS.Core.Geometry
 
                     foreach (var f in features.Invoke("curve", $"(upper(code) NOT IN ({curveTopologyFeatures})) AND (upper(code) NOT IN ({singletonsFeatures}))", de9im[j])) {
 
-                        if (lookup.Contains(f.GetObjectID())) continue;
+                        if (lookup.Contains(f.objectid)) continue;
 
 #if SKIN_OF_THE_EARTH_ONLY
                             continue;
 #endif
 
-                        var shape = (Polyline)f.GetShape();
+                        var shape = (Polyline)f.shape;
 
-                        shape = (Polyline)clipGeometry(shape);
-                        if (shape.IsEmpty) continue;
+                        //shape = (Polyline)clipGeometry(shape);
+                        //if (shape.IsEmpty) continue;
 
-                        var name = Convert.ToString(f["UID"]);
+                        var name = f.UID;
                         if (string.IsNullOrEmpty(name))
                             name = string.Empty;
 
@@ -363,11 +364,11 @@ namespace ArcGIS.Core.Geometry
                             }
                         }
                         if (parts.Length == 1) {
-                            curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), name, Convert.ToString(f["code"])!, parts[0], name));
+                            curves.Add(new S100FC.Topology.Polyline(f.objectid, name, f.code, parts[0], name));
                         }
                         else {
                             for (int i = 0; i < parts.Length; i++) {
-                                curves.Add(new S100FC.Topology.Polyline(f.GetObjectID(), $"{name}:{i}", Convert.ToString(f["code"])!, parts[i], name));
+                                curves.Add(new S100FC.Topology.Polyline(f.objectid, $"{name}:{i}", f.code, parts[i], name));
                                 mapper.Add($"{name}:{i}", name);
                             }
                         }
