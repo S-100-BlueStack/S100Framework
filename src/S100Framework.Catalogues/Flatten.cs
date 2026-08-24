@@ -294,7 +294,7 @@ namespace S100FC
             var root = new JObject();
 
             foreach (var attr in attributes) {
-                if (attr.S100FC_code.StartsWith("wave")) System.Diagnostics.Debugger.Break();
+                //if (attr.S100FC_code.StartsWith("wave")) System.Diagnostics.Debugger.Break();
                 var isCollection = catalogue.Single(e => e.attribute == attr.S100FC_code).IsCollection;
 
                 AddAttribute(root, attr, catalogue, isCollection);

@@ -521,6 +521,9 @@ namespace S100FC.Topology
                 ////    //this._interceptor?.Invoke(6000, [(surface.ExteriorRing, surface.UID)], true);
                 ////}
 
+                if (surface.UID.Equals("F10400000534") || surface.UID.Equals("F10400000535"))
+                    System.Diagnostics.Debugger.Break();
+
 
                 this._sourceLineType.Add(idExteriorRing, LineType.Exterior);
 
