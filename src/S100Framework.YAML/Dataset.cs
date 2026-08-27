@@ -901,6 +901,9 @@ namespace S100FC.YAML
 
         public string Producer { get; set; } = "GST";
         public string ProducerCode { get; set; } = "DK00";
+
+        public string NotForNavigation { get; set; } = "true";
+
         public ICollection<SupportFile>? SupportFiles => this._supportFiles.Count != 0 ? this._supportFiles : null;
         private readonly ICollection<SupportFile> _supportFiles = [];
 
