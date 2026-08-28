@@ -10,6 +10,7 @@ using NetTopologySuite.Noding.Snapround;
 using NetTopologySuite.Operation.Linemerge;
 using NetTopologySuite.Operation.Valid;
 using NetTopologySuite.Simplify;
+using S100FC.S101.FeatureTypes;
 using S100FC.Topology;
 using System.Data;
 using System.Globalization;
@@ -85,19 +86,51 @@ namespace ArcGIS.Core.Geometry
 
         private static (string tableName, SpatialRelationship SpatialRelationship, string SpatialRelationshipDescription)[] spatialRelationships = [
                 ("surface", SpatialRelationship.Relation,"T********"),
-                                ("surface", SpatialRelationship.Relation,Matrix.DE9IM_Contains),
-                                ("surface", SpatialRelationship.Relation,Matrix.DE9IM_Crosses),
+                ("surface", SpatialRelationship.Relation,Matrix.DE9IM_Contains),
+                ("surface", SpatialRelationship.Relation,Matrix.DE9IM_Crosses),
 
-                                ("curve", SpatialRelationship.Relation,Matrix.DE9IM_Contains),
-                                ("curve", SpatialRelationship.Relation,Matrix.DE9IM_Crosses),
+                ("curve", SpatialRelationship.Relation,Matrix.DE9IM_Contains),
+                ("curve", SpatialRelationship.Relation,Matrix.DE9IM_Crosses),
 
-                                ("point", SpatialRelationship.Relation,Matrix.DE9IM_Contains),
+                ("point", SpatialRelationship.Relation,Matrix.DE9IM_Contains),
 
-                                ("pointset", SpatialRelationship.Relation,Matrix.DE9IM_Contains),
-                                ("pointset", SpatialRelationship.Relation,Matrix.DE9IM_Crosses),
-                            ];
+                ("pointset", SpatialRelationship.Relation,Matrix.DE9IM_Contains),
+                ("pointset", SpatialRelationship.Relation,Matrix.DE9IM_Crosses),
+            ];
 
         public delegate IEnumerable<(long objectid, string UID, string code, Geometry shape)> FeatureQuery(string tablename, string whereClause);
+
+        public static IEnumerable<(DataCoverage dataCoverage, SpatialQueryFilter Filter)> S101_QueryDataCoverage(this Geodatabase geodatabase, Polygon product, long nominalScale) {
+            var syntax = geodatabase.GetSQLSyntax();
+            var definitionFeatures = geodatabase.GetDefinitions<FeatureClassDefinition>();
+
+            using var surface = geodatabase.OpenDataset<FeatureClass>(definitionFeatures.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("surface")).GetName());
+
+            var whereClause = "upper(ps) = 'S-101'";
+
+            using var datacoverageSearch = surface.Search(new SpatialQueryFilter {
+                WhereClause = $"upper(ps) = 'S-101' AND code = 'DataCoverage' AND nominalscale = {nominalScale}",
+                FilterGeometry = product,
+                SpatialRelationship = SpatialRelationship.Contains,
+            }, true);
+
+            while (datacoverageSearch.MoveNext()) {
+                var f = (ArcGIS.Core.Data.Feature)datacoverageSearch.Current;
+
+                var dataCoverage = (S100FC.S101.FeatureTypes.DataCoverage)S100FC.AttributeFlattenExtensions.Unflatten<S100FC.FeatureType>(Convert.ToString(f["attributebindings"])!, typeof(S100FC.S101.FeatureTypes.DataCoverage));
+
+                var spatialQueryFilter = new SpatialQueryFilter {
+                    WhereClause = whereClause + $" AND nominalscale = {dataCoverage.optimumDisplayScale}",
+                    FilterGeometry = f.GetShape().Clone(),
+                    SpatialRelationship = SpatialRelationship.Relation,
+                    SpatialRelationshipDescription = "UNKNOWN",
+                    SubFields = "OBJECTID,UID,GLOBALID,CODE,SHAPE",
+                };
+                yield return (dataCoverage, spatialQueryFilter);                
+            }
+
+            yield break;
+        }
 
         public static (S100FC.Topology.IMatrix matrix, IDictionary<string, string> mapper, IDictionary<string,HashSet<long>> selection) BuildTopology(this Geodatabase geodatabase, SpatialQueryFilter[] spatialFilters, Action<int, ICollection<(LineString lineString, string message)>, bool>? interceptor = default, ILoggerFactory? loggerFactory = default) {
             S100FC.Topology.Matrix.Factory = S100FC.Topology.Reloaded.Factory = factory;
