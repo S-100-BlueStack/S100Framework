@@ -1000,6 +1000,7 @@ namespace S100FC.YAML
 
                         case Type t when t.IsPrimitive: {
                                 if (attr.Value == null) continue;
+                                if (String.IsNullOrEmpty(attr.Value)) continue;
                                 var convertedValue = Convert.ChangeType(attr.Value, typed);
                                 prop.SetValue(parentInstance, convertedValue);
                                 break;
