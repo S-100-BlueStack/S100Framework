@@ -562,7 +562,13 @@ namespace S100FC.Topology
 
             foreach (var curve in curves) {
                 //if (curve.UID.EndsWith("10100081766")) System.Diagnostics.Debugger.Break();
-                var id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
+                int id;
+                if (curve.LineString.IsRing) {
+                    id = this._mixedTopologyNetwork.AddLineString((LinearRing)curve.LineString);
+                }
+                else {
+                    id = this._mixedTopologyNetwork.AddLineString(curve.LineString);
+                }
                 if (id < 0) continue;
                 if (System.Diagnostics.Debugger.IsAttached)
                     _geometriesTopology = [.. _geometriesTopology, ($"110:{curve.UID.Substring(1)}:1", curve.LineString)];

@@ -142,9 +142,10 @@ namespace S100Framework.Topology.Internal
 
         public CoordinateKey(Coordinate snappedCoord, double tolerance) {
             double inv = 1.0 / tolerance;
+
             // Round-half to the grid, matching NTS PrecisionModel(1/tolerance).
-            _x = (long)Math.Round(snappedCoord.X * inv);
-            _y = (long)Math.Round(snappedCoord.Y * inv);
+            _x = (long)(Math.Floor(snappedCoord.X * inv + 0.5d) / inv); //(long)Math.Round(snappedCoord.X * inv);
+            _y = (long)(Math.Floor(snappedCoord.Y * inv + 0.5d) / inv); //(long)Math.Round(snappedCoord.Y * inv);
         }
 
         private CoordinateKey(long x, long y) { _x = x; _y = y; }
@@ -590,11 +591,11 @@ namespace S100Framework.Topology.Internal
         // Snapping / canonicalization
         // -------------------------------------------------------------------
 
-        private Coordinate SnapToGrid(Coordinate c) {
+        private Coordinate SnapToGrid(Coordinate c) {            
             double inv = 1.0 / _snapTolerance;
             // Round-half to the grid, matching NTS PrecisionModel(1/_snapTolerance).
-            double x = Math.Round(c.X * inv) / inv;
-            double y = Math.Round(c.Y * inv) / inv;
+            double x = Math.Floor(c.X * inv + 0.5d) / inv;  // Math.Round(c.X * inv) / inv;
+            double y = Math.Floor(c.y * inv + 0.5d) / inv;  // Math.Round(c.Y * inv) / inv;
 
             var coord = double.IsNaN(c.Z) ? new Coordinate(x, y) : new CoordinateZ(x, y, c.Z);
 
