@@ -942,6 +942,8 @@ namespace S100FC
         public string role { get; init; } = string.Empty;
         public string? featureType { get; set; } = null;
         public string featureId { get; set; } = string.Empty;
+        
+        public Primitives Primitive { get; set; }
 
         public virtual bool Validate(ICollection<string>? errors = default) {
             if (string.IsNullOrEmpty(roleType)) return false;
