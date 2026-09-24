@@ -16,7 +16,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Based On Fixed Marks";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1;
+		public override int sourceIdentifier => basedOnFixedMarks._sourceIdentifier;
+		public const int _sourceIdentifier = 1;
 
 		public static implicit operator basedOnFixedMarks(Boolean? value) => new basedOnFixedMarks { value = value };
 	}
@@ -31,7 +32,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Beacon Shape";
 		[JsonIgnore]
-		public override int sourceIdentifier => 2;
+		public override int sourceIdentifier => beaconShape._sourceIdentifier;
+		public const int _sourceIdentifier = 2;
 		public beaconShape() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -57,7 +59,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Bridge Construction";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1128;
+		public override int sourceIdentifier => bridgeConstruction._sourceIdentifier;
+		public const int _sourceIdentifier = 1128;
 		public bridgeConstruction() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -81,7 +84,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Bridge Function";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1127;
+		public override int sourceIdentifier => bridgeFunction._sourceIdentifier;
+		public const int _sourceIdentifier = 1127;
 		public bridgeFunction() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -104,7 +108,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Building Shape";
 		[JsonIgnore]
-		public override int sourceIdentifier => 79;
+		public override int sourceIdentifier => buildingShape._sourceIdentifier;
+		public const int _sourceIdentifier = 79;
 		public buildingShape() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -128,7 +133,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Buoy Shape";
 		[JsonIgnore]
-		public override int sourceIdentifier => 3;
+		public override int sourceIdentifier => buoyShape._sourceIdentifier;
+		public const int _sourceIdentifier = 3;
 		public buoyShape() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -155,7 +161,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Buried Depth";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1147;
+		public override int sourceIdentifier => buriedDepth._sourceIdentifier;
+		public const int _sourceIdentifier = 1147;
 
 		public static implicit operator buriedDepth(decimal? value) => new buriedDepth { value = value };
 	}
@@ -171,7 +178,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Call Sign";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1148;
+		public override int sourceIdentifier => callSign._sourceIdentifier;
+		public const int _sourceIdentifier = 1148;
 
 		public static implicit operator callSign(String? value) => new callSign { value = value };
 	}
@@ -186,7 +194,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Airport/Airfield";
 		[JsonIgnore]
-		public override int sourceIdentifier => 5;
+		public override int sourceIdentifier => categoryOfAirportAirfield._sourceIdentifier;
+		public const int _sourceIdentifier = 5;
 		public categoryOfAirportAirfield() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -213,7 +222,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Anchorage";
 		[JsonIgnore]
-		public override int sourceIdentifier => 6;
+		public override int sourceIdentifier => categoryOfAnchorage._sourceIdentifier;
+		public const int _sourceIdentifier = 6;
 		public categoryOfAnchorage() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -242,7 +252,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Built-Up Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 8;
+		public override int sourceIdentifier => categoryOfBuiltUpArea._sourceIdentifier;
+		public const int _sourceIdentifier = 8;
 		public categoryOfBuiltUpArea() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -267,7 +278,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Cable";
 		[JsonIgnore]
-		public override int sourceIdentifier => 9;
+		public override int sourceIdentifier => categoryOfCable._sourceIdentifier;
+		public const int _sourceIdentifier = 9;
 		public categoryOfCable() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -292,7 +304,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Canal";
 		[JsonIgnore]
-		public override int sourceIdentifier => 10;
+		public override int sourceIdentifier => categoryOfCanal._sourceIdentifier;
+		public const int _sourceIdentifier = 10;
 		public categoryOfCanal() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -314,7 +327,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Cardinal Mark";
 		[JsonIgnore]
-		public override int sourceIdentifier => 11;
+		public override int sourceIdentifier => categoryOfCardinalMark._sourceIdentifier;
+		public const int _sourceIdentifier = 11;
 		public categoryOfCardinalMark() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -337,7 +351,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Checkpoint";
 		[JsonIgnore]
-		public override int sourceIdentifier => 12;
+		public override int sourceIdentifier => categoryOfCheckpoint._sourceIdentifier;
+		public const int _sourceIdentifier = 12;
 		public categoryOfCheckpoint() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -357,7 +372,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Coastline";
 		[JsonIgnore]
-		public override int sourceIdentifier => 13;
+		public override int sourceIdentifier => categoryOfCoastline._sourceIdentifier;
+		public const int _sourceIdentifier = 13;
 		public categoryOfCoastline() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -382,7 +398,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Conveyor";
 		[JsonIgnore]
-		public override int sourceIdentifier => 14;
+		public override int sourceIdentifier => categoryOfConveyor._sourceIdentifier;
+		public const int _sourceIdentifier = 14;
 		public categoryOfConveyor() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -405,7 +422,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Crane";
 		[JsonIgnore]
-		public override int sourceIdentifier => 15;
+		public override int sourceIdentifier => categoryOfCrane._sourceIdentifier;
+		public const int _sourceIdentifier = 15;
 		public categoryOfCrane() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -429,7 +447,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Dam";
 		[JsonIgnore]
-		public override int sourceIdentifier => 16;
+		public override int sourceIdentifier => categoryOfDam._sourceIdentifier;
+		public const int _sourceIdentifier = 16;
 		public categoryOfDam() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -451,7 +470,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Dock";
 		[JsonIgnore]
-		public override int sourceIdentifier => 18;
+		public override int sourceIdentifier => categoryOfDock._sourceIdentifier;
+		public const int _sourceIdentifier = 18;
 		public categoryOfDock() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -472,7 +492,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Dolphin";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1142;
+		public override int sourceIdentifier => categoryOfDolphin._sourceIdentifier;
+		public const int _sourceIdentifier = 1142;
 		public categoryOfDolphin() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -495,7 +516,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Dumping Ground";
 		[JsonIgnore]
-		public override int sourceIdentifier => 19;
+		public override int sourceIdentifier => categoryOfDumpingGround._sourceIdentifier;
+		public const int _sourceIdentifier = 19;
 		public categoryOfDumpingGround() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -519,7 +541,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Fence";
 		[JsonIgnore]
-		public override int sourceIdentifier => 20;
+		public override int sourceIdentifier => categoryOfFence._sourceIdentifier;
+		public const int _sourceIdentifier = 20;
 		public categoryOfFence() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -541,7 +564,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Ferry";
 		[JsonIgnore]
-		public override int sourceIdentifier => 21;
+		public override int sourceIdentifier => categoryOfFerry._sourceIdentifier;
+		public const int _sourceIdentifier = 21;
 		public categoryOfFerry() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -564,7 +588,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Fishing Facility";
 		[JsonIgnore]
-		public override int sourceIdentifier => 22;
+		public override int sourceIdentifier => categoryOfFishingFacility._sourceIdentifier;
+		public const int _sourceIdentifier = 22;
 		public categoryOfFishingFacility() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -587,7 +612,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Fog Signal";
 		[JsonIgnore]
-		public override int sourceIdentifier => 23;
+		public override int sourceIdentifier => categoryOfFogSignal._sourceIdentifier;
+		public const int _sourceIdentifier = 23;
 		public categoryOfFogSignal() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -616,7 +642,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Fortified Structure";
 		[JsonIgnore]
-		public override int sourceIdentifier => 24;
+		public override int sourceIdentifier => categoryOfFortifiedStructure._sourceIdentifier;
+		public const int _sourceIdentifier = 24;
 		public categoryOfFortifiedStructure() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -643,7 +670,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Gate";
 		[JsonIgnore]
-		public override int sourceIdentifier => 25;
+		public override int sourceIdentifier => categoryOfGate._sourceIdentifier;
+		public const int _sourceIdentifier = 25;
 		public categoryOfGate() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -667,7 +695,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Harbour Facility";
 		[JsonIgnore]
-		public override int sourceIdentifier => 26;
+		public override int sourceIdentifier => categoryOfHarbourFacility._sourceIdentifier;
+		public const int _sourceIdentifier = 26;
 		public categoryOfHarbourFacility() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -700,7 +729,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Hulk";
 		[JsonIgnore]
-		public override int sourceIdentifier => 27;
+		public override int sourceIdentifier => categoryOfHulk._sourceIdentifier;
+		public const int _sourceIdentifier = 27;
 		public categoryOfHulk() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -726,7 +756,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Ice";
 		[JsonIgnore]
-		public override int sourceIdentifier => 28;
+		public override int sourceIdentifier => categoryOfIce._sourceIdentifier;
+		public const int _sourceIdentifier = 28;
 		public categoryOfIce() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -748,7 +779,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Installation Buoy";
 		[JsonIgnore]
-		public override int sourceIdentifier => 29;
+		public override int sourceIdentifier => categoryOfInstallationBuoy._sourceIdentifier;
+		public const int _sourceIdentifier = 29;
 		public categoryOfInstallationBuoy() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -769,7 +801,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Land Region";
 		[JsonIgnore]
-		public override int sourceIdentifier => 31;
+		public override int sourceIdentifier => categoryOfLandRegion._sourceIdentifier;
+		public const int _sourceIdentifier = 31;
 		public categoryOfLandRegion() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -809,7 +842,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Landmark";
 		[JsonIgnore]
-		public override int sourceIdentifier => 987;
+		public override int sourceIdentifier => categoryOfLandmark._sourceIdentifier;
+		public const int _sourceIdentifier = 987;
 		public categoryOfLandmark() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -854,7 +888,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Lateral Mark";
 		[JsonIgnore]
-		public override int sourceIdentifier => 34;
+		public override int sourceIdentifier => categoryOfLateralMark._sourceIdentifier;
+		public const int _sourceIdentifier = 34;
 		public categoryOfLateralMark() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -877,7 +912,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Light";
 		[JsonIgnore]
-		public override int sourceIdentifier => 88;
+		public override int sourceIdentifier => categoryOfLight._sourceIdentifier;
+		public const int _sourceIdentifier = 88;
 		public categoryOfLight() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -910,7 +946,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Marine Farm/Culture";
 		[JsonIgnore]
-		public override int sourceIdentifier => 36;
+		public override int sourceIdentifier => categoryOfMarineFarmCulture._sourceIdentifier;
+		public const int _sourceIdentifier = 36;
 		public categoryOfMarineFarmCulture() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -934,7 +971,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Military Practice Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 37;
+		public override int sourceIdentifier => categoryOfMilitaryPracticeArea._sourceIdentifier;
+		public const int _sourceIdentifier = 37;
 		public categoryOfMilitaryPracticeArea() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -958,7 +996,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Mooring Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1139;
+		public override int sourceIdentifier => categoryOfMooringArea._sourceIdentifier;
+		public const int _sourceIdentifier = 1139;
 		public categoryOfMooringArea() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -980,7 +1019,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Navigation Line";
 		[JsonIgnore]
-		public override int sourceIdentifier => 39;
+		public override int sourceIdentifier => categoryOfNavigationLine._sourceIdentifier;
+		public const int _sourceIdentifier = 39;
 		public categoryOfNavigationLine() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1002,7 +1042,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Obstruction";
 		[JsonIgnore]
-		public override int sourceIdentifier => 989;
+		public override int sourceIdentifier => categoryOfObstruction._sourceIdentifier;
+		public const int _sourceIdentifier = 989;
 		public categoryOfObstruction() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1042,7 +1083,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Offshore Platform";
 		[JsonIgnore]
-		public override int sourceIdentifier => 41;
+		public override int sourceIdentifier => categoryOfOffshorePlatform._sourceIdentifier;
+		public const int _sourceIdentifier = 41;
 		public categoryOfOffshorePlatform() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1072,7 +1114,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Offshore Production Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 42;
+		public override int sourceIdentifier => categoryOfOffshoreProductionArea._sourceIdentifier;
+		public const int _sourceIdentifier = 42;
 		public categoryOfOffshoreProductionArea() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1097,7 +1140,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Oil Barrier";
 		[JsonIgnore]
-		public override int sourceIdentifier => 43;
+		public override int sourceIdentifier => categoryOfOilBarrier._sourceIdentifier;
+		public const int _sourceIdentifier = 43;
 		public categoryOfOilBarrier() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1118,7 +1162,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Opening Bridge";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1125;
+		public override int sourceIdentifier => categoryOfOpeningBridge._sourceIdentifier;
+		public const int _sourceIdentifier = 1125;
 		public categoryOfOpeningBridge() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1141,7 +1186,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Pile";
 		[JsonIgnore]
-		public override int sourceIdentifier => 44;
+		public override int sourceIdentifier => categoryOfPile._sourceIdentifier;
+		public const int _sourceIdentifier = 44;
 		public categoryOfPile() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1167,7 +1213,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Pilot Boarding Place";
 		[JsonIgnore]
-		public override int sourceIdentifier => 45;
+		public override int sourceIdentifier => categoryOfPilotBoardingPlace._sourceIdentifier;
+		public const int _sourceIdentifier = 45;
 		public categoryOfPilotBoardingPlace() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1189,7 +1236,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Pipeline/Pipe";
 		[JsonIgnore]
-		public override int sourceIdentifier => 46;
+		public override int sourceIdentifier => categoryOfPipelinePipe._sourceIdentifier;
+		public const int _sourceIdentifier = 46;
 		public categoryOfPipelinePipe() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1214,7 +1262,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Preference";
 		[JsonIgnore]
-		public override int sourceIdentifier => 47;
+		public override int sourceIdentifier => categoryOfPreference._sourceIdentifier;
+		public const int _sourceIdentifier = 47;
 		public categoryOfPreference() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1235,7 +1284,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Production Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 988;
+		public override int sourceIdentifier => categoryOfProductionArea._sourceIdentifier;
+		public const int _sourceIdentifier = 988;
 		public categoryOfProductionArea() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1266,7 +1316,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Pylon";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1108;
+		public override int sourceIdentifier => categoryOfPylon._sourceIdentifier;
+		public const int _sourceIdentifier = 1108;
 		public categoryOfPylon() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1291,7 +1342,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Radar Station";
 		[JsonIgnore]
-		public override int sourceIdentifier => 50;
+		public override int sourceIdentifier => categoryOfRadarStation._sourceIdentifier;
+		public const int _sourceIdentifier = 50;
 		public categoryOfRadarStation() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1312,7 +1364,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Radar Transponder Beacon";
 		[JsonIgnore]
-		public override int sourceIdentifier => 51;
+		public override int sourceIdentifier => categoryOfRadarTransponderBeacon._sourceIdentifier;
+		public const int _sourceIdentifier = 51;
 		public categoryOfRadarTransponderBeacon() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1334,7 +1387,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Radio Station";
 		[JsonIgnore]
-		public override int sourceIdentifier => 52;
+		public override int sourceIdentifier => categoryOfRadioStation._sourceIdentifier;
+		public const int _sourceIdentifier = 52;
 		public categoryOfRadioStation() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1359,7 +1413,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Rescue Station";
 		[JsonIgnore]
-		public override int sourceIdentifier => 420;
+		public override int sourceIdentifier => categoryOfRescueStation._sourceIdentifier;
+		public const int _sourceIdentifier = 420;
 		public categoryOfRescueStation() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1385,7 +1440,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Restricted Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 90;
+		public override int sourceIdentifier => categoryOfRestrictedArea._sourceIdentifier;
+		public const int _sourceIdentifier = 90;
 		public categoryOfRestrictedArea() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1428,7 +1484,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Road";
 		[JsonIgnore]
-		public override int sourceIdentifier => 55;
+		public override int sourceIdentifier => categoryOfRoad._sourceIdentifier;
+		public const int _sourceIdentifier = 55;
 		public categoryOfRoad() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1453,7 +1510,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Schedule";
 		[JsonIgnore]
-		public override int sourceIdentifier => 57;
+		public override int sourceIdentifier => categoryOfSchedule._sourceIdentifier;
+		public const int _sourceIdentifier = 57;
 		public categoryOfSchedule() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1475,7 +1533,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Sea Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 58;
+		public override int sourceIdentifier => categoryOfSeaArea._sourceIdentifier;
+		public const int _sourceIdentifier = 58;
 		public categoryOfSeaArea() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1549,7 +1608,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Shoreline Construction";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1124;
+		public override int sourceIdentifier => categoryOfShorelineConstruction._sourceIdentifier;
+		public const int _sourceIdentifier = 1124;
 		public categoryOfShorelineConstruction() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1588,7 +1648,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Signal Station, Traffic";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1119;
+		public override int sourceIdentifier => categoryOfSignalStationTraffic._sourceIdentifier;
+		public const int _sourceIdentifier = 1119;
 		public categoryOfSignalStationTraffic() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1617,7 +1678,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Signal Station, Warning";
 		[JsonIgnore]
-		public override int sourceIdentifier => 61;
+		public override int sourceIdentifier => categoryOfSignalStationWarning._sourceIdentifier;
+		public const int _sourceIdentifier = 61;
 		public categoryOfSignalStationWarning() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1651,7 +1713,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Silo/Tank";
 		[JsonIgnore]
-		public override int sourceIdentifier => 62;
+		public override int sourceIdentifier => categoryOfSiloTank._sourceIdentifier;
+		public const int _sourceIdentifier = 62;
 		public categoryOfSiloTank() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1674,7 +1737,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Slope";
 		[JsonIgnore]
-		public override int sourceIdentifier => 63;
+		public override int sourceIdentifier => categoryOfSlope._sourceIdentifier;
+		public const int _sourceIdentifier = 63;
 		public categoryOfSlope() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1700,7 +1764,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Small Craft Facility";
 		[JsonIgnore]
-		public override int sourceIdentifier => 64;
+		public override int sourceIdentifier => categoryOfSmallCraftFacility._sourceIdentifier;
+		public const int _sourceIdentifier = 64;
 		public categoryOfSmallCraftFacility() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1751,7 +1816,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Special Purpose Mark";
 		[JsonIgnore]
-		public override int sourceIdentifier => 92;
+		public override int sourceIdentifier => categoryOfSpecialPurposeMark._sourceIdentifier;
+		public const int _sourceIdentifier = 92;
 		public categoryOfSpecialPurposeMark() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1831,7 +1897,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Temporal Variation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 200;
+		public override int sourceIdentifier => categoryOfTemporalVariation._sourceIdentifier;
+		public const int _sourceIdentifier = 200;
 		public categoryOfTemporalVariation() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1856,7 +1923,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Structure";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1240;
+		public override int sourceIdentifier => categoryOfStructure._sourceIdentifier;
+		public const int _sourceIdentifier = 1240;
 		public categoryOfStructure() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1880,7 +1948,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Tidal Stream";
 		[JsonIgnore]
-		public override int sourceIdentifier => 66;
+		public override int sourceIdentifier => categoryOfTidalStream._sourceIdentifier;
+		public const int _sourceIdentifier = 66;
 		public categoryOfTidalStream() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1902,7 +1971,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Vegetation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 990;
+		public override int sourceIdentifier => categoryOfVegetation._sourceIdentifier;
+		public const int _sourceIdentifier = 990;
 		public categoryOfVegetation() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1935,7 +2005,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Water Turbulence";
 		[JsonIgnore]
-		public override int sourceIdentifier => 68;
+		public override int sourceIdentifier => categoryOfWaterTurbulence._sourceIdentifier;
+		public const int _sourceIdentifier = 68;
 		public categoryOfWaterTurbulence() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1959,7 +2030,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Weed/Kelp";
 		[JsonIgnore]
-		public override int sourceIdentifier => 69;
+		public override int sourceIdentifier => categoryOfWeedKelp._sourceIdentifier;
+		public const int _sourceIdentifier = 69;
 		public categoryOfWeedKelp() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -1981,7 +2053,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Wreck";
 		[JsonIgnore]
-		public override int sourceIdentifier => 70;
+		public override int sourceIdentifier => categoryOfWreck._sourceIdentifier;
+		public const int _sourceIdentifier = 70;
 		public categoryOfWreck() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2005,7 +2078,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Zone of Confidence In Data";
 		[JsonIgnore]
-		public override int sourceIdentifier => 275;
+		public override int sourceIdentifier => categoryOfZoneOfConfidenceInData._sourceIdentifier;
+		public const int _sourceIdentifier = 275;
 		public categoryOfZoneOfConfidenceInData() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2030,7 +2104,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Colour";
 		[JsonIgnore]
-		public override int sourceIdentifier => 72;
+		public override int sourceIdentifier => colour._sourceIdentifier;
+		public const int _sourceIdentifier = 72;
 		public colour() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2062,7 +2137,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Colour Pattern";
 		[JsonIgnore]
-		public override int sourceIdentifier => 73;
+		public override int sourceIdentifier => colourPattern._sourceIdentifier;
+		public const int _sourceIdentifier = 73;
 		public colourPattern() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2087,7 +2163,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Communication Channel";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1149;
+		public override int sourceIdentifier => communicationChannel._sourceIdentifier;
+		public const int _sourceIdentifier = 1149;
 
 		public static implicit operator communicationChannel(String? value) => new communicationChannel { value = value };
 	}
@@ -2102,7 +2179,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Condition";
 		[JsonIgnore]
-		public override int sourceIdentifier => 75;
+		public override int sourceIdentifier => condition._sourceIdentifier;
+		public const int _sourceIdentifier = 75;
 		public condition() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2127,7 +2205,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Contact Instructions";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1150;
+		public override int sourceIdentifier => contactInstructions._sourceIdentifier;
+		public const int _sourceIdentifier = 1150;
 
 		public static implicit operator contactInstructions(String? value) => new contactInstructions { value = value };
 	}
@@ -2142,7 +2221,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Data Assessment";
 		[JsonIgnore]
-		public override int sourceIdentifier => 203;
+		public override int sourceIdentifier => dataAssessment._sourceIdentifier;
+		public const int _sourceIdentifier = 203;
 		public dataAssessment() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2164,7 +2244,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Date Disused";
 		[JsonIgnore]
-		public override int sourceIdentifier => 789;
+		public override int sourceIdentifier => dateDisused._sourceIdentifier;
+		public const int _sourceIdentifier = 789;
 
 		public static implicit operator dateDisused(String? value) => new dateDisused { value = value };
 	}
@@ -2179,7 +2260,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Date End";
 		[JsonIgnore]
-		public override int sourceIdentifier => 790;
+		public override int sourceIdentifier => dateEnd._sourceIdentifier;
+		public const int _sourceIdentifier = 790;
 
 		public static implicit operator dateEnd(String? value) => new dateEnd { value = value };
 	}
@@ -2194,7 +2276,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Date Fixed";
 		[JsonIgnore]
-		public override int sourceIdentifier => 791;
+		public override int sourceIdentifier => dateFixed._sourceIdentifier;
+		public const int _sourceIdentifier = 791;
 
 		public static implicit operator dateFixed(String? value) => new dateFixed { value = value };
 	}
@@ -2209,7 +2292,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Date Start";
 		[JsonIgnore]
-		public override int sourceIdentifier => 792;
+		public override int sourceIdentifier => dateStart._sourceIdentifier;
+		public const int _sourceIdentifier = 792;
 
 		public static implicit operator dateStart(String? value) => new dateStart { value = value };
 	}
@@ -2225,7 +2309,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Date Variable";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1151;
+		public override int sourceIdentifier => dateVariable._sourceIdentifier;
+		public const int _sourceIdentifier = 1151;
 
 		public static implicit operator dateVariable(String? value) => new dateVariable { value = value };
 	}
@@ -2240,7 +2325,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Day of Week";
 		[JsonIgnore]
-		public override int sourceIdentifier => 83;
+		public override int sourceIdentifier => dayOfWeek._sourceIdentifier;
+		public const int _sourceIdentifier = 83;
 		public dayOfWeek() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2266,7 +2352,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Day of Week is Range";
 		[JsonIgnore]
-		public override int sourceIdentifier => 84;
+		public override int sourceIdentifier => dayOfWeekIsRange._sourceIdentifier;
+		public const int _sourceIdentifier = 84;
 
 		public static implicit operator dayOfWeekIsRange(Boolean? value) => new dayOfWeekIsRange { value = value };
 	}
@@ -2282,7 +2369,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Default Clearance Depth";
 		[JsonIgnore]
-		public override int sourceIdentifier => 819;
+		public override int sourceIdentifier => defaultClearanceDepth._sourceIdentifier;
+		public const int _sourceIdentifier = 819;
 
 		public static implicit operator defaultClearanceDepth(decimal? value) => new defaultClearanceDepth { value = value };
 	}
@@ -2298,7 +2386,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Depth Range Maximum Value";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1152;
+		public override int sourceIdentifier => depthRangeMaximumValue._sourceIdentifier;
+		public const int _sourceIdentifier = 1152;
 
 		public static implicit operator depthRangeMaximumValue(decimal? value) => new depthRangeMaximumValue { value = value };
 	}
@@ -2314,7 +2403,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Depth Range Minimum Value";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1153;
+		public override int sourceIdentifier => depthRangeMinimumValue._sourceIdentifier;
+		public const int _sourceIdentifier = 1153;
 
 		public static implicit operator depthRangeMinimumValue(decimal? value) => new depthRangeMinimumValue { value = value };
 	}
@@ -2330,7 +2420,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Destination";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1154;
+		public override int sourceIdentifier => destination._sourceIdentifier;
+		public const int _sourceIdentifier = 1154;
 
 		public static implicit operator destination(String? value) => new destination { value = value };
 	}
@@ -2345,7 +2436,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Distance Mark Visible";
 		[JsonIgnore]
-		public override int sourceIdentifier => 994;
+		public override int sourceIdentifier => distanceMarkVisible._sourceIdentifier;
+		public const int _sourceIdentifier = 994;
 
 		public static implicit operator distanceMarkVisible(Boolean? value) => new distanceMarkVisible { value = value };
 	}
@@ -2360,7 +2452,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Distance Unit of Measurement";
 		[JsonIgnore]
-		public override int sourceIdentifier => 95;
+		public override int sourceIdentifier => distanceUnitOfMeasurement._sourceIdentifier;
+		public const int _sourceIdentifier = 95;
 		public distanceUnitOfMeasurement() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2384,7 +2477,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Dredged Date";
 		[JsonIgnore]
-		public override int sourceIdentifier => 96;
+		public override int sourceIdentifier => dredgedDate._sourceIdentifier;
+		public const int _sourceIdentifier = 96;
 
 		public static implicit operator dredgedDate(String? value) => new dredgedDate { value = value };
 	}
@@ -2400,7 +2494,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Elevation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1155;
+		public override int sourceIdentifier => elevation._sourceIdentifier;
+		public const int _sourceIdentifier = 1155;
 
 		public static implicit operator elevation(decimal? value) => new elevation { value = value };
 	}
@@ -2416,7 +2511,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Estimated Range of Transmission";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1156;
+		public override int sourceIdentifier => estimatedRangeOfTransmission._sourceIdentifier;
+		public const int _sourceIdentifier = 1156;
 
 		public static implicit operator estimatedRangeOfTransmission(decimal? value) => new estimatedRangeOfTransmission { value = value };
 	}
@@ -2431,7 +2527,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Exhibition Condition of Light";
 		[JsonIgnore]
-		public override int sourceIdentifier => 99;
+		public override int sourceIdentifier => exhibitionConditionOfLight._sourceIdentifier;
+		public const int _sourceIdentifier = 99;
 		public exhibitionConditionOfLight() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2454,7 +2551,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Exposition of Sounding";
 		[JsonIgnore]
-		public override int sourceIdentifier => 100;
+		public override int sourceIdentifier => expositionOfSounding._sourceIdentifier;
+		public const int _sourceIdentifier = 100;
 		public expositionOfSounding() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2477,7 +2575,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "File Locator";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1157;
+		public override int sourceIdentifier => fileLocator._sourceIdentifier;
+		public const int _sourceIdentifier = 1157;
 
 		public static implicit operator fileLocator(String? value) => new fileLocator { value = value };
 	}
@@ -2492,7 +2591,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "File Reference";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1158;
+		public override int sourceIdentifier => fileReference._sourceIdentifier;
+		public const int _sourceIdentifier = 1158;
 
 		public static implicit operator fileReference(String? value) => new fileReference { value = value };
 	}
@@ -2507,7 +2607,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Flare Bearing";
 		[JsonIgnore]
-		public override int sourceIdentifier => 922;
+		public override int sourceIdentifier => flareBearing._sourceIdentifier;
+		public const int _sourceIdentifier = 922;
 
 		public static implicit operator flareBearing(int? value) => new flareBearing { value = value };
 	}
@@ -2522,7 +2623,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Flare Stack";
 		[JsonIgnore]
-		public override int sourceIdentifier => 103;
+		public override int sourceIdentifier => flareStack._sourceIdentifier;
+		public const int _sourceIdentifier = 103;
 
 		public static implicit operator flareStack(Boolean? value) => new flareStack { value = value };
 	}
@@ -2537,7 +2639,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Frequency Shore Station Receives";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1159;
+		public override int sourceIdentifier => frequencyShoreStationReceives._sourceIdentifier;
+		public const int _sourceIdentifier = 1159;
 
 		public static implicit operator frequencyShoreStationReceives(int? value) => new frequencyShoreStationReceives { value = value };
 	}
@@ -2552,7 +2655,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Frequency Shore Station Transmits";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1160;
+		public override int sourceIdentifier => frequencyShoreStationTransmits._sourceIdentifier;
+		public const int _sourceIdentifier = 1160;
 
 		public static implicit operator frequencyShoreStationTransmits(int? value) => new frequencyShoreStationTransmits { value = value };
 	}
@@ -2567,7 +2671,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Drawing Index";
 		[JsonIgnore]
-		public override int sourceIdentifier => 0;
+		public override int sourceIdentifier => drawingIndex._sourceIdentifier;
+		public const int _sourceIdentifier = 0;
 
 		public static implicit operator drawingIndex(int? value) => new drawingIndex { value = value };
 	}
@@ -2582,7 +2687,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Full Seafloor Coverage Achieved";
 		[JsonIgnore]
-		public override int sourceIdentifier => 204;
+		public override int sourceIdentifier => fullSeafloorCoverageAchieved._sourceIdentifier;
+		public const int _sourceIdentifier = 204;
 
 		public static implicit operator fullSeafloorCoverageAchieved(Boolean? value) => new fullSeafloorCoverageAchieved { value = value };
 	}
@@ -2597,7 +2703,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Function";
 		[JsonIgnore]
-		public override int sourceIdentifier => 107;
+		public override int sourceIdentifier => function._sourceIdentifier;
+		public const int _sourceIdentifier = 107;
 		public function() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2663,7 +2770,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Headline";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1161;
+		public override int sourceIdentifier => headline._sourceIdentifier;
+		public const int _sourceIdentifier = 1161;
 
 		public static implicit operator headline(String? value) => new headline { value = value };
 	}
@@ -2678,7 +2786,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Height";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1162;
+		public override int sourceIdentifier => height._sourceIdentifier;
+		public const int _sourceIdentifier = 1162;
 
 		public static implicit operator height(decimal? value) => new height { value = value };
 	}
@@ -2693,7 +2802,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Horizontal Clearance Length";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1163;
+		public override int sourceIdentifier => horizontalClearanceLength._sourceIdentifier;
+		public const int _sourceIdentifier = 1163;
 
 		public static implicit operator horizontalClearanceLength(decimal? value) => new horizontalClearanceLength { value = value };
 	}
@@ -2708,7 +2818,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Horizontal Clearance Value";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1164;
+		public override int sourceIdentifier => horizontalClearanceValue._sourceIdentifier;
+		public const int _sourceIdentifier = 1164;
 
 		public static implicit operator horizontalClearanceValue(decimal? value) => new horizontalClearanceValue { value = value };
 	}
@@ -2723,7 +2834,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Horizontal Clearance Width";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1165;
+		public override int sourceIdentifier => horizontalClearanceWidth._sourceIdentifier;
+		public const int _sourceIdentifier = 1165;
 
 		public static implicit operator horizontalClearanceWidth(decimal? value) => new horizontalClearanceWidth { value = value };
 	}
@@ -2738,7 +2850,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Horizontal Distance Uncertainty";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1216;
+		public override int sourceIdentifier => horizontalDistanceUncertainty._sourceIdentifier;
+		public const int _sourceIdentifier = 1216;
 
 		public static implicit operator horizontalDistanceUncertainty(decimal? value) => new horizontalDistanceUncertainty { value = value };
 	}
@@ -2753,7 +2866,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Horizontal Length";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1167;
+		public override int sourceIdentifier => horizontalLength._sourceIdentifier;
+		public const int _sourceIdentifier = 1167;
 
 		public static implicit operator horizontalLength(decimal? value) => new horizontalLength { value = value };
 	}
@@ -2768,7 +2882,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Horizontal Width";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1166;
+		public override int sourceIdentifier => horizontalWidth._sourceIdentifier;
+		public const int _sourceIdentifier = 1166;
 
 		public static implicit operator horizontalWidth(decimal? value) => new horizontalWidth { value = value };
 	}
@@ -2783,7 +2898,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Ice Factor";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1168;
+		public override int sourceIdentifier => iceFactor._sourceIdentifier;
+		public const int _sourceIdentifier = 1168;
 
 		public static implicit operator iceFactor(decimal? value) => new iceFactor { value = value };
 	}
@@ -2798,7 +2914,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "IMO Adopted";
 		[JsonIgnore]
-		public override int sourceIdentifier => 116;
+		public override int sourceIdentifier => iMOAdopted._sourceIdentifier;
+		public const int _sourceIdentifier = 116;
 
 		public static implicit operator iMOAdopted(Boolean? value) => new iMOAdopted { value = value };
 	}
@@ -2813,7 +2930,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "In Dispute";
 		[JsonIgnore]
-		public override int sourceIdentifier => 117;
+		public override int sourceIdentifier => inDispute._sourceIdentifier;
+		public const int _sourceIdentifier = 117;
 
 		public static implicit operator inDispute(Boolean? value) => new inDispute { value = value };
 	}
@@ -2828,7 +2946,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Interoperability Identifier";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1134;
+		public override int sourceIdentifier => interoperabilityIdentifier._sourceIdentifier;
+		public const int _sourceIdentifier = 1134;
 
 		public static implicit operator interoperabilityIdentifier(String? value) => new interoperabilityIdentifier { value = value };
 	}
@@ -2843,7 +2962,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "In the Water";
 		[JsonIgnore]
-		public override int sourceIdentifier => 269;
+		public override int sourceIdentifier => inTheWater._sourceIdentifier;
+		public const int _sourceIdentifier = 269;
 
 		public static implicit operator inTheWater(Boolean? value) => new inTheWater { value = value };
 	}
@@ -2858,7 +2978,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Is MRCC";
 		[JsonIgnore]
-		public override int sourceIdentifier => 118;
+		public override int sourceIdentifier => isMRCC._sourceIdentifier;
+		public const int _sourceIdentifier = 118;
 
 		public static implicit operator isMRCC(Boolean? value) => new isMRCC { value = value };
 	}
@@ -2873,7 +2994,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Jurisdiction";
 		[JsonIgnore]
-		public override int sourceIdentifier => 119;
+		public override int sourceIdentifier => jurisdiction._sourceIdentifier;
+		public const int _sourceIdentifier = 119;
 		public jurisdiction() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2895,7 +3017,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Language";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1169;
+		public override int sourceIdentifier => language._sourceIdentifier;
+		public const int _sourceIdentifier = 1169;
 
 		public static implicit operator language(String? value) => new language { value = value };
 	}
@@ -2910,7 +3033,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Least Depth of Detected Features Measured";
 		[JsonIgnore]
-		public override int sourceIdentifier => 206;
+		public override int sourceIdentifier => leastDepthOfDetectedFeaturesMeasured._sourceIdentifier;
+		public const int _sourceIdentifier = 206;
 
 		public static implicit operator leastDepthOfDetectedFeaturesMeasured(Boolean? value) => new leastDepthOfDetectedFeaturesMeasured { value = value };
 	}
@@ -2925,7 +3049,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Lifting Capacity";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1170;
+		public override int sourceIdentifier => liftingCapacity._sourceIdentifier;
+		public const int _sourceIdentifier = 1170;
 
 		public static implicit operator liftingCapacity(decimal? value) => new liftingCapacity { value = value };
 	}
@@ -2940,7 +3065,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Light Characteristic";
 		[JsonIgnore]
-		public override int sourceIdentifier => 122;
+		public override int sourceIdentifier => lightCharacteristic._sourceIdentifier;
+		public const int _sourceIdentifier = 122;
 		public lightCharacteristic() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -2981,7 +3107,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Light Visibility";
 		[JsonIgnore]
-		public override int sourceIdentifier => 123;
+		public override int sourceIdentifier => lightVisibility._sourceIdentifier;
+		public const int _sourceIdentifier = 123;
 		public lightVisibility() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3009,7 +3136,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Line Spacing Maximum";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1218;
+		public override int sourceIdentifier => lineSpacingMaximum._sourceIdentifier;
+		public const int _sourceIdentifier = 1218;
 
 		public static implicit operator lineSpacingMaximum(int? value) => new lineSpacingMaximum { value = value };
 	}
@@ -3024,7 +3152,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Line Spacing Minimum";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1217;
+		public override int sourceIdentifier => lineSpacingMinimum._sourceIdentifier;
+		public const int _sourceIdentifier = 1217;
 
 		public static implicit operator lineSpacingMinimum(int? value) => new lineSpacingMinimum { value = value };
 	}
@@ -3039,7 +3168,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Linkage";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1146;
+		public override int sourceIdentifier => linkage._sourceIdentifier;
+		public const int _sourceIdentifier = 1146;
 
 		public static implicit operator linkage(String? value) => new linkage { value = value };
 	}
@@ -3055,7 +3185,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Magnetic Anomaly Value";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1171;
+		public override int sourceIdentifier => magneticAnomalyValue._sourceIdentifier;
+		public const int _sourceIdentifier = 1171;
 
 		public static implicit operator magneticAnomalyValue(decimal? value) => new magneticAnomalyValue { value = value };
 	}
@@ -3070,7 +3201,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Reference Direction";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1104;
+		public override int sourceIdentifier => referenceDirection._sourceIdentifier;
+		public const int _sourceIdentifier = 1104;
 		public referenceDirection() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3091,7 +3223,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Major Light";
 		[JsonIgnore]
-		public override int sourceIdentifier => 127;
+		public override int sourceIdentifier => majorLight._sourceIdentifier;
+		public const int _sourceIdentifier = 127;
 
 		public static implicit operator majorLight(Boolean? value) => new majorLight { value = value };
 	}
@@ -3106,7 +3239,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Marks Navigational - System Of";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1238;
+		public override int sourceIdentifier => marksNavigationalSystemOf._sourceIdentifier;
+		public const int _sourceIdentifier = 1238;
 		public marksNavigationalSystemOf() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3129,7 +3263,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Maximum Display Scale";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1237;
+		public override int sourceIdentifier => maximumDisplayScale._sourceIdentifier;
+		public const int _sourceIdentifier = 1237;
 
 		public static implicit operator maximumDisplayScale(int? value) => new maximumDisplayScale { value = value };
 	}
@@ -3144,7 +3279,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Maximum Permitted Draught";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1172;
+		public override int sourceIdentifier => maximumPermittedDraught._sourceIdentifier;
+		public const int _sourceIdentifier = 1172;
 
 		public static implicit operator maximumPermittedDraught(decimal? value) => new maximumPermittedDraught { value = value };
 	}
@@ -3159,7 +3295,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Maximum Permitted Vessel Length";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1173;
+		public override int sourceIdentifier => maximumPermittedVesselLength._sourceIdentifier;
+		public const int _sourceIdentifier = 1173;
 
 		public static implicit operator maximumPermittedVesselLength(decimal? value) => new maximumPermittedVesselLength { value = value };
 	}
@@ -3174,7 +3311,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Measured Distance";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1174;
+		public override int sourceIdentifier => measuredDistance._sourceIdentifier;
+		public const int _sourceIdentifier = 1174;
 
 		public static implicit operator measuredDistance(int? value) => new measuredDistance { value = value };
 	}
@@ -3189,7 +3327,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Measurement Distance Maximum";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1220;
+		public override int sourceIdentifier => measurementDistanceMaximum._sourceIdentifier;
+		public const int _sourceIdentifier = 1220;
 
 		public static implicit operator measurementDistanceMaximum(int? value) => new measurementDistanceMaximum { value = value };
 	}
@@ -3204,7 +3343,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Measurement Distance Minimum";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1221;
+		public override int sourceIdentifier => measurementDistanceMinimum._sourceIdentifier;
+		public const int _sourceIdentifier = 1221;
 
 		public static implicit operator measurementDistanceMinimum(int? value) => new measurementDistanceMinimum { value = value };
 	}
@@ -3219,7 +3359,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Minimum Display Scale";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1222;
+		public override int sourceIdentifier => minimumDisplayScale._sourceIdentifier;
+		public const int _sourceIdentifier = 1222;
 
 		public static implicit operator minimumDisplayScale(int? value) => new minimumDisplayScale { value = value };
 	}
@@ -3235,7 +3376,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "MMSI Code";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1175;
+		public override int sourceIdentifier => mMSICode._sourceIdentifier;
+		public const int _sourceIdentifier = 1175;
 
 		public static implicit operator mMSICode(String? value) => new mMSICode { value = value };
 	}
@@ -3250,7 +3392,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Moire Effect";
 		[JsonIgnore]
-		public override int sourceIdentifier => 132;
+		public override int sourceIdentifier => moireEffect._sourceIdentifier;
+		public const int _sourceIdentifier = 132;
 
 		public static implicit operator moireEffect(Boolean? value) => new moireEffect { value = value };
 	}
@@ -3265,7 +3408,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Multiplicity Known";
 		[JsonIgnore]
-		public override int sourceIdentifier => 133;
+		public override int sourceIdentifier => multiplicityKnown._sourceIdentifier;
+		public const int _sourceIdentifier = 133;
 
 		public static implicit operator multiplicityKnown(Boolean? value) => new multiplicityKnown { value = value };
 	}
@@ -3281,7 +3425,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Name";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1176;
+		public override int sourceIdentifier => name._sourceIdentifier;
+		public const int _sourceIdentifier = 1176;
 
 		public static implicit operator name(String? value) => new name { value = value };
 	}
@@ -3297,7 +3442,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Name of Resource";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1177;
+		public override int sourceIdentifier => nameOfResource._sourceIdentifier;
+		public const int _sourceIdentifier = 1177;
 
 		public static implicit operator nameOfResource(String? value) => new nameOfResource { value = value };
 	}
@@ -3312,7 +3458,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Name Usage";
 		[JsonIgnore]
-		public override int sourceIdentifier => 0;
+		public override int sourceIdentifier => nameUsage._sourceIdentifier;
+		public const int _sourceIdentifier = 0;
 		public nameUsage() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3333,7 +3480,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Nationality";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1178;
+		public override int sourceIdentifier => nationality._sourceIdentifier;
+		public const int _sourceIdentifier = 1178;
 
 		public static implicit operator nationality(String? value) => new nationality { value = value };
 	}
@@ -3348,7 +3496,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Nature of Construction";
 		[JsonIgnore]
-		public override int sourceIdentifier => 137;
+		public override int sourceIdentifier => natureOfConstruction._sourceIdentifier;
+		public const int _sourceIdentifier = 137;
 		public natureOfConstruction() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3377,7 +3526,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Nature of Surface";
 		[JsonIgnore]
-		public override int sourceIdentifier => 138;
+		public override int sourceIdentifier => natureOfSurface._sourceIdentifier;
+		public const int _sourceIdentifier = 138;
 		public natureOfSurface() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3409,7 +3559,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Nature of Surface - Qualifying Terms";
 		[JsonIgnore]
-		public override int sourceIdentifier => 139;
+		public override int sourceIdentifier => natureOfSurfaceQualifyingTerms._sourceIdentifier;
+		public const int _sourceIdentifier = 139;
 		public natureOfSurfaceQualifyingTerms() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3438,7 +3589,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Number of Features";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1179;
+		public override int sourceIdentifier => numberOfFeatures._sourceIdentifier;
+		public const int _sourceIdentifier = 1179;
 
 		public static implicit operator numberOfFeatures(int? value) => new numberOfFeatures { value = value };
 	}
@@ -3453,7 +3605,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Opening Bridge";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1123;
+		public override int sourceIdentifier => openingBridge._sourceIdentifier;
+		public const int _sourceIdentifier = 1123;
 
 		public static implicit operator openingBridge(Boolean? value) => new openingBridge { value = value };
 	}
@@ -3468,7 +3621,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Orientation Uncertainty";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1224;
+		public override int sourceIdentifier => orientationUncertainty._sourceIdentifier;
+		public const int _sourceIdentifier = 1224;
 
 		public static implicit operator orientationUncertainty(decimal? value) => new orientationUncertainty { value = value };
 	}
@@ -3484,7 +3638,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Orientation Value";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1180;
+		public override int sourceIdentifier => orientationValue._sourceIdentifier;
+		public const int _sourceIdentifier = 1180;
 
 		public static implicit operator orientationValue(decimal? value) => new orientationValue { value = value };
 	}
@@ -3499,7 +3654,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Pictorial Representation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1181;
+		public override int sourceIdentifier => pictorialRepresentation._sourceIdentifier;
+		public const int _sourceIdentifier = 1181;
 
 		public static implicit operator pictorialRepresentation(String? value) => new pictorialRepresentation { value = value };
 	}
@@ -3514,7 +3670,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Pilot Movement";
 		[JsonIgnore]
-		public override int sourceIdentifier => 143;
+		public override int sourceIdentifier => pilotMovement._sourceIdentifier;
+		public const int _sourceIdentifier = 143;
 		public pilotMovement() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3536,7 +3693,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Product";
 		[JsonIgnore]
-		public override int sourceIdentifier => 144;
+		public override int sourceIdentifier => product._sourceIdentifier;
+		public const int _sourceIdentifier = 144;
 		public product() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3580,7 +3738,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Quality of Horizontal Measurement";
 		[JsonIgnore]
-		public override int sourceIdentifier => 215;
+		public override int sourceIdentifier => qualityOfHorizontalMeasurement._sourceIdentifier;
+		public const int _sourceIdentifier = 215;
 		public qualityOfHorizontalMeasurement() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3600,7 +3759,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Quality of Vertical Measurement";
 		[JsonIgnore]
-		public override int sourceIdentifier => 145;
+		public override int sourceIdentifier => qualityOfVerticalMeasurement._sourceIdentifier;
+		public const int _sourceIdentifier = 145;
 		public qualityOfVerticalMeasurement() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3629,7 +3789,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Radar Band";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1182;
+		public override int sourceIdentifier => radarBand._sourceIdentifier;
+		public const int _sourceIdentifier = 1182;
 
 		public static implicit operator radarBand(String? value) => new radarBand { value = value };
 	}
@@ -3644,7 +3805,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Radar Conspicuous";
 		[JsonIgnore]
-		public override int sourceIdentifier => 147;
+		public override int sourceIdentifier => radarConspicuous._sourceIdentifier;
+		public const int _sourceIdentifier = 147;
 
 		public static implicit operator radarConspicuous(Boolean? value) => new radarConspicuous { value = value };
 	}
@@ -3659,7 +3821,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Radius";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1183;
+		public override int sourceIdentifier => radius._sourceIdentifier;
+		public const int _sourceIdentifier = 1183;
 
 		public static implicit operator radius(decimal? value) => new radius { value = value };
 	}
@@ -3675,7 +3838,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Reference Location";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1184;
+		public override int sourceIdentifier => referenceLocation._sourceIdentifier;
+		public const int _sourceIdentifier = 1184;
 
 		public static implicit operator referenceLocation(String? value) => new referenceLocation { value = value };
 	}
@@ -3690,7 +3854,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Reference Tide";
 		[JsonIgnore]
-		public override int sourceIdentifier => 150;
+		public override int sourceIdentifier => referenceTide._sourceIdentifier;
+		public const int _sourceIdentifier = 150;
 		public referenceTide() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3711,7 +3876,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Reference Tide Type";
 		[JsonIgnore]
-		public override int sourceIdentifier => 151;
+		public override int sourceIdentifier => referenceTideType._sourceIdentifier;
+		public const int _sourceIdentifier = 151;
 		public referenceTideType() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3733,7 +3899,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Reference Year for Magnetic Variation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 152;
+		public override int sourceIdentifier => referenceYearForMagneticVariation._sourceIdentifier;
+		public const int _sourceIdentifier = 152;
 
 		public static implicit operator referenceYearForMagneticVariation(String? value) => new referenceYearForMagneticVariation { value = value };
 	}
@@ -3749,7 +3916,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Regulation Citation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1185;
+		public override int sourceIdentifier => regulationCitation._sourceIdentifier;
+		public const int _sourceIdentifier = 1185;
 
 		public static implicit operator regulationCitation(String? value) => new regulationCitation { value = value };
 	}
@@ -3764,7 +3932,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Reported Date";
 		[JsonIgnore]
-		public override int sourceIdentifier => 154;
+		public override int sourceIdentifier => reportedDate._sourceIdentifier;
+		public const int _sourceIdentifier = 154;
 
 		public static implicit operator reportedDate(String? value) => new reportedDate { value = value };
 	}
@@ -3779,7 +3948,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Restriction";
 		[JsonIgnore]
-		public override int sourceIdentifier => 155;
+		public override int sourceIdentifier => restriction._sourceIdentifier;
+		public const int _sourceIdentifier = 155;
 		public restriction() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3827,7 +3997,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Scale Minimum";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1186;
+		public override int sourceIdentifier => scaleMinimum._sourceIdentifier;
+		public const int _sourceIdentifier = 1186;
 
 		public static implicit operator scaleMinimum(int? value) => new scaleMinimum { value = value };
 	}
@@ -3842,7 +4013,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Scale Value Maximum";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1225;
+		public override int sourceIdentifier => scaleValueMaximum._sourceIdentifier;
+		public const int _sourceIdentifier = 1225;
 
 		public static implicit operator scaleValueMaximum(int? value) => new scaleValueMaximum { value = value };
 	}
@@ -3857,7 +4029,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Scale Value Minimum";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1226;
+		public override int sourceIdentifier => scaleValueMinimum._sourceIdentifier;
+		public const int _sourceIdentifier = 1226;
 
 		public static implicit operator scaleValueMinimum(int? value) => new scaleValueMinimum { value = value };
 	}
@@ -3873,7 +4046,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Sector Bearing";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1187;
+		public override int sourceIdentifier => sectorBearing._sourceIdentifier;
+		public const int _sourceIdentifier = 1187;
 
 		public static implicit operator sectorBearing(decimal? value) => new sectorBearing { value = value };
 	}
@@ -3888,7 +4062,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Sector Arc Extension";
 		[JsonIgnore]
-		public override int sourceIdentifier => 991;
+		public override int sourceIdentifier => sectorArcExtension._sourceIdentifier;
+		public const int _sourceIdentifier = 991;
 
 		public static implicit operator sectorArcExtension(Boolean? value) => new sectorArcExtension { value = value };
 	}
@@ -3903,7 +4078,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Sector Line Length";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1188;
+		public override int sourceIdentifier => sectorLineLength._sourceIdentifier;
+		public const int _sourceIdentifier = 1188;
 
 		public static implicit operator sectorLineLength(decimal? value) => new sectorLineLength { value = value };
 	}
@@ -3918,7 +4094,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Signal Duration";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1189;
+		public override int sourceIdentifier => signalDuration._sourceIdentifier;
+		public const int _sourceIdentifier = 1189;
 
 		public static implicit operator signalDuration(decimal? value) => new signalDuration { value = value };
 	}
@@ -3933,7 +4110,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Signal Frequency";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1190;
+		public override int sourceIdentifier => signalFrequency._sourceIdentifier;
+		public const int _sourceIdentifier = 1190;
 
 		public static implicit operator signalFrequency(int? value) => new signalFrequency { value = value };
 	}
@@ -3948,7 +4126,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Signal Generation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 161;
+		public override int sourceIdentifier => signalGeneration._sourceIdentifier;
+		public const int _sourceIdentifier = 161;
 		public signalGeneration() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -3974,7 +4153,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Signal Group";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1191;
+		public override int sourceIdentifier => signalGroup._sourceIdentifier;
+		public const int _sourceIdentifier = 1191;
 
 		public static implicit operator signalGroup(String? value) => new signalGroup { value = value };
 	}
@@ -3989,7 +4169,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Signal Period";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1192;
+		public override int sourceIdentifier => signalPeriod._sourceIdentifier;
+		public const int _sourceIdentifier = 1192;
 
 		public static implicit operator signalPeriod(decimal? value) => new signalPeriod { value = value };
 	}
@@ -4004,7 +4185,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Signal Status";
 		[JsonIgnore]
-		public override int sourceIdentifier => 164;
+		public override int sourceIdentifier => signalStatus._sourceIdentifier;
+		public const int _sourceIdentifier = 164;
 		public signalStatus() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4025,7 +4207,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Significant Features Detected";
 		[JsonIgnore]
-		public override int sourceIdentifier => 218;
+		public override int sourceIdentifier => significantFeaturesDetected._sourceIdentifier;
+		public const int _sourceIdentifier = 218;
 
 		public static implicit operator significantFeaturesDetected(Boolean? value) => new significantFeaturesDetected { value = value };
 	}
@@ -4040,7 +4223,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Size of Features Detected";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1227;
+		public override int sourceIdentifier => sizeOfFeaturesDetected._sourceIdentifier;
+		public const int _sourceIdentifier = 1227;
 
 		public static implicit operator sizeOfFeaturesDetected(decimal? value) => new sizeOfFeaturesDetected { value = value };
 	}
@@ -4056,7 +4240,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Source";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1228;
+		public override int sourceIdentifier => source._sourceIdentifier;
+		public const int _sourceIdentifier = 1228;
 
 		public static implicit operator source(String? value) => new source { value = value };
 	}
@@ -4071,7 +4256,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Speed Limit";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1193;
+		public override int sourceIdentifier => speedLimit._sourceIdentifier;
+		public const int _sourceIdentifier = 1193;
 
 		public static implicit operator speedLimit(decimal? value) => new speedLimit { value = value };
 	}
@@ -4086,7 +4272,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Speed Maximum";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1194;
+		public override int sourceIdentifier => speedMaximum._sourceIdentifier;
+		public const int _sourceIdentifier = 1194;
 
 		public static implicit operator speedMaximum(decimal? value) => new speedMaximum { value = value };
 	}
@@ -4101,7 +4288,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Speed Minimum";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1195;
+		public override int sourceIdentifier => speedMinimum._sourceIdentifier;
+		public const int _sourceIdentifier = 1195;
 
 		public static implicit operator speedMinimum(decimal? value) => new speedMinimum { value = value };
 	}
@@ -4116,7 +4304,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Speed Units";
 		[JsonIgnore]
-		public override int sourceIdentifier => 654;
+		public override int sourceIdentifier => speedUnits._sourceIdentifier;
+		public const int _sourceIdentifier = 654;
 		public speedUnits() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4139,7 +4328,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Station Name";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1196;
+		public override int sourceIdentifier => stationName._sourceIdentifier;
+		public const int _sourceIdentifier = 1196;
 
 		public static implicit operator stationName(String? value) => new stationName { value = value };
 	}
@@ -4155,7 +4345,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Station Number";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1197;
+		public override int sourceIdentifier => stationNumber._sourceIdentifier;
+		public const int _sourceIdentifier = 1197;
 
 		public static implicit operator stationNumber(String? value) => new stationNumber { value = value };
 	}
@@ -4170,7 +4361,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Status";
 		[JsonIgnore]
-		public override int sourceIdentifier => 725;
+		public override int sourceIdentifier => status._sourceIdentifier;
+		public const int _sourceIdentifier = 725;
 		public status() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4207,7 +4399,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Stream Depth";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1198;
+		public override int sourceIdentifier => streamDepth._sourceIdentifier;
+		public const int _sourceIdentifier = 1198;
 
 		public static implicit operator streamDepth(decimal? value) => new streamDepth { value = value };
 	}
@@ -4222,7 +4415,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Surrounding Depth";
 		[JsonIgnore]
-		public override int sourceIdentifier => 880;
+		public override int sourceIdentifier => surroundingDepth._sourceIdentifier;
+		public const int _sourceIdentifier = 880;
 
 		public static implicit operator surroundingDepth(decimal? value) => new surroundingDepth { value = value };
 	}
@@ -4238,7 +4432,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Survey Authority";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1229;
+		public override int sourceIdentifier => surveyAuthority._sourceIdentifier;
+		public const int _sourceIdentifier = 1229;
 
 		public static implicit operator surveyAuthority(String? value) => new surveyAuthority { value = value };
 	}
@@ -4253,7 +4448,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Survey Type";
 		[JsonIgnore]
-		public override int sourceIdentifier => 222;
+		public override int sourceIdentifier => surveyType._sourceIdentifier;
+		public const int _sourceIdentifier = 222;
 		public surveyType() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4284,7 +4480,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Update Number";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1230;
+		public override int sourceIdentifier => updateNumber._sourceIdentifier;
+		public const int _sourceIdentifier = 1230;
 
 		public static implicit operator updateNumber(int? value) => new updateNumber { value = value };
 	}
@@ -4299,7 +4496,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Update Type";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1136;
+		public override int sourceIdentifier => updateType._sourceIdentifier;
+		public const int _sourceIdentifier = 1136;
 		public updateType() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4322,7 +4520,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Swept Date";
 		[JsonIgnore]
-		public override int sourceIdentifier => 172;
+		public override int sourceIdentifier => sweptDate._sourceIdentifier;
+		public const int _sourceIdentifier = 172;
 
 		public static implicit operator sweptDate(String? value) => new sweptDate { value = value };
 	}
@@ -4337,7 +4536,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Technique of Vertical Measurement";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1138;
+		public override int sourceIdentifier => techniqueOfVerticalMeasurement._sourceIdentifier;
+		public const int _sourceIdentifier = 1138;
 		public techniqueOfVerticalMeasurement() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4372,7 +4572,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Telecommunication Identifier";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1199;
+		public override int sourceIdentifier => telecommunicationIdentifier._sourceIdentifier;
+		public const int _sourceIdentifier = 1199;
 
 		public static implicit operator telecommunicationIdentifier(String? value) => new telecommunicationIdentifier { value = value };
 	}
@@ -4387,7 +4588,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Telecommunication Service";
 		[JsonIgnore]
-		public override int sourceIdentifier => 175;
+		public override int sourceIdentifier => telecommunicationService._sourceIdentifier;
+		public const int _sourceIdentifier = 175;
 		public telecommunicationService() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4415,7 +4617,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Text";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1200;
+		public override int sourceIdentifier => text._sourceIdentifier;
+		public const int _sourceIdentifier = 1200;
 
 		public static implicit operator text(String? value) => new text { value = value };
 	}
@@ -4431,7 +4634,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Text Offset Bearing";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1201;
+		public override int sourceIdentifier => textOffsetBearing._sourceIdentifier;
+		public const int _sourceIdentifier = 1201;
 
 		public static implicit operator textOffsetBearing(int? value) => new textOffsetBearing { value = value };
 	}
@@ -4446,7 +4650,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Text Offset Distance";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1202;
+		public override int sourceIdentifier => textOffsetDistance._sourceIdentifier;
+		public const int _sourceIdentifier = 1202;
 
 		public static implicit operator textOffsetDistance(int? value) => new textOffsetDistance { value = value };
 	}
@@ -4461,7 +4666,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Text Rotation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1141;
+		public override int sourceIdentifier => textRotation._sourceIdentifier;
+		public const int _sourceIdentifier = 1141;
 
 		public static implicit operator textRotation(Boolean? value) => new textRotation { value = value };
 	}
@@ -4476,7 +4682,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Text Type";
 		[JsonIgnore]
-		public override int sourceIdentifier => 179;
+		public override int sourceIdentifier => textType._sourceIdentifier;
+		public const int _sourceIdentifier = 179;
 		public textType() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4497,7 +4704,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Time of Day End";
 		[JsonIgnore]
-		public override int sourceIdentifier => 180;
+		public override int sourceIdentifier => timeOfDayEnd._sourceIdentifier;
+		public const int _sourceIdentifier = 180;
 
 		public static implicit operator timeOfDayEnd(S100FC.S100.Time? value) => new timeOfDayEnd { value = value };
 	}
@@ -4512,7 +4720,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Time of Day Start";
 		[JsonIgnore]
-		public override int sourceIdentifier => 181;
+		public override int sourceIdentifier => timeOfDayStart._sourceIdentifier;
+		public const int _sourceIdentifier = 181;
 
 		public static implicit operator timeOfDayStart(S100FC.S100.Time? value) => new timeOfDayStart { value = value };
 	}
@@ -4527,7 +4736,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Time Relative to Tide";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1203;
+		public override int sourceIdentifier => timeRelativeToTide._sourceIdentifier;
+		public const int _sourceIdentifier = 1203;
 
 		public static implicit operator timeRelativeToTide(decimal? value) => new timeRelativeToTide { value = value };
 	}
@@ -4542,7 +4752,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Topmark/Daymark Shape";
 		[JsonIgnore]
-		public override int sourceIdentifier => 202;
+		public override int sourceIdentifier => topmarkDaymarkShape._sourceIdentifier;
+		public const int _sourceIdentifier = 202;
 		public topmarkDaymarkShape() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4594,7 +4805,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Traffic Flow";
 		[JsonIgnore]
-		public override int sourceIdentifier => 184;
+		public override int sourceIdentifier => trafficFlow._sourceIdentifier;
+		public const int _sourceIdentifier = 184;
 		public trafficFlow() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4617,7 +4829,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Uncertainty Fixed";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1231;
+		public override int sourceIdentifier => uncertaintyFixed._sourceIdentifier;
+		public const int _sourceIdentifier = 1231;
 
 		public static implicit operator uncertaintyFixed(decimal? value) => new uncertaintyFixed { value = value };
 	}
@@ -4632,7 +4845,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Uncertainty Variable Factor";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1232;
+		public override int sourceIdentifier => uncertaintyVariableFactor._sourceIdentifier;
+		public const int _sourceIdentifier = 1232;
 
 		public static implicit operator uncertaintyVariableFactor(decimal? value) => new uncertaintyVariableFactor { value = value };
 	}
@@ -4647,7 +4861,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Underlying Layer";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1204;
+		public override int sourceIdentifier => underlyingLayer._sourceIdentifier;
+		public const int _sourceIdentifier = 1204;
 
 		public static implicit operator underlyingLayer(int? value) => new underlyingLayer { value = value };
 	}
@@ -4662,7 +4877,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Value of Annual Change in Magnetic Variation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1205;
+		public override int sourceIdentifier => valueOfAnnualChangeInMagneticVariation._sourceIdentifier;
+		public const int _sourceIdentifier = 1205;
 
 		public static implicit operator valueOfAnnualChangeInMagneticVariation(decimal? value) => new valueOfAnnualChangeInMagneticVariation { value = value };
 	}
@@ -4677,7 +4893,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Value of Depth Contour";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1206;
+		public override int sourceIdentifier => valueOfDepthContour._sourceIdentifier;
+		public const int _sourceIdentifier = 1206;
 
 		public static implicit operator valueOfDepthContour(decimal? value) => new valueOfDepthContour { value = value };
 	}
@@ -4692,7 +4909,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Value of Magnetic Variation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1207;
+		public override int sourceIdentifier => valueOfMagneticVariation._sourceIdentifier;
+		public const int _sourceIdentifier = 1207;
 
 		public static implicit operator valueOfMagneticVariation(decimal? value) => new valueOfMagneticVariation { value = value };
 	}
@@ -4707,7 +4925,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Value of Maximum Range";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1208;
+		public override int sourceIdentifier => valueOfMaximumRange._sourceIdentifier;
+		public const int _sourceIdentifier = 1208;
 
 		public static implicit operator valueOfMaximumRange(decimal? value) => new valueOfMaximumRange { value = value };
 	}
@@ -4722,7 +4941,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Value of Nominal Range";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1209;
+		public override int sourceIdentifier => valueOfNominalRange._sourceIdentifier;
+		public const int _sourceIdentifier = 1209;
 
 		public static implicit operator valueOfNominalRange(decimal? value) => new valueOfNominalRange { value = value };
 	}
@@ -4737,7 +4957,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Value of Sounding";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1210;
+		public override int sourceIdentifier => valueOfSounding._sourceIdentifier;
+		public const int _sourceIdentifier = 1210;
 
 		public static implicit operator valueOfSounding(decimal? value) => new valueOfSounding { value = value };
 	}
@@ -4752,7 +4973,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Vertical Clearance Unlimited";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1126;
+		public override int sourceIdentifier => verticalClearanceUnlimited._sourceIdentifier;
+		public const int _sourceIdentifier = 1126;
 
 		public static implicit operator verticalClearanceUnlimited(Boolean? value) => new verticalClearanceUnlimited { value = value };
 	}
@@ -4767,7 +4989,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Vertical Clearance Value";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1211;
+		public override int sourceIdentifier => verticalClearanceValue._sourceIdentifier;
+		public const int _sourceIdentifier = 1211;
 
 		public static implicit operator verticalClearanceValue(decimal? value) => new verticalClearanceValue { value = value };
 	}
@@ -4782,7 +5005,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Vertical Datum";
 		[JsonIgnore]
-		public override int sourceIdentifier => 996;
+		public override int sourceIdentifier => verticalDatum._sourceIdentifier;
+		public const int _sourceIdentifier = 996;
 		public verticalDatum() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4832,7 +5056,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Vertical Length";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1212;
+		public override int sourceIdentifier => verticalLength._sourceIdentifier;
+		public const int _sourceIdentifier = 1212;
 
 		public static implicit operator verticalLength(decimal? value) => new verticalLength { value = value };
 	}
@@ -4848,7 +5073,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Vessel Class";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1213;
+		public override int sourceIdentifier => vesselClass._sourceIdentifier;
+		public const int _sourceIdentifier = 1213;
 
 		public static implicit operator vesselClass(String? value) => new vesselClass { value = value };
 	}
@@ -4863,7 +5089,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Virtual AIS Aid to Navigation Type";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1113;
+		public override int sourceIdentifier => virtualAISAidToNavigationType._sourceIdentifier;
+		public const int _sourceIdentifier = 1113;
 		public virtualAISAidToNavigationType() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4894,7 +5121,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Visitors Mooring";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1121;
+		public override int sourceIdentifier => visitorsMooring._sourceIdentifier;
+		public const int _sourceIdentifier = 1121;
 
 		public static implicit operator visitorsMooring(Boolean? value) => new visitorsMooring { value = value };
 	}
@@ -4909,7 +5137,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Visual Prominence";
 		[JsonIgnore]
-		public override int sourceIdentifier => 201;
+		public override int sourceIdentifier => visualProminence._sourceIdentifier;
+		public const int _sourceIdentifier = 201;
 		public visualProminence() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4931,7 +5160,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Water Level Effect";
 		[JsonIgnore]
-		public override int sourceIdentifier => 197;
+		public override int sourceIdentifier => waterLevelEffect._sourceIdentifier;
+		public const int _sourceIdentifier = 197;
 		public waterLevelEffect() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -4957,7 +5187,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Waterway Distance";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1214;
+		public override int sourceIdentifier => waterwayDistance._sourceIdentifier;
+		public const int _sourceIdentifier = 1214;
 
 		public static implicit operator waterwayDistance(decimal? value) => new waterwayDistance { value = value };
 	}
@@ -4972,7 +5203,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Wave Length Value";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1215;
+		public override int sourceIdentifier => waveLengthValue._sourceIdentifier;
+		public const int _sourceIdentifier = 1215;
 
 		public static implicit operator waveLengthValue(decimal? value) => new waveLengthValue { value = value };
 	}
@@ -4987,7 +5219,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Category of Cargo";
 		[JsonIgnore]
-		public override int sourceIdentifier => 401;
+		public override int sourceIdentifier => categoryOfCargo._sourceIdentifier;
+		public const int _sourceIdentifier = 401;
 		public categoryOfCargo() {}
 		[JsonIgnore]
 		public override listedValue[] listedValues => [
@@ -5021,7 +5254,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Minimum Berth Depth";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1019;
+		public override int sourceIdentifier => minimumBerthDepth._sourceIdentifier;
+		public const int _sourceIdentifier = 1019;
 
 		public static implicit operator minimumBerthDepth(decimal? value) => new minimumBerthDepth { value = value };
 	}
@@ -5036,7 +5270,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Optimum Display Scale";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1223;
+		public override int sourceIdentifier => optimumDisplayScale._sourceIdentifier;
+		public const int _sourceIdentifier = 1223;
 
 		public static implicit operator optimumDisplayScale(int? value) => new optimumDisplayScale { value = value };
 	}
@@ -5051,7 +5286,8 @@ namespace S100FC.S101.SimpleAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Drawing Instruction";
 		[JsonIgnore]
-		public override int sourceIdentifier => 0;
+		public override int sourceIdentifier => drawingInstruction._sourceIdentifier;
+		public const int _sourceIdentifier = 0;
 
 		public static implicit operator drawingInstruction(String? value) => new drawingInstruction { value = value };
 	}
@@ -5072,7 +5308,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Feature Name";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1129;
+		public override int sourceIdentifier => featureName._sourceIdentifier;
+		public const int _sourceIdentifier = 1129;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5132,7 +5369,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Features Detected";
 		[JsonIgnore]
-		public override int sourceIdentifier => 228;
+		public override int sourceIdentifier => featuresDetected._sourceIdentifier;
+		public const int _sourceIdentifier = 228;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5191,7 +5429,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Fixed Date Range";
 		[JsonIgnore]
-		public override int sourceIdentifier => 798;
+		public override int sourceIdentifier => fixedDateRange._sourceIdentifier;
+		public const int _sourceIdentifier = 798;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5238,7 +5477,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Frequency Pair";
 		[JsonIgnore]
-		public override int sourceIdentifier => 230;
+		public override int sourceIdentifier => frequencyPair._sourceIdentifier;
+		public const int _sourceIdentifier = 230;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5285,7 +5525,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Horizontal Clearance Fixed";
 		[JsonIgnore]
-		public override int sourceIdentifier => 231;
+		public override int sourceIdentifier => horizontalClearanceFixed._sourceIdentifier;
+		public const int _sourceIdentifier = 231;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5332,7 +5573,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Horizontal Clearance Open";
 		[JsonIgnore]
-		public override int sourceIdentifier => 232;
+		public override int sourceIdentifier => horizontalClearanceOpen._sourceIdentifier;
+		public const int _sourceIdentifier = 232;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5379,7 +5621,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Horizontal Position Uncertainty";
 		[JsonIgnore]
-		public override int sourceIdentifier => 233;
+		public override int sourceIdentifier => horizontalPositionUncertainty._sourceIdentifier;
+		public const int _sourceIdentifier = 233;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5426,7 +5669,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Information";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1130;
+		public override int sourceIdentifier => information._sourceIdentifier;
+		public const int _sourceIdentifier = 1130;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5509,7 +5753,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Measured Distance Value";
 		[JsonIgnore]
-		public override int sourceIdentifier => 241;
+		public override int sourceIdentifier => measuredDistanceValue._sourceIdentifier;
+		public const int _sourceIdentifier = 241;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5569,7 +5814,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Multiplicity of Features";
 		[JsonIgnore]
-		public override int sourceIdentifier => 242;
+		public override int sourceIdentifier => multiplicityOfFeatures._sourceIdentifier;
+		public const int _sourceIdentifier = 242;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5616,7 +5862,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Online Resource";
 		[JsonIgnore]
-		public override int sourceIdentifier => 243;
+		public override int sourceIdentifier => onlineResource._sourceIdentifier;
+		public const int _sourceIdentifier = 243;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5675,7 +5922,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Orientation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 225;
+		public override int sourceIdentifier => orientation._sourceIdentifier;
+		public const int _sourceIdentifier = 225;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5722,7 +5970,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Periodic Date Range";
 		[JsonIgnore]
-		public override int sourceIdentifier => 794;
+		public override int sourceIdentifier => periodicDateRange._sourceIdentifier;
+		public const int _sourceIdentifier = 794;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5769,7 +6018,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Radar Wave Length";
 		[JsonIgnore]
-		public override int sourceIdentifier => 245;
+		public override int sourceIdentifier => radarWaveLength._sourceIdentifier;
+		public const int _sourceIdentifier = 245;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5816,7 +6066,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Sector Information";
 		[JsonIgnore]
-		public override int sourceIdentifier => 235;
+		public override int sourceIdentifier => sectorInformation._sourceIdentifier;
+		public const int _sourceIdentifier = 235;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5863,7 +6114,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Sector Limit One";
 		[JsonIgnore]
-		public override int sourceIdentifier => 236;
+		public override int sourceIdentifier => sectorLimitOne._sourceIdentifier;
+		public const int _sourceIdentifier = 236;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5910,7 +6162,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Sector Limit Two";
 		[JsonIgnore]
-		public override int sourceIdentifier => 237;
+		public override int sourceIdentifier => sectorLimitTwo._sourceIdentifier;
+		public const int _sourceIdentifier = 237;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5957,7 +6210,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Shape Information";
 		[JsonIgnore]
-		public override int sourceIdentifier => 251;
+		public override int sourceIdentifier => shapeInformation._sourceIdentifier;
+		public const int _sourceIdentifier = 251;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6004,7 +6258,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Signal Sequence";
 		[JsonIgnore]
-		public override int sourceIdentifier => 246;
+		public override int sourceIdentifier => signalSequence._sourceIdentifier;
+		public const int _sourceIdentifier = 246;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6052,7 +6307,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Speed";
 		[JsonIgnore]
-		public override int sourceIdentifier => 252;
+		public override int sourceIdentifier => speed._sourceIdentifier;
+		public const int _sourceIdentifier = 252;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6099,7 +6355,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Surface Characteristics";
 		[JsonIgnore]
-		public override int sourceIdentifier => 253;
+		public override int sourceIdentifier => surfaceCharacteristics._sourceIdentifier;
+		public const int _sourceIdentifier = 253;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6160,7 +6417,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Survey Date Range";
 		[JsonIgnore]
-		public override int sourceIdentifier => 795;
+		public override int sourceIdentifier => surveyDateRange._sourceIdentifier;
+		public const int _sourceIdentifier = 795;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6207,7 +6465,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Telecommunications";
 		[JsonIgnore]
-		public override int sourceIdentifier => 255;
+		public override int sourceIdentifier => telecommunications._sourceIdentifier;
+		public const int _sourceIdentifier = 255;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6267,7 +6526,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Tidal Stream Value";
 		[JsonIgnore]
-		public override int sourceIdentifier => 256;
+		public override int sourceIdentifier => tidalStreamValue._sourceIdentifier;
+		public const int _sourceIdentifier = 256;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6326,7 +6586,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Time Intervals by Day of Week";
 		[JsonIgnore]
-		public override int sourceIdentifier => 248;
+		public override int sourceIdentifier => timeIntervalsByDayOfWeek._sourceIdentifier;
+		public const int _sourceIdentifier = 248;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6398,7 +6659,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Topmark";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1131;
+		public override int sourceIdentifier => topmark._sourceIdentifier;
+		public const int _sourceIdentifier = 1131;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6472,7 +6734,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Value of Local Magnetic Anomaly";
 		[JsonIgnore]
-		public override int sourceIdentifier => 1107;
+		public override int sourceIdentifier => valueOfLocalMagneticAnomaly._sourceIdentifier;
+		public const int _sourceIdentifier = 1107;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6520,7 +6783,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Vertical Uncertainty";
 		[JsonIgnore]
-		public override int sourceIdentifier => 261;
+		public override int sourceIdentifier => verticalUncertainty._sourceIdentifier;
+		public const int _sourceIdentifier = 261;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6567,7 +6831,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Vessel Speed Limit";
 		[JsonIgnore]
-		public override int sourceIdentifier => 266;
+		public override int sourceIdentifier => vesselSpeedLimit._sourceIdentifier;
+		public const int _sourceIdentifier = 266;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6627,7 +6892,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Zone of Confidence";
 		[JsonIgnore]
-		public override int sourceIdentifier => 986;
+		public override int sourceIdentifier => zoneOfConfidence._sourceIdentifier;
+		public const int _sourceIdentifier = 986;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6699,7 +6965,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Directional Character";
 		[JsonIgnore]
-		public override int sourceIdentifier => 226;
+		public override int sourceIdentifier => directionalCharacter._sourceIdentifier;
+		public const int _sourceIdentifier = 226;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6746,7 +7013,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Rhythm of Light";
 		[JsonIgnore]
-		public override int sourceIdentifier => 247;
+		public override int sourceIdentifier => rhythmOfLight._sourceIdentifier;
+		public const int _sourceIdentifier = 247;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6818,7 +7086,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Schedule by Day of Week";
 		[JsonIgnore]
-		public override int sourceIdentifier => 249;
+		public override int sourceIdentifier => scheduleByDayOfWeek._sourceIdentifier;
+		public const int _sourceIdentifier = 249;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6866,7 +7135,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Sector Limit";
 		[JsonIgnore]
-		public override int sourceIdentifier => 238;
+		public override int sourceIdentifier => sectorLimit._sourceIdentifier;
+		public const int _sourceIdentifier = 238;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6913,7 +7183,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Spatial Accuracy";
 		[JsonIgnore]
-		public override int sourceIdentifier => 985;
+		public override int sourceIdentifier => spatialAccuracy._sourceIdentifier;
+		public const int _sourceIdentifier = 985;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6972,7 +7243,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Tidal Stream Panel Values";
 		[JsonIgnore]
-		public override int sourceIdentifier => 257;
+		public override int sourceIdentifier => tidalStreamPanelValues._sourceIdentifier;
+		public const int _sourceIdentifier = 257;
 
 		#region Attributes
 		[JsonIgnore]
@@ -7045,7 +7317,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Vertical Clearance Closed";
 		[JsonIgnore]
-		public override int sourceIdentifier => 262;
+		public override int sourceIdentifier => verticalClearanceClosed._sourceIdentifier;
+		public const int _sourceIdentifier = 262;
 
 		#region Attributes
 		[JsonIgnore]
@@ -7092,7 +7365,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Vertical Clearance Fixed";
 		[JsonIgnore]
-		public override int sourceIdentifier => 263;
+		public override int sourceIdentifier => verticalClearanceFixed._sourceIdentifier;
+		public const int _sourceIdentifier = 263;
 
 		#region Attributes
 		[JsonIgnore]
@@ -7139,7 +7413,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Vertical Clearance Open";
 		[JsonIgnore]
-		public override int sourceIdentifier => 264;
+		public override int sourceIdentifier => verticalClearanceOpen._sourceIdentifier;
+		public const int _sourceIdentifier = 264;
 
 		#region Attributes
 		[JsonIgnore]
@@ -7198,7 +7473,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Vertical Clearance Safe";
 		[JsonIgnore]
-		public override int sourceIdentifier => 265;
+		public override int sourceIdentifier => verticalClearanceSafe._sourceIdentifier;
+		public const int _sourceIdentifier = 265;
 
 		#region Attributes
 		[JsonIgnore]
@@ -7245,7 +7521,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Light Sector";
 		[JsonIgnore]
-		public override int sourceIdentifier => 240;
+		public override int sourceIdentifier => lightSector._sourceIdentifier;
+		public const int _sourceIdentifier = 240;
 
 		#region Attributes
 		[JsonIgnore]
@@ -7354,7 +7631,8 @@ namespace S100FC.S101.ComplexAttributes
 		[JsonIgnore]
 		public override string S100FC_name => "Sector Characteristics";
 		[JsonIgnore]
-		public override int sourceIdentifier => 250;
+		public override int sourceIdentifier => sectorCharacteristics._sourceIdentifier;
+		public const int _sourceIdentifier = 250;
 
 		#region Attributes
 		[JsonIgnore]
@@ -7774,7 +8052,8 @@ namespace S100FC.S101.InformationTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Contact Details";
 		[JsonIgnore]
-		public override int sourceIdentifier => 27;
+		public override int sourceIdentifier => ContactDetails._sourceIdentifier;
+		public const int _sourceIdentifier = 27;
 
 		#region Attributes
 		[JsonIgnore]
@@ -7898,7 +8177,8 @@ namespace S100FC.S101.InformationTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Service Hours";
 		[JsonIgnore]
-		public override int sourceIdentifier => 28;
+		public override int sourceIdentifier => ServiceHours._sourceIdentifier;
+		public const int _sourceIdentifier = 28;
 
 		#region Attributes
 		[JsonIgnore]
@@ -7974,7 +8254,8 @@ namespace S100FC.S101.InformationTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Non-Standard Working Day";
 		[JsonIgnore]
-		public override int sourceIdentifier => 29;
+		public override int sourceIdentifier => NonStandardWorkingDay._sourceIdentifier;
+		public const int _sourceIdentifier = 29;
 
 		#region Attributes
 		[JsonIgnore]
@@ -8062,7 +8343,8 @@ namespace S100FC.S101.InformationTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Nautical Information";
 		[JsonIgnore]
-		public override int sourceIdentifier => 30;
+		public override int sourceIdentifier => NauticalInformation._sourceIdentifier;
+		public const int _sourceIdentifier = 30;
 
 		#region Attributes
 		[JsonIgnore]
@@ -8138,7 +8420,8 @@ namespace S100FC.S101.InformationTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Spatial Quality";
 		[JsonIgnore]
-		public override int sourceIdentifier => 31;
+		public override int sourceIdentifier => SpatialQuality._sourceIdentifier;
+		public const int _sourceIdentifier = 31;
 
 		#region Attributes
 		[JsonIgnore]
@@ -8199,7 +8482,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Quality of Non-Bathymetric Data";
 		[JsonIgnore]
-		public override int sourceIdentifier => 186;
+		public override int sourceIdentifier => QualityOfNonBathymetricData._sourceIdentifier;
+		public const int _sourceIdentifier = 186;
 
 		#region Attributes
 		[JsonIgnore]
@@ -8365,7 +8649,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Data Coverage";
 		[JsonIgnore]
-		public override int sourceIdentifier => 661;
+		public override int sourceIdentifier => DataCoverage._sourceIdentifier;
+		public const int _sourceIdentifier = 661;
 
 		#region Attributes
 		[JsonIgnore]
@@ -8490,7 +8775,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Navigational System of Marks";
 		[JsonIgnore]
-		public override int sourceIdentifier => 188;
+		public override int sourceIdentifier => NavigationalSystemOfMarks._sourceIdentifier;
+		public const int _sourceIdentifier = 188;
 
 		#region Attributes
 		[JsonIgnore]
@@ -8596,7 +8882,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Local Direction of Buoyage";
 		[JsonIgnore]
-		public override int sourceIdentifier => 189;
+		public override int sourceIdentifier => LocalDirectionOfBuoyage._sourceIdentifier;
+		public const int _sourceIdentifier = 189;
 
 		#region Attributes
 		[JsonIgnore]
@@ -8726,7 +9013,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Quality of Bathymetric Data";
 		[JsonIgnore]
-		public override int sourceIdentifier => 643;
+		public override int sourceIdentifier => QualityOfBathymetricData._sourceIdentifier;
+		public const int _sourceIdentifier = 643;
 
 		#region Attributes
 		[JsonIgnore]
@@ -8933,7 +9221,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Sounding Datum";
 		[JsonIgnore]
-		public override int sourceIdentifier => 191;
+		public override int sourceIdentifier => SoundingDatum._sourceIdentifier;
+		public const int _sourceIdentifier = 191;
 
 		#region Attributes
 		[JsonIgnore]
@@ -9039,7 +9328,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Vertical Datum of Data";
 		[JsonIgnore]
-		public override int sourceIdentifier => 598;
+		public override int sourceIdentifier => VerticalDatumOfData._sourceIdentifier;
+		public const int _sourceIdentifier = 598;
 
 		#region Attributes
 		[JsonIgnore]
@@ -9145,7 +9435,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Quality of Survey";
 		[JsonIgnore]
-		public override int sourceIdentifier => 193;
+		public override int sourceIdentifier => QualityOfSurvey._sourceIdentifier;
+		public const int _sourceIdentifier = 193;
 
 		#region Attributes
 		[JsonIgnore]
@@ -9434,7 +9725,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Update Information";
 		[JsonIgnore]
-		public override int sourceIdentifier => 663;
+		public override int sourceIdentifier => UpdateInformation._sourceIdentifier;
+		public const int _sourceIdentifier = 663;
 
 		#region Attributes
 		[JsonIgnore]
@@ -9628,7 +9920,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Magnetic Variation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 195;
+		public override int sourceIdentifier => MagneticVariation._sourceIdentifier;
+		public const int _sourceIdentifier = 195;
 
 		#region Attributes
 		[JsonIgnore]
@@ -9785,7 +10078,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Local Magnetic Anomaly";
 		[JsonIgnore]
-		public override int sourceIdentifier => 196;
+		public override int sourceIdentifier => LocalMagneticAnomaly._sourceIdentifier;
+		public const int _sourceIdentifier = 196;
 
 		#region Attributes
 		[JsonIgnore]
@@ -9958,7 +10252,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Coastline";
 		[JsonIgnore]
-		public override int sourceIdentifier => 197;
+		public override int sourceIdentifier => Coastline._sourceIdentifier;
+		public const int _sourceIdentifier = 197;
 
 		#region Attributes
 		[JsonIgnore]
@@ -10183,7 +10478,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Land Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 720;
+		public override int sourceIdentifier => LandArea._sourceIdentifier;
+		public const int _sourceIdentifier = 720;
 
 		#region Attributes
 		[JsonIgnore]
@@ -10386,7 +10682,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Island Group";
 		[JsonIgnore]
-		public override int sourceIdentifier => 628;
+		public override int sourceIdentifier => IslandGroup._sourceIdentifier;
+		public const int _sourceIdentifier = 628;
 
 		#region Attributes
 		[JsonIgnore]
@@ -10563,7 +10860,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Land Elevation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 200;
+		public override int sourceIdentifier => LandElevation._sourceIdentifier;
+		public const int _sourceIdentifier = 200;
 
 		#region Attributes
 		[JsonIgnore]
@@ -10737,7 +11035,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "River";
 		[JsonIgnore]
-		public override int sourceIdentifier => 201;
+		public override int sourceIdentifier => River._sourceIdentifier;
+		public const int _sourceIdentifier = 201;
 
 		#region Attributes
 		[JsonIgnore]
@@ -10899,7 +11198,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Rapids";
 		[JsonIgnore]
-		public override int sourceIdentifier => 202;
+		public override int sourceIdentifier => Rapids._sourceIdentifier;
+		public const int _sourceIdentifier = 202;
 
 		#region Attributes
 		[JsonIgnore]
@@ -11060,7 +11360,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Waterfall";
 		[JsonIgnore]
-		public override int sourceIdentifier => 203;
+		public override int sourceIdentifier => Waterfall._sourceIdentifier;
+		public const int _sourceIdentifier = 203;
 
 		#region Attributes
 		[JsonIgnore]
@@ -11234,7 +11535,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Lake";
 		[JsonIgnore]
-		public override int sourceIdentifier => 204;
+		public override int sourceIdentifier => Lake._sourceIdentifier;
+		public const int _sourceIdentifier = 204;
 
 		#region Attributes
 		[JsonIgnore]
@@ -11408,7 +11710,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Land Region";
 		[JsonIgnore]
-		public override int sourceIdentifier => 205;
+		public override int sourceIdentifier => LandRegion._sourceIdentifier;
+		public const int _sourceIdentifier = 205;
 
 		#region Attributes
 		[JsonIgnore]
@@ -11596,7 +11899,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Vegetation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 206;
+		public override int sourceIdentifier => Vegetation._sourceIdentifier;
+		public const int _sourceIdentifier = 206;
 
 		#region Attributes
 		[JsonIgnore]
@@ -11807,7 +12111,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Ice Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 207;
+		public override int sourceIdentifier => IceArea._sourceIdentifier;
+		public const int _sourceIdentifier = 207;
 
 		#region Attributes
 		[JsonIgnore]
@@ -12055,7 +12360,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Sloping Ground";
 		[JsonIgnore]
-		public override int sourceIdentifier => 208;
+		public override int sourceIdentifier => SlopingGround._sourceIdentifier;
+		public const int _sourceIdentifier = 208;
 
 		#region Attributes
 		[JsonIgnore]
@@ -12268,7 +12574,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Slope Topline";
 		[JsonIgnore]
-		public override int sourceIdentifier => 209;
+		public override int sourceIdentifier => SlopeTopline._sourceIdentifier;
+		public const int _sourceIdentifier = 209;
 
 		#region Attributes
 		[JsonIgnore]
@@ -12493,7 +12800,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Tideway";
 		[JsonIgnore]
-		public override int sourceIdentifier => 210;
+		public override int sourceIdentifier => Tideway._sourceIdentifier;
+		public const int _sourceIdentifier = 210;
 
 		#region Attributes
 		[JsonIgnore]
@@ -12642,7 +12950,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Built-Up Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 719;
+		public override int sourceIdentifier => BuiltUpArea._sourceIdentifier;
+		public const int _sourceIdentifier = 719;
 
 		#region Attributes
 		[JsonIgnore]
@@ -12890,7 +13199,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Building";
 		[JsonIgnore]
-		public override int sourceIdentifier => 211;
+		public override int sourceIdentifier => Building._sourceIdentifier;
+		public const int _sourceIdentifier = 211;
 
 		#region Attributes
 		[JsonIgnore]
@@ -13287,7 +13597,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Airport/Airfield";
 		[JsonIgnore]
-		public override int sourceIdentifier => 654;
+		public override int sourceIdentifier => AirportAirfield._sourceIdentifier;
+		public const int _sourceIdentifier = 654;
 
 		#region Attributes
 		[JsonIgnore]
@@ -13499,7 +13810,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Runway";
 		[JsonIgnore]
-		public override int sourceIdentifier => 655;
+		public override int sourceIdentifier => Runway._sourceIdentifier;
+		public const int _sourceIdentifier = 655;
 
 		#region Attributes
 		[JsonIgnore]
@@ -13711,7 +14023,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Helipad";
 		[JsonIgnore]
-		public override int sourceIdentifier => 0;
+		public override int sourceIdentifier => Helipad._sourceIdentifier;
+		public const int _sourceIdentifier = 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -13939,7 +14252,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Bridge";
 		[JsonIgnore]
-		public override int sourceIdentifier => 752;
+		public override int sourceIdentifier => Bridge._sourceIdentifier;
+		public const int _sourceIdentifier = 752;
 
 		#region Attributes
 		[JsonIgnore]
@@ -14331,7 +14645,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Span Fixed";
 		[JsonIgnore]
-		public override int sourceIdentifier => 216;
+		public override int sourceIdentifier => SpanFixed._sourceIdentifier;
+		public const int _sourceIdentifier = 216;
 
 		#region Attributes
 		[JsonIgnore]
@@ -14577,7 +14892,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Span Opening";
 		[JsonIgnore]
-		public override int sourceIdentifier => 217;
+		public override int sourceIdentifier => SpanOpening._sourceIdentifier;
+		public const int _sourceIdentifier = 217;
 
 		#region Attributes
 		[JsonIgnore]
@@ -14835,7 +15151,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Conveyor";
 		[JsonIgnore]
-		public override int sourceIdentifier => 218;
+		public override int sourceIdentifier => Conveyor._sourceIdentifier;
+		public const int _sourceIdentifier = 218;
 
 		#region Attributes
 		[JsonIgnore]
@@ -15228,7 +15545,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Cable Overhead";
 		[JsonIgnore]
-		public override int sourceIdentifier => 219;
+		public override int sourceIdentifier => CableOverhead._sourceIdentifier;
+		public const int _sourceIdentifier = 219;
 
 		#region Attributes
 		[JsonIgnore]
@@ -15542,7 +15860,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Pipeline Overhead";
 		[JsonIgnore]
-		public override int sourceIdentifier => 220;
+		public override int sourceIdentifier => PipelineOverhead._sourceIdentifier;
+		public const int _sourceIdentifier = 220;
 
 		#region Attributes
 		[JsonIgnore]
@@ -15861,7 +16180,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Pylon/Bridge Support";
 		[JsonIgnore]
-		public override int sourceIdentifier => 221;
+		public override int sourceIdentifier => PylonBridgeSupport._sourceIdentifier;
+		public const int _sourceIdentifier = 221;
 
 		#region Attributes
 		[JsonIgnore]
@@ -16262,7 +16582,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Fence/Wall";
 		[JsonIgnore]
-		public override int sourceIdentifier => 222;
+		public override int sourceIdentifier => FenceWall._sourceIdentifier;
+		public const int _sourceIdentifier = 222;
 
 		#region Attributes
 		[JsonIgnore]
@@ -16562,7 +16883,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Railway";
 		[JsonIgnore]
-		public override int sourceIdentifier => 223;
+		public override int sourceIdentifier => Railway._sourceIdentifier;
+		public const int _sourceIdentifier = 223;
 
 		#region Attributes
 		[JsonIgnore]
@@ -16761,7 +17083,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Road";
 		[JsonIgnore]
-		public override int sourceIdentifier => 224;
+		public override int sourceIdentifier => Road._sourceIdentifier;
+		public const int _sourceIdentifier = 224;
 
 		#region Attributes
 		[JsonIgnore]
@@ -16974,7 +17297,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Tunnel";
 		[JsonIgnore]
-		public override int sourceIdentifier => 225;
+		public override int sourceIdentifier => Tunnel._sourceIdentifier;
+		public const int _sourceIdentifier = 225;
 
 		#region Attributes
 		[JsonIgnore]
@@ -17210,7 +17534,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Landmark";
 		[JsonIgnore]
-		public override int sourceIdentifier => 226;
+		public override int sourceIdentifier => Landmark._sourceIdentifier;
+		public const int _sourceIdentifier = 226;
 
 		#region Attributes
 		[JsonIgnore]
@@ -17636,7 +17961,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Silo/Tank";
 		[JsonIgnore]
-		public override int sourceIdentifier => 227;
+		public override int sourceIdentifier => SiloTank._sourceIdentifier;
+		public const int _sourceIdentifier = 227;
 
 		#region Attributes
 		[JsonIgnore]
@@ -18046,7 +18372,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Wind Turbine";
 		[JsonIgnore]
-		public override int sourceIdentifier => 228;
+		public override int sourceIdentifier => WindTurbine._sourceIdentifier;
+		public const int _sourceIdentifier = 228;
 
 		#region Attributes
 		[JsonIgnore]
@@ -18451,7 +18778,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Fortified Structure";
 		[JsonIgnore]
-		public override int sourceIdentifier => 229;
+		public override int sourceIdentifier => FortifiedStructure._sourceIdentifier;
+		public const int _sourceIdentifier = 229;
 
 		#region Attributes
 		[JsonIgnore]
@@ -18785,7 +19113,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Production/Storage Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 230;
+		public override int sourceIdentifier => ProductionStorageArea._sourceIdentifier;
+		public const int _sourceIdentifier = 230;
 
 		#region Attributes
 		[JsonIgnore]
@@ -19083,7 +19412,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Checkpoint";
 		[JsonIgnore]
-		public override int sourceIdentifier => 231;
+		public override int sourceIdentifier => Checkpoint._sourceIdentifier;
+		public const int _sourceIdentifier = 231;
 
 		#region Attributes
 		[JsonIgnore]
@@ -19258,7 +19588,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Hulk";
 		[JsonIgnore]
-		public override int sourceIdentifier => 639;
+		public override int sourceIdentifier => Hulk._sourceIdentifier;
+		public const int _sourceIdentifier = 639;
 
 		#region Attributes
 		[JsonIgnore]
@@ -19600,7 +19931,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Pile";
 		[JsonIgnore]
-		public override int sourceIdentifier => 233;
+		public override int sourceIdentifier => Pile._sourceIdentifier;
+		public const int _sourceIdentifier = 233;
 
 		#region Attributes
 		[JsonIgnore]
@@ -19963,7 +20295,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Dyke";
 		[JsonIgnore]
-		public override int sourceIdentifier => 234;
+		public override int sourceIdentifier => Dyke._sourceIdentifier;
+		public const int _sourceIdentifier = 234;
 
 		#region Attributes
 		[JsonIgnore]
@@ -20211,7 +20544,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Shoreline Construction";
 		[JsonIgnore]
-		public override int sourceIdentifier => 235;
+		public override int sourceIdentifier => ShorelineConstruction._sourceIdentifier;
+		public const int _sourceIdentifier = 235;
 
 		#region Attributes
 		[JsonIgnore]
@@ -20592,7 +20926,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Structure Over Navigable Water";
 		[JsonIgnore]
-		public override int sourceIdentifier => 0;
+		public override int sourceIdentifier => StructureOverNavigableWater._sourceIdentifier;
+		public const int _sourceIdentifier = 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -21038,7 +21373,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Causeway";
 		[JsonIgnore]
-		public override int sourceIdentifier => 236;
+		public override int sourceIdentifier => Causeway._sourceIdentifier;
+		public const int _sourceIdentifier = 236;
 
 		#region Attributes
 		[JsonIgnore]
@@ -21251,7 +21587,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Canal";
 		[JsonIgnore]
-		public override int sourceIdentifier => 237;
+		public override int sourceIdentifier => Canal._sourceIdentifier;
+		public const int _sourceIdentifier = 237;
 
 		#region Attributes
 		[JsonIgnore]
@@ -21487,7 +21824,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Distance Mark";
 		[JsonIgnore]
-		public override int sourceIdentifier => 607;
+		public override int sourceIdentifier => DistanceMark._sourceIdentifier;
+		public const int _sourceIdentifier = 607;
 
 		#region Attributes
 		[JsonIgnore]
@@ -21688,7 +22026,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Gate";
 		[JsonIgnore]
-		public override int sourceIdentifier => 240;
+		public override int sourceIdentifier => Gate._sourceIdentifier;
+		public const int _sourceIdentifier = 240;
 
 		#region Attributes
 		[JsonIgnore]
@@ -21963,7 +22302,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Dam";
 		[JsonIgnore]
-		public override int sourceIdentifier => 241;
+		public override int sourceIdentifier => Dam._sourceIdentifier;
+		public const int _sourceIdentifier = 241;
 
 		#region Attributes
 		[JsonIgnore]
@@ -22264,7 +22604,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Crane";
 		[JsonIgnore]
-		public override int sourceIdentifier => 242;
+		public override int sourceIdentifier => Crane._sourceIdentifier;
+		public const int _sourceIdentifier = 242;
 
 		#region Attributes
 		[JsonIgnore]
@@ -22644,7 +22985,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Berth";
 		[JsonIgnore]
-		public override int sourceIdentifier => 638;
+		public override int sourceIdentifier => Berth._sourceIdentifier;
+		public const int _sourceIdentifier = 638;
 
 		#region Attributes
 		[JsonIgnore]
@@ -22932,7 +23274,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Dolphin";
 		[JsonIgnore]
-		public override int sourceIdentifier => 659;
+		public override int sourceIdentifier => Dolphin._sourceIdentifier;
+		public const int _sourceIdentifier = 659;
 
 		#region Attributes
 		[JsonIgnore]
@@ -23316,7 +23659,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Bollard";
 		[JsonIgnore]
-		public override int sourceIdentifier => 649;
+		public override int sourceIdentifier => Bollard._sourceIdentifier;
+		public const int _sourceIdentifier = 649;
 
 		#region Attributes
 		[JsonIgnore]
@@ -23555,7 +23899,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Dry Dock";
 		[JsonIgnore]
-		public override int sourceIdentifier => 245;
+		public override int sourceIdentifier => DryDock._sourceIdentifier;
+		public const int _sourceIdentifier = 245;
 
 		#region Attributes
 		[JsonIgnore]
@@ -23851,7 +24196,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Floating Dock";
 		[JsonIgnore]
-		public override int sourceIdentifier => 246;
+		public override int sourceIdentifier => FloatingDock._sourceIdentifier;
+		public const int _sourceIdentifier = 246;
 
 		#region Attributes
 		[JsonIgnore]
@@ -24229,7 +24575,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Pontoon";
 		[JsonIgnore]
-		public override int sourceIdentifier => 247;
+		public override int sourceIdentifier => Pontoon._sourceIdentifier;
+		public const int _sourceIdentifier = 247;
 
 		#region Attributes
 		[JsonIgnore]
@@ -24525,7 +24872,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Dock Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 624;
+		public override int sourceIdentifier => DockArea._sourceIdentifier;
+		public const int _sourceIdentifier = 624;
 
 		#region Attributes
 		[JsonIgnore]
@@ -24785,7 +25133,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Gridiron";
 		[JsonIgnore]
-		public override int sourceIdentifier => 249;
+		public override int sourceIdentifier => Gridiron._sourceIdentifier;
+		public const int _sourceIdentifier = 249;
 
 		#region Attributes
 		[JsonIgnore]
@@ -25009,7 +25358,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Lock Basin";
 		[JsonIgnore]
-		public override int sourceIdentifier => 625;
+		public override int sourceIdentifier => LockBasin._sourceIdentifier;
+		public const int _sourceIdentifier = 625;
 
 		#region Attributes
 		[JsonIgnore]
@@ -25231,7 +25581,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Mooring Trot";
 		[JsonIgnore]
-		public override int sourceIdentifier => 629;
+		public override int sourceIdentifier => MooringTrot._sourceIdentifier;
+		public const int _sourceIdentifier = 629;
 
 		#region Attributes
 		[JsonIgnore]
@@ -25408,7 +25759,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Sea Area/Named Water Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 252;
+		public override int sourceIdentifier => SeaAreaNamedWaterArea._sourceIdentifier;
+		public const int _sourceIdentifier = 252;
 
 		#region Attributes
 		[JsonIgnore]
@@ -25570,7 +25922,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Tidal Stream - Flood/Ebb";
 		[JsonIgnore]
-		public override int sourceIdentifier => 254;
+		public override int sourceIdentifier => TidalStreamFloodEbb._sourceIdentifier;
+		public const int _sourceIdentifier = 254;
 
 		#region Attributes
 		[JsonIgnore]
@@ -25768,7 +26121,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Current - Non-Gravitational";
 		[JsonIgnore]
-		public override int sourceIdentifier => 255;
+		public override int sourceIdentifier => CurrentNonGravitational._sourceIdentifier;
+		public const int _sourceIdentifier = 255;
 
 		#region Attributes
 		[JsonIgnore]
@@ -25978,7 +26332,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Water Turbulence";
 		[JsonIgnore]
-		public override int sourceIdentifier => 256;
+		public override int sourceIdentifier => WaterTurbulence._sourceIdentifier;
+		public const int _sourceIdentifier = 256;
 
 		#region Attributes
 		[JsonIgnore]
@@ -26140,7 +26495,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Tidal Stream Panel Data";
 		[JsonIgnore]
-		public override int sourceIdentifier => 257;
+		public override int sourceIdentifier => TidalStreamPanelData._sourceIdentifier;
+		public const int _sourceIdentifier = 257;
 
 		#region Attributes
 		[JsonIgnore]
@@ -26325,7 +26681,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Sounding";
 		[JsonIgnore]
-		public override int sourceIdentifier => 721;
+		public override int sourceIdentifier => Sounding._sourceIdentifier;
+		public const int _sourceIdentifier = 721;
 
 		#region Attributes
 		[JsonIgnore]
@@ -26525,7 +26882,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Dredged Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 725;
+		public override int sourceIdentifier => DredgedArea._sourceIdentifier;
+		public const int _sourceIdentifier = 725;
 
 		#region Attributes
 		[JsonIgnore]
@@ -26789,7 +27147,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Swept Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 260;
+		public override int sourceIdentifier => SweptArea._sourceIdentifier;
+		public const int _sourceIdentifier = 260;
 
 		#region Attributes
 		[JsonIgnore]
@@ -26966,7 +27325,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Depth Contour";
 		[JsonIgnore]
-		public override int sourceIdentifier => 261;
+		public override int sourceIdentifier => DepthContour._sourceIdentifier;
+		public const int _sourceIdentifier = 261;
 
 		#region Attributes
 		[JsonIgnore]
@@ -27099,7 +27459,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Depth Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 262;
+		public override int sourceIdentifier => DepthArea._sourceIdentifier;
+		public const int _sourceIdentifier = 262;
 
 		#region Attributes
 		[JsonIgnore]
@@ -27232,7 +27593,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Depth - No Bottom Found";
 		[JsonIgnore]
-		public override int sourceIdentifier => 263;
+		public override int sourceIdentifier => DepthNoBottomFound._sourceIdentifier;
+		public const int _sourceIdentifier = 263;
 
 		#region Attributes
 		[JsonIgnore]
@@ -27366,7 +27728,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Unsurveyed Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 76;
+		public override int sourceIdentifier => UnsurveyedArea._sourceIdentifier;
+		public const int _sourceIdentifier = 76;
 
 		#region Attributes
 		[JsonIgnore]
@@ -27475,7 +27838,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Seabed Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 264;
+		public override int sourceIdentifier => SeabedArea._sourceIdentifier;
+		public const int _sourceIdentifier = 264;
 
 		#region Attributes
 		[JsonIgnore]
@@ -27649,7 +28013,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Weed/Kelp";
 		[JsonIgnore]
-		public override int sourceIdentifier => 265;
+		public override int sourceIdentifier => WeedKelp._sourceIdentifier;
+		public const int _sourceIdentifier = 265;
 
 		#region Attributes
 		[JsonIgnore]
@@ -27811,7 +28176,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Seagrass";
 		[JsonIgnore]
-		public override int sourceIdentifier => 266;
+		public override int sourceIdentifier => Seagrass._sourceIdentifier;
+		public const int _sourceIdentifier = 266;
 
 		#region Attributes
 		[JsonIgnore]
@@ -27960,7 +28326,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Sandwave";
 		[JsonIgnore]
-		public override int sourceIdentifier => 267;
+		public override int sourceIdentifier => Sandwave._sourceIdentifier;
+		public const int _sourceIdentifier = 267;
 
 		#region Attributes
 		[JsonIgnore]
@@ -28093,7 +28460,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Spring";
 		[JsonIgnore]
-		public override int sourceIdentifier => 81;
+		public override int sourceIdentifier => Spring._sourceIdentifier;
+		public const int _sourceIdentifier = 81;
 
 		#region Attributes
 		[JsonIgnore]
@@ -28242,7 +28610,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Underwater/Awash Rock";
 		[JsonIgnore]
-		public override int sourceIdentifier => 723;
+		public override int sourceIdentifier => UnderwaterAwashRock._sourceIdentifier;
+		public const int _sourceIdentifier = 723;
 
 		#region Attributes
 		[JsonIgnore]
@@ -28525,7 +28894,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Wreck";
 		[JsonIgnore]
-		public override int sourceIdentifier => 722;
+		public override int sourceIdentifier => Wreck._sourceIdentifier;
+		public const int _sourceIdentifier = 722;
 
 		#region Attributes
 		[JsonIgnore]
@@ -28873,7 +29243,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Obstruction";
 		[JsonIgnore]
-		public override int sourceIdentifier => 724;
+		public override int sourceIdentifier => Obstruction._sourceIdentifier;
+		public const int _sourceIdentifier = 724;
 
 		#region Attributes
 		[JsonIgnore]
@@ -29247,7 +29618,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Foul Ground";
 		[JsonIgnore]
-		public override int sourceIdentifier => 601;
+		public override int sourceIdentifier => FoulGround._sourceIdentifier;
+		public const int _sourceIdentifier = 601;
 
 		#region Attributes
 		[JsonIgnore]
@@ -29471,7 +29843,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Discoloured Water";
 		[JsonIgnore]
-		public override int sourceIdentifier => 272;
+		public override int sourceIdentifier => DiscolouredWater._sourceIdentifier;
+		public const int _sourceIdentifier = 272;
 
 		#region Attributes
 		[JsonIgnore]
@@ -29604,7 +29977,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Fishing Facility";
 		[JsonIgnore]
-		public override int sourceIdentifier => 273;
+		public override int sourceIdentifier => FishingFacility._sourceIdentifier;
+		public const int _sourceIdentifier = 273;
 
 		#region Attributes
 		[JsonIgnore]
@@ -29860,7 +30234,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Marine Farm/Culture";
 		[JsonIgnore]
-		public override int sourceIdentifier => 726;
+		public override int sourceIdentifier => MarineFarmCulture._sourceIdentifier;
+		public const int _sourceIdentifier = 726;
 
 		#region Attributes
 		[JsonIgnore]
@@ -30171,7 +30546,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Offshore Platform";
 		[JsonIgnore]
-		public override int sourceIdentifier => 656;
+		public override int sourceIdentifier => OffshorePlatform._sourceIdentifier;
+		public const int _sourceIdentifier = 656;
 
 		#region Attributes
 		[JsonIgnore]
@@ -30527,7 +30903,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Cable Submarine";
 		[JsonIgnore]
-		public override int sourceIdentifier => 276;
+		public override int sourceIdentifier => CableSubmarine._sourceIdentifier;
+		public const int _sourceIdentifier = 276;
 
 		#region Attributes
 		[JsonIgnore]
@@ -30755,7 +31132,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Cable Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 727;
+		public override int sourceIdentifier => CableArea._sourceIdentifier;
+		public const int _sourceIdentifier = 727;
 
 		#region Attributes
 		[JsonIgnore]
@@ -30967,7 +31345,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Pipeline Submarine/On Land";
 		[JsonIgnore]
-		public override int sourceIdentifier => 728;
+		public override int sourceIdentifier => PipelineSubmarineOnLand._sourceIdentifier;
+		public const int _sourceIdentifier = 728;
 
 		#region Attributes
 		[JsonIgnore]
@@ -31265,7 +31644,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Submarine Pipeline Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 279;
+		public override int sourceIdentifier => SubmarinePipelineArea._sourceIdentifier;
+		public const int _sourceIdentifier = 279;
 
 		#region Attributes
 		[JsonIgnore]
@@ -31490,7 +31870,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Offshore Production Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 729;
+		public override int sourceIdentifier => OffshoreProductionArea._sourceIdentifier;
+		public const int _sourceIdentifier = 729;
 
 		#region Attributes
 		[JsonIgnore]
@@ -31802,7 +32183,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Navigation Line";
 		[JsonIgnore]
-		public override int sourceIdentifier => 665;
+		public override int sourceIdentifier => NavigationLine._sourceIdentifier;
+		public const int _sourceIdentifier = 665;
 
 		#region Attributes
 		[JsonIgnore]
@@ -32013,7 +32395,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Recommended Track";
 		[JsonIgnore]
-		public override int sourceIdentifier => 666;
+		public override int sourceIdentifier => RecommendedTrack._sourceIdentifier;
+		public const int _sourceIdentifier = 666;
 
 		#region Attributes
 		[JsonIgnore]
@@ -32330,7 +32713,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Range System";
 		[JsonIgnore]
-		public override int sourceIdentifier => 730;
+		public override int sourceIdentifier => RangeSystem._sourceIdentifier;
+		public const int _sourceIdentifier = 730;
 
 		#region Attributes
 		[JsonIgnore]
@@ -32547,7 +32931,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Fairway";
 		[JsonIgnore]
-		public override int sourceIdentifier => 731;
+		public override int sourceIdentifier => Fairway._sourceIdentifier;
+		public const int _sourceIdentifier = 731;
 
 		#region Attributes
 		[JsonIgnore]
@@ -32852,7 +33237,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Fairway System";
 		[JsonIgnore]
-		public override int sourceIdentifier => 669;
+		public override int sourceIdentifier => FairwaySystem._sourceIdentifier;
+		public const int _sourceIdentifier = 669;
 
 		#region Attributes
 		[JsonIgnore]
@@ -33069,7 +33455,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Recommended Route Centreline";
 		[JsonIgnore]
-		public override int sourceIdentifier => 670;
+		public override int sourceIdentifier => RecommendedRouteCentreline._sourceIdentifier;
+		public const int _sourceIdentifier = 670;
 
 		#region Attributes
 		[JsonIgnore]
@@ -33374,7 +33761,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Two-Way Route Part";
 		[JsonIgnore]
-		public override int sourceIdentifier => 671;
+		public override int sourceIdentifier => TwoWayRoutePart._sourceIdentifier;
+		public const int _sourceIdentifier = 671;
 
 		#region Attributes
 		[JsonIgnore]
@@ -33639,7 +34027,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Two-Way Route";
 		[JsonIgnore]
-		public override int sourceIdentifier => 732;
+		public override int sourceIdentifier => TwoWayRoute._sourceIdentifier;
+		public const int _sourceIdentifier = 732;
 
 		#region Attributes
 		[JsonIgnore]
@@ -33860,7 +34249,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Recommended Traffic Lane Part";
 		[JsonIgnore]
-		public override int sourceIdentifier => 673;
+		public override int sourceIdentifier => RecommendedTrafficLanePart._sourceIdentifier;
+		public const int _sourceIdentifier = 673;
 
 		#region Attributes
 		[JsonIgnore]
@@ -34018,7 +34408,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Deep Water Route Centreline";
 		[JsonIgnore]
-		public override int sourceIdentifier => 674;
+		public override int sourceIdentifier => DeepWaterRouteCentreline._sourceIdentifier;
+		public const int _sourceIdentifier = 674;
 
 		#region Attributes
 		[JsonIgnore]
@@ -34323,7 +34714,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Deep Water Route Part";
 		[JsonIgnore]
-		public override int sourceIdentifier => 733;
+		public override int sourceIdentifier => DeepWaterRoutePart._sourceIdentifier;
+		public const int _sourceIdentifier = 733;
 
 		#region Attributes
 		[JsonIgnore]
@@ -34641,7 +35033,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Deep Water Route";
 		[JsonIgnore]
-		public override int sourceIdentifier => 734;
+		public override int sourceIdentifier => DeepWaterRoute._sourceIdentifier;
+		public const int _sourceIdentifier = 734;
 
 		#region Attributes
 		[JsonIgnore]
@@ -34862,7 +35255,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Inshore Traffic Zone";
 		[JsonIgnore]
-		public override int sourceIdentifier => 735;
+		public override int sourceIdentifier => InshoreTrafficZone._sourceIdentifier;
+		public const int _sourceIdentifier = 735;
 
 		#region Attributes
 		[JsonIgnore]
@@ -35049,7 +35443,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Precautionary Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 736;
+		public override int sourceIdentifier => PrecautionaryArea._sourceIdentifier;
+		public const int _sourceIdentifier = 736;
 
 		#region Attributes
 		[JsonIgnore]
@@ -35276,7 +35671,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Traffic Separation Scheme Lane Part";
 		[JsonIgnore]
-		public override int sourceIdentifier => 737;
+		public override int sourceIdentifier => TrafficSeparationSchemeLanePart._sourceIdentifier;
+		public const int _sourceIdentifier = 737;
 
 		#region Attributes
 		[JsonIgnore]
@@ -35475,7 +35871,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Separation Zone or Line";
 		[JsonIgnore]
-		public override int sourceIdentifier => 680;
+		public override int sourceIdentifier => SeparationZoneOrLine._sourceIdentifier;
+		public const int _sourceIdentifier = 680;
 
 		#region Attributes
 		[JsonIgnore]
@@ -35637,7 +36034,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Traffic Separation Scheme Boundary";
 		[JsonIgnore]
-		public override int sourceIdentifier => 681;
+		public override int sourceIdentifier => TrafficSeparationSchemeBoundary._sourceIdentifier;
+		public const int _sourceIdentifier = 681;
 
 		#region Attributes
 		[JsonIgnore]
@@ -35799,7 +36197,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Traffic Separation Scheme Crossing";
 		[JsonIgnore]
-		public override int sourceIdentifier => 738;
+		public override int sourceIdentifier => TrafficSeparationSchemeCrossing._sourceIdentifier;
+		public const int _sourceIdentifier = 738;
 
 		#region Attributes
 		[JsonIgnore]
@@ -35986,7 +36385,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Traffic Separation Scheme Roundabout";
 		[JsonIgnore]
-		public override int sourceIdentifier => 739;
+		public override int sourceIdentifier => TrafficSeparationSchemeRoundabout._sourceIdentifier;
+		public const int _sourceIdentifier = 739;
 
 		#region Attributes
 		[JsonIgnore]
@@ -36173,7 +36573,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Traffic Separation Scheme";
 		[JsonIgnore]
-		public override int sourceIdentifier => 740;
+		public override int sourceIdentifier => TrafficSeparationScheme._sourceIdentifier;
+		public const int _sourceIdentifier = 740;
 
 		#region Attributes
 		[JsonIgnore]
@@ -36418,7 +36819,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Archipelagic Sea Lane Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 685;
+		public override int sourceIdentifier => ArchipelagicSeaLaneArea._sourceIdentifier;
+		public const int _sourceIdentifier = 685;
 
 		#region Attributes
 		[JsonIgnore]
@@ -36607,7 +37009,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Archipelagic Sea Lane Axis";
 		[JsonIgnore]
-		public override int sourceIdentifier => 686;
+		public override int sourceIdentifier => ArchipelagicSeaLaneAxis._sourceIdentifier;
+		public const int _sourceIdentifier = 686;
 
 		#region Attributes
 		[JsonIgnore]
@@ -36796,7 +37199,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Archipelagic Sea Lane";
 		[JsonIgnore]
-		public override int sourceIdentifier => 687;
+		public override int sourceIdentifier => ArchipelagicSeaLane._sourceIdentifier;
+		public const int _sourceIdentifier = 687;
 
 		#region Attributes
 		[JsonIgnore]
@@ -37017,7 +37421,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Radio Calling-In Point";
 		[JsonIgnore]
-		public override int sourceIdentifier => 688;
+		public override int sourceIdentifier => RadioCallingInPoint._sourceIdentifier;
+		public const int _sourceIdentifier = 688;
 
 		#region Attributes
 		[JsonIgnore]
@@ -37240,7 +37645,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Ferry Route";
 		[JsonIgnore]
-		public override int sourceIdentifier => 689;
+		public override int sourceIdentifier => FerryRoute._sourceIdentifier;
+		public const int _sourceIdentifier = 689;
 
 		#region Attributes
 		[JsonIgnore]
@@ -37439,7 +37845,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Radar Line";
 		[JsonIgnore]
-		public override int sourceIdentifier => 690;
+		public override int sourceIdentifier => RadarLine._sourceIdentifier;
+		public const int _sourceIdentifier = 690;
 
 		#region Attributes
 		[JsonIgnore]
@@ -37613,7 +38020,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Radar Range";
 		[JsonIgnore]
-		public override int sourceIdentifier => 691;
+		public override int sourceIdentifier => RadarRange._sourceIdentifier;
+		public const int _sourceIdentifier = 691;
 
 		#region Attributes
 		[JsonIgnore]
@@ -37799,7 +38207,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Radar Station";
 		[JsonIgnore]
-		public override int sourceIdentifier => 692;
+		public override int sourceIdentifier => RadarStation._sourceIdentifier;
+		public const int _sourceIdentifier = 692;
 
 		#region Attributes
 		[JsonIgnore]
@@ -38034,7 +38443,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Anchorage Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 741;
+		public override int sourceIdentifier => AnchorageArea._sourceIdentifier;
+		public const int _sourceIdentifier = 741;
 
 		#region Attributes
 		[JsonIgnore]
@@ -38271,7 +38681,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Mooring Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 0;
+		public override int sourceIdentifier => MooringArea._sourceIdentifier;
+		public const int _sourceIdentifier = 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -38519,7 +38930,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Anchor Berth";
 		[JsonIgnore]
-		public override int sourceIdentifier => 646;
+		public override int sourceIdentifier => AnchorBerth._sourceIdentifier;
+		public const int _sourceIdentifier = 646;
 
 		#region Attributes
 		[JsonIgnore]
@@ -38743,7 +39155,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Seaplane Landing Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 742;
+		public override int sourceIdentifier => SeaplaneLandingArea._sourceIdentifier;
+		public const int _sourceIdentifier = 742;
 
 		#region Attributes
 		[JsonIgnore]
@@ -38942,7 +39355,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Dumping Ground";
 		[JsonIgnore]
-		public override int sourceIdentifier => 743;
+		public override int sourceIdentifier => DumpingGround._sourceIdentifier;
+		public const int _sourceIdentifier = 743;
 
 		#region Attributes
 		[JsonIgnore]
@@ -39154,7 +39568,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Military Practice Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 744;
+		public override int sourceIdentifier => MilitaryPracticeArea._sourceIdentifier;
+		public const int _sourceIdentifier = 744;
 
 		#region Attributes
 		[JsonIgnore]
@@ -39390,7 +39805,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Administration Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 312;
+		public override int sourceIdentifier => AdministrationArea._sourceIdentifier;
+		public const int _sourceIdentifier = 312;
 
 		#region Attributes
 		[JsonIgnore]
@@ -39588,7 +40004,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Cargo Transhipment Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 745;
+		public override int sourceIdentifier => CargoTranshipmentArea._sourceIdentifier;
+		public const int _sourceIdentifier = 745;
 
 		#region Attributes
 		[JsonIgnore]
@@ -39799,7 +40216,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Caution Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 314;
+		public override int sourceIdentifier => CautionArea._sourceIdentifier;
+		public const int _sourceIdentifier = 314;
 
 		#region Attributes
 		[JsonIgnore]
@@ -40026,7 +40444,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Information Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 315;
+		public override int sourceIdentifier => InformationArea._sourceIdentifier;
+		public const int _sourceIdentifier = 315;
 
 		#region Attributes
 		[JsonIgnore]
@@ -40223,7 +40642,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Contiguous Zone";
 		[JsonIgnore]
-		public override int sourceIdentifier => 316;
+		public override int sourceIdentifier => ContiguousZone._sourceIdentifier;
+		public const int _sourceIdentifier = 316;
 
 		#region Attributes
 		[JsonIgnore]
@@ -40380,7 +40800,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Continental Shelf Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 317;
+		public override int sourceIdentifier => ContinentalShelfArea._sourceIdentifier;
+		public const int _sourceIdentifier = 317;
 
 		#region Attributes
 		[JsonIgnore]
@@ -40541,7 +40962,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Custom Zone";
 		[JsonIgnore]
-		public override int sourceIdentifier => 318;
+		public override int sourceIdentifier => CustomZone._sourceIdentifier;
+		public const int _sourceIdentifier = 318;
 
 		#region Attributes
 		[JsonIgnore]
@@ -40674,7 +41096,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Exclusive Economic Zone";
 		[JsonIgnore]
-		public override int sourceIdentifier => 319;
+		public override int sourceIdentifier => ExclusiveEconomicZone._sourceIdentifier;
+		public const int _sourceIdentifier = 319;
 
 		#region Attributes
 		[JsonIgnore]
@@ -40819,7 +41242,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Fishery Zone";
 		[JsonIgnore]
-		public override int sourceIdentifier => 320;
+		public override int sourceIdentifier => FisheryZone._sourceIdentifier;
+		public const int _sourceIdentifier = 320;
 
 		#region Attributes
 		[JsonIgnore]
@@ -40993,7 +41417,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Fishing Ground";
 		[JsonIgnore]
-		public override int sourceIdentifier => 746;
+		public override int sourceIdentifier => FishingGround._sourceIdentifier;
+		public const int _sourceIdentifier = 746;
 
 		#region Attributes
 		[JsonIgnore]
@@ -41192,7 +41617,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Free Port Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 322;
+		public override int sourceIdentifier => FreePortArea._sourceIdentifier;
+		public const int _sourceIdentifier = 322;
 
 		#region Attributes
 		[JsonIgnore]
@@ -41354,7 +41780,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Harbour Area (Administrative)";
 		[JsonIgnore]
-		public override int sourceIdentifier => 323;
+		public override int sourceIdentifier => HarbourAreaAdministrative._sourceIdentifier;
+		public const int _sourceIdentifier = 323;
 
 		#region Attributes
 		[JsonIgnore]
@@ -41516,7 +41943,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Log Pond";
 		[JsonIgnore]
-		public override int sourceIdentifier => 141;
+		public override int sourceIdentifier => LogPond._sourceIdentifier;
+		public const int _sourceIdentifier = 141;
 
 		#region Attributes
 		[JsonIgnore]
@@ -41690,7 +42118,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Oil Barrier";
 		[JsonIgnore]
-		public override int sourceIdentifier => 142;
+		public override int sourceIdentifier => OilBarrier._sourceIdentifier;
+		public const int _sourceIdentifier = 142;
 
 		#region Attributes
 		[JsonIgnore]
@@ -41902,7 +42331,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Straight Territorial Sea Baseline";
 		[JsonIgnore]
-		public override int sourceIdentifier => 143;
+		public override int sourceIdentifier => StraightTerritorialSeaBaseline._sourceIdentifier;
+		public const int _sourceIdentifier = 143;
 
 		#region Attributes
 		[JsonIgnore]
@@ -42035,7 +42465,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Territorial Sea Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 747;
+		public override int sourceIdentifier => TerritorialSeaArea._sourceIdentifier;
+		public const int _sourceIdentifier = 747;
 
 		#region Attributes
 		[JsonIgnore]
@@ -42205,7 +42636,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Submarine Transit Lane";
 		[JsonIgnore]
-		public override int sourceIdentifier => 748;
+		public override int sourceIdentifier => SubmarineTransitLane._sourceIdentifier;
+		public const int _sourceIdentifier = 748;
 
 		#region Attributes
 		[JsonIgnore]
@@ -42391,7 +42823,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Pilotage District";
 		[JsonIgnore]
-		public override int sourceIdentifier => 326;
+		public override int sourceIdentifier => PilotageDistrict._sourceIdentifier;
+		public const int _sourceIdentifier = 326;
 
 		#region Attributes
 		[JsonIgnore]
@@ -42568,7 +43001,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Collision Regulations Limit";
 		[JsonIgnore]
-		public override int sourceIdentifier => 327;
+		public override int sourceIdentifier => CollisionRegulationsLimit._sourceIdentifier;
+		public const int _sourceIdentifier = 327;
 
 		#region Attributes
 		[JsonIgnore]
@@ -42753,7 +43187,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Marine Pollution Regulations Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 328;
+		public override int sourceIdentifier => MarinePollutionRegulationsArea._sourceIdentifier;
+		public const int _sourceIdentifier = 328;
 
 		#region Attributes
 		[JsonIgnore]
@@ -42914,7 +43349,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Restricted Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 645;
+		public override int sourceIdentifier => RestrictedArea._sourceIdentifier;
+		public const int _sourceIdentifier = 645;
 
 		#region Attributes
 		[JsonIgnore]
@@ -43170,7 +43606,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Light All Around";
 		[JsonIgnore]
-		public override int sourceIdentifier => 693;
+		public override int sourceIdentifier => LightAllAround._sourceIdentifier;
+		public const int _sourceIdentifier = 693;
 
 		#region Attributes
 		[JsonIgnore]
@@ -43575,7 +44012,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Light Sectored";
 		[JsonIgnore]
-		public override int sourceIdentifier => 694;
+		public override int sourceIdentifier => LightSectored._sourceIdentifier;
+		public const int _sourceIdentifier = 694;
 
 		#region Attributes
 		[JsonIgnore]
@@ -43906,7 +44344,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Light Fog Detector";
 		[JsonIgnore]
-		public override int sourceIdentifier => 695;
+		public override int sourceIdentifier => LightFogDetector._sourceIdentifier;
+		public const int _sourceIdentifier = 695;
 
 		#region Attributes
 		[JsonIgnore]
@@ -44195,7 +44634,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Light Air Obstruction";
 		[JsonIgnore]
-		public override int sourceIdentifier => 696;
+		public override int sourceIdentifier => LightAirObstruction._sourceIdentifier;
+		public const int _sourceIdentifier = 696;
 
 		#region Attributes
 		[JsonIgnore]
@@ -44509,7 +44949,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Lateral Buoy";
 		[JsonIgnore]
-		public override int sourceIdentifier => 697;
+		public override int sourceIdentifier => LateralBuoy._sourceIdentifier;
+		public const int _sourceIdentifier = 697;
 
 		#region Attributes
 		[JsonIgnore]
@@ -44869,7 +45310,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Cardinal Buoy";
 		[JsonIgnore]
-		public override int sourceIdentifier => 698;
+		public override int sourceIdentifier => CardinalBuoy._sourceIdentifier;
+		public const int _sourceIdentifier = 698;
 
 		#region Attributes
 		[JsonIgnore]
@@ -45229,7 +45671,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Isolated Danger Buoy";
 		[JsonIgnore]
-		public override int sourceIdentifier => 699;
+		public override int sourceIdentifier => IsolatedDangerBuoy._sourceIdentifier;
+		public const int _sourceIdentifier = 699;
 
 		#region Attributes
 		[JsonIgnore]
@@ -45576,7 +46019,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Safe Water Buoy";
 		[JsonIgnore]
-		public override int sourceIdentifier => 700;
+		public override int sourceIdentifier => SafeWaterBuoy._sourceIdentifier;
+		public const int _sourceIdentifier = 700;
 
 		#region Attributes
 		[JsonIgnore]
@@ -45923,7 +46367,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Special Purpose/General Buoy";
 		[JsonIgnore]
-		public override int sourceIdentifier => 701;
+		public override int sourceIdentifier => SpecialPurposeGeneralBuoy._sourceIdentifier;
+		public const int _sourceIdentifier = 701;
 
 		#region Attributes
 		[JsonIgnore]
@@ -46283,7 +46728,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Emergency Wreck Marking Buoy";
 		[JsonIgnore]
-		public override int sourceIdentifier => 702;
+		public override int sourceIdentifier => EmergencyWreckMarkingBuoy._sourceIdentifier;
+		public const int _sourceIdentifier = 702;
 
 		#region Attributes
 		[JsonIgnore]
@@ -46589,7 +47035,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Installation Buoy";
 		[JsonIgnore]
-		public override int sourceIdentifier => 703;
+		public override int sourceIdentifier => InstallationBuoy._sourceIdentifier;
+		public const int _sourceIdentifier = 703;
 
 		#region Attributes
 		[JsonIgnore]
@@ -46906,7 +47353,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Mooring Buoy";
 		[JsonIgnore]
-		public override int sourceIdentifier => 660;
+		public override int sourceIdentifier => MooringBuoy._sourceIdentifier;
+		public const int _sourceIdentifier = 660;
 
 		#region Attributes
 		[JsonIgnore]
@@ -47252,7 +47700,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Lateral Beacon";
 		[JsonIgnore]
-		public override int sourceIdentifier => 704;
+		public override int sourceIdentifier => LateralBeacon._sourceIdentifier;
+		public const int _sourceIdentifier = 704;
 
 		#region Attributes
 		[JsonIgnore]
@@ -47690,7 +48139,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Cardinal Beacon";
 		[JsonIgnore]
-		public override int sourceIdentifier => 705;
+		public override int sourceIdentifier => CardinalBeacon._sourceIdentifier;
+		public const int _sourceIdentifier = 705;
 
 		#region Attributes
 		[JsonIgnore]
@@ -48128,7 +48578,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Isolated Danger Beacon";
 		[JsonIgnore]
-		public override int sourceIdentifier => 706;
+		public override int sourceIdentifier => IsolatedDangerBeacon._sourceIdentifier;
+		public const int _sourceIdentifier = 706;
 
 		#region Attributes
 		[JsonIgnore]
@@ -48553,7 +49004,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Safe Water Beacon";
 		[JsonIgnore]
-		public override int sourceIdentifier => 707;
+		public override int sourceIdentifier => SafeWaterBeacon._sourceIdentifier;
+		public const int _sourceIdentifier = 707;
 
 		#region Attributes
 		[JsonIgnore]
@@ -48978,7 +49430,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Special Purpose/General Beacon";
 		[JsonIgnore]
-		public override int sourceIdentifier => 708;
+		public override int sourceIdentifier => SpecialPurposeGeneralBeacon._sourceIdentifier;
+		public const int _sourceIdentifier = 708;
 
 		#region Attributes
 		[JsonIgnore]
@@ -49416,7 +49869,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Daymark";
 		[JsonIgnore]
-		public override int sourceIdentifier => 709;
+		public override int sourceIdentifier => Daymark._sourceIdentifier;
+		public const int _sourceIdentifier = 709;
 
 		#region Attributes
 		[JsonIgnore]
@@ -49815,7 +50269,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Light Float";
 		[JsonIgnore]
-		public override int sourceIdentifier => 710;
+		public override int sourceIdentifier => LightFloat._sourceIdentifier;
+		public const int _sourceIdentifier = 710;
 
 		#region Attributes
 		[JsonIgnore]
@@ -50173,7 +50628,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Light Vessel";
 		[JsonIgnore]
-		public override int sourceIdentifier => 711;
+		public override int sourceIdentifier => LightVessel._sourceIdentifier;
+		public const int _sourceIdentifier = 711;
 
 		#region Attributes
 		[JsonIgnore]
@@ -50519,7 +50975,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Retroreflector";
 		[JsonIgnore]
-		public override int sourceIdentifier => 712;
+		public override int sourceIdentifier => Retroreflector._sourceIdentifier;
+		public const int _sourceIdentifier = 712;
 
 		#region Attributes
 		[JsonIgnore]
@@ -50731,7 +51188,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Radar Reflector";
 		[JsonIgnore]
-		public override int sourceIdentifier => 713;
+		public override int sourceIdentifier => RadarReflector._sourceIdentifier;
+		public const int _sourceIdentifier = 713;
 
 		#region Attributes
 		[JsonIgnore]
@@ -50917,7 +51375,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Fog Signal";
 		[JsonIgnore]
-		public override int sourceIdentifier => 714;
+		public override int sourceIdentifier => FogSignal._sourceIdentifier;
+		public const int _sourceIdentifier = 714;
 
 		#region Attributes
 		[JsonIgnore]
@@ -51205,7 +51664,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Physical AIS Aid to Navigation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 715;
+		public override int sourceIdentifier => PhysicalAISAidToNavigation._sourceIdentifier;
+		public const int _sourceIdentifier = 715;
 
 		#region Attributes
 		[JsonIgnore]
@@ -51431,7 +51891,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Virtual AIS Aid to Navigation";
 		[JsonIgnore]
-		public override int sourceIdentifier => 716;
+		public override int sourceIdentifier => VirtualAISAidToNavigation._sourceIdentifier;
+		public const int _sourceIdentifier = 716;
 
 		#region Attributes
 		[JsonIgnore]
@@ -51654,7 +52115,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Radio Station";
 		[JsonIgnore]
-		public override int sourceIdentifier => 717;
+		public override int sourceIdentifier => RadioStation._sourceIdentifier;
+		public const int _sourceIdentifier = 717;
 
 		#region Attributes
 		[JsonIgnore]
@@ -51901,7 +52363,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Radar Transponder Beacon";
 		[JsonIgnore]
-		public override int sourceIdentifier => 718;
+		public override int sourceIdentifier => RadarTransponderBeacon._sourceIdentifier;
+		public const int _sourceIdentifier = 718;
 
 		#region Attributes
 		[JsonIgnore]
@@ -52192,7 +52655,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Pilot Boarding Place";
 		[JsonIgnore]
-		public override int sourceIdentifier => 749;
+		public override int sourceIdentifier => PilotBoardingPlace._sourceIdentifier;
+		public const int _sourceIdentifier = 749;
 
 		#region Attributes
 		[JsonIgnore]
@@ -52457,7 +52921,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Vessel Traffic Service Area";
 		[JsonIgnore]
-		public override int sourceIdentifier => 362;
+		public override int sourceIdentifier => VesselTrafficServiceArea._sourceIdentifier;
+		public const int _sourceIdentifier = 362;
 
 		#region Attributes
 		[JsonIgnore]
@@ -52606,7 +53071,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Coast Guard Station";
 		[JsonIgnore]
-		public override int sourceIdentifier => 363;
+		public override int sourceIdentifier => CoastGuardStation._sourceIdentifier;
+		public const int _sourceIdentifier = 363;
 
 		#region Attributes
 		[JsonIgnore]
@@ -52816,7 +53282,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Signal Station Warning";
 		[JsonIgnore]
-		public override int sourceIdentifier => 364;
+		public override int sourceIdentifier => SignalStationWarning._sourceIdentifier;
+		public const int _sourceIdentifier = 364;
 
 		#region Attributes
 		[JsonIgnore]
@@ -53043,7 +53510,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Signal Station Traffic";
 		[JsonIgnore]
-		public override int sourceIdentifier => 365;
+		public override int sourceIdentifier => SignalStationTraffic._sourceIdentifier;
+		public const int _sourceIdentifier = 365;
 
 		#region Attributes
 		[JsonIgnore]
@@ -53270,7 +53738,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Rescue Station";
 		[JsonIgnore]
-		public override int sourceIdentifier => 366;
+		public override int sourceIdentifier => RescueStation._sourceIdentifier;
+		public const int _sourceIdentifier = 366;
 
 		#region Attributes
 		[JsonIgnore]
@@ -53481,7 +53950,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Harbour Facility";
 		[JsonIgnore]
-		public override int sourceIdentifier => 751;
+		public override int sourceIdentifier => HarbourFacility._sourceIdentifier;
+		public const int _sourceIdentifier = 751;
 
 		#region Attributes
 		[JsonIgnore]
@@ -53780,7 +54250,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Small Craft Facility";
 		[JsonIgnore]
-		public override int sourceIdentifier => 368;
+		public override int sourceIdentifier => SmallCraftFacility._sourceIdentifier;
+		public const int _sourceIdentifier = 368;
 
 		#region Attributes
 		[JsonIgnore]
@@ -53979,7 +54450,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Text Placement";
 		[JsonIgnore]
-		public override int sourceIdentifier => 662;
+		public override int sourceIdentifier => TextPlacement._sourceIdentifier;
+		public const int _sourceIdentifier = 662;
 
 		#region Attributes
 		[JsonIgnore]
@@ -54109,7 +54581,8 @@ namespace S100FC.S101.FeatureTypes
 		[JsonIgnore]
 		public override string S100FC_name => "Chart 1 Feature";
 		[JsonIgnore]
-		public override int sourceIdentifier => 0;
+		public override int sourceIdentifier => Chart1Feature._sourceIdentifier;
+		public const int _sourceIdentifier = 0;
 
 		#region Attributes
 		[JsonIgnore]

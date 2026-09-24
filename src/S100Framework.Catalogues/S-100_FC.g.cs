@@ -942,14 +942,16 @@ namespace S100FC
         public string role { get; init; } = string.Empty;
         public string? featureType { get; set; } = null;
         public string featureId { get; set; } = string.Empty;
-        
-        public Primitives Primitive { get; set; }
+
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public Primitives? Primitive { get; set; } = default;
 
         public virtual bool Validate(ICollection<string>? errors = default) {
             if (string.IsNullOrEmpty(roleType)) return false;
             if (string.IsNullOrEmpty(role)) return false;
             if (string.IsNullOrEmpty(featureType)) return false;
             if (string.IsNullOrEmpty(featureId)) return false;
+            if (Primitive == default) return false;
             return true;
         }
     }

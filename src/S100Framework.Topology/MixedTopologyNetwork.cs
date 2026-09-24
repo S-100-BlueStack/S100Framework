@@ -595,7 +595,7 @@ namespace S100Framework.Topology.Internal
             double inv = 1.0 / _snapTolerance;
             // Round-half to the grid, matching NTS PrecisionModel(1/_snapTolerance).
             double x = Math.Floor(c.X * inv + 0.5d) / inv;  // Math.Round(c.X * inv) / inv;
-            double y = Math.Floor(c.y * inv + 0.5d) / inv;  // Math.Round(c.Y * inv) / inv;
+            double y = Math.Floor(c.Y * inv + 0.5d) / inv;  // Math.Round(c.Y * inv) / inv;
 
             var coord = double.IsNaN(c.Z) ? new Coordinate(x, y) : new CoordinateZ(x, y, c.Z);
 

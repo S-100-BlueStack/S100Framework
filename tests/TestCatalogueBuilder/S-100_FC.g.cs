@@ -426,6 +426,7 @@ namespace S100FC
             this.value = int.Parse(value);
         }
 
+        [JsonIgnore]
         public abstract listedValue[] listedValues { get; }
     }
 
@@ -479,6 +480,8 @@ namespace S100FC
 
         [JsonIgnore]
         public virtual attributeBindingDefinition[] attributeBindingsCatalogue { get; set; } = [];
+
+        public attributeBindingDefinition? attributeBindingDefinition(string attribute) => attributeBindingsCatalogue.SingleOrDefault(e => e.attribute.Equals(attribute));
 
         public attributeBindingDefinition[] mandatoryBindings() {
             return [.. attributeBindingsCatalogue!.Where(e => e.lower > 0)];
@@ -701,6 +704,8 @@ namespace S100FC
 
         [JsonIgnore]
         public virtual attributeBindingDefinition[] attributeBindingsCatalogue { get; } = [];
+
+        public attributeBindingDefinition? attributeBindingDefinition(string attribute) => attributeBindingsCatalogue.SingleOrDefault(e=>e.attribute.Equals(attribute));
 
         public abstract informationBindingDefinition[] GetInformationBindingsDefinitions();
 
@@ -937,6 +942,8 @@ namespace S100FC
         public string role { get; init; } = string.Empty;
         public string? featureType { get; set; } = null;
         public string featureId { get; set; } = string.Empty;
+        
+        public Primitives Primitive { get; set; }
 
         public virtual bool Validate(ICollection<string>? errors = default) {
             if (string.IsNullOrEmpty(roleType)) return false;

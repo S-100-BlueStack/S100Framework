@@ -34,7 +34,7 @@ namespace TestAttributes
             this.Test_S127_Build();
             this.Test_S128_Build();
             this.Test_S131_Build();
-            //this.Test_S501_Build();
+            //this.Test_S501_Build();            
         }
 
         [Fact]
@@ -348,7 +348,8 @@ namespace TestAttributes
                         roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
                         if (!string.IsNullOrEmpty(sourceIdentifier)) {
                             roslyn.AppendLine("\t\t[JsonIgnore]");
-                            roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {int.Parse(sourceIdentifier)};");
+                            roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {code}._sourceIdentifier;");
+                            roslyn.AppendLine($"\t\tpublic const int _sourceIdentifier = {int.Parse(sourceIdentifier)};");
                         }
                         //roslyn.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override listedValue[] listedValues => {code}.listedValues");
@@ -401,7 +402,8 @@ namespace TestAttributes
                         roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
                         if (!string.IsNullOrEmpty(sourceIdentifier)) {
                             roslyn.AppendLine("\t\t[JsonIgnore]");
-                            roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {int.Parse(sourceIdentifier)};");
+                            roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {code}._sourceIdentifier;");
+                            roslyn.AppendLine($"\t\tpublic const int _sourceIdentifier = {int.Parse(sourceIdentifier)};");
                         }
                         //roslyn.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override listedValue[] listedValues => {code}.listedValues");
@@ -515,7 +517,8 @@ namespace TestAttributes
                         roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
                         if (!string.IsNullOrEmpty(sourceIdentifier)) {
                             roslyn.AppendLine("\t\t[JsonIgnore]");
-                            roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {int.Parse(sourceIdentifier)};");
+                            roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {code}._sourceIdentifier;");
+                            roslyn.AppendLine($"\t\tpublic const int _sourceIdentifier = {int.Parse(sourceIdentifier)};");
                         }
                         //roslyn.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override string valueType => \"{valueType}\";");
@@ -1059,7 +1062,8 @@ namespace TestAttributes
                 roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
                 if (!string.IsNullOrEmpty(sourceIdentifier)) {
                     roslyn.AppendLine("\t\t[JsonIgnore]");
-                    roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {int.Parse(sourceIdentifier)};");
+                    roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {code}._sourceIdentifier;");
+                    roslyn.AppendLine($"\t\tpublic const int _sourceIdentifier = {int.Parse(sourceIdentifier)};");
                 }
             }
             pre?.Invoke(roslyn);
