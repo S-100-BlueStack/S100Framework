@@ -75,11 +75,12 @@
 
                     var surface = new Surface(exteriorRing) {
                         InteriorRings = interiorRings,
-                        Name = $"S{surfaceFeature!.Ref!.ToUpperInvariant().Substring(1)}",
+                        //Name = $"S{surfaceFeature!.Ref!.ToUpperInvariant().Substring(1)}",
+                        Name = $"S{surfaceFeature!.Id}",
                     };
 
                     _ = dataset.AddSurface(surface);
-                    dataset.UpdateFeatureReferences($"S{surfaceFeature!.Id}", $"S{surfaceFeature.Ref!.ToUpperInvariant().Substring(1)}");
+                    //// TODO: dataset.UpdateFeatureReferences($"S{surfaceFeature!.Id}", $"S{surfaceFeature.Ref!.ToUpperInvariant().Substring(1)}");
                 }
             }
             catch (Exception ex) {
@@ -95,7 +96,7 @@
 
             foreach (var feature in dataset?.Features?.Where(e => e.Geometry == original) ?? []) {
                 Log.Verbose("Updating feature geometry reference with original {original} and target: {target}", original, target);
-                feature.Geometry = target;
+                ///feature.Geometry = target;
 
                 // Associations
                 if (feature.FeatureAssociation == null || feature.FeatureAssociation.Count == 0)

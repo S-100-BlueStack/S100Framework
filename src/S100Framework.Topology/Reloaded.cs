@@ -97,10 +97,10 @@ namespace S100FC.Topology
             //    //this._interceptor?.Invoke(100, [.. edges.Select(e => (e.Geometry, $"{e.Geometry.ToText()}"))]);
             //}
 
-            var featureRefs = new Dictionary<ulong, FeatureRef>();
-            var featureRefs2Reverse = new Dictionary<ulong, ulong>();
+            var featureRefs = new Dictionary<UInt64, FeatureRef>();
+            var featureRefs2Reverse = new Dictionary<UInt64, UInt64>();
 
-            var sourceId2FeatureRef = new Dictionary<int, ulong>();
+            var sourceId2FeatureRef = new Dictionary<int, UInt64>();
 
             var (allEdges, sourceRefs) = this._mixedTopologyNetwork.BuildEdgeIndex();
 
@@ -166,7 +166,7 @@ namespace S100FC.Topology
             __skip__test:
                 ;
             }
-            ulong[] featureRefUsed = [];
+            UInt64[] featureRefUsed = [];
 
             foreach (var sourceId in this._mixedTopologyNetwork.Sources) {
                 var edges = sourceRefs[sourceId];
@@ -209,9 +209,9 @@ namespace S100FC.Topology
                   that don't coincide with any network edge
              */
 
-            (MergedEdge[] edges, ulong hashGeometry)[] dictionaryEdges = [];
+            (MergedEdge[] edges, UInt64 hashGeometry)[] dictionaryEdges = [];
 
-            (ulong id, HashSet<ulong> hashset, List<MergedEdge> edges)[] dictionaryCompositeCurves = [];
+            (UInt64 id, HashSet<UInt64> hashset, List<MergedEdge> edges)[] dictionaryCompositeCurves = [];
 
             int[] empty_sources = [];
 
@@ -238,7 +238,7 @@ namespace S100FC.Topology
 
                     int count = 0;
                     foreach (var e in assembleEdges) {
-                        ulong hashGeometry = System.IO.Hashing.XxHash64.HashToUInt64(e.OrientedGeometry.AsBinary());
+                        var hashGeometry = System.IO.Hashing.XxHash64.HashToUInt64(e.OrientedGeometry.AsBinary());
 
                         sortedlist.Add(count++, featureRefs[hashGeometry]);
                     }
@@ -261,7 +261,7 @@ namespace S100FC.Topology
                         System.Diagnostics.Debugger.Break();
                     }
 
-                    ulong compositeCurveId = ulong.MinValue;
+                    UInt64 compositeCurveId = ulong.MinValue;
 
                     var hasset = sortedlist.Values.Select(e => e.Id).ToHashSet();
                     if (dictionaryCompositeCurves.Any(e => e.hashset.SetEquals(hasset))) {
@@ -322,7 +322,7 @@ namespace S100FC.Topology
                     }
                 }
                 else {
-                    ulong hashGeometry = System.IO.Hashing.XxHash64.HashToUInt64(edges[0].Geometry.AsBinary());
+                    UInt64 hashGeometry = System.IO.Hashing.XxHash64.HashToUInt64(edges[0].Geometry.AsBinary());
                     hashGeometry = featureRefs[hashGeometry].Id;
 
                     foreach (var e in dictionaryEdges) {
@@ -440,7 +440,7 @@ namespace S100FC.Topology
                 }
 
                 var surface = new SurfaceFeature {
-                    Id = ulong.Parse(uid.Substring(1)),
+                    Id = Guid.Parse(uid!).ToStableUInt64(),
                     Exterior = exteriorRing,
                     Interior = interior,
                     Ref = uid,
@@ -458,9 +458,9 @@ namespace S100FC.Topology
             return this;
         }
 
-        private IDictionary<ulong, CurveFeature> _curves = new Dictionary<ulong, CurveFeature>();
-        private readonly IDictionary<ulong, CompositeCurveFeature> _compositecurves = new Dictionary<ulong, CompositeCurveFeature>();
-        private readonly IDictionary<ulong, SurfaceFeature> _surfaces = new Dictionary<ulong, SurfaceFeature>();
+        private IDictionary<UInt64, CurveFeature> _curves = new Dictionary<UInt64, CurveFeature>();
+        private readonly IDictionary<UInt64, CompositeCurveFeature> _compositecurves = new Dictionary<UInt64, CompositeCurveFeature>();
+        private readonly IDictionary<UInt64, SurfaceFeature> _surfaces = new Dictionary<UInt64, SurfaceFeature>();
 
         IEnumerable<CurveFeature> IMatrix.Curves => this._curves.Values;
 
@@ -564,7 +564,7 @@ namespace S100FC.Topology
                 //if (curve.UID.EndsWith("10100081766")) System.Diagnostics.Debugger.Break();
                 int id;
                 if (curve.LineString.IsRing) {
-                    id = this._mixedTopologyNetwork.AddLineString((LinearRing)curve.LineString);
+                    id = this._mixedTopologyNetwork.AddLineString(curve.LineString.Factory.CreateLinearRing(curve.LineString.CoordinateSequence.Copy()));
                 }
                 else {
                     id = this._mixedTopologyNetwork.AddLineString(curve.LineString);

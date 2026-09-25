@@ -124,21 +124,21 @@ namespace ArcGIS.Core.Geometry
                     FilterGeometry = f.GetShape().Clone(),
                     SpatialRelationship = SpatialRelationship.Relation,
                     SpatialRelationshipDescription = "UNKNOWN",
-                    SubFields = "OBJECTID,UID,GLOBALID,CODE,SHAPE",
+                    SubFields = "OBJECTID,GLOBALID,CODE,SHAPE",
                 };
-                yield return (dataCoverage, spatialQueryFilter);                
+                yield return (dataCoverage, spatialQueryFilter);
             }
 
             yield break;
         }
 
-        public static (S100FC.Topology.IMatrix matrix, IDictionary<string, string> mapper, IDictionary<string,HashSet<long>> selection) BuildTopology(this Geodatabase geodatabase, SpatialQueryFilter[] spatialFilters, Action<int, ICollection<(LineString lineString, string message)>, bool>? interceptor = default, ILoggerFactory? loggerFactory = default) {
+        public static (S100FC.Topology.IMatrix matrix, IDictionary<string, string> mapper, IDictionary<string, HashSet<long>> selection) BuildTopology(this Geodatabase geodatabase, SpatialQueryFilter[] spatialFilters, Action<int, ICollection<(LineString lineString, string message)>, bool>? interceptor = default, ILoggerFactory? loggerFactory = default) {
             S100FC.Topology.Matrix.Factory = S100FC.Topology.Reloaded.Factory = factory;
 
             var syntax = geodatabase.GetSQLSyntax();
             var definitions = geodatabase.GetDefinitions<FeatureClassDefinition>();
 
-            var dictionarySelect = new Dictionary<string, HashSet<long>>();            
+            var dictionarySelect = new Dictionary<string, HashSet<long>>();
 
             IEnumerable<(long objectid, string UID, string code, ArcGIS.Core.Geometry.Geometry shape)> FeatureQuery(string tablename, string whereclause) {
                 using var featureClass = geodatabase.OpenDataset<FeatureClass>(definitions.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals(tablename)).GetName());
@@ -220,7 +220,7 @@ namespace ArcGIS.Core.Geometry
                             shape = clip(shape);
                             if (shape.IsEmpty) continue;
 
-                            yield return (objectid, Convert.ToString(_["UID"])!, code, shape);
+                            yield return (objectid, _.UID(), code, shape);
                         }
                     }
                     f.FilterGeometry = backupGeometry;
@@ -232,12 +232,12 @@ namespace ArcGIS.Core.Geometry
                 yield break;
             }
 
-            var result =  geodatabase.BuildTopology(FeatureQuery, interceptor, loggerFactory);
+            var result = geodatabase.BuildTopology(FeatureQuery, interceptor, loggerFactory);
 
             foreach (var feature in FeatureQuery("point", "1=1")) { }
             foreach (var feature in FeatureQuery("pointset", "1=1")) { }
 
-            return (result.matrix,result.mapper,dictionarySelect);
+            return (result.matrix, result.mapper, dictionarySelect);
         }
 
         public static (S100FC.Topology.IMatrix matrix, IDictionary<string, string> mapper) BuildTopology(this Geodatabase geodatabase, FeatureQuery features, Action<int, ICollection<(LineString lineString, string message)>, bool>? interceptor = default, ILoggerFactory? loggerFactory = default) {
@@ -258,7 +258,7 @@ namespace ArcGIS.Core.Geometry
 
                 //string[] de9im = [Matrix.DE9IM_Contains, Matrix.DE9IM_Crosses];
                 //for (int j = 0; j < de9im.Length; j++) 
-                    {
+                {
                     var lookup = polygons.ToLookup(e => e.ObjectId, e => e);
 
                     foreach (var f in features.Invoke("surface", $"(upper(code) IN ({surfaceTopologyFeatures}))")) {
@@ -316,7 +316,7 @@ namespace ArcGIS.Core.Geometry
                 var curves = new List<S100FC.Topology.Polyline>();
 
                 //for (int j = 0; j < de9im.Length; j++)
-                    {
+                {
                     var lookup = curves.ToLookup(e => e.ObjectId, e => e);
 
                     foreach (var f in features.Invoke("curve", $"(upper(code) IN ({curveTopologyFeatures}))")) {
@@ -1122,5 +1122,15 @@ namespace ArcGIS.Core.Geometry
 
             return noder.GetNodedSubstrings();
         }
+    }
+}
+
+namespace ArcGIS.Core.Data
+{
+    public static class DataExtensions
+    {
+        public static string UID(this Feature feature) => $"{feature.GetGlobalID():B}";
+
+        public static string UID(this Row row) => $"{row.GetGlobalID():B}";
     }
 }

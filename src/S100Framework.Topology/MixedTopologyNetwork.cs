@@ -144,8 +144,12 @@ namespace S100Framework.Topology.Internal
             double inv = 1.0 / tolerance;
 
             // Round-half to the grid, matching NTS PrecisionModel(1/tolerance).
-            _x = (long)(Math.Floor(snappedCoord.X * inv + 0.5d) / inv); //(long)Math.Round(snappedCoord.X * inv);
-            _y = (long)(Math.Floor(snappedCoord.Y * inv + 0.5d) / inv); //(long)Math.Round(snappedCoord.Y * inv);
+            //_x = (long)(Math.Floor(snappedCoord.X * inv + 0.5d) / inv); //(long)Math.Round(snappedCoord.X * inv);
+            //_y = (long)(Math.Floor(snappedCoord.Y * inv + 0.5d) / inv); //(long)Math.Round(snappedCoord.Y * inv);
+
+            _x = (long)Math.Round(snappedCoord.X * inv);
+            _y = (long)Math.Round(snappedCoord.Y * inv);
+
         }
 
         private CoordinateKey(long x, long y) { _x = x; _y = y; }

@@ -1,5 +1,8 @@
 ﻿using NetTopologySuite.Geometries;
 using NetTopologySuite.Precision;
+using System.Buffers.Binary;
+using System.Numerics;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace S100FC.Topology
@@ -57,7 +60,7 @@ namespace S100FC.Topology
 
     public class CurveFeature : FeatureType
     {
-        public CurveFeature(LineString lineString, ulong hash) {
+        public CurveFeature(LineString lineString, UInt64 hash) {
             this.LineString = lineString;
             this.LineStringReverse = lineString.Factory.CreateLineString([.. lineString.Coordinates.Reverse()]);
 
@@ -114,10 +117,10 @@ namespace S100FC.Topology
 
             this.Reverse = System.IO.Hashing.XxHash64.HashToUInt64(Encoding.UTF8.GetBytes(string.Join(',', curves.Reverse().Select(e => !e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
 
-            if (base.Id == 14887968679845058476 || base.Id == 1293010403767941132) System.Diagnostics.Debugger.Break();
+            //if (base.Id == "14887968679845058476" || base.Id == "1293010403767941132") System.Diagnostics.Debugger.Break();
         }
 
-        public ulong Reverse { get; init; }
+        public UInt64 Reverse { get; init; }
 
         public FeatureRef[] Curves { get; init; } = [];
     }
@@ -168,4 +171,36 @@ namespace S100FC.Topology
         }
     }
 
+
+    public static class GuidExtensions
+    {
+        //public static string ToNumericString(this Guid guid) {
+        //    return $"{System.IO.Hashing.XxHash32.HashToUInt32(guid.ToByteArray())}";
+        //}
+
+        /// <summary>
+        /// Returns a deterministic 64-bit hash of the GUID.
+        /// Different GUIDs can produce the same result.
+        /// </summary>
+        public static UInt64 ToStableUInt64(this Guid guid) {
+            return System.IO.Hashing.XxHash32.HashToUInt32(guid.ToByteArray());
+
+            //Span<byte> guidBytes = stackalloc byte[16];
+            //Span<byte> hashBytes = stackalloc byte[SHA256.HashSizeInBytes];
+
+            //// Use a fixed byte order so the mapping is portable.
+            //if (!guid.TryWriteBytes(guidBytes, bigEndian: true, out _)) {
+            //    throw new InvalidOperationException(
+            //        "The GUID could not be written to the buffer.");
+            //}
+
+            //SHA256.HashData(guidBytes, hashBytes);
+
+            //// Keep this selection and byte order unchanged for persisted values.
+            //return BinaryPrimitives.ReadInt64BigEndian(hashBytes[..8]);
+        }
+    }
 }
+
+
+
