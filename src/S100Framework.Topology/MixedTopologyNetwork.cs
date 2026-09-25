@@ -592,7 +592,7 @@ namespace S100Framework.Topology.Internal
         // Snapping / canonicalization
         // -------------------------------------------------------------------
 
-        private Coordinate SnapToGrid(Coordinate c) {            
+        private Coordinate SnapToGrid(Coordinate c) {
             double inv = 1.0 / _snapTolerance;
             // Round-half to the grid, matching NTS PrecisionModel(1/_snapTolerance).
             double x = Math.Floor(c.X * inv + 0.5d) / inv;  // Math.Round(c.X * inv) / inv;

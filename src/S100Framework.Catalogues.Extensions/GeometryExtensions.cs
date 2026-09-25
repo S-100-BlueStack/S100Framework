@@ -1,8 +1,6 @@
 ﻿//#define SKIN_OF_THE_EARTH_ONLY
 
 using ArcGIS.Core.Data;
-using ArcGIS.Core.Internal.CIM;
-using ArcGIS.Core.SystemCore;
 using Microsoft.Extensions.Logging;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Noding;

@@ -1,8 +1,5 @@
 ﻿using NetTopologySuite.Geometries;
 using NetTopologySuite.Precision;
-using System.Buffers.Binary;
-using System.Numerics;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace S100FC.Topology

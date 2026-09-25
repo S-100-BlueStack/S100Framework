@@ -18,8 +18,8 @@ namespace S100BlueStack.Settings
         [XmlIgnore]
         public string Code => nameof(SupportFile);
 
-    }    
-    
+    }
+
     public class ProductCatalogue
     {
         public record Connection(string ProductSpecification, Uri? ConnectionFile = default);

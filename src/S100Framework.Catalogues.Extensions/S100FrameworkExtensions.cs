@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace S100FC.S101
+﻿namespace S100FC.S101
 {
     using ArcGIS.Core.Data;
     using S100FC.S101.FeatureTypes;
-    using S100FC.S101.SimpleAttributes;
-    using System.Data;
 
     public static class S101Extensions
     {
@@ -26,7 +20,7 @@ namespace S100FC.S101
             }, true);
 
             if (!cursor.MoveNext()) yield break;
-               
+
             {
                 var current = (ArcGIS.Core.Data.Feature)cursor.Current;
 
