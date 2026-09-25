@@ -410,7 +410,7 @@ namespace S100FC
         }
     }
 
-    public abstract class EnumerationAttribute : SimpleAttribute {
+    public class EnumerationAttribute : SimpleAttribute {
         [JsonIgnore]
         public override string valueType => "enumeration";
 
@@ -427,7 +427,7 @@ namespace S100FC
         }
 
         [JsonIgnore]
-        public abstract listedValue[] listedValues { get; }
+        public virtual listedValue[] listedValues { get; init; } = [];
     }
 
     public class CodeListAttribute : SimpleAttribute
@@ -435,8 +435,8 @@ namespace S100FC
         [JsonIgnore]
         public override string valueType => "S100_CodeList";
 
-        //[JsonIgnore]
-        //public abstract listedValue[] listedValues { get; }
+        [JsonIgnore]
+        public virtual listedValue[] listedValues { get; init; } = [];
 
         public int? value { get; set; } = default;
 
@@ -942,14 +942,16 @@ namespace S100FC
         public string role { get; init; } = string.Empty;
         public string? featureType { get; set; } = null;
         public string featureId { get; set; } = string.Empty;
-        
-        public Primitives Primitive { get; set; }
+
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public Primitives? Primitive { get; set; } = default;
 
         public virtual bool Validate(ICollection<string>? errors = default) {
             if (string.IsNullOrEmpty(roleType)) return false;
             if (string.IsNullOrEmpty(role)) return false;
             if (string.IsNullOrEmpty(featureType)) return false;
             if (string.IsNullOrEmpty(featureId)) return false;
+            if (Primitive == default) return false;
             return true;
         }
     }

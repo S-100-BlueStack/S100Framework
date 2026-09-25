@@ -410,7 +410,7 @@ namespace S100FC
         }
     }
 
-    public abstract class EnumerationAttribute : SimpleAttribute {
+    public class EnumerationAttribute : SimpleAttribute {
         [JsonIgnore]
         public override string valueType => "enumeration";
 
@@ -427,7 +427,7 @@ namespace S100FC
         }
 
         [JsonIgnore]
-        public abstract listedValue[] listedValues { get; }
+        public virtual listedValue[] listedValues { get; init; } = [];
     }
 
     public class CodeListAttribute : SimpleAttribute
@@ -435,8 +435,8 @@ namespace S100FC
         [JsonIgnore]
         public override string valueType => "S100_CodeList";
 
-        //[JsonIgnore]
-        //public abstract listedValue[] listedValues { get; }
+        [JsonIgnore]
+        public virtual listedValue[] listedValues { get; init; } = [];
 
         public int? value { get; set; } = default;
 

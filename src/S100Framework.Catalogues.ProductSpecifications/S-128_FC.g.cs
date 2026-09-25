@@ -1706,11 +1706,12 @@ namespace S100FC.S128.SimpleAttributes
 		[JsonIgnore]
 		public override int sourceIdentifier => horizontalDatumEPSGCode._sourceIdentifier;
 		public const int _sourceIdentifier = 0;
-		public static listedValue[] listedValues => [
+		public static listedValue[] _listedValues => [
 				new listedValue("EPSG3395 (World Mercator)", "A global Mercator projection commonly used for mapping applications requiring accurate distance measurements near the equator.",3395),
 				new listedValue("EPSG3857 (Pseudo-Mercator)", "A popular web mapping projection used by Google Maps, OpenStreetMap, and Bing Maps. Distorts at the poles but is widely used in online maps.",3857),
 				new listedValue("EPSG4326 (WGS84)", "World Geodetic System 1984, used globally for GPS and geographic coordinates. Specifies coordinates in latitude and longitude degrees.",4326),
 			];
+		public override listedValue[] listedValues => horizontalDatumEPSGCode._listedValues;
 	}
 
 	/// <summary>

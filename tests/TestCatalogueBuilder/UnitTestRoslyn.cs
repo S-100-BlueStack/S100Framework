@@ -383,7 +383,7 @@ namespace TestAttributes
                             }
                         }
                         roslyn.AppendLine($"\t\t\t];");
-                        
+
                         //roslyn.AppendLine($"\t\tpublic int? value {{ get; set; }} = default;");
                         roslyn.AppendLine();
                         roslyn.AppendLine($"\t\tpublic static implicit operator {code}(int? value) => new {code} {{ value = value }};");
@@ -408,7 +408,7 @@ namespace TestAttributes
                         //roslyn.AppendLine("\t\t[JsonIgnore]");
                         //roslyn.AppendLine($"\t\tpublic override listedValue[] listedValues => {code}.listedValues");
 
-                        roslyn.AppendLine($"\t\tpublic static listedValue[] listedValues => [");
+                        roslyn.AppendLine($"\t\tpublic static listedValue[] _listedValues => [");
                         foreach (var listedValue in element.Element(XName.Get("listedValues", scopes["S100FC"]))!.Elements()) {
                             var listedValueLabel = listedValue.Element(XName.Get("label", scopes["S100FC"]))!.Value!;
                             var listedValueDefinition = listedValue.Element(XName.Get("definition", scopes["S100FC"]))!.Value!;
@@ -426,6 +426,8 @@ namespace TestAttributes
                             }
                         }
                         roslyn.AppendLine($"\t\t\t];");
+                        roslyn.AppendLine($"\t\tpublic override listedValue[] listedValues => {code}._listedValues;");
+
                         //roslyn.AppendLine($"\t\tpublic int? value {{ get; set; }} = default;");
 
                         //validation?.Invoke(code, roslyn);
@@ -861,8 +863,8 @@ namespace TestAttributes
                     System.Diagnostics.Debugger.Break();
                 }
                 roslyn.AppendLine($"\t\tpublic static definitionReference[] definitionReferenceFeatureTypes => [");
-                foreach (var e in definitionReferenceFeatureTypes) {                    
-                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\", [{string.Join(',',e.primitives.Select(e=>$"Primitives.{e}"))}]),");
+                foreach (var e in definitionReferenceFeatureTypes) {
+                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\", [{string.Join(',', e.primitives.Select(e => $"Primitives.{e}"))}]),");
                 }
                 roslyn.AppendLine("\t\t];");
 

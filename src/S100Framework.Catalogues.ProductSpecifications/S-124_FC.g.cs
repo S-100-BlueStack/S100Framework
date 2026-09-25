@@ -652,7 +652,7 @@ namespace S100FC.S124.SimpleAttributes
 		[JsonIgnore]
 		public override int sourceIdentifier => navwarnTypeDetails._sourceIdentifier;
 		public const int _sourceIdentifier = 1102;
-		public static listedValue[] listedValues => [
+		public static listedValue[] _listedValues => [
 				new listedValue("Acoustic Recorder", "The temporary or permanent installation of an acoustical instrument in the marine environment for the purpose of tracking the behavior of marine mammals or to monitor their ecosystems.",1),
 				new listedValue("AIS Temporary Establishment", "A new AIS has been or will be established for a limited period of time.",2),
 				new listedValue("AIS Transmitter Establishment", "A new AIS site has been or will be established.",3),
@@ -954,6 +954,7 @@ namespace S100FC.S124.SimpleAttributes
 				new listedValue("Works in Progress", "An active marine project, either on the surface or under water, which may affect the navigation of vessels.",298),
 				new listedValue("World Health Organization Notice", "Notice issued by World Health Organization to persons ashore or at sea.",299),
 			];
+		public override listedValue[] listedValues => navwarnTypeDetails._listedValues;
 	}
 
 	/// <summary>
@@ -968,7 +969,7 @@ namespace S100FC.S124.SimpleAttributes
 		[JsonIgnore]
 		public override int sourceIdentifier => navwarnTypeGeneral._sourceIdentifier;
 		public const int _sourceIdentifier = 1008;
-		public static listedValue[] listedValues => [
+		public static listedValue[] _listedValues => [
 				new listedValue("Aids to Navigation Changes", "Any casualties to lights, fog signals, buoys and other aids to navigation affecting shipping; establishment of major new aids to navigation or significant changes to existing ones, when such establishment or change might be misleading to shipping.",1),
 				new listedValue("Aquaculture and Fishing Installations", "New or established aquaculture and fishing installations.",2),
 				new listedValue("Drifting Hazards", "Drifting hazards, including derelict ships, containers, other large items, etc.",3),
@@ -990,6 +991,7 @@ namespace S100FC.S124.SimpleAttributes
 				new listedValue("Works", "Works at sea or onshore which might affect navigation.",19),
 				new listedValue("Rig List", "An update on the position, movement or status of rigs or drill ships within a defined area.",20),
 			];
+		public override listedValue[] listedValues => navwarnTypeGeneral._listedValues;
 	}
 
 	/// <summary>

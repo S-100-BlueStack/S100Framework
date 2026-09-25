@@ -34,7 +34,7 @@ namespace S100FC.S123.SimpleAttributes
 		[JsonIgnore]
 		public override int sourceIdentifier => actionOrActivity._sourceIdentifier;
 		public const int _sourceIdentifier = 974;
-		public static listedValue[] listedValues => [
+		public static listedValue[] _listedValues => [
 				new listedValue("Navigating With a Pilot", "Carrying a qualified pilot as part of the vessel navigation team.",1),
 				new listedValue("Entering Port", "Navigating a vessel into a port.",2),
 				new listedValue("Leaving Port", "Navigating a vessel out of a port.",3),
@@ -52,6 +52,7 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("Discharging Overboard", "Releasing anything into the sea; often ballast water; or spoil from dredging elsewhere.",15),
 				new listedValue("Passing", "Navigating a vessel past another travelling broadly in the opposite direction.",16),
 			];
+		public override listedValue[] listedValues => actionOrActivity._listedValues;
 	}
 
 	/// <summary>
@@ -383,7 +384,7 @@ namespace S100FC.S123.SimpleAttributes
 		[JsonIgnore]
 		public override int sourceIdentifier => categoryOfRxN._sourceIdentifier;
 		public const int _sourceIdentifier = 978;
-		public static listedValue[] listedValues => [
+		public static listedValue[] _listedValues => [
 				new listedValue("Navigation", "The process of directing the movement of a craft from one point to another.",1),
 				new listedValue("Communication", "Transmitting and/or receiving electronic communication signals.",2),
 				new listedValue("Environmental Protection", "Pertaining to environmental protection.",3),
@@ -398,6 +399,7 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("Finance", "An authority with responsibility for the control and movement of money.",12),
 				new listedValue("Agriculture", "The science, art, or practice of cultivating the soil, producing crops, and raising livestock and in varying degrees the preparation and marketing of the resulting products.",13),
 			];
+		public override listedValue[] listedValues => categoryOfRxN._listedValues;
 	}
 
 	/// <summary>
@@ -481,7 +483,7 @@ namespace S100FC.S123.SimpleAttributes
 		[JsonIgnore]
 		public override int sourceIdentifier => categoryOfVessel._sourceIdentifier;
 		public const int _sourceIdentifier = 979;
-		public static listedValue[] listedValues => [
+		public static listedValue[] _listedValues => [
 				new listedValue("General Cargo Vessel", "A vessel which is designed for carrying general cargo, e.g. boxes, sacks.",1),
 				new listedValue("Container Carrier", "A vessel designed to carry ISO containers.",2),
 				new listedValue("Tanker", "A vessel which is designed for carrying liquid goods, for example oil or water.",3),
@@ -500,6 +502,7 @@ namespace S100FC.S123.SimpleAttributes
 				new listedValue("Livestock Carrier", "A vessel designed to carry large quantities of live animals.",16),
 				new listedValue("Sport Fishing", "A vessel used in fishing for pleasure or competition.",17),
 			];
+		public override listedValue[] listedValues => categoryOfVessel._listedValues;
 	}
 
 	/// <summary>

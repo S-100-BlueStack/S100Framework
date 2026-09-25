@@ -686,10 +686,11 @@ namespace S100FC.S125.SimpleAttributes
 		[JsonIgnore]
 		public override int sourceIdentifier => categoryOfAssociation._sourceIdentifier;
 		public const int _sourceIdentifier = 0;
-		public static listedValue[] listedValues => [
+		public static listedValue[] _listedValues => [
 				new listedValue("Channel Markings", "A group of channel marks which indicate channel limits.",1),
 				new listedValue("Danger Markings", "One of more aids to navigation and the danger(s) that are marked.",2),
 			];
+		public override listedValue[] listedValues => categoryOfAssociation._listedValues;
 	}
 
 	/// <summary>
@@ -704,11 +705,12 @@ namespace S100FC.S125.SimpleAttributes
 		[JsonIgnore]
 		public override int sourceIdentifier => categoryOfAggregation._sourceIdentifier;
 		public const int _sourceIdentifier = 0;
-		public static listedValue[] listedValues => [
+		public static listedValue[] _listedValues => [
 				new listedValue("Leading Line", "A line passing through two or more clearly defined charted objects, and along which a vessel can approach safely.",1),
 				new listedValue("Measured Distance", "A course at sea, whose ends are indicated by ranges ashore, and whose length has been accurately measured for determining the speed of vessels.",3),
 				new listedValue("Range System", "Two or more features in the same horizontal direction, particularly those features so placed as navigational aids to mark any line of importance to vessels, as a channel. The one nearest the observer is the front mark and the one farthest from the observer is the rear mark.",2),
 			];
+		public override listedValue[] listedValues => categoryOfAggregation._listedValues;
 	}
 
 	/// <summary>
