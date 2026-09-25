@@ -10,9 +10,9 @@
 		<Product>S100Framework</Product>
 		<PackageId>S100Framework.Catalogues.Extensions</PackageId>
 		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
-		<AssemblyVersion>3.0.0.0</AssemblyVersion>
+		<AssemblyVersion>4.0.0.0</AssemblyVersion>
 		<Version>3.7.1901</Version>
-		<PackageVersion>3.7.1901.3</PackageVersion>
+		<PackageVersion>3.7.1901.4</PackageVersion>
 		<Configurations>Debug</Configurations>		
 	</PropertyGroup>
 
