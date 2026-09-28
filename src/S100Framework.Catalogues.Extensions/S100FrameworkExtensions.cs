@@ -48,7 +48,7 @@
                         FilterGeometry = f.GetShape().Clone(),
                         SpatialRelationship = SpatialRelationship.Relation,
                         SpatialRelationshipDescription = "UNKNOWN",
-                        SubFields = "OBJECTID,UID,GLOBALID,CODE,SHAPE",
+                        SubFields = "OBJECTID,GLOBALID,CODE,SHAPE",
                     };
 
                     yield return (dataCoverage, spatialQueryFilter);
