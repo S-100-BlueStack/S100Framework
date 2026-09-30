@@ -219,7 +219,7 @@ namespace ArcGIS.Core.Geometry
                                 var objectid = _.GetObjectID();
                                 var code = Convert.ToString(_["code"])!;
 
-                                if ("DataCoverage".Equals(code, StringComparison.InvariantCultureIgnoreCase)) System.Diagnostics.Debugger.Break();
+                                //if ("DataCoverage".Equals(code, StringComparison.InvariantCultureIgnoreCase)) System.Diagnostics.Debugger.Break();
                                 if (lookup.Contains(objectid)) continue;
 
                                 hits.Add(objectid);
