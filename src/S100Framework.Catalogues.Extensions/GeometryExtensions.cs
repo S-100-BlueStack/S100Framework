@@ -127,7 +127,7 @@ namespace ArcGIS.Core.Geometry
                 yield return (dataCoverage, spatialQueryFilter);
 
                 yield return (dataCoverage, new SpatialQueryFilter {
-                    WhereClause = $"OBJECTID = {f.GetObjectID()}",
+                    WhereClause = whereClause + $" AND (nominalscale = {nominalScale} OR nominalscale = {dataCoverage.optimumDisplayScale})",
                     FilterGeometry = f.GetShape().Clone(),
                     SpatialRelationship = SpatialRelationship.Relation,
                     SpatialRelationshipDescription = "T*F**FFF*",
