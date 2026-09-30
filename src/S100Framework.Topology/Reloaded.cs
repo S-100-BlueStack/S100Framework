@@ -510,7 +510,7 @@ namespace S100FC.Topology
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
                 if (System.Diagnostics.Debugger.IsAttached)
-                    _geometriesTopology = [.. _geometriesTopology, ($"110:{surface.UID.Substring(1)}:1-Exterior", surface.ExteriorRing)];
+                    _geometriesTopology = [.. _geometriesTopology, ($"surface::{surface.UID}-Exterior", surface.ExteriorRing)];
 
 
                 ////if (surface.UID.EndsWith("10400004587")) {
@@ -545,7 +545,7 @@ namespace S100FC.Topology
                     idInteriorRings = [.. idInteriorRings, id];
 
                     if (System.Diagnostics.Debugger.IsAttached)
-                        _geometriesTopology = [.. _geometriesTopology, ($"110:{surface.UID.Substring(1)}:1-Interior:Hole", interior)];
+                        _geometriesTopology = [.. _geometriesTopology, ($"surface::{surface.UID}-Hole", interior)];
 
                     this._sourceLineType.Add(id, LineType.Interior);
 
@@ -571,7 +571,7 @@ namespace S100FC.Topology
                 }
                 if (id < 0) continue;
                 if (System.Diagnostics.Debugger.IsAttached)
-                    _geometriesTopology = [.. _geometriesTopology, ($"110:{curve.UID.Substring(1)}:1", curve.LineString)];
+                    _geometriesTopology = [.. _geometriesTopology, ($"curve::{curve.UID}", curve.LineString)];
 
                 if (curve.LineString is LinearRing linearring)
                     this._sourceLineType.Add(id, LineType.Ring);

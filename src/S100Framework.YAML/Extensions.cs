@@ -204,7 +204,8 @@
                         // Create point if not exist
                         if (datasetPoint == default) {
                             var p = new Point(point.X, point.Y) {
-                                Name = $"P{hashId}"
+                                //Name = $"P{hashId}"
+                                Name = name,
                             };
 
                             dataset?.AddPoint(p);
@@ -220,10 +221,11 @@
 
                         var hashId = System.IO.Hashing.XxHash32.HashToUInt32(new NetTopologySuite.Geometries.MultiPoint([.. multiPoint.Points.Select(e => new NetTopologySuite.Geometries.Point(e.X, e.Y, e.Z))]).ToBinary());
 
-                        var pointSet = new PointSet(points, depths) { Name = $"P{hashId}" };
+                        //var pointSet = new PointSet(points, depths) { Name = $"P{hashId}" };
+                        var pointSet = new PointSet(points, depths) { Name = name };
                         dataset.AddPointSet(pointSet);
 
-                        dataset?.UpdateFeatureReferences(name, $"P{hashId}"!);
+                        //dataset?.UpdateFeatureReferences(name, $"P{hashId}"!);
                         break;
                     }
                 case ArcGIS.Core.Geometry.Polyline polyline:        // Curves are handled in Topology
