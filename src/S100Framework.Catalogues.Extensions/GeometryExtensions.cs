@@ -84,6 +84,8 @@ namespace ArcGIS.Core.Geometry
 
         private static (string tableName, SpatialRelationship SpatialRelationship, string SpatialRelationshipDescription)[] spatialRelationships = [
                 ("surface", SpatialRelationship.Relation,"T********"),
+                //("surface", SpatialRelationship.Relation,"TF*FT*FF*"),
+                //("surface", SpatialRelationship.Relation,"T*F**F***"),
                 ("surface", SpatialRelationship.Relation,Matrix.DE9IM_Contains),
                 ("surface", SpatialRelationship.Relation,Matrix.DE9IM_Crosses),
 
@@ -220,6 +222,7 @@ namespace ArcGIS.Core.Geometry
                                 var code = Convert.ToString(_["code"])!;
 
                                 //if ("DataCoverage".Equals(code, StringComparison.InvariantCultureIgnoreCase)) System.Diagnostics.Debugger.Break();
+                                //if ("Coastline".Equals(code, StringComparison.InvariantCultureIgnoreCase)) System.Diagnostics.Debugger.Break();
                                 if (lookup.Contains(objectid)) continue;
 
                                 hits.Add(objectid);
@@ -229,6 +232,7 @@ namespace ArcGIS.Core.Geometry
 
                                 yield return (objectid, _.UID(), code, shape);
                             }
+                            f.SpatialRelationshipDescription = string.Empty;
                         }
                     }
                     else {

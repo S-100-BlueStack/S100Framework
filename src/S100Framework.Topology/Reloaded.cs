@@ -492,7 +492,7 @@ namespace S100FC.Topology
 
         private (string UID, Geometry Geometry)[] _geometriesTopology = [];
 
-        public string[] NetworkTopology => [.. _geometriesTopology.Select(e => $"{e.UID}: {e.Geometry.ToText()}")];
+        public string[] NetworkTopology => [.. _geometriesTopology.Select(e => $"{e.Geometry.ToText()}")];
 
         private int _id = int.MaxValue;
 
@@ -510,7 +510,7 @@ namespace S100FC.Topology
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
                 if (System.Diagnostics.Debugger.IsAttached)
-                    _geometriesTopology = [.. _geometriesTopology, ($"surface::{surface.UID}-Exterior", surface.ExteriorRing)];
+                    _geometriesTopology = [.. _geometriesTopology, ($"surface::{surface.UID}-Exterior", surface.ExteriorRing)]; //_geometriesTopology = [.. _geometriesTopology, ($"surface::{surface.UID}-Exterior", surface.ExteriorRing)];
 
 
                 ////if (surface.UID.EndsWith("10400004587")) {
