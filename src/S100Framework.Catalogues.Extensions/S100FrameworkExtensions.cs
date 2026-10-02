@@ -44,7 +44,7 @@
                     var dataCoverage = (S100FC.S101.FeatureTypes.DataCoverage)S100FC.AttributeFlattenExtensions.Unflatten<S100FC.FeatureType>(Convert.ToString(f["attributebindings"])!, typeof(S100FC.S101.FeatureTypes.DataCoverage));
 
                     var spatialQueryFilter = new SpatialQueryFilter {
-                        WhereClause = whereClause + $" AND nominalscale = {dataCoverage.optimumDisplayScale}",
+                        WhereClause = whereClause + $" AND compilationscale = {dataCoverage.optimumDisplayScale}",
                         FilterGeometry = f.GetShape().Clone(),
                         SpatialRelationship = SpatialRelationship.Relation,
                         SpatialRelationshipDescription = "UNKNOWN",

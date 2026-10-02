@@ -98,7 +98,7 @@ namespace ArcGIS.Core.Geometry
 
         public delegate IEnumerable<(long objectid, string UID, string code, Geometry shape)> FeatureQuery(string tablename, string whereClause);
 
-        public static IEnumerable<(DataCoverage dataCoverage, SpatialQueryFilter Filter)> S101_QueryDataCoverage(this Geodatabase geodatabase, Polygon product, long nominalScale) {
+        public static IEnumerable<(DataCoverage dataCoverage, SpatialQueryFilter Filter)> S101_QueryDataCoverage(this Geodatabase geodatabase, Polygon product, long compilationscale) {
             var syntax = geodatabase.GetSQLSyntax();
             var definitionFeatures = geodatabase.GetDefinitions<FeatureClassDefinition>();
 
@@ -107,7 +107,7 @@ namespace ArcGIS.Core.Geometry
             var whereClause = "upper(ps) = 'S-101'";
 
             using var datacoverageSearch = surface.Search(new SpatialQueryFilter {
-                WhereClause = $"upper(ps) = 'S-101' AND code = 'DataCoverage' AND nominalscale = {nominalScale}",
+                WhereClause = $"upper(ps) = 'S-101' AND code = 'DataCoverage' AND compilationscale = {compilationscale}",
                 FilterGeometry = product,
                 SpatialRelationship = SpatialRelationship.Contains,
             }, true);
@@ -118,7 +118,7 @@ namespace ArcGIS.Core.Geometry
                 var dataCoverage = (S100FC.S101.FeatureTypes.DataCoverage)S100FC.AttributeFlattenExtensions.Unflatten<S100FC.FeatureType>(Convert.ToString(f["attributebindings"])!, typeof(S100FC.S101.FeatureTypes.DataCoverage));
 
                 var spatialQueryFilter = new SpatialQueryFilter {
-                    WhereClause = whereClause + $" AND nominalscale = {dataCoverage.optimumDisplayScale}",
+                    WhereClause = whereClause + $" AND compilationscale = {dataCoverage.optimumDisplayScale}",
                     FilterGeometry = f.GetShape().Clone(),
                     SpatialRelationship = SpatialRelationship.Relation,
                     SpatialRelationshipDescription = string.Empty,
@@ -127,7 +127,7 @@ namespace ArcGIS.Core.Geometry
                 yield return (dataCoverage, spatialQueryFilter);
 
                 yield return (dataCoverage, new SpatialQueryFilter {
-                    WhereClause = whereClause + $" AND (nominalscale = {nominalScale} OR nominalscale = {dataCoverage.optimumDisplayScale})",
+                    WhereClause = whereClause + $" AND (compilationscale = {compilationscale} OR compilationscale = {dataCoverage.optimumDisplayScale})",
                     FilterGeometry = f.GetShape().Clone(),
                     SpatialRelationship = SpatialRelationship.Relation,
                     SpatialRelationshipDescription = "T*F**FFF*",
