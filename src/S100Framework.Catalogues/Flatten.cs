@@ -1,11 +1,11 @@
 ﻿using JsonFlatten;
-//using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using S100FC;
 using System.Collections;
 using System.Globalization;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace S100FC
@@ -13,15 +13,12 @@ namespace S100FC
     public class JsonUnflattener
     {
         public static JsonNode Unflatten(string jsonString) {
-            // 1. Parse the flat string into a dictionary
             var flatDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonString);
             var root = new JsonObject();
 
             if (flatDict is null) return root;
 
             foreach (var kvp in flatDict) {
-                // Split by dot, but ignore dots inside brackets if necessary 
-                // (Simple split works for your example)
                 string[] parts = kvp.Key.Split('.');
                 ProcessPath(root, parts, kvp.Value);
             }
@@ -40,21 +37,19 @@ namespace S100FC
             }
             else if (node is JsonArray array) {
                 for (int i = 0; i < array.Count; i++) {
+                    if (array[i] is null) continue;
                     foreach (var child in GetAllProperties(array[i]!, $"{path}[{i}]"))
                         yield return child;
                 }
             }
             else {
-                // Try to get the underlying value (bool, double, string, etc.)
-                object val = node?.AsValue().ToString(); // Simplified for example
+                object val = node.AsValue().ToString();
                 yield return (path, val);
             }
         }
 
 
         private static void ProcessPath(JsonObject currentParent, string[] parts, JsonElement value) {
-            JsonNode currentNode = currentParent;
-
             for (int i = 0; i < parts.Length; i++) {
                 string part = parts[i];
                 bool isLast = (i == parts.Length - 1);
@@ -64,37 +59,37 @@ namespace S100FC
 
                 if (arrayMatch.Success) {
                     string arrayName = arrayMatch.Groups[1].Value;
-                    int index = int.Parse(arrayMatch.Groups[2].Value);
+                    int index = int.Parse(arrayMatch.Groups[2].Value, CultureInfo.InvariantCulture);
 
                     // Ensure the array exists
                     if (!currentParent.ContainsKey(arrayName) || currentParent[arrayName] == null) {
                         currentParent[arrayName] = new JsonArray();
                     }
 
-                    JsonArray array = currentParent[arrayName].AsArray();
+                    JsonArray array = currentParent[arrayName]!.AsArray();
 
                     // Expand array with nulls if index is higher than current count
                     while (array.Count <= index) { array.Add(null); }
 
                     if (isLast) {
-                        array[index] = JsonValue.Create(value);
+                        array[index] = JsonNode.Parse(value.GetRawText());
                     }
                     else {
                         // If not last, we need an object at this index to continue
                         if (array[index] == null) { array[index] = new JsonObject(); }
-                        currentParent = array[index].AsObject();
+                        currentParent = array[index]!.AsObject();
                     }
                 }
                 else {
                     // It's a regular property
                     if (isLast) {
-                        currentParent[part] = JsonValue.Create(value);
+                        currentParent[part] = JsonNode.Parse(value.GetRawText());
                     }
                     else {
                         if (!currentParent.ContainsKey(part) || currentParent[part] == null) {
                             currentParent[part] = new JsonObject();
                         }
-                        currentParent = currentParent[part].AsObject();
+                        currentParent = currentParent[part]!.AsObject();
                     }
                 }
             }
@@ -103,6 +98,10 @@ namespace S100FC
 
     public class JsonFlattener
     {
+        public static string Flatten(featureBinding binding) => AttributeFlattenExtensions.Flatten(binding);
+
+        public static string Flatten(informationBinding binding) => AttributeFlattenExtensions.Flatten(binding);
+
         public static string Flatten(attributeBinding[] attributeBindings, attributeBindingDefinition[] attributeBindingDefinitions) {
             return AttributeFlattenExtensions.FlattenAttributes(attributeBindings, attributeBindingDefinitions);
         }
@@ -122,188 +121,181 @@ namespace S100FC
                 => writer.WriteRawValue(value.ToString("G29", CultureInfo.InvariantCulture));
         }
 
-        private readonly static JsonSerializerOptions jsonSerializerOptions = new() {
+        private static readonly JsonSerializerOptions jsonSerializerOptions = new() {
             WriteIndented = true,
-            Converters = { new DecimalTrimConverter() },
+            Converters = { new DecimalTrimConverter(), new JsonStringEnumConverter() },
         };
 
         public static string Flatten(this FeatureType feature) => FlattenAttributes(feature.attributeBindings, feature.attributeBindingsCatalogue);
         public static string Flatten(this InformationType information) => FlattenAttributes(information.attributeBindings, information.attributeBindingsCatalogue);
 
-        /// <summary> 
-        /// Creates and populates an instance of the specified type, FeatureType or InformationType, using the provided JSON attribute data and type code. 
-        /// </summary> 
-        /// <typeparam name="T"> 
-        /// The target class type to instantiate. Supported types include <c>FeatureType</c> and <c>InformationType</c>. 
-        /// </typeparam> 
-        /// <param name="attributes"> 
-        /// A JSON string containing the flattened attributes used to populate the object. 
-        /// </param> 
-        /// <param name="code"> 
-        /// The code identifying the concrete type to instantiate within the feature catalogue. 
-        /// </param> 
-        /// <returns> A fully populated instance of <typeparamref name="T"/> created from the JSON data. 
-        /// </returns>
-        public static T Unflatten<T>(string? attributes, Type type) where T : class {
-            if (string.IsNullOrWhiteSpace(attributes)) {
-                return (T)Activator.CreateInstance(type)!;
-            }
-            var dict = JsonSerializer.Deserialize<Dictionary<string, JsonValue>>(attributes) ?? [];
-            var root = (JsonObject)Unflatten(dict);
+        public static string Flatten(this featureBinding binding) {
+            ArgumentNullException.ThrowIfNull(binding);
 
-            //var featureCatalogue = S100FC.Catalogues.FeatureCatalogue.Catalogues.Single(e => e.ProductID.Equals("S-101"));
-            //var type = featureCatalogue.Assembly!.GetType($"{S100FC.Catalogues.FeatureCatalogue.Namespace("S101", $"{typeof(T).Name}s")}.{code}", true)!;
+            var root = new JObject {
+                ["association"] = CreateAssociation(binding.association),
+                ["roleType"] = binding.roleType,
+                ["role"] = binding.role,
+                ["featureType"] = binding.featureType,
+                ["featureId"] = binding.featureId,
+                ["Primitive"] = binding.Primitive?.ToString(),
+            };
 
-            var instance = Activator.CreateInstance(type) as T;
-
-            PopulateObject(instance!, root);
-            return instance!;
+            return SerializeFlattened(root, includeNullAndEmptyValues: true);
         }
+
+        public static string Flatten(this informationBinding binding) {
+            ArgumentNullException.ThrowIfNull(binding);
+
+            var root = new JObject {
+                ["association"] = CreateAssociation(binding.association),
+                ["roleType"] = binding.roleType,
+                ["role"] = binding.role,
+                ["informationType"] = binding.informationType,
+                ["informationId"] = binding.informationId,
+            };
+
+            return SerializeFlattened(root, includeNullAndEmptyValues: true);
+        }
+
+        private static JToken CreateAssociation(association? association) {
+            if (association is null) return JValue.CreateNull();
+
+            return new JObject {
+                ["code"] = association.S100FC_code,
+                ["attributes"] = CreateAttributes(
+                    association.attributes,
+                    association.attributeBindingsCatalogue),
+            };
+        }
+
+        /// <summary>
+        /// Restores a feature, information type, or binding using its concrete CLR type.
+        /// For bindings, supply featureBinding&lt;TAssociation&gt; or
+        /// informationBinding&lt;TAssociation&gt; to retain association attributes.
+        /// </summary>
+        public static T Unflatten<T>(string? attributes, Type type) where T : class {
+            ArgumentNullException.ThrowIfNull(type);
+
+            if (!typeof(T).IsAssignableFrom(type) || type.IsAbstract || type.ContainsGenericParameters) {
+                throw new ArgumentException(
+                    $"{type} must be a concrete type assignable to {typeof(T)}.", nameof(type));
+            }
+
+            var instance = (T)(Activator.CreateInstance(type)
+                ?? throw new InvalidOperationException($"Cannot create {type}."));
+
+            if (!string.IsNullOrWhiteSpace(attributes)) {
+                PopulateObject(instance, (JsonObject)JsonUnflattener.Unflatten(attributes));
+            }
+
+            return instance;
+        }
+
+        public static T Unflatten<T>(string? attributes) where T : class, new()
+            => Unflatten<T>(attributes, typeof(T));
 
         private static void PopulateObject(object target, JsonObject json) {
             var type = target.GetType();
 
             foreach (var (name, node) in json) {
-                var prop = type.GetProperty(name);
-                if (prop == null || !prop.CanWrite)
-                    continue;
-
-                var propType = prop.PropertyType;
-
-                // null
-                if (node is null) {
-                    prop.SetValue(target, null);
-                    continue;
-                }
-
-                // primitive
-                if (node is JsonValue value) {
-                    var converted = value.Deserialize(propType);
-                    prop.SetValue(target, converted);
-                    continue;
-                }
-
-                // array
-                if (node is JsonArray array) {
-                    var elementType = propType.GetElementType()
-                        ?? propType.GetGenericArguments().First();
-
-                    var list = (IList)Activator.CreateInstance(
-                        typeof(List<>).MakeGenericType(elementType)
-                    )!;
-
-                    foreach (var item in array) {
-                        if (item is JsonValue v) {
-                            list.Add(v.Deserialize(elementType));
-                        }
-                        else if (item is JsonObject o) {
-                            var elem = Activator.CreateInstance(elementType)!;
-                            PopulateObject(elem, o);
-                            list.Add(elem);
+                if (target is association association) {
+                    if (name == "code" && node is JsonValue codeNode) {
+                        var code = codeNode.GetValue<string>();
+                        if (type != typeof(association) && code != association.S100FC_code) {
+                            throw new JsonException(
+                                $"Association '{code}' does not match {type}.");
                         }
                     }
 
-                    prop.SetValue(
-                        target,
-                        propType.IsArray ? ToArray(list, elementType) : list
-                    );
-                    continue;
+                    if (name == "attributes" && node is JsonObject attributes) {
+                        if (type == typeof(association) && attributes.Count > 0) {
+                            throw new JsonException(
+                                "Association attributes require a concrete " +
+                                "featureBinding<TAssociation> or informationBinding<TAssociation>.");
+                        }
+
+                        // Generated association properties update the underlying attribute bindings.
+                        PopulateObject(association, attributes);
+                        continue;
+                    }
                 }
 
-                // complex object
-                if (node is JsonObject obj) {
-                    var child = Activator.CreateInstance(propType)!;
+                var prop = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance)
+                    ?? type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                        .SingleOrDefault(p =>
+                            p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name == name);
+
+                if (prop == null || !prop.CanWrite || prop.GetIndexParameters().Length != 0)
+                    continue;
+
+                if (node is null) {
+                    prop.SetValue(target, null);
+                }
+                else if (node is JsonValue value) {
+                    prop.SetValue(target, value.Deserialize(prop.PropertyType, jsonSerializerOptions));
+                }
+                else if (node is JsonArray array) {
+                    var elementType = prop.PropertyType.GetElementType()
+                        ?? prop.PropertyType.GetGenericArguments().First();
+                    var list = (IList)Activator.CreateInstance(
+                        typeof(List<>).MakeGenericType(elementType))!;
+
+                    foreach (var item in array) {
+                        if (item is null) {
+                            list.Add(null);
+                        }
+                        else if (item is JsonValue itemValue) {
+                            list.Add(itemValue.Deserialize(elementType, jsonSerializerOptions));
+                        }
+                        else if (item is JsonObject itemObject) {
+                            var element = Activator.CreateInstance(elementType)!;
+                            PopulateObject(element, itemObject);
+                            list.Add(element);
+                        }
+                        else {
+                            throw new JsonException($"Unsupported array item in '{name}'.");
+                        }
+                    }
+
+                    prop.SetValue(target, prop.PropertyType.IsArray ? ToArray(list, elementType) : list);
+                }
+                else if (node is JsonObject obj) {
+                    // Binding constructors already create the concrete generic association.
+                    var child = prop.CanRead ? prop.GetValue(target) : null;
+                    child ??= Activator.CreateInstance(prop.PropertyType)!;
                     PopulateObject(child, obj);
                     prop.SetValue(target, child);
                 }
             }
         }
+
         private static Array ToArray(IList list, Type elementType) {
-            var arr = Array.CreateInstance(elementType, list.Count);
-            list.CopyTo(arr, 0);
-            return arr;
+            var array = Array.CreateInstance(elementType, list.Count);
+            list.CopyTo(array, 0);
+            return array;
         }
-        private static JsonNode Unflatten(Dictionary<string, JsonValue> source) {
-            var regex = new System.Text.RegularExpressions.Regex(@"(?!\.)([^. ^\[\]]+)|(?!\[)(\d+)(?=\])");
-            JsonNode node = JsonNode.Parse("{}");
 
-            foreach (var keyValue in source) {
-                var pathSegments = regex.Matches(keyValue.Key).Select(m => m.Value).ToArray();
-
-                for (int i = 0; i < pathSegments.Length; i++) {
-                    var currentSegmentType = GetSegmentKind(pathSegments[i]);
-
-                    if (currentSegmentType == JsonValueKind.Object) {
-                        if (node[pathSegments[i]] == null) {
-                            if (pathSegments[i] == pathSegments[pathSegments.Length - 1]) {
-                                node[pathSegments[i]] = keyValue.Value;
-                                node = node.Root;
-                            }
-                            else {
-                                var nextSegmentType = GetSegmentKind(pathSegments[i + 1]);
-
-                                if (nextSegmentType == JsonValueKind.Object) {
-                                    node[pathSegments[i]] = JsonNode.Parse("{}");
-                                }
-                                else {
-                                    node[pathSegments[i]] = JsonNode.Parse("[]");
-                                }
-                                node = node[pathSegments[i]];
-                            }
-                        }
-                        else {
-                            node = node[pathSegments[i]];
-                        }
-                    }
-                    else {
-                        if (!int.TryParse(pathSegments[i], out int index)) {
-                            throw new Exception("Cannot parse index");
-                        }
-
-                        while (node.AsArray().Count - 1 < index) {
-                            node.AsArray().Add(null);
-                        }
-
-                        if (i == pathSegments.Length - 1) {
-                            node[index] = keyValue.Value;
-                            node = node.Root;
-                        }
-                        else {
-                            if (node[index] == null) {
-                                var nextSegmentType = GetSegmentKind(pathSegments[i + 1]);
-
-                                if (nextSegmentType == JsonValueKind.Object) {
-                                    node[index] = JsonNode.Parse("{}");
-                                }
-                                else {
-                                    node[index] = JsonNode.Parse("[]");
-                                }
-                            }
-
-                            node = node[index];
-                        }
-                    }
-                }
-            }
-
-            return node;
-        }
-        private static JsonValueKind GetSegmentKind(string pathSegment) => int.TryParse(pathSegment, out _) ? JsonValueKind.Array : JsonValueKind.Object;
-
-        internal static string FlattenAttributes(attributeBinding[] attributes, attributeBindingDefinition[] catalogue) {
-            var root = new JObject();
-
-            foreach (var attr in attributes) {
-                //if (attr.S100FC_code.StartsWith("wave")) System.Diagnostics.Debugger.Break();
-                var isCollection = catalogue.Single(e => e.attribute == attr.S100FC_code).IsCollection;
-
-                AddAttribute(root, attr, catalogue, isCollection);
-            }
-
-            var flattened = root.Flatten();
+        private static string SerializeFlattened(JObject root, bool includeNullAndEmptyValues = false) {
+            var flattened = root.Flatten(includeNullAndEmptyValues: includeNullAndEmptyValues);
             return JsonSerializer.Serialize(flattened, jsonSerializerOptions);
         }
-        private static void AddAttribute(JObject parent, attributeBinding attribute, attributeBindingDefinition[] catalogue, bool isCollection = false) {
+
+        internal static string FlattenAttributes(attributeBinding[] attributes, attributeBindingDefinition[] catalogue)
+            => SerializeFlattened(CreateAttributes(attributes, catalogue));
+
+        private static JObject CreateAttributes(attributeBinding[] attributes, attributeBindingDefinition[] catalogue) {
+            var root = new JObject();
+
+            foreach (var attribute in attributes) {
+                var definition = catalogue.Single(d => d.attribute == attribute.S100FC_code);
+                AddAttribute(root, attribute, definition.IsCollection);
+            }
+
+            return root;
+        }
+
+        private static void AddAttribute(JObject parent, attributeBinding attribute, bool isCollection = false) {
             switch (attribute) {
                 case BooleanAttribute s:
                     AddValue(parent, attribute.S100FC_code, s.value, isCollection);
@@ -327,7 +319,8 @@ namespace S100FC
                     AddValue(parent, attribute.S100FC_code, s.value, isCollection);
                     break;
                 case TimeAttribute s:
-                    AddValue(parent, attribute.S100FC_code, s.value, isCollection);
+                    // Newtonsoft does not use the System.Text.Json converter on S100.Time.
+                    AddValue(parent, attribute.S100FC_code, s.value?.ToString(), isCollection);
                     break;
                 case UrnAttribute s:
                     AddValue(parent, attribute.S100FC_code, s.value, isCollection);
@@ -345,24 +338,13 @@ namespace S100FC
                     AddValue(parent, attribute.S100FC_code, s.value, isCollection);
                     break;
                 case ComplexAttribute c:
+                    var obj = CreateAttributes(c.attributeBindings, c.attributeBindingsCatalogue);
                     if (isCollection) {
                         var array = parent[attribute.S100FC_code] as JArray ?? [];
-                        var obj = new JObject();
-
-                        foreach (var child in c.attributeBindings) {
-                            var childDef = c.attributeBindingsCatalogue.Single(d => d.attribute == child.S100FC_code);
-                            AddAttribute(obj, child, c.attributeBindingsCatalogue, childDef.IsCollection);
-                        }
-
                         array.Add(obj);
                         parent[attribute.S100FC_code] = array;
                     }
                     else {
-                        var obj = new JObject();
-                        foreach (var child in c.attributeBindings) {
-                            var childDef = c.attributeBindingsCatalogue.Single(d => d.attribute == child.S100FC_code);
-                            AddAttribute(obj, child, c.attributeBindingsCatalogue, childDef.IsCollection);
-                        }
                         parent[attribute.S100FC_code] = obj;
                     }
                     break;
