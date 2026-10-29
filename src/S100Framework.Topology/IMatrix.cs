@@ -6,6 +6,8 @@ namespace S100FC.Topology
 {
     public interface ITopologyBuilder
     {
+        ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Point> points);
+
         ITopologyBuilder AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<S100FC.Topology.Polyline> curves);
 
         ITopologyBuilder AddSingletonFeatures(IList<S100FC.Topology.Polyline> curves);
@@ -17,6 +19,8 @@ namespace S100FC.Topology
 
     public interface IMatrix
     {
+        IEnumerable<PointFeature> Points { get; }
+
         IEnumerable<CurveFeature> Curves { get; }
 
         IEnumerable<CompositeCurveFeature> CompositeCurves { get; }
@@ -53,6 +57,23 @@ namespace S100FC.Topology
         private static UInt64 counter = 1;
 
         public UInt64 Id { get; init; } = Interlocked.Increment(ref FeatureType.counter);
+    }
+
+    public class PointFeature : FeatureType
+    {
+        public PointFeature(NetTopologySuite.Geometries.Point point, UInt64 hash) {
+            this.Point = point;
+            base.Id = hash;
+        }
+
+        public PointFeature(NetTopologySuite.Geometries.Point point) : this(point, System.IO.Hashing.XxHash64.HashToUInt64(point.ToBinary())) {
+        }
+
+        public NetTopologySuite.Geometries.Point Point { get; set; }
+
+        public override int GetHashCode() {
+            return (int)System.IO.Hashing.XxHash64.HashToUInt64(this.Point.ToBinary());
+        }
     }
 
     public class CurveFeature : FeatureType
@@ -111,7 +132,7 @@ namespace S100FC.Topology
             this.Curves = curves;
 
             base.Id = id.HasValue ? id.Value : System.IO.Hashing.XxHash64.HashToUInt64(Encoding.UTF8.GetBytes(string.Join(',', curves.Select(e => e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
-            
+
             //base.Id = System.IO.Hashing.XxHash64.HashToUInt64(Encoding.UTF8.GetBytes(string.Join(',', curves.Select(e => e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
 
             this.Reverse = System.IO.Hashing.XxHash64.HashToUInt64(Encoding.UTF8.GetBytes(string.Join(',', curves.Reverse().Select(e => !e.Reverse ? $"RC{e.Id}" : $"C{e.Id}"))));
@@ -138,9 +159,11 @@ namespace S100FC.Topology
         public ICollection<UInt64>? Masks2 { get; set; } = default;
     }
 
-    public record Polyline(long ObjectId, string Name, string Code, LineString LineString, string UID);
+    public record Point(long ObjectId, string Name, string Code, NetTopologySuite.Geometries.Point Coordinate);
 
-    public record Polygon(long ObjectId, string Name, string Code, LineString ExteriorRing, LineString[] InteriorRings) : Polyline(ObjectId, Name, Code, ExteriorRing, Name);
+    public record Polyline(long ObjectId, string Name, string Code, NetTopologySuite.Geometries.LineString LineString, string UID);
+
+    public record Polygon(long ObjectId, string Name, string Code, NetTopologySuite.Geometries.LineString ExteriorRing, NetTopologySuite.Geometries.LineString[] InteriorRings) : Polyline(ObjectId, Name, Code, ExteriorRing, Name);
 
     public class CompositeCurveContainer
     {

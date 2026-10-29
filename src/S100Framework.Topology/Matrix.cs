@@ -88,6 +88,10 @@ namespace S100FC.Topology
             return curves;
         }
 
+        ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(IList<S100FC.Topology.Point> points) {
+            throw new NotImplementedException();
+        }
+
         ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<S100FC.Topology.Polyline> curves) {
             this._surfacesTopology = MakePrecise(surfaces);
             this._curvesTopology = MakePrecise(curves);
@@ -215,10 +219,10 @@ namespace S100FC.Topology
                                     edgeFeature = this._surfacesNavigational[edgeFeatures[i]];
                                 }
                             }
-                            else if (_ is Point point) {
+                            else if (_ is NetTopologySuite.Geometries.Point point) {
                                 ;
                             }
-                            else if (_ is MultiPoint multiPoint) {
+                            else if (_ is NetTopologySuite.Geometries.MultiPoint multiPoint) {
                                 ;
                             }
                             else
@@ -243,16 +247,16 @@ namespace S100FC.Topology
 
                         if (line2UniquePart.IsEmpty) continue;
 
-                        if (line2UniquePart is GeometryCollection collection) {
+                        if (line2UniquePart is NetTopologySuite.Geometries.GeometryCollection collection) {
                             continue;
                         }
 
-                        if (line2UniquePart is LineString lineString) {
+                        if (line2UniquePart is NetTopologySuite.Geometries.LineString lineString) {
                             this._surfacesTopology[i] = feature with {
                                 ExteriorRing = InsertMissingVertices(feature.ExteriorRing, lineString),
                             };
                         }
-                        else if (line2UniquePart is MultiLineString multiLine) {
+                        else if (line2UniquePart is NetTopologySuite.Geometries.MultiLineString multiLine) {
                             foreach (var sub in multiLine.Cast<LineString>()) {
                                 this._surfacesTopology[i] = feature with {
                                     ExteriorRing = InsertMissingVertices(feature.ExteriorRing, sub),
@@ -260,10 +264,10 @@ namespace S100FC.Topology
                                 feature = this._surfacesTopology[i];
                             }
                         }
-                        else if (line2UniquePart is Point point) {
+                        else if (line2UniquePart is NetTopologySuite.Geometries.Point point) {
                             ;
                         }
-                        else if (line2UniquePart is MultiPoint multiPoint) {
+                        else if (line2UniquePart is NetTopologySuite.Geometries.MultiPoint multiPoint) {
                             ;
                         }
                         else
@@ -912,6 +916,8 @@ namespace S100FC.Topology
                 this._bagPolylines.Add((curve.Name, curve.LineString, lineStrings));
             });
         }
+
+        IEnumerable<PointFeature> IMatrix.Points => throw new NotImplementedException();
 
         IEnumerable<CurveFeature> IMatrix.Curves => this._hashing.Select(e => e.Value.curve).DistinctBy(e => e.Id);
         //IEnumerable<CurveFeature> iMatrix.Curves => this._curveContainer.CurveFeatures; //this._hashing.Select(e => e.Value.curve).DistinctBy(e => e.Id);

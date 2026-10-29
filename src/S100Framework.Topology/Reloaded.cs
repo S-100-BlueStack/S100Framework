@@ -10,6 +10,7 @@ namespace S100FC.Topology
     using NetTopologySuite.Precision;
     using S100Framework.Topology;
     using S100Framework.Topology.Internal;
+    using System.Security.Cryptography;
 
     public interface IMatrixReloaded : IMatrix
     {
@@ -51,6 +52,8 @@ namespace S100FC.Topology
         private readonly Dictionary<string, PolygonSource> _featureMapperPolygons = [];
         private readonly Dictionary<string, int> _featureMapperLineStrings = [];
 
+        private readonly Dictionary<string, int> _featureMapperPoints = [];
+
         private readonly Dictionary<string, string> _mapping = [];
 
         private S100FC.Topology.Polygon[] _collapse = [];
@@ -70,6 +73,8 @@ namespace S100FC.Topology
         }
 
         GeometryFactory IMatrixReloaded.Factory => Reloaded.Factory!;
+
+        ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(IList<S100FC.Topology.Point> points) => this.AddFeatures(points);
 
         ITopologyBuilder ITopologyBuilder.AddTopologyFeatures(IList<S100FC.Topology.Polygon> surfaces, IList<Polyline> curves) => this.AddFeatures(surfaces, curves);
 
@@ -383,7 +388,6 @@ namespace S100FC.Topology
                 BuildSource(sourceId, edges);
             }
 
-            ;
             //foreach(var geometry in this._group2Geometries) {
             //    var edges = this._mixedTopologyNetwork.ResolveLineString((LineString)geometry.Geometry, allEdges);
             //    if (!edges.Any()) {
@@ -452,15 +456,35 @@ namespace S100FC.Topology
                 this._mapping.Add(uid, $"S{surface.Id}");
             }
 
+            foreach(var point in this._featureMapperPoints) {
+                var geometry = (NetTopologySuite.Geometries.Point)this._mixedTopologyNetwork.Geometry(point.Value);
+
+                var hashGeometry = System.IO.Hashing.XxHash64.HashToUInt64(geometry.AsBinary());
+                if (!this._points.ContainsKey(hashGeometry)) {
+                    var featureRef1 = new FeatureRef {
+                        Id = hashGeometry,
+                        Reverse = false,
+                    };
+
+                    var p = new PointFeature(geometry, hashGeometry);
+                    this._points.Add(hashGeometry, p);
+                }
+
+                this._mapping.Add(point.Key, $"P{hashGeometry}");
+            }
+
             //this._interceptor?.Invoke(6000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))],false);
             this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"#{e.Value.Id} {e.Value.LineStringText}"))], false);
 
             return this;
         }
 
+        private readonly IDictionary<UInt64, PointFeature> _points = new Dictionary<UInt64, PointFeature>();
         private IDictionary<UInt64, CurveFeature> _curves = new Dictionary<UInt64, CurveFeature>();
         private readonly IDictionary<UInt64, CompositeCurveFeature> _compositecurves = new Dictionary<UInt64, CompositeCurveFeature>();
         private readonly IDictionary<UInt64, SurfaceFeature> _surfaces = new Dictionary<UInt64, SurfaceFeature>();
+
+        IEnumerable<PointFeature> IMatrix.Points => this._points.Values;
 
         IEnumerable<CurveFeature> IMatrix.Curves => this._curves.Values;
 
@@ -590,6 +614,15 @@ namespace S100FC.Topology
 
                 this._featureMapperLineStrings.Add(curve.Name, id);
             }
+            return this;
+        }
+
+        private ITopologyBuilder AddFeatures(IList<S100FC.Topology.Point> points) {
+            foreach (var p in points) {
+                var id = this._mixedTopologyNetwork.AddPoint(p.Coordinate);
+                this._featureMapperPoints.Add(p.Name, id);
+            }
+
             return this;
         }
 

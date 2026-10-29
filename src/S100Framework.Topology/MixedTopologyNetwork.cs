@@ -8,7 +8,7 @@ namespace S100Framework.Topology.Internal
     /// <summary>
     /// Indicates whether a registered source geometry represents a polygon boundary or an open linestring.
     /// </summary>
-    public enum GeometryKind { Polygon, LineString }
+    public enum GeometryKind { Polygon, LineString, Point, MultiPoint }
 
     /// <summary>
     /// A source geometry registered with <see cref="MixedTopologyNetwork"/>.
@@ -222,6 +222,8 @@ namespace S100Framework.Topology.Internal
         public IReadOnlyCollection<NetworkNode> Nodes => _nodes.Values;
         public IEnumerable<int> Sources => _sources.Select(s => s.Id);
 
+        public Geometry Geometry(int id) => _sources[id].Geometry;
+
         public MixedTopologyNetwork(
             GeometryFactory? factory = null,
             double snapTolerance = 0.0000001,
@@ -245,6 +247,8 @@ namespace S100Framework.Topology.Internal
         // Registration
         // -------------------------------------------------------------------
 
+        public int AddPoint(Point point) => Register(point, GeometryKind.Point);
+        public int AddPoint(MultiPoint multipoint) => Register(multipoint, GeometryKind.MultiPoint);
         public int AddPolygon(Polygon polygon) => Register(polygon, GeometryKind.Polygon);
         public int AddLineString(LineString lineString) => Register(lineString, GeometryKind.LineString);
         public void AddPolygons(IEnumerable<Polygon> polygons) { foreach (var p in polygons) AddPolygon(p); }

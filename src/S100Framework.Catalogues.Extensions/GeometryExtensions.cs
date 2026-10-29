@@ -266,8 +266,13 @@ namespace ArcGIS.Core.Geometry
 
             var result = geodatabase.BuildTopology(FeatureQuery, interceptor, loggerFactory);
 
-            foreach (var feature in FeatureQuery("point", "1=1")) { }
-            foreach (var feature in FeatureQuery("pointset", "1=1")) { }
+
+            //foreach (var feature in FeatureQuery("point", "1=1")) {
+            //    var p = (ArcGIS.Core.Geometry.MapPoint)feature.shape;
+            //}
+
+            foreach (var feature in FeatureQuery("pointset", "1=1")) {
+            }
 
             return (result.matrix, result.mapper, dictionarySelect);
         }
@@ -575,6 +580,24 @@ namespace ArcGIS.Core.Geometry
                 builder = matrix.AddTopologyFeatures(polygons, curves).AddSingletonFeatures(singletons);
             }
 
+            //  Point features
+            {
+                var points = new List<S100FC.Topology.Point>();
+
+                var lookup = points.ToLookup(e => e.ObjectId, e => e);
+
+                foreach (var f in features.Invoke("point", $"1=1")) {
+                    if (lookup.Contains(f.objectid)) continue;
+
+                    var shape = (ArcGIS.Core.Geometry.MapPoint)f.shape;
+
+                    var name = f.UID;   // Convert.ToString(f["UID"]);
+
+                    points.Add(new S100FC.Topology.Point(f.objectid, name, f.code, new NetTopologySuite.Geometries.Point(shape.X, shape.Y)));
+                }
+
+                builder = matrix.AddTopologyFeatures(points);
+            }
 
             var result = builder.BuildTopology();
 

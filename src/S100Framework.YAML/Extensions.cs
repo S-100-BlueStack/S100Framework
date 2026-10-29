@@ -1,5 +1,6 @@
 ﻿namespace S100FC.YAML
 {
+    using ArcGIS.Core.Internal.CIM;
     using S100FC.Topology;
     using Serilog;
     using System.Collections.Concurrent;
@@ -10,6 +11,23 @@
     public static class Extensions
     {
         public static void AddTopology(this Dataset dataset, IMatrix theMatrix) {
+            // Points
+            PointFeature? pointFeature = default;
+            try {
+                Log.Verbose("Adding point #{count}", theMatrix.Points.Count());
+
+                foreach (var p in theMatrix.Points) {
+                    pointFeature = p;
+
+                    dataset!.AddPoint(new Point(p.Point.X,p.Point.Y) {
+                        Name = $"P{p.Id}",
+                    });
+                }
+            }
+            catch (Exception ex) {
+                Log.Error("Exception! {ex} on point: {curve}", ex, pointFeature?.Id);
+            }
+
             // Curves
             CurveFeature? curveFeature = default;
             try {
