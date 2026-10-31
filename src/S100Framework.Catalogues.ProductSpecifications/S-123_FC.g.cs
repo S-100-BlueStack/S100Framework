@@ -4479,9 +4479,6 @@ namespace S100FC.S123.InformationTypes
 		public override string S100FC_code => nameof(InformationType);
 		[JsonIgnore]
 		public override string S100FC_name => "Information Type";
-		[JsonIgnore]
-		public override int sourceIdentifier => InformationType._sourceIdentifier;
-		public const int _sourceIdentifier = 42;
 
 		#region Attributes
 		[JsonIgnore]
@@ -4585,9 +4582,6 @@ namespace S100FC.S123.InformationTypes
 		public override string S100FC_code => nameof(AbstractRxN);
 		[JsonIgnore]
 		public override string S100FC_name => "AbstractRxN";
-		[JsonIgnore]
-		public override int sourceIdentifier => AbstractRxN._sourceIdentifier;
-		public const int _sourceIdentifier = 33;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6045,9 +6039,6 @@ namespace S100FC.S123.FeatureTypes
 		public override string S100FC_code => nameof(FeatureType);
 		[JsonIgnore]
 		public override string S100FC_name => "Feature Type";
-		[JsonIgnore]
-		public override int sourceIdentifier => FeatureType._sourceIdentifier;
-		public const int _sourceIdentifier = 422;
 
 		#region Attributes
 		[JsonIgnore]
@@ -7964,9 +7955,6 @@ namespace S100FC.S123.FeatureTypes
 		public override string S100FC_code => nameof(FuzzyAreaAggregate);
 		[JsonIgnore]
 		public override string S100FC_name => "Fuzzy Area Aggregate";
-		[JsonIgnore]
-		public override int sourceIdentifier => FuzzyAreaAggregate._sourceIdentifier;
-		public const int _sourceIdentifier = 427;
 
 		#region Catalogue
 		public override informationBindingDefinition[] GetInformationBindingsDefinitions() => FuzzyAreaAggregate.informationBindingsDefinitions;

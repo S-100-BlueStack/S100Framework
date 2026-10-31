@@ -1062,7 +1062,7 @@ namespace TestAttributes
                 roslyn.AppendLine($"\t\tpublic override string S100FC_code => nameof({code});");
                 roslyn.AppendLine("\t\t[JsonIgnore]");
                 roslyn.AppendLine($"\t\tpublic override string S100FC_name => \"{name}\";");
-                if (!string.IsNullOrEmpty(sourceIdentifier)) {
+                if (!string.IsNullOrEmpty(sourceIdentifier) && !host.KnownTypesAbstract.Contains(code)) {
                     roslyn.AppendLine("\t\t[JsonIgnore]");
                     roslyn.AppendLine($"\t\tpublic override int sourceIdentifier => {code}._sourceIdentifier;");
                     roslyn.AppendLine($"\t\tpublic const int _sourceIdentifier = {int.Parse(sourceIdentifier)};");

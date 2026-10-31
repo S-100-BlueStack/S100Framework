@@ -4372,9 +4372,6 @@ namespace S100FC.S125.FeatureTypes
 		public override string S100FC_code => nameof(AidsToNavigation);
 		[JsonIgnore]
 		public override string S100FC_name => "Aids to Navigation";
-		[JsonIgnore]
-		public override int sourceIdentifier => AidsToNavigation._sourceIdentifier;
-		public const int _sourceIdentifier = 549;
 
 		#region Attributes
 		[JsonIgnore]
@@ -4606,9 +4603,6 @@ namespace S100FC.S125.FeatureTypes
 		public override string S100FC_code => nameof(Equipment);
 		[JsonIgnore]
 		public override string S100FC_name => "Equipment";
-		[JsonIgnore]
-		public override int sourceIdentifier => Equipment._sourceIdentifier;
-		public const int _sourceIdentifier = 421;
 
 		#region Catalogue
 		public override informationBindingDefinition[] GetInformationBindingsDefinitions() => Equipment.informationBindingsDefinitions;
@@ -4653,9 +4647,6 @@ namespace S100FC.S125.FeatureTypes
 		public override string S100FC_code => nameof(StructureObject);
 		[JsonIgnore]
 		public override string S100FC_name => "Structure Object";
-		[JsonIgnore]
-		public override int sourceIdentifier => StructureObject._sourceIdentifier;
-		public const int _sourceIdentifier = 577;
 
 		#region Attributes
 		[JsonIgnore]
@@ -4732,9 +4723,6 @@ namespace S100FC.S125.FeatureTypes
 		public override string S100FC_code => nameof(GenericBuoy);
 		[JsonIgnore]
 		public override string S100FC_name => "Generic Buoy";
-		[JsonIgnore]
-		public override int sourceIdentifier => GenericBuoy._sourceIdentifier;
-		public const int _sourceIdentifier = 559;
 
 		#region Attributes
 		[JsonIgnore]
@@ -4872,9 +4860,6 @@ namespace S100FC.S125.FeatureTypes
 		public override string S100FC_code => nameof(GenericBeacon);
 		[JsonIgnore]
 		public override string S100FC_name => "Generic Beacon";
-		[JsonIgnore]
-		public override int sourceIdentifier => GenericBeacon._sourceIdentifier;
-		public const int _sourceIdentifier = 558;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5049,9 +5034,6 @@ namespace S100FC.S125.FeatureTypes
 		public override string S100FC_code => nameof(GenericLight);
 		[JsonIgnore]
 		public override string S100FC_name => "Generic Light";
-		[JsonIgnore]
-		public override int sourceIdentifier => GenericLight._sourceIdentifier;
-		public const int _sourceIdentifier = 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -8467,9 +8449,6 @@ namespace S100FC.S125.FeatureTypes
 		public override string S100FC_code => nameof(ElectronicAtoN);
 		[JsonIgnore]
 		public override string S100FC_name => "Electronic Aton";
-		[JsonIgnore]
-		public override int sourceIdentifier => ElectronicAtoN._sourceIdentifier;
-		public const int _sourceIdentifier = 0;
 
 		#region Attributes
 		[JsonIgnore]

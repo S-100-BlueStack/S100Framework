@@ -4013,9 +4013,6 @@ namespace S100FC.S128.FeatureTypes
 		public override string S100FC_code => nameof(CatalogueElement);
 		[JsonIgnore]
 		public override string S100FC_name => "Catalogue Element";
-		[JsonIgnore]
-		public override int sourceIdentifier => CatalogueElement._sourceIdentifier;
-		public const int _sourceIdentifier = 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -4259,9 +4256,6 @@ namespace S100FC.S128.FeatureTypes
 		public override string S100FC_code => nameof(NavigationalProduct);
 		[JsonIgnore]
 		public override string S100FC_name => "Navigational Product";
-		[JsonIgnore]
-		public override int sourceIdentifier => NavigationalProduct._sourceIdentifier;
-		public const int _sourceIdentifier = 0;
 
 		#region Attributes
 		[JsonIgnore]
@@ -4524,7 +4518,7 @@ namespace S100FC.S128.FeatureTypes
 		public override string S100FC_name => "Electronic Product";
 		[JsonIgnore]
 		public override int sourceIdentifier => ElectronicProduct._sourceIdentifier;
-		public const int _sourceIdentifier = 0;
+		public const int _sourceIdentifier = 9160;
 
 		#region Attributes
 		[JsonIgnore]

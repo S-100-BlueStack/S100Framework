@@ -5541,9 +5541,6 @@ namespace S100FC.S131.InformationTypes
 		public override string S100FC_code => nameof(InformationType);
 		[JsonIgnore]
 		public override string S100FC_name => "Information Type";
-		[JsonIgnore]
-		public override int sourceIdentifier => InformationType._sourceIdentifier;
-		public const int _sourceIdentifier = 42;
 
 		#region Attributes
 		[JsonIgnore]
@@ -5630,9 +5627,6 @@ namespace S100FC.S131.InformationTypes
 		public override string S100FC_code => nameof(AbstractRxN);
 		[JsonIgnore]
 		public override string S100FC_name => "AbstractRxN";
-		[JsonIgnore]
-		public override int sourceIdentifier => AbstractRxN._sourceIdentifier;
-		public const int _sourceIdentifier = 33;
 
 		#region Attributes
 		[JsonIgnore]
@@ -6865,9 +6859,6 @@ namespace S100FC.S131.FeatureTypes
 		public override string S100FC_code => nameof(FeatureType);
 		[JsonIgnore]
 		public override string S100FC_name => "Feature Type";
-		[JsonIgnore]
-		public override int sourceIdentifier => FeatureType._sourceIdentifier;
-		public const int _sourceIdentifier = 422;
 
 		#region Attributes
 		[JsonIgnore]
@@ -7087,9 +7078,6 @@ namespace S100FC.S131.FeatureTypes
 		public override string S100FC_code => nameof(OrganizationContactArea);
 		[JsonIgnore]
 		public override string S100FC_name => "Organization Contact Area";
-		[JsonIgnore]
-		public override int sourceIdentifier => OrganizationContactArea._sourceIdentifier;
-		public const int _sourceIdentifier = 481;
 
 		#region Catalogue
 		public override informationBindingDefinition[] GetInformationBindingsDefinitions() => OrganizationContactArea.informationBindingsDefinitions;
@@ -7135,9 +7123,6 @@ namespace S100FC.S131.FeatureTypes
 		public override string S100FC_code => nameof(SupervisedArea);
 		[JsonIgnore]
 		public override string S100FC_name => "Supervised Area";
-		[JsonIgnore]
-		public override int sourceIdentifier => SupervisedArea._sourceIdentifier;
-		public const int _sourceIdentifier = 519;
 
 		#region Catalogue
 		public override informationBindingDefinition[] GetInformationBindingsDefinitions() => SupervisedArea.informationBindingsDefinitions;
@@ -7183,9 +7168,6 @@ namespace S100FC.S131.FeatureTypes
 		public override string S100FC_code => nameof(HarbourPhysicalInfrastructure);
 		[JsonIgnore]
 		public override string S100FC_name => "Harbour Physical Infrastructure";
-		[JsonIgnore]
-		public override int sourceIdentifier => HarbourPhysicalInfrastructure._sourceIdentifier;
-		public const int _sourceIdentifier = 612;
 
 		#region Catalogue
 		public override informationBindingDefinition[] GetInformationBindingsDefinitions() => HarbourPhysicalInfrastructure.informationBindingsDefinitions;
@@ -7230,9 +7212,6 @@ namespace S100FC.S131.FeatureTypes
 		public override string S100FC_code => nameof(Layout);
 		[JsonIgnore]
 		public override string S100FC_name => "Layout";
-		[JsonIgnore]
-		public override int sourceIdentifier => Layout._sourceIdentifier;
-		public const int _sourceIdentifier = 611;
 
 		#region Catalogue
 		public override informationBindingDefinition[] GetInformationBindingsDefinitions() => Layout.informationBindingsDefinitions;
