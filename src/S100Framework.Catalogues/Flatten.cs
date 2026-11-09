@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace S100FC
 {
@@ -155,6 +156,17 @@ namespace S100FC
                 ["informationId"] = binding.informationId,
             };
 
+            return SerializeFlattened(root, includeNullAndEmptyValues: true);
+        }
+
+        public static string Flatten(this informationBinding[]? bindings) {
+            var root = new JObject();
+
+            if (bindings is not null) {
+                foreach (var binding in bindings) {
+                    AddValue(root, "informationBinding", binding, true);
+                }
+            }
             return SerializeFlattened(root, includeNullAndEmptyValues: true);
         }
 
