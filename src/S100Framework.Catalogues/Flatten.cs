@@ -99,9 +99,9 @@ namespace S100FC
 
     public class JsonFlattener
     {
-        public static string Flatten(featureBinding binding) => AttributeFlattenExtensions.Flatten(binding);
+        //public static string Flatten(featureBinding binding) => AttributeFlattenExtensions.Flatten(binding);
 
-        public static string Flatten(informationBinding binding) => AttributeFlattenExtensions.Flatten(binding);
+        //public static string Flatten(informationBinding binding) => AttributeFlattenExtensions.Flatten(binding);
 
         public static string Flatten(attributeBinding[] attributeBindings, attributeBindingDefinition[] attributeBindingDefinitions) {
             return AttributeFlattenExtensions.FlattenAttributes(attributeBindings, attributeBindingDefinitions);
@@ -130,44 +130,68 @@ namespace S100FC
         public static string Flatten(this FeatureType feature) => FlattenAttributes(feature.attributeBindings, feature.attributeBindingsCatalogue);
         public static string Flatten(this InformationType information) => FlattenAttributes(information.attributeBindings, information.attributeBindingsCatalogue);
 
-        public static string Flatten(this featureBinding binding) {
-            ArgumentNullException.ThrowIfNull(binding);
+        //public static string Flatten(this featureBinding binding) {
+        //    ArgumentNullException.ThrowIfNull(binding);
 
-            var root = new JObject {
+        //    return SerializeFlattened(CreateFeatureBinding(binding), includeNullAndEmptyValues: true);
+        //}
+
+        public static string Flatten(this featureBinding[]? bindings) {
+            var root = new JObject();
+
+            if (bindings is { Length: > 0 }) {
+                var items = new JArray();
+                foreach (var binding in bindings) {
+                    items.Add(binding is null ? JValue.CreateNull() : CreateFeatureBinding(binding));
+                }
+                root["featureBinding"] = items;
+            }
+            return SerializeFlattened(root, includeNullAndEmptyValues: true);
+        }
+
+        //public static string Flatten(this informationBinding binding) {
+        //    ArgumentNullException.ThrowIfNull(binding);
+
+        //    return SerializeFlattened(CreateInformationBinding(binding), includeNullAndEmptyValues: true);
+        //}
+
+        public static string Flatten(this informationBinding[]? bindings) {
+            var root = new JObject();
+
+            if (bindings is { Length: > 0 }) {
+                var items = new JArray();
+                foreach (var binding in bindings) {
+                    items.Add(binding is null ? JValue.CreateNull() : CreateInformationBinding(binding));
+                }
+                root["informationBinding"] = items;
+            }
+            return SerializeFlattened(root, includeNullAndEmptyValues: true);
+        }
+
+        private static JObject CreateFeatureBinding(featureBinding binding) {
+            // Share the association contract so arrays do not fall back to Newtonsoft's
+            // reflection serializer, which ignores System.Text.Json annotations.
+            return new JObject {
                 ["association"] = CreateAssociation(binding.association),
                 ["roleType"] = binding.roleType,
                 ["role"] = binding.role,
                 ["featureType"] = binding.featureType,
                 ["featureId"] = binding.featureId,
+                // This projection bypasses property converters, so emit the enum name explicitly.
                 ["Primitive"] = binding.Primitive?.ToString(),
             };
-
-            return SerializeFlattened(root, includeNullAndEmptyValues: true);
         }
 
-        public static string Flatten(this informationBinding binding) {
-            ArgumentNullException.ThrowIfNull(binding);
-
-            var root = new JObject {
+        private static JObject CreateInformationBinding(informationBinding binding) {
+            // Share the association contract so arrays do not fall back to Newtonsoft's
+            // reflection serializer, which ignores System.Text.Json annotations.
+            return new JObject {
                 ["association"] = CreateAssociation(binding.association),
                 ["roleType"] = binding.roleType,
                 ["role"] = binding.role,
                 ["informationType"] = binding.informationType,
                 ["informationId"] = binding.informationId,
             };
-
-            return SerializeFlattened(root, includeNullAndEmptyValues: true);
-        }
-
-        public static string Flatten(this informationBinding[]? bindings) {
-            var root = new JObject();
-
-            if (bindings is not null) {
-                foreach (var binding in bindings) {
-                    AddValue(root, "informationBinding", binding, true);
-                }
-            }
-            return SerializeFlattened(root, includeNullAndEmptyValues: true);
         }
 
         private static JToken CreateAssociation(association? association) {
@@ -182,7 +206,7 @@ namespace S100FC
         }
 
         /// <summary>
-        /// Restores a feature, information type, or binding using its concrete CLR type.
+        /// Restores a feature, information type, binding, or wrapped array using its concrete CLR type.
         /// For bindings, supply featureBinding&lt;TAssociation&gt; or
         /// informationBinding&lt;TAssociation&gt; to retain association attributes.
         /// </summary>
@@ -192,6 +216,30 @@ namespace S100FC
             if (!typeof(T).IsAssignableFrom(type) || type.IsAbstract || type.ContainsGenericParameters) {
                 throw new ArgumentException(
                     $"{type} must be a concrete type assignable to {typeof(T)}.", nameof(type));
+            }
+
+            if (type.IsArray) {
+                if (!type.IsSZArray) {
+                    throw new ArgumentException("Only single-dimensional, zero-based arrays are supported.", nameof(type));
+                }
+
+                var elementType = type.GetElementType()!;
+                if (string.IsNullOrWhiteSpace(attributes)) {
+                    return (T)(object)Array.CreateInstance(elementType, 0);
+                }
+
+                var root = (JsonObject)JsonUnflattener.Unflatten(attributes);
+                // Flatten(informationBinding[]) wraps its items in a named array.
+                // An empty input collection is serialized as an empty object.
+                if (root.Count == 0) {
+                    return (T)(object)Array.CreateInstance(elementType, 0);
+                }
+
+                if (root.Count != 1 || root.First().Value is not JsonArray items) {
+                    throw new JsonException("An array target requires a single named array in the flattened JSON.");
+                }
+
+                return (T)(object)ToArray(PopulateList(items, elementType), elementType);
             }
 
             var instance = (T)(Activator.CreateInstance(type)
@@ -204,7 +252,7 @@ namespace S100FC
             return instance;
         }
 
-        public static T Unflatten<T>(string? attributes) where T : class, new()
+        public static T Unflatten<T>(string? attributes) where T : class
             => Unflatten<T>(attributes, typeof(T));
 
         private static void PopulateObject(object target, JsonObject json) {
@@ -250,25 +298,7 @@ namespace S100FC
                 else if (node is JsonArray array) {
                     var elementType = prop.PropertyType.GetElementType()
                         ?? prop.PropertyType.GetGenericArguments().First();
-                    var list = (IList)Activator.CreateInstance(
-                        typeof(List<>).MakeGenericType(elementType))!;
-
-                    foreach (var item in array) {
-                        if (item is null) {
-                            list.Add(null);
-                        }
-                        else if (item is JsonValue itemValue) {
-                            list.Add(itemValue.Deserialize(elementType, jsonSerializerOptions));
-                        }
-                        else if (item is JsonObject itemObject) {
-                            var element = Activator.CreateInstance(elementType)!;
-                            PopulateObject(element, itemObject);
-                            list.Add(element);
-                        }
-                        else {
-                            throw new JsonException($"Unsupported array item in '{name}'.");
-                        }
-                    }
+                    var list = PopulateList(array, elementType);
 
                     prop.SetValue(target, prop.PropertyType.IsArray ? ToArray(list, elementType) : list);
                 }
@@ -280,6 +310,39 @@ namespace S100FC
                     prop.SetValue(target, child);
                 }
             }
+        }
+
+        private static IList PopulateList(JsonArray array, Type elementType) {
+            var list = (IList)Activator.CreateInstance(
+                typeof(List<>).MakeGenericType(elementType))!;
+
+            foreach (var item in array) {
+                if (item is null) {
+                    if (elementType.IsValueType && Nullable.GetUnderlyingType(elementType) is null) {
+                        throw new JsonException($"Null is not valid for array element type {elementType}.");
+                    }
+                    list.Add(null);
+                }
+                else if (item is JsonValue value) {
+                    list.Add(value.Deserialize(elementType, jsonSerializerOptions));
+                }
+                else if (item is JsonObject obj) {
+                    // Preserve constructor-created associations and generated attribute setters.
+                    var element = Activator.CreateInstance(elementType)
+                        ?? throw new InvalidOperationException($"Cannot create {elementType}.");
+                    PopulateObject(element, obj);
+                    list.Add(element);
+                }
+                else if (item is JsonArray nested && elementType.IsSZArray) {
+                    var nestedElementType = elementType.GetElementType()!;
+                    list.Add(ToArray(PopulateList(nested, nestedElementType), nestedElementType));
+                }
+                else {
+                    throw new JsonException($"Unsupported array item for element type {elementType}.");
+                }
+            }
+
+            return list;
         }
 
         private static Array ToArray(IList list, Type elementType) {
