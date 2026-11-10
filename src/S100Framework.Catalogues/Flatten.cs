@@ -210,17 +210,57 @@ namespace S100FC
         /// For bindings, supply featureBinding&lt;TAssociation&gt; or
         /// informationBinding&lt;TAssociation&gt; to retain association attributes.
         /// </summary>
-        public static T Unflatten<T>(string? attributes, Type type) where T : class {
-            ArgumentNullException.ThrowIfNull(type);
+        public static T Unflatten<T>(string? attributes) where T : class {
+            var type = typeof(T);
 
-            if (!typeof(T).IsAssignableFrom(type) || type.IsAbstract || type.ContainsGenericParameters) {
-                throw new ArgumentException(
-                    $"{type} must be a concrete type assignable to {typeof(T)}.", nameof(type));
+            return Unflatten<T>(attributes, type);
+
+            //if (type.IsAbstract || type.IsInterface) {
+            //    throw new NotSupportedException($"{type} must be a concrete type.");
+            //}
+
+            //if (type.IsArray) {
+            //    if (!type.IsSZArray) {
+            //        throw new NotSupportedException("Only single-dimensional, zero-based arrays are supported.");
+            //    }
+
+            //    var elementType = type.GetElementType()!;
+            //    if (string.IsNullOrWhiteSpace(attributes)) {
+            //        return (T)(object)Array.CreateInstance(elementType, 0);
+            //    }
+
+            //    var root = (JsonObject)JsonUnflattener.Unflatten(attributes);
+            //    // Binding array flatteners wrap their items in a named array.
+            //    // An empty input collection is serialized as an empty object.
+            //    if (root.Count == 0) {
+            //        return (T)(object)Array.CreateInstance(elementType, 0);
+            //    }
+
+            //    if (root.Count != 1 || root.First().Value is not JsonArray items) {
+            //        throw new JsonException("An array target requires a single named array in the flattened JSON.");
+            //    }
+
+            //    return (T)(object)ToArray(PopulateList(items, elementType), elementType);
+            //}
+
+            //var instance = (T)(Activator.CreateInstance(type)
+            //    ?? throw new InvalidOperationException($"Cannot create {type}."));
+
+            //if (!string.IsNullOrWhiteSpace(attributes)) {
+            //    PopulateObject(instance, (JsonObject)JsonUnflattener.Unflatten(attributes));
+            //}
+
+            //return instance;
+        }
+
+        public static T Unflatten<T>(string? attributes, Type type) where T : class {
+            if (type.IsAbstract || type.IsInterface) {
+                throw new NotSupportedException($"{type} must be a concrete type.");
             }
 
             if (type.IsArray) {
                 if (!type.IsSZArray) {
-                    throw new ArgumentException("Only single-dimensional, zero-based arrays are supported.", nameof(type));
+                    throw new NotSupportedException("Only single-dimensional, zero-based arrays are supported.");
                 }
 
                 var elementType = type.GetElementType()!;
@@ -229,7 +269,7 @@ namespace S100FC
                 }
 
                 var root = (JsonObject)JsonUnflattener.Unflatten(attributes);
-                // Flatten(informationBinding[]) wraps its items in a named array.
+                // Binding array flatteners wrap their items in a named array.
                 // An empty input collection is serialized as an empty object.
                 if (root.Count == 0) {
                     return (T)(object)Array.CreateInstance(elementType, 0);
@@ -251,9 +291,6 @@ namespace S100FC
 
             return instance;
         }
-
-        public static T Unflatten<T>(string? attributes) where T : class
-            => Unflatten<T>(attributes, typeof(T));
 
         private static void PopulateObject(object target, JsonObject json) {
             var type = target.GetType();
