@@ -388,13 +388,13 @@ namespace S100FC
             return array;
         }
 
-        private static string SerializeFlattened(JObject root, bool includeNullAndEmptyValues = false) {
+        private static string SerializeFlattened(JObject root, bool includeNullAndEmptyValues = true) {
             var flattened = root.Flatten(includeNullAndEmptyValues: includeNullAndEmptyValues);
             return JsonSerializer.Serialize(flattened, jsonSerializerOptions);
         }
 
         internal static string FlattenAttributes(attributeBinding[] attributes, attributeBindingDefinition[] catalogue)
-            => SerializeFlattened(CreateAttributes(attributes, catalogue));
+            => SerializeFlattened(CreateAttributes(attributes, catalogue),true);
 
         private static JObject CreateAttributes(attributeBinding[] attributes, attributeBindingDefinition[] catalogue) {
             var root = new JObject();
