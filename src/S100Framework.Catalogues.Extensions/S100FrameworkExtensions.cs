@@ -5,56 +5,56 @@
 
     public static class S101Extensions
     {
-        public static IEnumerable<(DataCoverage DataCoverage, SpatialQueryFilter SpatialQueryFilter)> QueryDataCoverages(this Geodatabase geodatabase, string datasetName) {
-            if (string.IsNullOrEmpty(datasetName)) yield break;
+        ////public static IEnumerable<(DataCoverage DataCoverage, SpatialQueryFilter SpatialQueryFilter)> QueryDataCoverages(this Geodatabase geodatabase, string datasetName) {
+        ////    if (string.IsNullOrEmpty(datasetName)) yield break;
 
-            var syntax = geodatabase.GetSQLSyntax();
+        ////    var syntax = geodatabase.GetSQLSyntax();
 
-            var definitionTables = geodatabase.GetDefinitions<TableDefinition>();
-            var definitionFeatures = geodatabase.GetDefinitions<FeatureClassDefinition>();
+        ////    var definitionTables = geodatabase.GetDefinitions<TableDefinition>();
+        ////    var definitionFeatures = geodatabase.GetDefinitions<FeatureClassDefinition>();
 
-            using var surface = geodatabase.OpenDataset<FeatureClass>(definitionFeatures.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("surface")).GetName());
+        ////    using var surface = geodatabase.OpenDataset<FeatureClass>(definitionFeatures.Single(e => syntax.ParseTableName(e.GetName()).Item3.Equals("surface")).GetName());
 
-            using var cursor = surface.Search(new QueryFilter {
-                WhereClause = $"upper(ps) = 'S-128' and attributeBindings LIKE '%\"datasetName\":%\"{datasetName.ToUpperInvariant()}\"%'",
-            }, true);
+        ////    using var cursor = surface.Search(new QueryFilter {
+        ////        WhereClause = $"upper(ps) = 'S-128' and attributeBindings LIKE '%\"datasetName\":%\"{datasetName.ToUpperInvariant()}\"%'",
+        ////    }, true);
 
-            if (!cursor.MoveNext()) yield break;
+        ////    if (!cursor.MoveNext()) yield break;
 
-            {
-                var current = (ArcGIS.Core.Data.Feature)cursor.Current;
+        ////    {
+        ////        var current = (ArcGIS.Core.Data.Feature)cursor.Current;
 
-                var electricProduct = S100FC.AttributeFlattenExtensions.Unflatten<S100FC.S128.FeatureTypes.ElectronicProduct>(Convert.ToString(current["attributebindings"])!);
+        ////        var electricProduct = S100FC.AttributeFlattenExtensions.Unflatten<S100FC.S128.FeatureTypes.ElectronicProduct>(Convert.ToString(current["attributebindings"])!);
 
-                var shape = (ArcGIS.Core.Geometry.Polygon)current.GetShape().Clone();
+        ////        var shape = (ArcGIS.Core.Geometry.Polygon)current.GetShape().Clone();
 
-                var whereClause = "upper(ps) = 'S-101'";
+        ////        var whereClause = "upper(ps) = 'S-101'";
 
-                SpatialQueryFilter[] spatialQueryFilters = [];
+        ////        SpatialQueryFilter[] spatialQueryFilters = [];
 
-                using var datacoverageSearch = surface.Search(new SpatialQueryFilter {
-                    WhereClause = $"upper(ps) = 'S-101' AND code = 'DataCoverage' AND attributeBindings LIKE '%\"minimumDisplayScale\":%{electricProduct.minimumDisplayScale}%'",
-                    FilterGeometry = shape,
-                    SpatialRelationship = SpatialRelationship.Contains,
-                }, true);
+        ////        using var datacoverageSearch = surface.Search(new SpatialQueryFilter {
+        ////            WhereClause = $"upper(ps) = 'S-101' AND code = 'DataCoverage' AND attributeBindings LIKE '%\"minimumDisplayScale\":%{electricProduct.minimumDisplayScale}%'",
+        ////            FilterGeometry = shape,
+        ////            SpatialRelationship = SpatialRelationship.Contains,
+        ////        }, true);
 
-                while (datacoverageSearch.MoveNext()) {
-                    var f = (ArcGIS.Core.Data.Feature)datacoverageSearch.Current;
+        ////        while (datacoverageSearch.MoveNext()) {
+        ////            var f = (ArcGIS.Core.Data.Feature)datacoverageSearch.Current;
 
-                    var dataCoverage = S100FC.AttributeFlattenExtensions.Unflatten<S100FC.S101.FeatureTypes.DataCoverage>(Convert.ToString(f["attributebindings"])!);
+        ////            var dataCoverage = S100FC.AttributeFlattenExtensions.Unflatten<S100FC.S101.FeatureTypes.DataCoverage>(Convert.ToString(f["attributebindings"])!);
 
-                    var spatialQueryFilter = new SpatialQueryFilter {
-                        WhereClause = whereClause + $" AND compilationscale = {dataCoverage.optimumDisplayScale}",
-                        FilterGeometry = f.GetShape().Clone(),
-                        SpatialRelationship = SpatialRelationship.Relation,
-                        SpatialRelationshipDescription = "UNKNOWN",
-                        SubFields = "OBJECTID,GLOBALID,CODE,SHAPE",
-                    };
+        ////            var spatialQueryFilter = new SpatialQueryFilter {
+        ////                WhereClause = whereClause + $" AND compilationscale = {dataCoverage.optimumDisplayScale}",
+        ////                FilterGeometry = f.GetShape().Clone(),
+        ////                SpatialRelationship = SpatialRelationship.Relation,
+        ////                SpatialRelationshipDescription = "UNKNOWN",
+        ////                SubFields = "OBJECTID,GLOBALID,CODE,SHAPE",
+        ////            };
 
-                    yield return (dataCoverage, spatialQueryFilter);
-                }
-            }
-            yield break;
-        }
+        ////            yield return (dataCoverage, spatialQueryFilter);
+        ////        }
+        ////    }
+        ////    yield break;
+        ////}
     }
 }

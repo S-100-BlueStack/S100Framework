@@ -1,6 +1,7 @@
 ﻿//#define SKIN_OF_THE_EARTH_ONLY
 
 using ArcGIS.Core.Data;
+using ArcGIS.Core.Internal.CIM;
 using Microsoft.Extensions.Logging;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Noding;
@@ -112,6 +113,8 @@ namespace ArcGIS.Core.Geometry
                 WhereClause = $"upper(ps) = 'S-101' AND code = 'DataCoverage' AND compilationscale = {compilationscale}",
                 FilterGeometry = product,
                 SpatialRelationship = SpatialRelationship.Contains,
+                //SpatialRelationship = SpatialRelationship.Relation,
+                //SpatialRelationshipDescription = "T*****FF*"
             }, true);
 
             while (datacoverageSearch.MoveNext()) {
@@ -128,13 +131,13 @@ namespace ArcGIS.Core.Geometry
                 };
                 yield return (dataCoverage, spatialQueryFilter);
 
-                yield return (dataCoverage, new SpatialQueryFilter {
-                    WhereClause = whereClause + $" AND (compilationscale = {compilationscale} OR compilationscale = {dataCoverage.optimumDisplayScale})",
-                    FilterGeometry = f.GetShape().Clone(),
-                    SpatialRelationship = SpatialRelationship.Relation,
-                    SpatialRelationshipDescription = "T*F**FFF*",
-                    SubFields = "OBJECTID,GLOBALID,CODE,SHAPE",
-                });
+                ////yield return (dataCoverage, new SpatialQueryFilter {
+                ////    WhereClause = whereClause + $" AND (compilationscale = {compilationscale} OR compilationscale = {dataCoverage.optimumDisplayScale})",
+                ////    FilterGeometry = f.GetShape().Clone(),
+                ////    SpatialRelationship = SpatialRelationship.Relation,
+                ////    SpatialRelationshipDescription = "T*F**FFF*",
+                ////    SubFields = "OBJECTID,GLOBALID,CODE,SHAPE",
+                ////});
             }
 
             yield break;
@@ -163,7 +166,7 @@ namespace ArcGIS.Core.Geometry
 
                     if (GeometryEngine.Instance.Disjoint(g, clipGeometry)) return g;
 
-                    if (!GeometryEngine.Instance.Relate(g, clipGeometry, S100FC.Topology.Matrix.DE9IM_Crosses)) return g;
+                    //if (!GeometryEngine.Instance.Relate(g, clipGeometry, S100FC.Topology.Matrix.DE9IM_Crosses)) return g;
 
                     var difference = GeometryEngine.Instance.Intersection(g, clipGeometry);
 
@@ -191,10 +194,15 @@ namespace ArcGIS.Core.Geometry
                             return polygon;
                         }
                     }
-                    else
-                        System.Diagnostics.Debugger.Break();
 
-                    return g;
+                    //System.Diagnostics.Debugger.Break();
+
+                    return g switch {
+                        ArcGIS.Core.Geometry.MapPoint => new MapPointBuilderEx().ToGeometry(),
+                        ArcGIS.Core.Geometry.Polyline => new PolylineBuilderEx().ToGeometry(),
+                        ArcGIS.Core.Geometry.Polygon => new PolygonBuilderEx().ToGeometry(),
+                        _ => throw new NotImplementedException(),
+                    };
                 };
 
                 foreach (var f in spatialFilters) {
@@ -224,12 +232,12 @@ namespace ArcGIS.Core.Geometry
                                 //if ("DataCoverage".Equals(code, StringComparison.InvariantCultureIgnoreCase)) System.Diagnostics.Debugger.Break();
                                 //if ("Coastline".Equals(code, StringComparison.InvariantCultureIgnoreCase)) System.Diagnostics.Debugger.Break();
                                 if (lookup.Contains(objectid)) continue;
-
-                                hits.Add(objectid);
+                                
                                 var shape = _.GetShape();
                                 shape = clip(shape);
                                 if (shape.IsEmpty) continue;
 
+                                hits.Add(objectid);
                                 yield return (objectid, _.UID(), code, shape);
                             }
                             f.SpatialRelationshipDescription = string.Empty;
@@ -246,19 +254,19 @@ namespace ArcGIS.Core.Geometry
 
                             //if ("DataCoverage".Equals(code, StringComparison.InvariantCultureIgnoreCase)) System.Diagnostics.Debugger.Break();
                             if (lookup.Contains(objectid)) continue;
-
-                            hits.Add(objectid);
+                            
                             var shape = _.GetShape();
                             shape = clip(shape);
                             if (shape.IsEmpty) continue;
 
+                            hits.Add(objectid);
                             yield return (objectid, _.UID(), code, shape);
                         }
                     }
                     f.FilterGeometry = backupGeometry;
                     f.WhereClause = backupClause;
                 }
-
+                //if (tablename.StartsWith("point")) System.Diagnostics.Debugger.Break();
                 dictionarySelect[tablename.ToLowerInvariant()] = [.. dictionarySelect[tablename.ToLowerInvariant()], .. hits];
 
                 yield break;
