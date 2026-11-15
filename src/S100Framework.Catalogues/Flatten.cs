@@ -206,57 +206,32 @@ namespace S100FC
         }
 
         /// <summary>
-        /// Restores a feature, information type, binding, or wrapped array using its concrete CLR type.
-        /// For bindings, supply featureBinding&lt;TAssociation&gt; or
-        /// informationBinding&lt;TAssociation&gt; to retain association attributes.
+        /// Restores a feature, information type, binding, or wrapped array.
+        /// Base bindings resolve associations by code from loaded catalogue classes.
+        /// Generic bindings retain their constructor-created concrete association.
         /// </summary>
-        public static T Unflatten<T>(string? attributes) where T : class {
-            var type = typeof(T);
+        /// <param name="attributes">Flattened JSON produced by the matching flatten method.</param>
+        /// <param name="associationFactory">
+        /// Optional override for association resolution. By default, the stored code is
+        /// matched to a concrete association class name in the loaded assemblies.
+        /// An override must return a fresh instance and is only used for base associations.
+        /// </param>
+        public static T Unflatten<T>(string? attributes,
+            Func<string, association>? associationFactory = null) where T : class
+            => Unflatten<T>(attributes, typeof(T), associationFactory);
 
-            return Unflatten<T>(attributes, type);
+        public static T Unflatten<T>(string? attributes, Type type,
+            Func<string, association>? associationFactory = null) where T : class {
+            ArgumentNullException.ThrowIfNull(type);
+            if (!typeof(T).IsAssignableFrom(type)) {
+                throw new ArgumentException($"{type} must be assignable to {typeof(T)}.", nameof(type));
+            }
 
-            //if (type.IsAbstract || type.IsInterface) {
-            //    throw new NotSupportedException($"{type} must be a concrete type.");
-            //}
-
-            //if (type.IsArray) {
-            //    if (!type.IsSZArray) {
-            //        throw new NotSupportedException("Only single-dimensional, zero-based arrays are supported.");
-            //    }
-
-            //    var elementType = type.GetElementType()!;
-            //    if (string.IsNullOrWhiteSpace(attributes)) {
-            //        return (T)(object)Array.CreateInstance(elementType, 0);
-            //    }
-
-            //    var root = (JsonObject)JsonUnflattener.Unflatten(attributes);
-            //    // Binding array flatteners wrap their items in a named array.
-            //    // An empty input collection is serialized as an empty object.
-            //    if (root.Count == 0) {
-            //        return (T)(object)Array.CreateInstance(elementType, 0);
-            //    }
-
-            //    if (root.Count != 1 || root.First().Value is not JsonArray items) {
-            //        throw new JsonException("An array target requires a single named array in the flattened JSON.");
-            //    }
-
-            //    return (T)(object)ToArray(PopulateList(items, elementType), elementType);
-            //}
-
-            //var instance = (T)(Activator.CreateInstance(type)
-            //    ?? throw new InvalidOperationException($"Cannot create {type}."));
-
-            //if (!string.IsNullOrWhiteSpace(attributes)) {
-            //    PopulateObject(instance, (JsonObject)JsonUnflattener.Unflatten(attributes));
-            //}
-
-            //return instance;
-        }
-
-        public static T Unflatten<T>(string? attributes, Type type) where T : class {
             if (type.IsAbstract || type.IsInterface) {
                 throw new NotSupportedException($"{type} must be a concrete type.");
             }
+
+            associationFactory ??= CreateAutomaticAssociationFactory();
 
             if (type.IsArray) {
                 if (!type.IsSZArray) {
@@ -279,41 +254,42 @@ namespace S100FC
                     throw new JsonException("An array target requires a single named array in the flattened JSON.");
                 }
 
-                return (T)(object)ToArray(PopulateList(items, elementType), elementType);
+                return (T)(object)ToArray(PopulateList(items, elementType, associationFactory), elementType);
             }
 
-            var instance = (T)(Activator.CreateInstance(type)
-                ?? throw new InvalidOperationException($"Cannot create {type}."));
-
-            if (!string.IsNullOrWhiteSpace(attributes)) {
-                PopulateObject(instance, (JsonObject)JsonUnflattener.Unflatten(attributes));
-            }
+            var json = string.IsNullOrWhiteSpace(attributes)
+                ? new JsonObject()
+                : (JsonObject)JsonUnflattener.Unflatten(attributes);
+            var instance = (T)CreateObject(type, json, associationFactory);
+            PopulateObject(instance, json, associationFactory);
 
             return instance;
         }
 
-        private static void PopulateObject(object target, JsonObject json) {
+        private static void PopulateObject(object target, JsonObject json,
+            Func<string, association>? associationFactory) {
             var type = target.GetType();
+
+            // Validate before attribute setters run, regardless of JSON property order.
+            if (target is association concreteAssociation && type != typeof(association)
+                && json["code"] is JsonValue codeNode) {
+                var code = codeNode.GetValue<string>();
+                if (!string.Equals(code, concreteAssociation.S100FC_code, StringComparison.Ordinal)) {
+                    throw new JsonException($"Association '{code}' does not match {type}.");
+                }
+            }
 
             foreach (var (name, node) in json) {
                 if (target is association association) {
-                    if (name == "code" && node is JsonValue codeNode) {
-                        var code = codeNode.GetValue<string>();
-                        if (type != typeof(association) && code != association.S100FC_code) {
-                            throw new JsonException(
-                                $"Association '{code}' does not match {type}.");
-                        }
-                    }
-
                     if (name == "attributes" && node is JsonObject attributes) {
                         if (type == typeof(association) && attributes.Count > 0) {
                             throw new JsonException(
-                                "Association attributes require a concrete " +
-                                "featureBinding<TAssociation> or informationBinding<TAssociation>.");
+                                "Association attributes require a non-empty code identifying " +
+                                "a concrete association class in a loaded catalogue.");
                         }
 
                         // Generated association properties update the underlying attribute bindings.
-                        PopulateObject(association, attributes);
+                        PopulateObject(association, attributes, associationFactory);
                         continue;
                     }
                 }
@@ -335,21 +311,95 @@ namespace S100FC
                 else if (node is JsonArray array) {
                     var elementType = prop.PropertyType.GetElementType()
                         ?? prop.PropertyType.GetGenericArguments().First();
-                    var list = PopulateList(array, elementType);
+                    var list = PopulateList(array, elementType, associationFactory);
 
                     prop.SetValue(target, prop.PropertyType.IsArray ? ToArray(list, elementType) : list);
                 }
                 else if (node is JsonObject obj) {
-                    // Binding constructors already create the concrete generic association.
-                    var child = prop.CanRead ? prop.GetValue(target) : null;
-                    child ??= Activator.CreateInstance(prop.PropertyType)!;
-                    PopulateObject(child, obj);
+                    var existing = prop.CanRead ? prop.GetValue(target) : null;
+                    var child = CreateObject(prop.PropertyType, obj, associationFactory, existing);
+                    PopulateObject(child, obj, associationFactory);
                     prop.SetValue(target, child);
                 }
             }
         }
 
-        private static IList PopulateList(JsonArray array, Type elementType) {
+        private static Func<string, association> CreateAutomaticAssociationFactory() {
+            // Scan once per unflatten operation, only if a base association needs resolution.
+            // Keeping this index local also allows catalogues loaded later to be discovered.
+            var typesByCode = new Lazy<ILookup<string, Type>>(() =>
+                AppDomain.CurrentDomain.GetAssemblies()
+                    .Where(assembly => !assembly.IsDynamic)
+                    .SelectMany(GetLoadableTypes)
+                    .Where(type => type != typeof(association)
+                        && typeof(association).IsAssignableFrom(type)
+                        && !type.IsAbstract && !type.ContainsGenericParameters
+                        && type.GetConstructor(Type.EmptyTypes) is not null)
+                    .ToLookup(type => type.Name, StringComparer.Ordinal));
+
+            return code => {
+                var candidates = typesByCode.Value[code].ToArray();
+                if (candidates.Length == 0) {
+                    throw new JsonException(
+                        $"No concrete association class named '{code}' was found in the loaded assemblies. " +
+                        "Ensure the catalogue assembly is loaded, or supply associationFactory.");
+                }
+                if (candidates.Length > 1) {
+                    var names = string.Join(", ", candidates.Select(type => type.AssemblyQualifiedName)
+                        .OrderBy(name => name, StringComparer.Ordinal));
+                    throw new JsonException(
+                        $"Association code '{code}' matches multiple catalogue classes: {names}. " +
+                        "Supply a catalogue-specific associationFactory to disambiguate.");
+                }
+
+                return (association)(Activator.CreateInstance(candidates[0])
+                    ?? throw new JsonException($"Cannot create association '{code}'."));
+            };
+        }
+
+        private static IEnumerable<Type> GetLoadableTypes(Assembly assembly) {
+            try {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException exception) {
+                // An unrelated missing dependency must not hide the types that did load.
+                return exception.Types.OfType<Type>();
+            }
+        }
+
+        private static object CreateObject(Type type, JsonObject json,
+            Func<string, association>? associationFactory, object? existing = null) {
+            if (type == typeof(association)
+                && (existing is null || existing.GetType() == typeof(association))
+                && associationFactory is not null) {
+                if (json["code"] is not JsonValue codeNode
+                    || !codeNode.TryGetValue<string>(out var code)
+                    || string.IsNullOrWhiteSpace(code)) {
+                    // Legacy base associations may have neither a code nor any attributes.
+                    // Attributed associations are rejected by PopulateObject if no type is known.
+                    if (json["attributes"] is JsonObject attributes && attributes.Count > 0) {
+                        throw new JsonException("An association with attributes requires a non-empty code.");
+                    }
+                    return existing ?? new association();
+                }
+
+                // Resolve before populating attributes so generated setters are available.
+                var resolved = associationFactory(code)
+                    ?? throw new JsonException($"The association factory returned null for '{code}'.");
+                if (resolved.GetType() == typeof(association)) {
+                    throw new JsonException(
+                        $"The association factory must return a concrete derived association for '{code}'.");
+                }
+                return resolved;
+            }
+
+            // Generic binding constructors already supply the correct association type.
+            return existing ?? Activator.CreateInstance(type)
+                ?? throw new InvalidOperationException($"Cannot create {type}.");
+        }
+
+        private static IList PopulateList(JsonArray array, Type elementType,
+            Func<string, association>? associationFactory) {
             var list = (IList)Activator.CreateInstance(
                 typeof(List<>).MakeGenericType(elementType))!;
 
@@ -365,14 +415,13 @@ namespace S100FC
                 }
                 else if (item is JsonObject obj) {
                     // Preserve constructor-created associations and generated attribute setters.
-                    var element = Activator.CreateInstance(elementType)
-                        ?? throw new InvalidOperationException($"Cannot create {elementType}.");
-                    PopulateObject(element, obj);
+                    var element = CreateObject(elementType, obj, associationFactory);
+                    PopulateObject(element, obj, associationFactory);
                     list.Add(element);
                 }
                 else if (item is JsonArray nested && elementType.IsSZArray) {
                     var nestedElementType = elementType.GetElementType()!;
-                    list.Add(ToArray(PopulateList(nested, nestedElementType), nestedElementType));
+                    list.Add(ToArray(PopulateList(nested, nestedElementType, associationFactory), nestedElementType));
                 }
                 else {
                     throw new JsonException($"Unsupported array item for element type {elementType}.");
@@ -394,7 +443,7 @@ namespace S100FC
         }
 
         internal static string FlattenAttributes(attributeBinding[] attributes, attributeBindingDefinition[] catalogue)
-            => SerializeFlattened(CreateAttributes(attributes, catalogue),true);
+            => SerializeFlattened(CreateAttributes(attributes, catalogue), true);
 
         private static JObject CreateAttributes(attributeBinding[] attributes, attributeBindingDefinition[] catalogue) {
             var root = new JObject();
