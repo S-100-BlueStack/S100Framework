@@ -423,7 +423,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
 
         public override void SetValue(string value) {
-            this.value = int.Parse(value);
+            this.value = value is null ? null : int.Parse(value);
         }
 
         [JsonIgnore]

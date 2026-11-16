@@ -27,19 +27,23 @@ namespace S100FC
             return root;
         }
 
-        public static IEnumerable<(string Path, object Value)> GetAllProperties(JsonNode node, string path = "") {
+        public static IEnumerable<(string Path, object? Value)> GetAllProperties(JsonNode? node, string path = "") {
+            if (node is null) {
+                // JsonNode represents JSON null with a null reference.
+                yield return (path, null);
+                yield break;
+            }
+
             if (node is JsonObject obj) {
                 foreach (var prop in obj) {
                     string subPath = string.IsNullOrEmpty(path) ? prop.Key : $"{path}.{prop.Key}";
-                    if (prop.Value is null) continue;
                     foreach (var child in GetAllProperties(prop.Value, subPath))
                         yield return child;
                 }
             }
             else if (node is JsonArray array) {
                 for (int i = 0; i < array.Count; i++) {
-                    if (array[i] is null) continue;
-                    foreach (var child in GetAllProperties(array[i]!, $"{path}[{i}]"))
+                    foreach (var child in GetAllProperties(array[i], $"{path}[{i}]"))
                         yield return child;
                 }
             }
