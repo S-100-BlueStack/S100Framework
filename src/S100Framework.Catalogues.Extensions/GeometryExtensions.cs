@@ -6,11 +6,13 @@ using Microsoft.Extensions.Logging;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Noding;
 using NetTopologySuite.Noding.Snapround;
+using NetTopologySuite.Operation.Buffer.Validate;
 using NetTopologySuite.Operation.Linemerge;
 using NetTopologySuite.Operation.Valid;
 using NetTopologySuite.Simplify;
 using S100FC.S101.FeatureTypes;
 using S100FC.Topology;
+using SpatialProcessing;
 using System.Data;
 using System.Globalization;
 
@@ -77,7 +79,10 @@ namespace ArcGIS.Core.Geometry
         //static readonly PrecisionModel precisionModel = new PrecisionModel(2000000);
         static readonly PrecisionModel precisionModel = new PrecisionModel(10000000);    //ENC
 
+        //static readonly PrecisionModel precisionModel = new PrecisionModel(PrecisionModels.Floating);
         static readonly GeometryFactory factory = new GeometryFactory(precisionModel, srid: 4326); // Or PrecisionModels.Floating        
+
+        //static readonly PrecisionModel precisionModel = new PrecisionModel(100000000);
 
         //private const string surfaceGROUP1 = "'DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA','SHORELINECONSTRUCTION','DATACOVERAGE','VERTICALDATUMOFDATA','QUALITYOFBATHYMETRICDATA','SOUNDINGDATUM','NAVIGATIONALSYSTEMOFMARKS'";
         private const string surfaceTopologyFeatures = "'DEPTHAREA','DREDGEDAREA','LANDAREA','UNSURVEYEDAREA','SHORELINECONSTRUCTION'";
@@ -166,11 +171,17 @@ namespace ArcGIS.Core.Geometry
 
                     if (GeometryEngine.Instance.Disjoint(g, clipGeometry)) return g;
 
-                    //if (!GeometryEngine.Instance.Relate(g, clipGeometry, S100FC.Topology.Matrix.DE9IM_Crosses)) return g;
+                    //if (GeometryEngine.Instance.Within(g, clipGeometry)) return g;
 
-                    var difference = GeometryEngine.Instance.Intersection(g, clipGeometry);
+                    //var intersection = GeometryEngine.Instance.Intersection(g, clipGeometry);
 
-                    if (difference is ArcGIS.Core.Geometry.Polygon polygon) {
+                    var intersection = ArcGisPolygonClipper.Clip(g, clipGeometry);
+
+                    //var jsonG = g.ToJson();
+                    //var jsonclipGeometry = clipGeometry.ToJson();
+                    //var jsondifference = intersection.ToJson();
+
+                    if (intersection is ArcGIS.Core.Geometry.Polygon polygon) {
                         if (polygon.ExteriorRingCount > 1) {
                             ArcGIS.Core.Geometry.Polygon[] polygons = [];
                             ReadOnlySegmentCollection[] segments = [polygon.Parts[0]];
@@ -232,10 +243,28 @@ namespace ArcGIS.Core.Geometry
                                 //if ("DataCoverage".Equals(code, StringComparison.InvariantCultureIgnoreCase)) System.Diagnostics.Debugger.Break();
                                 //if ("Coastline".Equals(code, StringComparison.InvariantCultureIgnoreCase)) System.Diagnostics.Debugger.Break();
                                 if (lookup.Contains(objectid)) continue;
-                                
+
                                 var shape = _.GetShape();
+                                //if (code.Equals("DepthArea") && objectid == 360) {
+                                //    using var fc = geodatabase.OpenDataset<FeatureClass>("main.surface");
+                                //    using var buffer = fc.CreateRowBuffer();
+                                //    buffer["ps"] = "TEST";
+                                //    buffer["shape"] = clipGeometry;
+                                //    fc.CreateRow(buffer);
+                                //    System.Diagnostics.Debugger.Break();
+                                //}
+
                                 shape = clip(shape);
                                 if (shape.IsEmpty) continue;
+
+                                //if (code.Equals("DepthArea") && objectid == 360) {
+                                //    using var fc = geodatabase.OpenDataset<FeatureClass>("main.surface");
+                                //    using var buffer = fc.CreateRowBuffer();
+                                //    buffer["ps"] = "TEST";
+                                //    buffer["shape"] = shape.Clone();
+                                //    fc.CreateRow(buffer);
+                                //    System.Diagnostics.Debugger.Break();
+                                //}
 
                                 hits.Add(objectid);
                                 yield return (objectid, _.UID(), code, shape);
@@ -254,7 +283,7 @@ namespace ArcGIS.Core.Geometry
 
                             //if ("DataCoverage".Equals(code, StringComparison.InvariantCultureIgnoreCase)) System.Diagnostics.Debugger.Break();
                             if (lookup.Contains(objectid)) continue;
-                            
+
                             var shape = _.GetShape();
                             shape = clip(shape);
                             if (shape.IsEmpty) continue;
@@ -286,6 +315,8 @@ namespace ArcGIS.Core.Geometry
         }
 
         public static (S100FC.Topology.IMatrix matrix, IDictionary<string, string> mapper) BuildTopology(this Geodatabase geodatabase, FeatureQuery features, Action<int, ICollection<(LineString lineString, string message)>, bool>? interceptor = default, ILoggerFactory? loggerFactory = default) {
+            S100FC.Topology.Matrix.Factory = S100FC.Topology.Reloaded.Factory = factory;
+
             var syntax = geodatabase.GetSQLSyntax();
             var definitions = geodatabase.GetDefinitions<FeatureClassDefinition>();
 
@@ -322,6 +353,10 @@ namespace ArcGIS.Core.Geometry
                         var coordinates = exteriorRing.Parts[0].Select(segment => new NetTopologySuite.Geometries.Coordinate(segment.StartPoint.X, segment.StartPoint.Y)).ToArray();
 
                         var ex = factory.CreateLinearRing([.. coordinates, coordinates[0]]);
+
+                        //if (name.Equals("{E38CB6BA-A5E9-4249-9D43-2B24344DC0E4}", StringComparison.CurrentCultureIgnoreCase)) {
+                        //    interceptor?.Invoke(6000, [(ex, name)], false);
+                        //}
 
                         var reduced = matrix.Reducer.Reduce(ex);
                         if (!(reduced is LinearRing linear)) continue;

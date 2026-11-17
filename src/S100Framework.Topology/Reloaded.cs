@@ -474,7 +474,7 @@ namespace S100FC.Topology
             }
 
             //this._interceptor?.Invoke(6000, [.. this._curves.Select(e => (e.Value.LineString, $"{e.Value.Id}"))],false);
-            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"#{e.Value.Id} {e.Value.LineStringText}"))], false);
+            this._interceptor?.Invoke(100, [.. this._curves.Select(e => (e.Value.LineString, $"#{e.Value.Id} {e.Value.LineStringText}"))], true);
 
             return this;
         }
@@ -530,6 +530,8 @@ namespace S100FC.Topology
                     _collapse = [.. _collapse, surface];
                     continue;
                 }
+
+                //if (surface.ObjectId == 43) System.Diagnostics.Debugger.Break();
 
                 var idExteriorRing = this._mixedTopologyNetwork.AddLineString(surface.ExteriorRing);
 
