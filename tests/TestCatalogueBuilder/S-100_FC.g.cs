@@ -839,7 +839,7 @@ namespace S100FC
         public string S100FC_name { get; init; } = "";
 
         [JsonInclude]
-        public attributeBinding[] attributes { get; protected set; } = [];
+        public attributeBinding[] attributeBindings { get; protected set; } = [];
 
         [JsonIgnore]
         public virtual attributeBindingDefinition[] attributeBindingsCatalogue { get; } = [];
@@ -848,17 +848,17 @@ namespace S100FC
             if (attribute == null) return;
             var binding = attributeBindingsCatalogue!.Single(e => e.attribute.Equals(attribute.S100FC_code));
             if (binding.upper == 1) {
-                var value = this.attributes.SingleOrDefault(e => e.S100FC_code.Equals(attribute.S100FC_code));
+                var value = this.attributeBindings.SingleOrDefault(e => e.S100FC_code.Equals(attribute.S100FC_code));
                 if (value == default) {
-                    this.attributes = [.. this.attributes, attribute];
+                    this.attributeBindings = [.. this.attributeBindings, attribute];
                 }
                 else {
-                    var index = Array.IndexOf(this.attributes, value);
-                    this.attributes[index] = attribute;
+                    var index = Array.IndexOf(this.attributeBindings, value);
+                    this.attributeBindings[index] = attribute;
                 }
             }
             else {
-                this.attributes = [.. this.attributes, attribute];
+                this.attributeBindings = [.. this.attributeBindings, attribute];
             }
         }
 
@@ -867,27 +867,27 @@ namespace S100FC
             foreach (var a in attribute) {
                 var binding = attributeBindingsCatalogue!.Single(e => e.attribute.Equals(a.S100FC_code));
                 if (binding.upper == 1) {
-                    var value = this.attributes.SingleOrDefault(e => e.S100FC_code.Equals(a.S100FC_code));
+                    var value = this.attributeBindings.SingleOrDefault(e => e.S100FC_code.Equals(a.S100FC_code));
                     if (value == default) {
-                        this.attributes = [.. this.attributes, a];
+                        this.attributeBindings = [.. this.attributeBindings, a];
                     }
                     else {
-                        var index = Array.IndexOf(this.attributes, value);
-                        this.attributes[index] = a;
+                        var index = Array.IndexOf(this.attributeBindings, value);
+                        this.attributeBindings[index] = a;
                     }
                 }
                 else {
-                    this.attributes = [.. this.attributes, a];
+                    this.attributeBindings = [.. this.attributeBindings, a];
                 }
             }
         }
 
         protected TAttribute? GetAttributeValue<TAttribute>(string name) where TAttribute : attributeBinding {
-            return this.attributes.SingleOrDefault(e => e.S100FC_code.Equals(name)) as TAttribute;
+            return this.attributeBindings.SingleOrDefault(e => e.S100FC_code.Equals(name)) as TAttribute;
         }
 
         protected TAttribute[] GetAttributeValues<TAttribute>(string name) where TAttribute : attributeBinding {
-            return this.attributes.Where(e => e.S100FC_code.Equals(name)).Cast<TAttribute>().ToArray();
+            return this.attributeBindings.Where(e => e.S100FC_code.Equals(name)).Cast<TAttribute>().ToArray();
         }
 
         public association() {

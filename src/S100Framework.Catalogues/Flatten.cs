@@ -204,28 +204,61 @@ namespace S100FC
             return new JObject {
                 ["code"] = association.S100FC_code,
                 ["attributes"] = CreateAttributes(
-                    association.attributes,
+                    association.attributeBindings,
                     association.attributeBindingsCatalogue),
             };
         }
 
+        /// <summary>Restores feature attributes using a concrete FeatureType class.</summary>
+        public static T UnflattenFeatureType<T>(string? attributes) where T : FeatureType
+            => (T)Unflatten<FeatureType>(attributes, typeof(T), associationType: null);
+
+        public static FeatureType UnflattenFeatureType(string? attributes, Type featureType)
+            => Unflatten<FeatureType>(attributes, featureType, associationType: null);
+
+        /// <summary>Restores information attributes using a concrete InformationType class.</summary>
+        public static T UnflattenInformationType<T>(string? attributes) where T : InformationType
+            => (T)Unflatten<InformationType>(attributes, typeof(T), associationType: null);
+
+        public static InformationType UnflattenInformationType(string? attributes, Type informationType)
+            => Unflatten<InformationType>(attributes, informationType, associationType: null);
+
+        /// <summary>
+        /// Restores information bindings. Supply associationType when association attributes
+        /// require a concrete association class. One type applies to all associations in the array.
+        /// </summary>
+        public static informationBinding[] UnflattenInformationBindings(string? attributes,
+            Type? associationType = null)
+            => Unflatten<informationBinding[]>(attributes, associationType);
+
+        /// <summary>
+        /// Restores feature bindings. Supply associationType when association attributes
+        /// require a concrete association class. One type applies to all associations in the array.
+        /// </summary>
+        public static featureBinding[] UnflattenFeatureBindings(string? attributes,
+            Type? associationType = null)
+            => Unflatten<featureBinding[]>(attributes, associationType);
+
+        public static T UnflattenRaw<T>(string? attributes,
+            Type? associationType = null) where T : class
+            => Unflatten<T>(attributes, typeof(T), associationType);
+
         /// <summary>
         /// Restores a feature, information type, binding, or wrapped array.
-        /// Base bindings resolve associations by code from loaded catalogue classes.
+        /// Supply associationType for base bindings that contain association attributes.
         /// Generic bindings retain their constructor-created concrete association.
         /// </summary>
         /// <param name="attributes">Flattened JSON produced by the matching flatten method.</param>
-        /// <param name="associationFactory">
-        /// Optional override for association resolution. By default, the stored code is
-        /// matched to a concrete association class name in the loaded assemblies.
-        /// An override must return a fresh instance and is only used for base associations.
+        /// <param name="associationType">
+        /// Optional concrete association class with a public parameterless constructor.
+        /// The same type applies to all base associations in this unflatten operation.
         /// </param>
-        public static T Unflatten<T>(string? attributes,
-            Func<string, association>? associationFactory = null) where T : class
-            => Unflatten<T>(attributes, typeof(T), associationFactory);
+        private static T Unflatten<T>(string? attributes,
+            Type? associationType = null) where T : class
+            => Unflatten<T>(attributes, typeof(T), associationType);
 
-        public static T Unflatten<T>(string? attributes, Type type,
-            Func<string, association>? associationFactory = null) where T : class {
+        private static T Unflatten<T>(string? attributes, Type type,
+            Type? associationType) where T : class {
             ArgumentNullException.ThrowIfNull(type);
             if (!typeof(T).IsAssignableFrom(type)) {
                 throw new ArgumentException($"{type} must be assignable to {typeof(T)}.", nameof(type));
@@ -235,7 +268,15 @@ namespace S100FC
                 throw new NotSupportedException($"{type} must be a concrete type.");
             }
 
-            associationFactory ??= CreateAutomaticAssociationFactory();
+            if (associationType is not null
+                && (associationType == typeof(association)
+                    || !typeof(association).IsAssignableFrom(associationType)
+                    || associationType.IsAbstract || associationType.ContainsGenericParameters
+                    || associationType.GetConstructor(Type.EmptyTypes) is null)) {
+                throw new ArgumentException(
+                    $"{associationType} must derive from association and be a concrete type with a public parameterless constructor.",
+                    nameof(associationType));
+            }
 
             if (type.IsArray) {
                 if (!type.IsSZArray) {
@@ -258,20 +299,20 @@ namespace S100FC
                     throw new JsonException("An array target requires a single named array in the flattened JSON.");
                 }
 
-                return (T)(object)ToArray(PopulateList(items, elementType, associationFactory), elementType);
+                return (T)(object)ToArray(PopulateList(items, elementType, associationType), elementType);
             }
 
             var json = string.IsNullOrWhiteSpace(attributes)
                 ? new JsonObject()
                 : (JsonObject)JsonUnflattener.Unflatten(attributes);
-            var instance = (T)CreateObject(type, json, associationFactory);
-            PopulateObject(instance, json, associationFactory);
+            var instance = (T)CreateObject(type, associationType);
+            PopulateObject(instance, json, associationType);
 
             return instance;
         }
 
         private static void PopulateObject(object target, JsonObject json,
-            Func<string, association>? associationFactory) {
+            Type? associationType) {
             var type = target.GetType();
 
             // Validate before attribute setters run, regardless of JSON property order.
@@ -288,12 +329,12 @@ namespace S100FC
                     if (name == "attributes" && node is JsonObject attributes) {
                         if (type == typeof(association) && attributes.Count > 0) {
                             throw new JsonException(
-                                "Association attributes require a non-empty code identifying " +
-                                "a concrete association class in a loaded catalogue.");
+                                "Association attributes require a concrete association type. " +
+                                "Pass associationType to Unflatten, or use a generic binding with a concrete association.");
                         }
 
                         // Generated association properties update the underlying attribute bindings.
-                        PopulateObject(association, attributes, associationFactory);
+                        PopulateObject(association, attributes, associationType);
                         continue;
                     }
                 }
@@ -315,95 +356,40 @@ namespace S100FC
                 else if (node is JsonArray array) {
                     var elementType = prop.PropertyType.GetElementType()
                         ?? prop.PropertyType.GetGenericArguments().First();
-                    var list = PopulateList(array, elementType, associationFactory);
+                    var list = PopulateList(array, elementType, associationType);
 
                     prop.SetValue(target, prop.PropertyType.IsArray ? ToArray(list, elementType) : list);
                 }
                 else if (node is JsonObject obj) {
                     var existing = prop.CanRead ? prop.GetValue(target) : null;
-                    var child = CreateObject(prop.PropertyType, obj, associationFactory, existing);
-                    PopulateObject(child, obj, associationFactory);
+                    var child = CreateObject(prop.PropertyType, associationType, existing);
+                    PopulateObject(child, obj, associationType);
                     prop.SetValue(target, child);
                 }
             }
         }
 
-        private static Func<string, association> CreateAutomaticAssociationFactory() {
-            // Scan once per unflatten operation, only if a base association needs resolution.
-            // Keeping this index local also allows catalogues loaded later to be discovered.
-            var typesByCode = new Lazy<ILookup<string, Type>>(() =>
-                AppDomain.CurrentDomain.GetAssemblies()
-                    .Where(assembly => !assembly.IsDynamic)
-                    .SelectMany(GetLoadableTypes)
-                    .Where(type => type != typeof(association)
-                        && typeof(association).IsAssignableFrom(type)
-                        && !type.IsAbstract && !type.ContainsGenericParameters
-                        && type.GetConstructor(Type.EmptyTypes) is not null)
-                    .ToLookup(type => type.Name, StringComparer.Ordinal));
-
-            return code => {
-                var candidates = typesByCode.Value[code].ToArray();
-                if (candidates.Length == 0) {
-                    throw new JsonException(
-                        $"No concrete association class named '{code}' was found in the loaded assemblies. " +
-                        "Ensure the catalogue assembly is loaded, or supply associationFactory.");
-                }
-                if (candidates.Length > 1) {
-                    var names = string.Join(", ", candidates.Select(type => type.AssemblyQualifiedName)
-                        .OrderBy(name => name, StringComparer.Ordinal));
-                    throw new JsonException(
-                        $"Association code '{code}' matches multiple catalogue classes: {names}. " +
-                        "Supply a catalogue-specific associationFactory to disambiguate.");
-                }
-
-                return (association)(Activator.CreateInstance(candidates[0])
-                    ?? throw new JsonException($"Cannot create association '{code}'."));
-            };
-        }
-
-        private static IEnumerable<Type> GetLoadableTypes(Assembly assembly) {
-            try {
-                return assembly.GetTypes();
-            }
-            catch (ReflectionTypeLoadException exception) {
-                // An unrelated missing dependency must not hide the types that did load.
-                return exception.Types.OfType<Type>();
-            }
-        }
-
-        private static object CreateObject(Type type, JsonObject json,
-            Func<string, association>? associationFactory, object? existing = null) {
-            if (type == typeof(association)
-                && (existing is null || existing.GetType() == typeof(association))
-                && associationFactory is not null) {
-                if (json["code"] is not JsonValue codeNode
-                    || !codeNode.TryGetValue<string>(out var code)
-                    || string.IsNullOrWhiteSpace(code)) {
-                    // Legacy base associations may have neither a code nor any attributes.
-                    // Attributed associations are rejected by PopulateObject if no type is known.
-                    if (json["attributes"] is JsonObject attributes && attributes.Count > 0) {
-                        throw new JsonException("An association with attributes requires a non-empty code.");
+        private static object CreateObject(Type type, Type? associationType, object? existing = null) {
+            if (type == typeof(association) && associationType is not null) {
+                if (existing is not null && existing.GetType() != typeof(association)) {
+                    // A generic binding already fixes the association type in its constructor.
+                    if (!associationType.IsInstanceOfType(existing)) {
+                        throw new JsonException(
+                            $"The existing association {existing.GetType()} does not match the supplied association type {associationType}.");
                     }
-                    return existing ?? new association();
+                    return existing;
                 }
 
-                // Resolve before populating attributes so generated setters are available.
-                var resolved = associationFactory(code)
-                    ?? throw new JsonException($"The association factory returned null for '{code}'.");
-                if (resolved.GetType() == typeof(association)) {
-                    throw new JsonException(
-                        $"The association factory must return a concrete derived association for '{code}'.");
-                }
-                return resolved;
+                return Activator.CreateInstance(associationType)
+                    ?? throw new InvalidOperationException($"Cannot create {associationType}.");
             }
 
-            // Generic binding constructors already supply the correct association type.
             return existing ?? Activator.CreateInstance(type)
                 ?? throw new InvalidOperationException($"Cannot create {type}.");
         }
 
         private static IList PopulateList(JsonArray array, Type elementType,
-            Func<string, association>? associationFactory) {
+            Type? associationType) {
             var list = (IList)Activator.CreateInstance(
                 typeof(List<>).MakeGenericType(elementType))!;
 
@@ -419,13 +405,13 @@ namespace S100FC
                 }
                 else if (item is JsonObject obj) {
                     // Preserve constructor-created associations and generated attribute setters.
-                    var element = CreateObject(elementType, obj, associationFactory);
-                    PopulateObject(element, obj, associationFactory);
+                    var element = CreateObject(elementType, associationType);
+                    PopulateObject(element, obj, associationType);
                     list.Add(element);
                 }
                 else if (item is JsonArray nested && elementType.IsSZArray) {
                     var nestedElementType = elementType.GetElementType()!;
-                    list.Add(ToArray(PopulateList(nested, nestedElementType, associationFactory), nestedElementType));
+                    list.Add(ToArray(PopulateList(nested, nestedElementType, associationType), nestedElementType));
                 }
                 else {
                     throw new JsonException($"Unsupported array item for element type {elementType}.");

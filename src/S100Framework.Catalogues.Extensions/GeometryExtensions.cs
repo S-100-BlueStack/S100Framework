@@ -120,7 +120,7 @@ namespace ArcGIS.Core.Geometry
             while (datacoverageSearch.MoveNext()) {
                 var f = (ArcGIS.Core.Data.Feature)datacoverageSearch.Current;
 
-                var dataCoverage = (S100FC.S101.FeatureTypes.DataCoverage)S100FC.AttributeFlattenExtensions.Unflatten<S100FC.S101.FeatureTypes.DataCoverage>(Convert.ToString(f["attributebindings"])!);
+                var dataCoverage = S100FC.AttributeFlattenExtensions.UnflattenFeatureType<S100FC.S101.FeatureTypes.DataCoverage>(Convert.ToString(f["attributebindings"])!);
 
                 var spatialQueryFilter = new SpatialQueryFilter {
                     WhereClause = whereClause + $" AND compilationscale = {dataCoverage.optimumDisplayScale}",
