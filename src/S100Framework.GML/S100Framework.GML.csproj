@@ -1,26 +1,26 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFrameworks>net10.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<Platforms>AnyCPU</Platforms>
-		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-		<Company>S-100-BlueStack</Company>
-		<Product>S100Framework</Product>
-		<PackageId>S100Framework.GML</PackageId>
-		<RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
-		<AssemblyVersion>3.0.0.0</AssemblyVersion>
-		<Configurations>Debug</Configurations>
-		<Version>3.1.8</Version>
-	</PropertyGroup>
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU</Platforms>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Company>S-100-BlueStack</Company>
+    <Product>S100Framework</Product>
+    <PackageId>S100Framework.GML</PackageId>
+    <RepositoryUrl>https://github.com/S-100-BlueStack/S100Framework</RepositoryUrl>
+    <AssemblyVersion>5.0.0.0</AssemblyVersion>
+    <Configurations>Debug</Configurations>
+    <PackageVersion>5.0.0</PackageVersion>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="NetTopologySuite" Version="2.6.0" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NetTopologySuite" Version="2.6.0" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\S100Framework.Catalogues.ProductSpecifications\S100Framework.Catalogues.ProductSpecifications.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\S100Framework.Catalogues.ProductSpecifications\S100Framework.Catalogues.ProductSpecifications.csproj" />
+  </ItemGroup>
 
 </Project>
