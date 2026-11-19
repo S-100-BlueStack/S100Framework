@@ -256,7 +256,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
 
         public override void SetValue(string value) {
-            this.value = Boolean.Parse(value);
+            this.value = string.IsNullOrEmpty(value?.Trim()) ? null : Boolean.Parse(value);
         }
     }
 
@@ -271,7 +271,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
 
         public override void SetValue(string value) {
-            this.value = int.Parse(value);
+            this.value = string.IsNullOrEmpty(value?.Trim()) ? null : int.Parse(value);
         }
     }
 
@@ -286,7 +286,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
 
         public override void SetValue(string value) {
-            this.value = decimal.Parse(value, CultureInfo.InvariantCulture);
+            this.value = string.IsNullOrEmpty(value?.Trim()) ? null : decimal.Parse(value, CultureInfo.InvariantCulture);
         }
     }
 
@@ -331,7 +331,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
 
         public override void SetValue(string value) {
-            this.value = DateOnly.Parse(value);
+            this.value = string.IsNullOrEmpty(value?.Trim()) ? null : DateOnly.Parse(value);
         }
     }
 
@@ -346,7 +346,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
 
         public override void SetValue(string value) {
-            this.value = DateTime.Parse(value);
+            this.value = string.IsNullOrEmpty(value?.Trim()) ? null : DateTime.Parse(value);
         }
     }
 
@@ -361,7 +361,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
 
         public override void SetValue(string value) {
-            this.value = S100FC.S100.Time.Parse(value);
+            this.value = string.IsNullOrEmpty(value?.Trim()) ? null : S100FC.S100.Time.Parse(value);
         }
     }
 
@@ -423,7 +423,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
 
         public override void SetValue(string value) {
-            this.value = int.Parse(value);
+            this.value = string.IsNullOrEmpty(value?.Trim()) ? null : int.Parse(value);
         }
 
         [JsonIgnore]
@@ -444,7 +444,7 @@ namespace S100FC
         public override bool HasValue => value.HasValue;
 
         public override void SetValue(string value) {
-            this.value = int.Parse(value);
+            this.value = string.IsNullOrEmpty(value?.Trim()) ? null : int.Parse(value);
         }
     }
 
