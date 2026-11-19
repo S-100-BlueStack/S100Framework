@@ -15,14 +15,23 @@ namespace S100FC.YAML
     public class Dataset
     {
         public string CellName { get; set; } = string.Empty;
+
         public string Comment { get; set; } = string.Empty;
+
         public uint? Edition { get; set; }
-        public uint? Update { get; set; }
+
+        public uint? Update { get; set; }        
+
+        public string? UpdateApplicationDate { get; set; } = $"{DateTime.Now:yyyyMMdd}";
+
         [YamlMember(Alias = "encver", ApplyNamingConventions = false)]
         public string ENCVer { get; set; } = "INT.IHO.S-101.2.0";
+
         public string? FCVer { get; set; } = default;
+
         [YamlMember(Alias = "verticalDatum", ApplyNamingConventions = false)]
         public string? VerticalDatum { get; set; } = default;
+
         [YamlMember(Alias = "soundingDatum", ApplyNamingConventions = false)]
         public string? SoundingDatum { get; set; } = default;
 
@@ -901,6 +910,8 @@ namespace S100FC.YAML
 
         public string Producer { get; set; } = "GST";
         public string ProducerCode { get; set; } = "DK00";
+
+        public string? RoleCode { get; set; } = "owner";
 
         public string? NavigationPurpose { get; set; }
 
