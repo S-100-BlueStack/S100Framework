@@ -79,7 +79,7 @@ namespace S100FC
         public int UpperBound = upperBound;
     }
 
-    public record definitionReference(int sourceIdentifier, string? definitionSource, string code, string name, Primitives[] primitives);
+    public record definitionReference(int sourceIdentifier, string? definitionSource, string code, string name, Primitives[] primitives, Type type);
 }
 
 namespace S100FC.S100

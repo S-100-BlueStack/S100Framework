@@ -9,6 +9,8 @@ namespace TestAttributes
     using S100FC;
     using static System.Runtime.InteropServices.JavaScript.JSType;
 
+    public record definitionReferenceInternal(int sourceIdentifier, string? definitionSource, string code, string name, Primitives[] primitives);
+
     public class UnitTestRoslyn
     {
         private readonly ITestOutputHelper _output;
@@ -303,8 +305,8 @@ namespace TestAttributes
             var derivedTypesFeatureBindings = new StringBuilder();
             var derivedTypesAttributes = new StringBuilder();
 
-            ICollection<definitionReference> definitionReferenceInformationTypes = [];
-            ICollection<definitionReference> definitionReferenceFeatureTypes = [];
+            ICollection<definitionReferenceInternal> definitionReferenceInformationTypes = [];
+            ICollection<definitionReferenceInternal> definitionReferenceFeatureTypes = [];
 
             #region S100_FC_SimpleAttribute
             {
@@ -854,7 +856,7 @@ namespace TestAttributes
                 }
                 roslyn.AppendLine($"\t\tpublic static definitionReference[] definitionReferenceInformationTypes => [");
                 foreach (var e in definitionReferenceInformationTypes) {
-                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\", []),");
+                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\", [], typeof({e.code})),");
                 }
                 roslyn.AppendLine("\t\t];");
 
@@ -864,7 +866,7 @@ namespace TestAttributes
                 }
                 roslyn.AppendLine($"\t\tpublic static definitionReference[] definitionReferenceFeatureTypes => [");
                 foreach (var e in definitionReferenceFeatureTypes) {
-                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\", [{string.Join(',', e.primitives.Select(e => $"Primitives.{e}"))}]),");
+                    roslyn.AppendLine($"\t\t\tnew definitionReference({e.sourceIdentifier}, \"{e.definitionSource}\", \"{e.code}\", \"{e.name}\", [{string.Join(',', e.primitives.Select(e => $"Primitives.{e}"))}], typeof({e.code})),");
                 }
                 roslyn.AppendLine("\t\t];");
 
@@ -996,7 +998,7 @@ namespace TestAttributes
 
             public Action<string, IEnumerable<XElement>, StringBuilder>? validation { get; set; } = default;
 
-            public ICollection<definitionReference> definitionReferences { get; set; } = [];
+            public ICollection<definitionReferenceInternal> definitionReferences { get; set; } = [];
         }
 
         private bool ClassBuilder(StringBuilder roslyn, XElement element, string type, bool skipHeader, ClassBuilderHost host, Action<StringBuilder>? pre = default, Action<StringBuilder>? post = default) {
@@ -1025,7 +1027,7 @@ namespace TestAttributes
                 sourceIdentifier = "0";
             else {
                 var definitionSource = element.Element(XName.Get("definitionReference", scopes["S100FC"]))!.Element(XName.Get("definitionSource", scopes["S100FC"]))!.Attribute("ref")!.Value;
-                host.definitionReferences.Add(new definitionReference(value, definitionSource, code, name, primitives));
+                host.definitionReferences.Add(new definitionReferenceInternal(value, definitionSource, code, name, primitives));
             }
             if (host.KnownTypes.Any(a => a.Equals(code, StringComparison.InvariantCultureIgnoreCase)))
                 return true;

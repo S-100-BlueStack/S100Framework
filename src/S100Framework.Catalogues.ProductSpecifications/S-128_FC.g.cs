@@ -4518,7 +4518,7 @@ namespace S100FC.S128.FeatureTypes
 		public override string S100FC_name => "Electronic Product";
 		[JsonIgnore]
 		public override int sourceIdentifier => ElectronicProduct._sourceIdentifier;
-		public const int _sourceIdentifier = 9160;
+		public const int _sourceIdentifier = 0;
 
 		#region Attributes
 		[JsonIgnore]
